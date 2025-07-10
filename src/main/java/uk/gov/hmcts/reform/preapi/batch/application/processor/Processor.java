@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationGroupBuilderService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
@@ -38,6 +39,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final MigrationTrackerService migrationTrackerService;
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
+    private final MigrationRecordService migrationRecordService;
     private final LoggingService loggingService;
 
     @Autowired
@@ -49,6 +51,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         final ReferenceDataProcessor referenceDataProcessor,
         final MigrationGroupBuilderService migrationService,
         final MigrationTrackerService migrationTrackerService,
+        final MigrationRecordService migrationRecordService,
         final LoggingService loggingService
     ) {
         this.cacheService = cacheService;
@@ -58,6 +61,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         this.referenceDataProcessor = referenceDataProcessor;
         this.migrationService = migrationService;
         this.migrationTrackerService = migrationTrackerService;
+        this.migrationRecordService = migrationRecordService;
         this.loggingService = loggingService;
     }
 
@@ -126,11 +130,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logDebug("===============================================");
             loggingService.logDebug("Processor started for item: %s", archiveItem);
 
+            migrationRecordService.insertPending(archiveItem);
             // Extraction
             ExtractedMetadata extractedData = extractData(archiveItem);
             if (extractedData == null) {
                 return null;
             }
+
+            migrationRecordService.updateMetadataFields(archiveItem.getArchiveId(), extractedData);
 
             // Transformation
             ProcessedRecording cleansedData = transformData(extractedData);
@@ -150,10 +157,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             
             loggingService.incrementProgress();           
             cacheService.dumpToFile();
-         
+
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
         } catch (Exception e) {
             loggingService.logError("Error processing archive %s: %s", archiveItem.getArchiveName(), e.getMessage(), e);
+            migrationRecordService.updateToFailed(archiveItem.getArchiveId(), "Error", e.getMessage());
             handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
             return null;
         }
@@ -169,12 +177,15 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         // Handle test items
         if (extractionResult.isTest()) {
             TestItem testItem = extractionResult.getTestItem();
+            migrationRecordService.updateToFailed(archiveItem.getArchiveId(), "Test", testItem.getReason());
             handleTest(testItem);
             return null;
         }
 
         // Handle extraction errors
         if (!extractionResult.isSuccess()) {
+            migrationRecordService.updateToFailed(
+                archiveItem.getArchiveId(), extractionResult.getCategory(), extractionResult.getErrorMessage());
             handleError(archiveItem, extractionResult.getErrorMessage(), extractionResult.getCategory());
             return null;
         }
@@ -276,6 +287,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         String category = result.getCategory();
 
         if (errorMessage != null) {
+            migrationRecordService.updateToFailed(item.getArchiveId(), category, errorMessage);
             handleError(item, errorMessage, category);
             return true;
         }
@@ -312,6 +324,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             exemptionItem.getDuration(),
             exemptionItem.getFileName(),
             exemptionItem.getFileSize(),
+            exemptionItem.getArchiveId(),
             exemptionItem.getArchiveName()
         );
     }

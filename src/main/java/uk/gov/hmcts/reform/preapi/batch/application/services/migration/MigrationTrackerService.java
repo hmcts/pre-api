@@ -243,7 +243,7 @@ public class MigrationTrackerService {
                 getValueOrEmpty(archiveItem.getArchiveName()),
                 getValueOrEmpty(archiveItem.getCreateTime()),
                 getValueOrEmpty(archiveItem.getFileName()),
-                getValueOrEmpty(archiveItem.getFileSize()) + " MB",
+                getValueOrEmpty(archiveItem.getFileSize()),
                 failureTime,
                 String.valueOf(item.isDurationCheck()),
                 String.valueOf(item.getDurationInSeconds()),

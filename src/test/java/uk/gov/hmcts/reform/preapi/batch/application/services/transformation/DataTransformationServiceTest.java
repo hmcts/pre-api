@@ -59,6 +59,7 @@ public class DataTransformationServiceTest {
         "court_one", "Court One"
     );
 
+    private static final String ARCHIVE_ID = "archiveID";
     private static final String ARCHIVE_NAME = "archiveName";
 
     private static MockedStatic<RecordingUtils> mockedRecordingUtils;
@@ -333,6 +334,7 @@ public class DataTransformationServiceTest {
             3000,
             "filename.mp4",
             "12345",
+            ARCHIVE_ID,
             ARCHIVE_NAME
         );
 
@@ -389,6 +391,7 @@ public class DataTransformationServiceTest {
             3000,
             "filename.mp4",
             "12345",
+            ARCHIVE_ID,
             ARCHIVE_NAME
         );
 

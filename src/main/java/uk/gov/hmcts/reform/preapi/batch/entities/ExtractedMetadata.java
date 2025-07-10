@@ -25,6 +25,7 @@ public class ExtractedMetadata implements IArchiveData {
     private int duration;
     private String fileName;
     private String fileSize;
+    private String archiveId;
     private String archiveName;
     private String sanitizedArchiveName = "";
 
@@ -41,6 +42,7 @@ public class ExtractedMetadata implements IArchiveData {
         int duration,
         String fileName,
         String fileSize,
+        String archiveId,
         String archiveName
     ) {
         this.courtReference = courtReference;
@@ -55,6 +57,7 @@ public class ExtractedMetadata implements IArchiveData {
         this.duration = duration;
         this.fileName = fileName;
         this.fileSize = fileSize;
+        this.archiveId = archiveId;
         this.archiveName = archiveName;
     }
 

@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -52,6 +53,9 @@ public class MigrationGroupBuilderServiceTest {
 
     @MockitoBean
     private MigrationTrackerService migrationTrackerService;
+
+    @MockitoBean
+    private MigrationRecordService migrationRecordService;
 
     @MockitoBean
     private CaseRepository caseRepository;
