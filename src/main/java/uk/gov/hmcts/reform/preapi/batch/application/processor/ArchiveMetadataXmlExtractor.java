@@ -265,10 +265,10 @@ public class ArchiveMetadataXmlExtractor {
         try {
             double sizeInKb = Double.parseDouble(fileSizeKb);
             double sizeInMb = sizeInKb / 1024.0;
-            return Constants.FILE_SIZE_FORMAT.format(sizeInMb) + " MB";
+            return Constants.FILE_SIZE_FORMAT.format(sizeInMb);
         } catch (NumberFormatException e) {
             loggingService.logWarning("Invalid file size: " + fileSizeKb);
-            return "0.00 MB";
+            return "0.00";
         }
     }
 }

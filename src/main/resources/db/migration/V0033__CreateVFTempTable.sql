@@ -19,9 +19,9 @@ CREATE TABLE public.vf_migration_records (
     defendant_name VARCHAR(100),
     witness_name VARCHAR(100),
     recording_version VARCHAR(4),
-    recording_version_number INTEGER,
+    recording_version_number VARCHAR(1),
     mp4_file_name TEXT,
-    file_size_mb INTEGER,
+    file_size_mb VARCHAR(10),
  
     -- Status and error tracking
     recording_id UUID,

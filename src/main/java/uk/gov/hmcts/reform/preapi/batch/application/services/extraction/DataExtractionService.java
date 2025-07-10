@@ -133,6 +133,7 @@ public class DataExtractionService {
             archiveItem.getDuration(),
             archiveItem.getFileName(),
             archiveItem.getFileSize(),
+            archiveItem.getArchiveId(),
             archiveItem.getArchiveName()
         );
     }

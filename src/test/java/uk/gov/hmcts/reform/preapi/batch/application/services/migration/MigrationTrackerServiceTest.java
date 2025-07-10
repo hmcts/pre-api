@@ -336,7 +336,7 @@ public class MigrationTrackerServiceTest {
 
         when(metadata.getArchiveName()).thenReturn("Test Archive");
         when(metadata.getFileName()).thenReturn("testfile.mp4");
-        when(metadata.getFileSize()).thenReturn("100MB");
+        when(metadata.getFileSize()).thenReturn("100");
 
         when(cleansedData.getCaseReference()).thenReturn("CASE123");
         when(cleansedData.getWitnessFirstName()).thenReturn("John");

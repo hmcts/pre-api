@@ -312,6 +312,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             exemptionItem.getDuration(),
             exemptionItem.getFileName(),
             exemptionItem.getFileSize(),
+            exemptionItem.getArchiveId(),
             exemptionItem.getArchiveName()
         );
     }

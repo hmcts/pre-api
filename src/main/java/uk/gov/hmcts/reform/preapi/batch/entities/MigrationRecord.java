@@ -22,7 +22,6 @@ import java.util.UUID;
 @Table(name = "vf_migration_records")
 public class MigrationRecord extends BaseEntity {
 
-    // Metadata fields
     @Column(name = "archive_id", nullable = false)
     private String archiveId;
 
@@ -52,16 +51,15 @@ public class MigrationRecord extends BaseEntity {
     @Column(name = "recording_version", length = 4)
     private String recordingVersion;
 
-    @Column(name = "recording_version_number")
-    private Integer recordingVersionNumber;
-
-    @Column(name = "mp4_file_name")
+    @Column(name = "recording_version_number", length = 1)
+    private String recordingVersionNumber;
+ 
+    @Column(name = "mp4_file_name", length = 10)
     private String mp4FileName;
 
     @Column(name = "file_size_mb")
-    private Integer fileSizeMb;
+    private String fileSizeMb;
 
-    // Status & tracking
     @Column(name = "recording_id")
     private UUID recordingId;
 
