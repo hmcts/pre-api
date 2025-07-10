@@ -5,7 +5,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
-import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -80,21 +80,22 @@ public class MigrationRecordService {
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
-    public void insertPending(ExtractedMetadata extracted) {
+    public void insertPending(CSVArchiveListData archiveItem) {
         upsert(
-            extracted.getArchiveId(),
-            extracted.getArchiveName(),
-            Timestamp.valueOf(extracted.getCreateTime()),
-            extracted.getDuration(),
-            extracted.getCourtReference(),
-            extracted.getUrn(),
-            extracted.getExhibitReference(),
-            extracted.getDefendantLastName(),
-            extracted.getWitnessFirstName(),
-            extracted.getRecordingVersion(),
-            extracted.getRecordingVersionNumber(),
-            extracted.getFileName(),
-            extracted.getFileSize(),
+            archiveItem.getArchiveId(),
+            archiveItem.getArchiveName(),
+            archiveItem.getCreateTimeAsLocalDateTime() != null 
+                ? Timestamp.valueOf(archiveItem.getCreateTimeAsLocalDateTime()) : null,
+            null,
+            null, 
+            null,
+            null, 
+            null,
+            null,
+            null,
+            null, 
+            null,
+            null,
             VfMigrationStatus.PENDING,
             null,
             null,

@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationGroupBuilderService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
@@ -38,6 +39,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final MigrationTrackerService migrationTrackerService;
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
+    private final MigrationRecordService migrationRecordService;
     private final LoggingService loggingService;
 
     @Autowired
@@ -49,6 +51,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         final ReferenceDataProcessor referenceDataProcessor,
         final MigrationGroupBuilderService migrationService,
         final MigrationTrackerService migrationTrackerService,
+        final MigrationRecordService migrationRecordService,
         final LoggingService loggingService
     ) {
         this.cacheService = cacheService;
@@ -58,6 +61,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         this.referenceDataProcessor = referenceDataProcessor;
         this.migrationService = migrationService;
         this.migrationTrackerService = migrationTrackerService;
+        this.migrationRecordService = migrationRecordService;
         this.loggingService = loggingService;
     }
 
@@ -126,6 +130,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logDebug("===============================================");
             loggingService.logDebug("Processor started for item: %s", archiveItem);
 
+            migrationRecordService.insertPending(archiveItem);
             // Extraction
             ExtractedMetadata extractedData = extractData(archiveItem);
             if (extractedData == null) {
