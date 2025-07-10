@@ -315,6 +315,13 @@ public class CaptureSessionService {
         return new CaptureSessionDTO(captureSession);
     }
 
+    @Transactional
+    public List<CaptureSessionDTO> findAllPastIncompleteCaptureSessions() {
+        return captureSessionRepository.findAllPastIncompleteCaptureSessions(Timestamp.from(Instant.now())).stream()
+            .map(CaptureSessionDTO::new)
+            .toList();
+    }
+
     private CreateAuditDTO createStopAudit(UUID captureSessionId) {
         CreateAuditDTO audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());

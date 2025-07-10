@@ -211,4 +211,12 @@ public class BookingService {
                 bookingRepository.save(booking);
             });
     }
+
+    @Transactional
+    public List<BookingDTO> findAllPastBookings() {
+        return bookingRepository.findAllPastUnusedBookings(Timestamp.from(Instant.now()))
+            .stream()
+            .map(BookingDTO::new)
+            .toList();
+    }
 }
