@@ -530,11 +530,6 @@ definitions:
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
-      rooms:
-        description: CourtRooms
-        items:
-          $ref: '#/definitions/RoomDTO'
-        type: array
     type: object
   CreateAppAccessDTO:
     description: CreateAppAccessDTO
@@ -771,22 +766,12 @@ definitions:
         maxItems: 2147483647
         minItems: 1
         type: array
-      rooms:
-        description: CreateCourtRoomIds
-        items:
-          description: CreateCourtRoomIds
-          format: uuid
-          type: string
-        maxItems: 2147483647
-        minItems: 1
-        type: array
     required:
       - court_type
       - id
       - location_code
       - name
       - regions
-      - rooms
     type: object
   CreateInviteDTO:
     description: CreateInviteDTO
@@ -1228,11 +1213,6 @@ definitions:
         description: CourtRegions
         items:
           $ref: '#/definitions/RegionDTO'
-        type: array
-      rooms:
-        description: CourtRooms
-        items:
-          $ref: '#/definitions/RoomDTO'
         type: array
     type: object
   EntityModelInviteDTO:
@@ -1951,17 +1931,6 @@ definitions:
         type: string
       name:
         description: RoleName
-        type: string
-    type: object
-  RoomDTO:
-    description: RoomDTO
-    properties:
-      id:
-        description: RoomId
-        format: uuid
-        type: string
-      name:
-        description: RoomName
         type: string
     type: object
   ScheduleReportDTO:
@@ -4261,35 +4230,6 @@ paths:
       summary: Get a list of all roles
       tags:
         - role-controller
-  /rooms:
-    get:
-      operationId: getRooms
-      parameters:
-        - description: The court id of the rooms to search by
-          format: uuid
-          in: query
-          name: courtId
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/RoomDTO'
-            type: array
-      summary: Get a list of all rooms
-      tags:
-        - room-controller
   /users:
     get:
       operationId: getUsers
