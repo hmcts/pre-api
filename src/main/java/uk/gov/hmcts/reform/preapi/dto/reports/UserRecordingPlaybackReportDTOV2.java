@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "PlaybackReportDTOV2")
+@Schema(description = "UserRecordingPlaybackReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UserRecordingPlaybackReportDTOV2 extends BaseReportDTO {
 
