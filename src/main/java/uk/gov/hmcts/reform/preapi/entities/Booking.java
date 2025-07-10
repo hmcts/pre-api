@@ -12,8 +12,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
@@ -44,12 +42,10 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
         joinColumns = @JoinColumn(name = "booking_id", referencedColumnName = "id"),
         inverseJoinColumns = @JoinColumn(name = "participant_id", referencedColumnName = "id")
     )
-    @Fetch(FetchMode.SUBSELECT)
     private Set<Participant> participants;
 
     @OneToMany
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
-    @Fetch(FetchMode.SUBSELECT)
     private Set<CaptureSession> captureSessions;
 
     @OneToMany
