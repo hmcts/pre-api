@@ -8,12 +8,15 @@ import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
@@ -84,6 +87,21 @@ public class EditRequestService {
             .findByIdNotLocked(id)
             .map(EditRequestDTO::new)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+    }
+
+    @Transactional
+    public Page<EditRequestDTO> findAll(SearchEditRequests params, Pageable pageable) {
+        UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        params.setAuthorisedBookings(
+            auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
+        );
+        params.setAuthorisedCourt(
+            auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId()
+        );
+
+        return editRequestRepository
+            .searchAllBy(params, pageable)
+            .map(EditRequestDTO::new);
     }
 
     @Transactional
