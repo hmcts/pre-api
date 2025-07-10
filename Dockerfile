@@ -7,7 +7,7 @@ WORKDIR /usr/local/bin
 # Linux Static Builds (http://www.ffmpeg.org/download.html#build-linux)
 # https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
 ADD lib/ffmpeg-release-amd64-static.tar.xz /usr/local/bin
-RUN cp -p ffmpeg*/ffmpeg /usr/bin
+RUN cp -p ffmpeg*/ffmpeg ffmpeg*/ffprobe /usr/bin
 
 ADD lib/azcopy_linux_amd64_10.24.0.tar.gz /usr/local/bin
 RUN cp -p azcopy*/azcopy /usr/bin

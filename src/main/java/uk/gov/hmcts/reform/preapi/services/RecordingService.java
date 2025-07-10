@@ -30,6 +30,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -208,5 +209,13 @@ public class RecordingService {
         if (filenameChanged || durationChanged) {
             recordingRepository.saveAndFlush(recording);
         }
+    }
+
+    @Transactional
+    public List<RecordingDTO> findAllDurationNull() {
+        return recordingRepository.findAllByDurationIsNullAndDeletedAtIsNull()
+            .stream()
+            .map(RecordingDTO::new)
+            .toList();
     }
 }

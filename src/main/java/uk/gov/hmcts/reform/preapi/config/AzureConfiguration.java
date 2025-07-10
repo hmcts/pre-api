@@ -38,7 +38,6 @@ public class AzureConfiguration {
 
     @Bean
     public BlobServiceClient ingestStorageClient() {
-
         if (!managedIdentityClientId.isEmpty()) {
             log.info("Using managed identity to authenticate with ingest storage account with clientId: {}",
                      managedIdentityClientId);
@@ -94,5 +93,9 @@ public class AzureConfiguration {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public boolean isUsingManagedIdentity() {
+        return managedIdentityClientId != null && !managedIdentityClientId.isEmpty();
     }
 }
