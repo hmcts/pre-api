@@ -1,0 +1,33 @@
+CREATE TYPE public.VF_MIGRATION_STATUS AS ENUM (
+	'PENDING',   -- default state when a recording is inserted in temp table but not yet processed
+	'SUCCESS',   -- recording was processed successfully
+	'FAILED',    -- recording failed processing due to validation or system error
+	'RESOLVED'   -- admin has corrected the data and it is ready for reprocessing (once reprocessed to revert to success / failure)
+);
+ 
+CREATE TABLE public.vf_migration_records (
+    id SERIAL PRIMARY KEY,
+ 
+    -- Metadata fields
+    archive_id TEXT NOT NULL,
+    archive_name TEXT NOT NULL,
+    create_time TIMESTAMPTZ,
+    duration INTEGER,
+    court_reference VARCHAR(25),
+    urn VARCHAR(11),
+    exhibit_reference VARCHAR(15),
+    defendant_name VARCHAR(100),
+    witness_name VARCHAR(100),
+    recording_version VARCHAR(4),
+    recording_version_number INTEGER,
+    mp4_file_name TEXT,
+    file_size_mb INTEGER,
+ 
+    -- Status and error tracking
+    recording_id UUID,
+    status migration_status NOT NULL DEFAULT 'PENDING',
+    reason TEXT,
+    error_message TEXT,
+    resolved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
