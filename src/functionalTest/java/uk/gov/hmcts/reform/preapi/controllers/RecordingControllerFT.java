@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
@@ -281,6 +282,21 @@ public class RecordingControllerFT extends FunctionalTestBase {
 
         assertThat(getRecordings.body().jsonPath().getString("message"))
             .isEqualTo("Invalid sort parameter 'invalidParam' for 'uk.gov.hmcts.reform.preapi.entities.Recording'");
+    }
+
+    @Test
+    @DisplayName("Should throw 403 when LEVEL 4 user attempts to search recordings")
+    void getRecordingsLevel4() {
+        Response getRecordings = doGetRequest(RECORDINGS_ENDPOINT, TestingSupportRoles.LEVEL_4);
+        assertResponseCode(getRecordings, 403);
+    }
+
+    @Test
+    @DisplayName("Should throw 403 when LEVEL 4 user attempts to get recording by id")
+    void getRecordingByIdLevel4() {
+        Response getRecordings = doGetRequest(RECORDINGS_ENDPOINT + "/" + UUID.randomUUID(),
+                                              TestingSupportRoles.LEVEL_4);
+        assertResponseCode(getRecordings, 403);
     }
 
     @Override
