@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -18,11 +17,8 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.util.Batcher;
 
-import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
@@ -61,15 +57,7 @@ public class StartLiveEvents extends RobotUserTask {
         // find all bookings scheduled for today and create a capture session + start a live event
         // only if capture session doesn't already exist
         Batcher.batchProcess(
-            bookingService.searchBy(null,
-                                    null,
-                                    null,
-                                    Optional.of(Timestamp.valueOf(LocalDate.now().atStartOfDay())),
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    Pageable.unpaged())
+            bookingService.findAllBookingsForToday()
                 .stream()
                 .filter(b -> b.getCaptureSessions().isEmpty())
                 .map(BookingDTO::getId)
