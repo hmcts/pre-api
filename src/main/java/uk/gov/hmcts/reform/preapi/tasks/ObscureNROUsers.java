@@ -31,7 +31,6 @@ public class ObscureNROUsers extends RobotUserTask {
     private final String usersFile;
     private final Map<String, UUID> userEmailAndIDs = new HashMap<>();
 
-
     @Autowired
     public ObscureNROUsers(UserService userService,
                            UserAuthenticationService userAuthenticationService,
