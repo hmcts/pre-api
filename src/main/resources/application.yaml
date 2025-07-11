@@ -142,19 +142,6 @@ tasks:
 feature-flags:
   enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
 
-logging:
-  level:
-    org:
-      springframework:
-        orm:
-          jpa: DEBUG
-        transaction: DEBUG
-      hibernate:
-        SQL: DEBUG
-        type:
-          descriptor:
-            sql:
-              BasicBinder: TRACE
 #logging:
 #  level:
 #    uk:
@@ -173,10 +160,10 @@ logging:
 #              media:
 #                MediaKindClient: DEBUG
 #                MediaKindAccountsClient: DEBUG
-log4j:
-  logger:
-    org:
-      springframework:
-        jdbc: DEBUG
-        transaction:
-          interceptor: trace
+#log4j:
+#  logger:
+#    org:
+#      springframework:
+#        jdbc: DEBUG
+#        transaction:
+#          interceptor: trace
