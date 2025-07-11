@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -83,6 +84,9 @@ public class UserServiceTest {
 
     @MockitoBean
     private TermsAndConditionsRepository termsAndConditionsRepository;
+
+    @MockitoBean
+    private CacheManager cacheManager;
 
     @Autowired
     private UserService userService;
