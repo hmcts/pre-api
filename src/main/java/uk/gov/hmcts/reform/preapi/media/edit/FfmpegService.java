@@ -39,25 +39,34 @@ public class FfmpegService implements IEditingService {
         }
         var command = generateCommand(request, inputFileName, outputFileName);
 
+        final long downloadStart = System.currentTimeMillis();
         // download from final storage
         if (!azureFinalStorageService
             .downloadBlob(request.getSourceRecording().getId().toString(), inputFileName, inputFileName)) {
             throw new UnknownServerException("Error occurred when attempting to download file: " + inputFileName);
         }
+        final long downloadEnd = System.currentTimeMillis();
+        log.info("Download completed in {} ms", (downloadEnd - downloadStart));
 
         // apply ffmpeg
+        final long ffmpegStart = System.currentTimeMillis();
         if (!commandExecutor.execute(command)) {
             cleanup(inputFileName, outputFileName);
             throw new UnknownServerException("Error occurred when attempting to process edit request: "
                                                  + request.getId());
         }
         log.info("Successfully applied edit instructions to: {} and created output: {}", inputFileName, outputFileName);
+        final long ffmpegEnd = System.currentTimeMillis();
+        log.info("Ffmpeg completed in {} ms", (ffmpegEnd - ffmpegStart));
 
         // upload to ingest storage
+        final long uploadStart = System.currentTimeMillis();
         if (!azureIngestStorageService.uploadBlob(outputFileName, newRecordingId + "-input", outputFileName)) {
             cleanup(inputFileName, outputFileName);
             throw new UnknownServerException("Error occurred when attempting to upload file");
         }
+        final long uploadEnd = System.currentTimeMillis();
+        log.info("Upload completed in {} ms", (uploadEnd - uploadStart));
 
         cleanup(inputFileName, outputFileName);
     }
