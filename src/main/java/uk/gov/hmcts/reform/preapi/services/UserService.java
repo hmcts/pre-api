@@ -4,7 +4,6 @@ package uk.gov.hmcts.reform.preapi.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -145,9 +144,6 @@ public class UserService {
     @Caching(evict = {
         @CacheEvict(value = "users", key = "#createUserDTO.id"),
         @CacheEvict(value = "users", key = "#createUserDTO.email.toLowerCase()")
-    }, put = {
-        @CachePut(value = "users", key = "#createUserDTO.id"),
-        @CachePut(value = "users", key = "#createUserDTO.email.toLowerCase()")
     })
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
