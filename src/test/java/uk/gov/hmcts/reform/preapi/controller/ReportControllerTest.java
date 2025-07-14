@@ -14,11 +14,13 @@ import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportArgsRecord;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -398,7 +400,8 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for source 'PORTAL'")
     @Test
     void reportPlaybackPortalSuccess() throws Exception {
-        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
+        var args = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
+        var reportItem = new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
 
         when(reportService.reportPlayback(AuditLogSource.PORTAL)).thenReturn(List.of(reportItem));
 
@@ -426,7 +429,8 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for source 'APPLICATION'")
     @Test
     void reportPlaybackApplicationSuccess() throws Exception {
-        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-07-01 00:00:00"));
+        var args = createPlaybackReport(Timestamp.valueOf("2025-07-01 00:00:00"));
+        var reportItem = new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
 
         when(reportService.reportPlayback(AuditLogSource.APPLICATION)).thenReturn(List.of(reportItem));
 
@@ -452,16 +456,16 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for no source")
     @Test
     void reportPlaybackAllSuccess() throws Exception {
-        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
+        var args = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
+        var reportItem = new UserRecordingPlaybackReportDTOV2(args.audit(), args.user(), args.recording());
 
-        when(reportService.reportPlayback(null)).thenReturn(List.of(reportItem));
+        when(reportService.userRecordingPlaybackReport()).thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports-v2/playback"))
+        mockMvc.perform(get("/reports-v2/user-recording-playback"))
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$[0].playback_date").value("01/01/2025"))
                .andExpect(jsonPath("$[0].playback_time").value("00:00:00"))
-               .andExpect(jsonPath("$[0].playback_time_zone").value("GMT"))
                .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
                .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
                .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
@@ -471,10 +475,10 @@ public class ReportControllerTest {
                .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
                .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
 
-        verify(reportService, times(1)).reportPlayback(null);
+        verify(reportService, times(1)).userRecordingPlaybackReport();
     }
 
-    private PlaybackReportDTOV2 createPlaybackReport(Timestamp createdAt) {
+    private PlaybackReportArgsRecord createPlaybackReport(Timestamp createdAt) {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setOrganisation("FooOrg");
@@ -537,7 +541,7 @@ public class ReportControllerTest {
         auditEntity.setCreatedAt(createdAt);
         auditEntity.setTableRecordId(recordingEntity.getId());
 
-        return new PlaybackReportDTOV2(auditEntity, user, recordingEntity);
+        return new PlaybackReportArgsRecord(auditEntity, user, recordingEntity);
     }
 
     private SharedReportDTOV2 createSharedReport() {
