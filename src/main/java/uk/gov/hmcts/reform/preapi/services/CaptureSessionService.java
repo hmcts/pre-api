@@ -161,9 +161,16 @@ public class CaptureSessionService {
         captureSessionRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
             .forEach(captureSession -> {
-                if (captureSession.getStatus() != RecordingStatus.RECORDING_AVAILABLE
-                    && captureSession.getStatus() != RecordingStatus.NO_RECORDING
-                    && captureSession.getStatus() != RecordingStatus.FAILURE) {
+                //Might want to preserve if you don't want to delete bookings with processing recordings
+                if (captureSession.getStatus() == RecordingStatus.RECORDING_AVAILABLE){
+                    // Do nothing
+                } else if (captureSession.getStatus() == RecordingStatus.NO_RECORDING
+                    || captureSession.getStatus() == RecordingStatus.FAILURE) {
+                    recordingService.deleteCascade(captureSession);
+                    captureSession.setDeleteOperation(true);
+                    captureSession.setDeletedAt(Timestamp.from(Instant.now()));
+                    captureSessionRepository.save(captureSession);
+                } else {
                     throw new ResourceInWrongStateException(
                         "Capture Session ("
                             + captureSession.getId()
@@ -171,11 +178,8 @@ public class CaptureSessionService {
                             + captureSession.getStatus()
                     );
                 }
-                recordingService.deleteCascade(captureSession);
-                captureSession.setDeleteOperation(true);
-                captureSession.setDeletedAt(Timestamp.from(Instant.now()));
-                captureSessionRepository.save(captureSession);
-            });
+            })
+        ;
     }
 
     @Transactional
