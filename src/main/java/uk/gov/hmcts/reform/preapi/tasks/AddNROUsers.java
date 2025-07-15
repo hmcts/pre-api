@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -422,26 +423,24 @@ public class AddNROUsers extends RobotUserTask {
 
         // validate court
         String court = values[4];
-        UUID courtID = null;
-        if (this.courtRepository.findFirstByName(court).isEmpty()) {
+        var courtID = this.courtRepository.findFirstByName(court).map(BaseEntity::getId).orElse(null);
+        if (courtID == null) {
             csvErrors.append("\nUser Court from the .csv input does not exist in the DB established in the .env file")
                 .append(fromRowString)
                 .append(rowNumber)
                 .append(")");
-        } else {
-            courtID = this.courtRepository.findFirstByName(court).get().getId();
         }
 
         // validate role
         String userLevel = values[6];
-        UUID roleID = null;
-        if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {
+        var roleID = this.roleRepository.findFirstByName("Level " + userLevel)
+            .map(BaseEntity::getId)
+            .orElse(null);
+        if (roleID == null) {
             csvErrors.append("\nUser Role from the .csv input does not exist in the DB established in the .env file")
                 .append(fromRowString)
                 .append(rowNumber)
                 .append(")");
-        } else {
-            roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
         }
 
         this.indexedNROUsers.put(rowNumber, new ImportedNROUser(firstName, lastName, email, court,
