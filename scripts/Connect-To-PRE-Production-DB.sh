@@ -23,6 +23,16 @@ DB_TOKEN="$(az account get-access-token --resource-type oss-rdbms --query access
 echo "$DB_TOKEN" | pbcopy
 echo -e "Login token (already copied to clipboard):\n$DB_TOKEN"
 
+echo "Checking Bastion host availability..."
+
+if nc -z bastion-prod.platform.hmcts.net 22 ; then
+    echo "Bastion host reachable: $BASTION_HOST"
+else
+    echo "Could not reach Bastion Host: $BASTION_HOST"
+    echo "Check VPN Connectivity"
+    exit 1
+fi
+
 echo "Port forwarding through Bastion host..."
 # Forward DB Connection
 ssh -fN $BASTION_HOST -L $CLIENT_PORT:$POSTGRES_HOST:$POSTGRES_HOST_PORT
@@ -36,4 +46,9 @@ if [ $? -eq 0 ]; then
     User: DTS JIT Access pre DB Reader SC
     Database: api
 EOF
+else
+    echo "Unable to port forward to Bastion Host"
+    echo "Check Active Packages: https://myaccess.microsoft.com/@CJSCommonPlatform.onmicrosoft.com#/access-packages/active"
+EOF
+  exit 1
 fi
