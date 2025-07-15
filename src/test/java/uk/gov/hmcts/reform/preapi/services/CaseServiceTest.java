@@ -35,10 +35,7 @@ import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
-import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.repositories.*;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.service.notify.NotificationClient;
 
@@ -822,6 +819,30 @@ class CaseServiceTest {
 
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
         verify(bookingService, times(1)).markAsDeleted(bookingFailure.getId());
+    }
+
+    @Test
+    @DisplayName("Should not delete booking if it has an associated capture session" +
+        " with RECORDING_AVAILABLE status")
+    void onCaseClosedDeleteOnlyFailedCaptureSession() {
+        var captureSessionFailedRecording = new CaptureSession();
+        captureSessionFailedRecording.setStatus(RecordingStatus.FAILURE);
+
+        var captureSessionRecordingAvailable = new CaptureSession();
+        captureSessionRecordingAvailable.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaptureSessions(Set.of(captureSessionFailedRecording, captureSessionRecordingAvailable));
+
+        var aCase = new Case();
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)).thenReturn(List.of(booking));
+
+        caseService.onCaseClosed(aCase);
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
+        verify(bookingService, times(0)).markAsDeleted(booking.getId());
     }
 
     @Test
