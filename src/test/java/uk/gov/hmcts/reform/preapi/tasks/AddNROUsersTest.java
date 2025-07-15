@@ -133,8 +133,8 @@ class AddNROUsersTest {
 
         verify(userService, times(4)).upsert(any(CreateUserDTO.class));
 
-        verify(roleRepository, times(75)).findFirstByName(any());
-        verify(courtRepository, times(66)).findFirstByName(any());
+        verify(roleRepository, times(38)).findFirstByName(any());
+        verify(courtRepository, times(38)).findFirstByName(any());
     }
 
     @DisplayName("Successfully handle exceptions for upsert failures")
