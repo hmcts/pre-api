@@ -193,8 +193,8 @@ public class BookingService {
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #booking.id)")
     public void cleanUnusedCaptureSessions(Booking booking) {
         for (CaptureSession captureSession : booking.getCaptureSessions()) {
-            if (captureSession.getStatus() == RecordingStatus.FAILURE ||
-                captureSession.getStatus() == RecordingStatus.NO_RECORDING) {
+            if (captureSession.getStatus() == RecordingStatus.FAILURE
+                || captureSession.getStatus() == RecordingStatus.NO_RECORDING) {
                 captureSessionService.deleteById(captureSession.getId());
             }
         }

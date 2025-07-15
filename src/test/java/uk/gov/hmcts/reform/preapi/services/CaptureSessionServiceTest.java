@@ -864,7 +864,8 @@ public class CaptureSessionServiceTest {
             .isEqualTo(
                 "Capture Session ("
                     + captureSession.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is STANDBY");
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
         verify(captureSessionRepository, never()).deleteById(captureSession.getId());
@@ -888,7 +889,8 @@ public class CaptureSessionServiceTest {
             .isEqualTo(
                 "Capture Session ("
                     + captureSession.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is STANDBY");
 
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
         verify(captureSessionRepository, never()).deleteById(captureSession.getId());

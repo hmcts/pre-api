@@ -145,8 +145,8 @@ public class CaptureSessionService {
             throw new ResourceInWrongStateException(
                 "Capture Session ("
                     + id
-                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. " +
-                    "Current state is "
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is "
                     + captureSession.getStatus()
             );
         }
@@ -168,8 +168,8 @@ public class CaptureSessionService {
                     throw new ResourceInWrongStateException(
                         "Capture Session ("
                             + captureSession.getId()
-                            + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. " +
-                            " Current state is "
+                            + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                            + "Current state is "
                             + captureSession.getStatus()
                     );
                 }
