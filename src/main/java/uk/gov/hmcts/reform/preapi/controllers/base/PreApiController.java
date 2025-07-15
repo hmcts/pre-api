@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.controllers.base;
 
-
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +11,6 @@ import java.util.UUID;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PreApiController {
-
     protected ResponseEntity<Void> getUpsertResponse(UpsertResult result, UUID id) {
         var location = ServletUriComponentsBuilder
             .fromCurrentRequest()
