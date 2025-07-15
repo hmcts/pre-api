@@ -188,6 +188,12 @@ public class BookingService {
         bookingRepository.saveAndFlush(booking);
     }
 
+    @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
+    public void cleanFailedCaptureSessions(UUID id) {
+        // TODO: Delete any failed Capture Sessions but don't delete booking
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void undelete(UUID id) {

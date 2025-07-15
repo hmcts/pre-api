@@ -275,7 +275,7 @@ public class CaseService {
         });
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRED, noRollbackFor = RecordingNotDeletedException.class, rollbackFor = Exception.class)
     public void onCaseClosed(Case c) {
         log.info("onCaseClosed: Case({})", c.getId());
         var shares = shareBookingService.deleteCascade(c);
@@ -297,16 +297,23 @@ public class CaseService {
             }
         }
 
-        bookingRepository
+        List<Booking> bookingsWithCaptureSessions = bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(c)
             .stream()
-            .filter(b -> !b.getCaptureSessions().isEmpty()
-                && b.getCaptureSessions()
-                .stream()
-                .map(CaptureSession::getStatus)
-                .anyMatch(s -> s == RecordingStatus.FAILURE || s == RecordingStatus.NO_RECORDING))
-            .map(BaseEntity::getId)
-            .forEach(bookingService::markAsDeleted);
+            .filter(b -> !b.getCaptureSessions().isEmpty())
+            .toList();
+
+        for (Booking booking : bookingsWithCaptureSessions) {
+            boolean allCaptureSessionsFailed = booking.getCaptureSessions()
+                .stream().map(CaptureSession::getStatus)
+                .allMatch(s -> s == RecordingStatus.FAILURE || s == RecordingStatus.NO_RECORDING);
+
+            if (allCaptureSessionsFailed) {
+                bookingService.markAsDeleted(booking.getId());
+            } else {
+                bookingService.cleanFailedCaptureSessions(booking.getId());
+            }
+        }
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
