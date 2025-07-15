@@ -26,12 +26,14 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -68,6 +70,9 @@ class RecordingServiceTest {
 
     @MockitoBean
     private GovNotify govNotify;
+
+    @MockitoBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     private RecordingService recordingService;
@@ -600,5 +605,49 @@ class RecordingServiceTest {
             .thenReturn(0);
 
         assertThat(recordingService.getNextVersionNumber(id)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Sync recording with storage when filename and duration has changed")
+    void syncRecordingWithStorageFilenameDurationChanged() {
+        Recording recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setFilename("filename.mp4");
+        recording.setDuration(Duration.ofMinutes(3));
+
+        when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
+        when(azureFinalStorageService.getMp4FileName(recording.getId().toString()))
+            .thenReturn("updated.mp4");
+        when(azureFinalStorageService.getRecordingDuration(recording.getId()))
+            .thenReturn(Duration.ofMinutes(30));
+
+        recordingService.syncRecordingMetadataWithStorage(recording.getId());
+
+        verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(azureFinalStorageService, times(1)).getMp4FileName(recording.getId().toString());
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(recording.getId());
+        verify(recordingRepository, times(1)).saveAndFlush(any(Recording.class));
+    }
+
+    @Test
+    @DisplayName("Sync recording with storage when filename and duration not has changed")
+    void syncRecordingWithStorageNotChanged() {
+        Recording recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setFilename("filename.mp4");
+        recording.setDuration(Duration.ofMinutes(3));
+
+        when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
+        when(azureFinalStorageService.getMp4FileName(recording.getId().toString()))
+            .thenReturn("filename.mp4");
+        when(azureFinalStorageService.getRecordingDuration(recording.getId()))
+            .thenReturn(Duration.ofMinutes(3));
+
+        recordingService.syncRecordingMetadataWithStorage(recording.getId());
+
+        verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(azureFinalStorageService, times(1)).getMp4FileName(recording.getId().toString());
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(recording.getId());
+        verify(recordingRepository, never()).saveAndFlush(any());
     }
 }
