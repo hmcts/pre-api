@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -189,9 +190,14 @@ public class BookingService {
     }
 
     @Transactional
-    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
-    public void cleanFailedCaptureSessions(UUID id) {
-        // TODO: Delete any failed Capture Sessions but don't delete booking
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #booking.id)")
+    public void cleanUnusedCaptureSessions(Booking booking) {
+        for (CaptureSession captureSession : booking.getCaptureSessions()) {
+            if (captureSession.getStatus() == RecordingStatus.FAILURE ||
+                captureSession.getStatus() == RecordingStatus.NO_RECORDING) {
+                captureSessionService.deleteById(captureSession.getId());
+            }
+        }
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
