@@ -25,9 +25,12 @@ import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -562,6 +566,77 @@ class BookingServiceTest {
 
         verify(bookingRepository, times(1))
             .findAllPastUnusedBookings(any());
+    }
+
+    @Test
+    @DisplayName("Should find all bookings scheduled for today")
+    void findAllBookingsForToday() {
+        LocalDate currentDate = LocalDate.now();
+
+        var court = createCourt();
+        var booking1 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(10, 0))));
+        var booking2 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(15, 0))));
+        var bookingsForToday = List.of(booking1, booking2);
+        setAuthentication();
+
+        when(bookingRepository.searchBookingsBy(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any()
+        ))
+            .thenReturn(new PageImpl<>(new ArrayList<>() {
+                {
+                    add(booking1);
+                    add(booking2);
+                }
+            }));
+
+        var bookings = bookingService.findAllBookingsForToday();
+
+        assertThat(bookings).hasSize(bookingsForToday.size());
+        verify(bookingRepository, times(1))
+            .searchBookingsBy(
+                any(),
+                any(),
+                any(),
+                eq(Timestamp.valueOf(currentDate.atStartOfDay())),
+                eq(Timestamp.valueOf(currentDate.atTime(23, 59, 59))),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any());
+    }
+
+    private Court createCourt() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        return court;
+    }
+
+    private Booking createBooking(Court court, Timestamp scheduledFor) {
+        var caseEntity = new Case();
+        caseEntity.setId(UUID.randomUUID());
+        caseEntity.setCourt(court);
+        return HelperFactory.createBooking(caseEntity, scheduledFor, null);
+    }
+
+    private void setAuthentication() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
     }
 }
 

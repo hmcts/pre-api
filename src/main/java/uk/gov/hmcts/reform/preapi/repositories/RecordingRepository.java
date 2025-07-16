@@ -109,4 +109,18 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     List<Object[]> countRecordingsPerCase();
 
     int countByParentRecording_Id(UUID id);
+
+    @Query("""
+        SELECT r
+        FROM Recording r
+        INNER JOIN r.captureSession
+        INNER JOIN r.captureSession.booking
+        LEFT JOIN r.captureSession.finishedByUser
+        WHERE r.parentRecording IS NULL
+        AND r.captureSession.deletedAt IS NULL
+        AND r.captureSession.startedAt IS NOT NULL
+        AND r.captureSession.finishedAt IS NOT NULL
+        """
+    )
+    List<Recording> findAllCompletedCaptureSessionsWithRecordings();
 }
