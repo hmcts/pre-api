@@ -269,7 +269,6 @@ public class MediaKind implements IMediaService {
         if (jobName == null) {
             return RecordingStatus.NO_RECORDING;
         }
-        azureIngestStorageService.markContainerAsProcessing(captureSession.getBookingId().toString());
         var encodeFromIngestJobState = waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
 
         telemetryClient.trackMetric(SENT_FOR_ENCODING, 1.0);
@@ -282,7 +281,6 @@ public class MediaKind implements IMediaService {
         if (jobName2 == null) {
             return RecordingStatus.FAILURE;
         }
-        azureIngestStorageService.markContainerAsProcessing(recordingId.toString());
         var encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
         if (encodeFromMp4JobState != JobState.FINISHED) {
             return RecordingStatus.FAILURE;
@@ -291,10 +289,10 @@ public class MediaKind implements IMediaService {
         var recordingStatus = verifyFinalAssetExists(recordingId);
         if (recordingStatus == RecordingStatus.RECORDING_AVAILABLE) {
             telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+            azureIngestStorageService.markContainerAsSafeToDelete(recordingId.toString());
         }
 
-        azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
-        azureIngestStorageService.markContainerAsSafeToDelete(recordingId.toString());
         return recordingStatus;
     }
 
@@ -376,7 +374,7 @@ public class MediaKind implements IMediaService {
 
         createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-
+        azureIngestStorageService.markContainerAsProcessing(captureSession.getBookingId().toString());
         return encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
     }
 
@@ -392,6 +390,7 @@ public class MediaKind implements IMediaService {
         var recordingTempAssetName = recordingNoHyphen + "_temp";
         var recordingAssetName = recordingNoHyphen + "_output";
 
+        azureIngestStorageService.markContainerAsProcessing(recordingId.toString());
         return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
     }
 
