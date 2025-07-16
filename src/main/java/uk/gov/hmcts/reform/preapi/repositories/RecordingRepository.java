@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,6 +20,8 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     Optional<Recording> findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
         UUID recordingId
     );
+
+    Optional<Recording> findByIdAndDeletedAtIsNull(UUID id);
 
     @Query(
         """
@@ -106,4 +107,20 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Object[]> countRecordingsPerCase();
+
+    int countByParentRecording_Id(UUID id);
+
+    @Query("""
+        SELECT r
+        FROM Recording r
+        INNER JOIN r.captureSession
+        INNER JOIN r.captureSession.booking
+        LEFT JOIN r.captureSession.finishedByUser
+        WHERE r.parentRecording IS NULL
+        AND r.captureSession.deletedAt IS NULL
+        AND r.captureSession.startedAt IS NOT NULL
+        AND r.captureSession.finishedAt IS NOT NULL
+        """
+    )
+    List<Recording> findAllCompletedCaptureSessionsWithRecordings();
 }

@@ -8,11 +8,12 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
@@ -25,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -32,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -43,7 +46,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -60,39 +65,42 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(MediaServiceController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@SuppressWarnings("LineLength")
+@TestPropertySource(properties = {"feature-flags.enable-enhanced-processing=true"})
 public class MediaServiceControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private MediaServiceBroker mediaServiceBroker;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionService captureSessionService;
 
-    @MockBean
+    @MockitoBean
     private RecordingService recordingService;
 
-    @MockBean
+    @MockitoBean
     private MediaKind mediaService;
 
-    @MockBean
+    @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
+    @MockitoBean
     private ScheduledTaskRunner taskRunner;
 
-    @MockBean
+    @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
+
+    @MockitoBean
+    private EncodeJobService encodeJobService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    @DisplayName("Should return 200 when successfully connected to media service")
     @Test
+    @DisplayName("Should return 200 when successfully connected to media service")
     void getMediaSuccess() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getAssets()).thenReturn(List.of());
@@ -104,8 +112,8 @@ public class MediaServiceControllerTest {
         assertThat(response.getContentAsString()).isEqualTo("successfully connected to media service (MediaKind)");
     }
 
-    @DisplayName("Should return 200 and an asset")
     @Test
+    @DisplayName("Should return 200 and an asset")
     void getAssetSuccess() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         var name = UUID.randomUUID().toString();
@@ -122,8 +130,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.storage_account_name").value("storage account name"));
     }
 
-    @DisplayName("Should return 404 when asset cannot be found")
     @Test
+    @DisplayName("Should return 404 when asset cannot be found")
     void getAssetNotFound() throws Exception {
         var name = UUID.randomUUID().toString();
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
@@ -135,8 +143,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.message").value("Not found: Asset: " + name));
     }
 
-    @DisplayName("Should return 200 and a list of assets")
     @Test
+    @DisplayName("Should return 200 and a list of assets")
     void getAssetsSuccess() throws Exception {
         var assets = List.of(
             HelperFactory.createAsset("name", "description", "container", "storage account")
@@ -153,8 +161,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$[0].storage_account_name").value("storage account"));
     }
 
-    @DisplayName("Should return 200 and a live event")
     @Test
+    @DisplayName("Should return 200 and a live event")
     void getLiveEventSuccess() throws Exception {
         var name = UUID.randomUUID().toString();
         var liveEvent = HelperFactory.createLiveEvent(name, "description", "Stopped", "rtmps://example.com");
@@ -170,8 +178,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"));
     }
 
-    @DisplayName("Should return 404 when live event not found")
     @Test
+    @DisplayName("Should return 404 when live event not found")
     void getLiveEventNotFound() throws Exception {
         var name = UUID.randomUUID().toString();
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
@@ -183,8 +191,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.message").value("Not found: Live event: " + name));
     }
 
-    @DisplayName("Should update corresponding capture session if status is initialising")
     @Test
+    @DisplayName("Should update corresponding capture session if status is initialising")
     void getLiveEventUpdateCaptureSessionStart() throws Exception {
         var id = UUID.randomUUID();
         var name = id.toString().replace("-", "");
@@ -209,8 +217,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, times(1)).startCaptureSession(id, RecordingStatus.STANDBY, "rtmps://example.com");
     }
 
-    @DisplayName("Should not error when cannot find corresponding capture sessions")
     @Test
+    @DisplayName("Should not error when cannot find corresponding capture sessions")
     void getLiveEventUpdateCaptureSessionNotFoundStart() throws Exception {
         var id = UUID.randomUUID();
         var name = id.toString().replace("-", "");
@@ -232,8 +240,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, never()).startCaptureSession(id, RecordingStatus.STANDBY, "rtmps://example.com");
     }
 
-    @DisplayName("Should return 200 and a list of live events")
     @Test
+    @DisplayName("Should return 200 and a list of live events")
     void getLiveEventsSuccess() throws Exception {
         var liveEvents = List.of(
             HelperFactory.createLiveEvent("name", "description", "Stopped", "rtmps://example.com")
@@ -250,8 +258,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$[0].input_rtmp").value("rtmps://example.com"));
     }
 
-    @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
     @Test
+    @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
     void createStreamingLocatorSuccess() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         var captureSessionId = UUID.randomUUID();
@@ -271,8 +279,8 @@ public class MediaServiceControllerTest {
         assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
     }
 
-    @DisplayName("Should return 200 with complete capture session without calling mediakind")
     @Test
+    @DisplayName("Should return 200 with complete capture session without calling mediakind")
     void playLiveEventAlreadyRecordings() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         var captureSessionId = UUID.randomUUID();
@@ -291,8 +299,8 @@ public class MediaServiceControllerTest {
         verify(mediaService, never()).playLiveEvent(any());
     }
 
-    @DisplayName("Should return 404 when capture session doesn't exist")
     @Test
+    @DisplayName("Should return 404 when capture session doesn't exist")
     void captureSession404() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         var captureSessionId = UUID.randomUUID();
@@ -304,8 +312,8 @@ public class MediaServiceControllerTest {
         assertThat(response.getContentAsString()).contains("Not found: CaptureSession: " + captureSessionId);
     }
 
-    @DisplayName("Should return 400 when capture session is not in a state of STANDBY")
     @Test
+    @DisplayName("Should return 400 when capture session is not in a state of STANDBY")
     void captureSession400() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         var captureSessionId = UUID.randomUUID();
@@ -323,8 +331,8 @@ public class MediaServiceControllerTest {
                           + ") is in a INITIALISING state. Expected state is STANDBY.");
     }
 
-    @DisplayName("Should not create any resources when capture session already has a live_output_url set")
     @Test
+    @DisplayName("Should not create any resources when capture session already has a live_output_url set")
     void captureSessionAlreadyHasLiveOutputUrl200() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         var captureSessionId = UUID.randomUUID();
@@ -343,8 +351,8 @@ public class MediaServiceControllerTest {
         verify(mediaService, times(0)).playLiveEvent(any());
     }
 
-    @DisplayName("Should create endpoint and locator when capture session status = RECORDING but liveOutputUrl = null")
     @Test
+    @DisplayName("Should create endpoint and locator when capture session status = RECORDING but liveOutputUrl = null")
     void playLiveEventRecordingButNoLiveOutputUrl() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var captureSession = new CaptureSessionDTO();
@@ -367,8 +375,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.live_output_url").value("https://example.com"));
     }
 
-    @DisplayName("Should return 200 and playback information")
     @Test
+    @DisplayName("Should return 200 and playback information")
     void getVodSuccess() throws Exception {
         var recordingId = UUID.randomUUID();
         var recording = new RecordingDTO();
@@ -394,8 +402,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.token").value("token"));
     }
 
-    @DisplayName("Should return 404 when recording does not exist")
     @Test
+    @DisplayName("Should return 404 when recording does not exist")
     void getVodRecordingNotFound() throws Exception {
         var recordingId = UUID.randomUUID();
         doThrow(new NotFoundException("Recording: " + recordingId))
@@ -407,8 +415,8 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.message").value("Not found: Recording: " + recordingId));
     }
 
-    @DisplayName("Should return 400 when recording's case has been closed")
     @Test
+    @DisplayName("Should return 400 when recording's case has been closed")
     void getVodRecordingClosedBadRequest() throws Exception {
         var recordingId = UUID.randomUUID();
         var recording = new RecordingDTO();
@@ -428,8 +436,8 @@ public class MediaServiceControllerTest {
                                       + ") is in state CLOSED. Cannot play recording."));
     }
 
-    @DisplayName("Should return 200 with capture session once live event is started")
     @Test
+    @DisplayName("Should return 200 with capture session once live event is started")
     void startLiveEventSuccess() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto1 = new CaptureSessionDTO();
@@ -457,8 +465,8 @@ public class MediaServiceControllerTest {
         verify(mediaService, times(1)).startLiveEvent(dto1);
     }
 
-    @DisplayName("Should return 400 when case associated with capture session is not open")
     @Test
+    @DisplayName("Should return 400 when case associated with capture session is not open")
     void startLiveEventCaseClosedBadRequest() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto1 = new CaptureSessionDTO();
@@ -478,8 +486,8 @@ public class MediaServiceControllerTest {
         verify(mediaService, never()).startLiveEvent(dto1);
     }
 
-    @DisplayName("Should return not found error when capture session does not exist")
     @Test
+    @DisplayName("Should return not found error when capture session does not exist")
     void startLiveEventCaptureSessionNotFound() throws Exception {
         var captureSessionId = UUID.randomUUID();
 
@@ -493,8 +501,8 @@ public class MediaServiceControllerTest {
                            .value("Not found: Capture Session: " + captureSessionId));
     }
 
-    @DisplayName("Should return conflict error when capture session has already finished")
     @Test
+    @DisplayName("Should return conflict error when capture session has already finished")
     void startLiveEventConflictAlreadyFinished() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -511,8 +519,8 @@ public class MediaServiceControllerTest {
                            .value("Conflict: Capture Session: " + captureSessionId + " has already been finished"));
     }
 
-    @DisplayName("Should return capture session but do nothing when capture session already started")
     @Test
+    @DisplayName("Should return capture session but do nothing when capture session already started")
     void startLiveEventAlreadyStarted() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -533,8 +541,8 @@ public class MediaServiceControllerTest {
         verify(mediaService, never()).startLiveEvent(any());
     }
 
-    @DisplayName("Should update capture session and throw error when media service encounters an error")
     @Test
+    @DisplayName("Should update capture session and throw error when media service encounters an error")
     void startLiveEventThrowError() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -555,8 +563,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
     }
 
-    @DisplayName("Should successfully stop capture session and return 200")
     @Test
+    @DisplayName("Should successfully stop capture session and return 200")
     void stopCaptureSessionSuccess() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -566,30 +574,67 @@ public class MediaServiceControllerTest {
         var dto2 = new CaptureSessionDTO();
         dto2.setId(captureSessionId);
         dto2.setStatus(RecordingStatus.PROCESSING);
-        var dto3 = new CaptureSessionDTO();
-        dto3.setId(captureSessionId);
-        dto3.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.triggerProcessingStep1(eq(dto), eq(dto.getId().toString().replace("-", "")), any(UUID.class)))
+            .thenReturn("jobName");
         when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any()))
             .thenReturn(dto2);
-        when(mediaService.stopLiveEvent(any(), any())).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(captureSessionService.stopCaptureSession(
-            eq(captureSessionId),
-            eq(RecordingStatus.RECORDING_AVAILABLE),
-            any()
-        )).thenReturn(dto3);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
-               .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
+               .andExpect(jsonPath("$.status").value("PROCESSING"));
+
+        verify(captureSessionService, times(1)).findById(captureSessionId);
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(mediaService, times(1)).stopLiveEvent(eq(dto), any(UUID.class));
+        verify(mediaService, times(1)).triggerProcessingStep1(eq(dto), anyString(), any(UUID.class));
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class));
+        verify(captureSessionService, never())
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), isNull());
+        verify(captureSessionService, never())
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), isNull());
     }
 
-    @DisplayName("Should return 404 when capture session does not exist")
+    @DisplayName("Should successfully stop capture session and return 200 when no recording found")
     @Test
+    void stopCaptureSessionNoRecordingSuccess() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setStatus(RecordingStatus.RECORDING);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+        var dto2 = new CaptureSessionDTO();
+        dto2.setId(captureSessionId);
+        dto2.setStatus(RecordingStatus.NO_RECORDING);
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.triggerProcessingStep1(eq(dto), eq(dto.getId().toString().replace("-", "")), any(UUID.class)))
+            .thenReturn(null);
+        when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), any()))
+            .thenReturn(dto2);
+
+        mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+            .andExpect(jsonPath("$.status").value("NO_RECORDING"));
+
+        verify(captureSessionService, times(1)).findById(captureSessionId);
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(mediaService, times(1)).stopLiveEvent(eq(dto), any(UUID.class));
+        verify(mediaService, times(1)).triggerProcessingStep1(eq(dto), anyString(), any(UUID.class));
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), isNull());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when capture session does not exist")
     void stopCaptureSessionNotFound() throws Exception {
         var captureSessionId = UUID.randomUUID();
 
@@ -603,8 +648,8 @@ public class MediaServiceControllerTest {
                               .value("Not found: Capture Session: " + captureSessionId));
     }
 
-    @DisplayName("Should return 200 when live event has already been finished")
     @Test
+    @DisplayName("Should return 200 when live event has already been finished")
     void stopCaptureSessionAlreadyFinishedSuccess() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -623,7 +668,7 @@ public class MediaServiceControllerTest {
     }
 
     @Test
-    @DisplayName("Should throw 500 when encountering failure in encoding process")
+    @DisplayName("Should update capture session when media service encounters error and return the error")
     void stopLiveEventFailureEncounteredInternalServerError() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -633,28 +678,24 @@ public class MediaServiceControllerTest {
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
-        when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class)))
-            .thenReturn(dto);
-        when(mediaService.stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class))).thenReturn(RecordingStatus.FAILURE);
+        doThrow(new UnknownServerException("Something went wrong"))
+            .when(mediaService).triggerProcessingStep1(any(), any(), any());
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
             .andExpect(status().isInternalServerError())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value(
-                               "Unknown Server Exception: Encountered an error during encoding process for CaptureSession("
-                                   + captureSessionId
-                                   + ")"));
+            .andExpect(jsonPath("$.message").value("Unknown Server Exception: Something went wrong"));
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(captureSessionService, times(1)).findById(captureSessionId);
-        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class));
         verify(mediaService, times(1)).stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class));
-        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), any(UUID.class));
+        verify(mediaService, times(1)).triggerProcessingStep1(any(), any(), any());
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), isNull());
     }
 
-    @DisplayName("Should throw 400 when live event has not been started")
     @Test
+    @DisplayName("Should throw 400 when live event has not been started")
     void stopCaptureSessionNotStarted() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -670,8 +711,8 @@ public class MediaServiceControllerTest {
                               .value("Resource: Capture Session(" + captureSessionId + ") has not been started."));
     }
 
-    @DisplayName("Should throw 400 error when capture session in wrong status")
     @Test
+    @DisplayName("Should throw 400 error when capture session in wrong status")
     void stopCaptureSessionAlreadyFailed() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -690,34 +731,8 @@ public class MediaServiceControllerTest {
                                          + ") is in a FAILURE state. Expected state is STANDBY or RECORDING."));
     }
 
-    @DisplayName("Should update capture session when media service encounters error and return the error")
     @Test
-    void stopCaptureSessionMediaServiceError() throws Exception {
-        var captureSessionId = UUID.randomUUID();
-        var dto = new CaptureSessionDTO();
-        dto.setId(captureSessionId);
-        dto.setStatus(RecordingStatus.RECORDING);
-        dto.setStartedAt(Timestamp.from(Instant.now()));
-        var dto2 = new CaptureSessionDTO();
-        dto2.setId(captureSessionId);
-        dto2.setStatus(RecordingStatus.PROCESSING);
-
-        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any()))
-            .thenReturn(dto2);
-        doThrow(new NotFoundException("example error"))
-            .when(mediaService).stopLiveEvent(any(), any());
-
-        mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-               .andExpect(status().isNotFound())
-               .andExpect(content().contentType(MediaType.APPLICATION_JSON));
-
-        verify(captureSessionService, times(2)).stopCaptureSession(any(), any(), any());
-    }
-
     @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
-    @Test
     void startLiveEventCaptureSessionBadState() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -737,8 +752,8 @@ public class MediaServiceControllerTest {
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
     }
 
-    @DisplayName("Should return 204 when ism file exists")
     @Test
+    @DisplayName("Should return 204 when ism file exists")
     void checkBlobExistsSuccess() throws Exception {
         var containerName = "container";
         when(azureFinalStorageService.doesIsmFileExist(containerName)).thenReturn(true);
@@ -750,8 +765,8 @@ public class MediaServiceControllerTest {
         assertThat(response.getContentAsString()).isEmpty();
     }
 
-    @DisplayName("Should return 404 when ism file exists")
     @Test
+    @DisplayName("Should return 404 when ism file exists")
     void checkBlobExistsFail() throws Exception {
         var containerName = "container";
         when(azureFinalStorageService.doesIsmFileExist(containerName)).thenReturn(false);
@@ -760,8 +775,8 @@ public class MediaServiceControllerTest {
                .andExpect(status().isNotFound());
     }
 
-    @DisplayName("Should return 200 with capture session when status is already RECORDING")
     @Test
+    @DisplayName("Should return 200 with capture session when status is already RECORDING")
     void checkStreamCaptureSessionAlreadyStatusRecording() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -780,8 +795,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
-    @DisplayName("Should throw 400 when capture session already finished")
     @Test
+    @DisplayName("Should return 200 when capture session already finished")
     void checkStreamCaptureSessionAlreadyFinished() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -791,19 +806,17 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isUnprocessableEntity())
+            .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Unprocessable Content: Resource: Capture Session("
-                                      + dto.getId() + ") has already finished."));
+            .andExpect(jsonPath("$.id").value(dto.getId().toString()));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, never()).doesIsmFileExist(any());
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
-    @DisplayName("Should throw 400 when capture session has not been started")
     @Test
+    @DisplayName("Should throw 400 when capture session has not been started")
     void checkStreamCaptureSessionNotStarted() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -823,8 +836,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
-    @DisplayName("Should throw 400 when capture session has wrong status")
     @Test
+    @DisplayName("Should throw 400 when capture session has wrong status")
     void checkStreamCaptureSessionInvalidStatus() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -846,8 +859,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
-    @DisplayName("Should return 200 with updated capture session when .ism file exists")
     @Test
+    @DisplayName("Should return 200 with updated capture session when .ism file exists")
     void checkStreamCaptureSessionIsmFileExists() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -874,8 +887,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, times(1)).setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING);
     }
 
-    @DisplayName("Should return 200 with updated capture session when gc_state exists")
     @Test
+    @DisplayName("Should return 200 with updated capture session when gc_state exists")
     void checkStreamCaptureSessionGcStateExists() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -903,8 +916,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, times(1)).setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING);
     }
 
-    @DisplayName("Should return 200 with updated capture session when .ism file does not exist")
     @Test
+    @DisplayName("Should return 200 with updated capture session when .ism file does not exist")
     void checkStreamCaptureSessionIsmFileNotExists() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -926,8 +939,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
-    @DisplayName("Should return 404 when .ism file/gc_state does not exist (recording has not started)")
     @Test
+    @DisplayName("Should return 404 when .ism file/gc_state does not exist (recording has not started)")
     void createLiveEventStreamingLocatorIsmNotFound() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var captureSession = new CaptureSessionDTO();
@@ -953,8 +966,8 @@ public class MediaServiceControllerTest {
         verify(mediaService, never()).playLiveEvent(any());
     }
 
-    @DisplayName("Should return a 404 when the source container doesn't exist")
     @Test
+    @DisplayName("Should return a 404 when the source container doesn't exist")
     void generateAsset404NoSourceContainer() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
         generateAssetDTO.setSourceContainer(UUID.randomUUID() + "-input");
@@ -965,12 +978,12 @@ public class MediaServiceControllerTest {
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message").value("Not found: Source Container: " + generateAssetDTO.getSourceContainer()));
+               .andExpect(jsonPath("$.message")
+                              .value("Not found: Source Container: " + generateAssetDTO.getSourceContainer()));
     }
 
-    @DisplayName("Should return a 404 when the source blob doesn't exist")
     @Test
-    @SuppressWarnings("LineLength")
+    @DisplayName("Should return a 404 when the source blob doesn't exist")
     void generateAsset404NoSourceBlob() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
         generateAssetDTO.setSourceContainer(UUID.randomUUID() + "-input");
@@ -978,18 +991,22 @@ public class MediaServiceControllerTest {
         generateAssetDTO.setTempAsset("blobby");
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(true);
-        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container " + generateAssetDTO.getSourceContainer()));
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer()))
+            .thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container "
+                                                 + generateAssetDTO.getSourceContainer()));
         mockMvc.perform(post("/media-service/generate-asset")
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message").value("Not found: No files ending .mp4 were found in the Source Container " + generateAssetDTO.getSourceContainer()));
+               .andExpect(jsonPath("$.message")
+                              .value("Not found: No files ending .mp4 were found in the Source Container "
+                                         + generateAssetDTO.getSourceContainer()));
     }
 
-    @DisplayName("Should return a 400 when incorrect body provided")
     @Test
+    @DisplayName("Should return a 400 when incorrect body provided")
     void generateAssetTest400Error() throws Exception {
         var response = mockMvc.perform(post("/media-service/generate-asset"))
                               .andExpect(status().is4xxClientError())
@@ -999,8 +1016,8 @@ public class MediaServiceControllerTest {
                 + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
     }
 
-    @DisplayName("Should return a 400 when incorrect source container name provided")
     @Test
+    @DisplayName("Should return a 400 when incorrect source container name provided")
     void generateAssetTest400SourceContainerNAme() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
         generateAssetDTO.setSourceContainer(UUID.randomUUID().toString());
@@ -1014,26 +1031,28 @@ public class MediaServiceControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
                             .andExpect(status().is4xxClientError())
                             .andReturn().getResponse();
-        assertThat(response.getContentAsString()).contains(
-            "{\"sourceContainer\":\"must match \\\"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-input$\\\"\"}"
+        assertThat(response.getContentAsString()).contains("{\"sourceContainer\":"
+                + "\"must match \\\"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-input$\\\"\"}"
         );
     }
 
-    @DisplayName("Should return a GenerateAssetResponseDTO successfully")
     @Test
     @SuppressWarnings("unchecked")
+    @DisplayName("Should return a GenerateAssetResponseDTO successfully")
     void generateAssetTest200() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
         generateAssetDTO.setSourceContainer(UUID.randomUUID() + "-input");
         generateAssetDTO.setDestinationContainer(UUID.randomUUID());
         generateAssetDTO.setTempAsset("blobby");
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(true);
-        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getDestinationContainer().toString())).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getDestinationContainer().toString()))
+            .thenReturn(true);
         when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer())).thenReturn("blobby.mp4");
-        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getDestinationContainer().toString())).thenReturn("something-else.mp4");
+        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getDestinationContainer().toString()))
+            .thenReturn("something-else.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.importAsset(any())).thenReturn(
+        when(mediaService.importAsset(any(), eq(true))).thenReturn(
             new GenerateAssetResponseDTO("asset", "container", "description", JobState.FINISHED.toString())
         );
 

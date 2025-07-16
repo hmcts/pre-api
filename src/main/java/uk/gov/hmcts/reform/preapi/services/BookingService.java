@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -68,11 +69,13 @@ public class BookingService {
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
     }
 
+    @Transactional
     public Page<BookingDTO> findAllByCaseId(UUID caseId, Pageable pageable) {
         return bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseId, pageable)
             .map(BookingDTO::new);
     }
 
+    @Transactional
     public Page<BookingDTO> searchBy(
         UUID caseId,
         String caseReference,
@@ -208,5 +211,28 @@ public class BookingService {
                 booking.setDeletedAt(Timestamp.from(Instant.now()));
                 bookingRepository.save(booking);
             });
+    }
+
+    @Transactional
+    public List<BookingDTO> findAllPastBookings() {
+        return bookingRepository.findAllPastUnusedBookings(Timestamp.from(Instant.now()))
+            .stream()
+            .map(BookingDTO::new)
+            .toList();
+    }
+
+    @Transactional
+    public List<BookingDTO> findAllBookingsForToday() {
+        LocalDate currentDate = LocalDate.now();
+        return searchBy(null,
+                        null,
+                        null,
+                        Optional.of(Timestamp.valueOf(currentDate.atStartOfDay())),
+                        null,
+                        null,
+                        null,
+                        null,
+                        Pageable.unpaged())
+            .toList();
     }
 }

@@ -7,10 +7,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
@@ -26,12 +26,14 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -57,17 +59,20 @@ class RecordingServiceTest {
     private static Recording recordingEntity;
     private static CaptureSession captureSession;
 
-    @MockBean
+    @MockitoBean
     private RecordingRepository recordingRepository;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionRepository captureSessionRepository;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionService captureSessionService;
 
-    @MockBean
+    @MockitoBean
     private GovNotify govNotify;
+
+    @MockitoBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     private RecordingService recordingService;
@@ -590,5 +595,59 @@ class RecordingServiceTest {
         verify(recordingRepository, times(1)).findById(recording.getId());
         verify(captureSessionService, times(1)).undelete(captureSession.getId());
         verify(recordingRepository, never()).save(recording);
+    }
+
+    @Test
+    @DisplayName("Should return the next version number for recordings")
+    void getNextVersionNumberSuccess() {
+        var id = UUID.randomUUID();
+        when(recordingRepository.countByParentRecording_Id(id))
+            .thenReturn(0);
+
+        assertThat(recordingService.getNextVersionNumber(id)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Sync recording with storage when filename and duration has changed")
+    void syncRecordingWithStorageFilenameDurationChanged() {
+        Recording recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setFilename("filename.mp4");
+        recording.setDuration(Duration.ofMinutes(3));
+
+        when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
+        when(azureFinalStorageService.getMp4FileName(recording.getId().toString()))
+            .thenReturn("updated.mp4");
+        when(azureFinalStorageService.getRecordingDuration(recording.getId()))
+            .thenReturn(Duration.ofMinutes(30));
+
+        recordingService.syncRecordingMetadataWithStorage(recording.getId());
+
+        verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(azureFinalStorageService, times(1)).getMp4FileName(recording.getId().toString());
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(recording.getId());
+        verify(recordingRepository, times(1)).saveAndFlush(any(Recording.class));
+    }
+
+    @Test
+    @DisplayName("Sync recording with storage when filename and duration not has changed")
+    void syncRecordingWithStorageNotChanged() {
+        Recording recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setFilename("filename.mp4");
+        recording.setDuration(Duration.ofMinutes(3));
+
+        when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
+        when(azureFinalStorageService.getMp4FileName(recording.getId().toString()))
+            .thenReturn("filename.mp4");
+        when(azureFinalStorageService.getRecordingDuration(recording.getId()))
+            .thenReturn(Duration.ofMinutes(3));
+
+        recordingService.syncRecordingMetadataWithStorage(recording.getId());
+
+        verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(azureFinalStorageService, times(1)).getMp4FileName(recording.getId().toString());
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(recording.getId());
+        verify(recordingRepository, never()).saveAndFlush(any());
     }
 }

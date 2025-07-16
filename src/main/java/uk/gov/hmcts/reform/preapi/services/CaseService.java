@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -169,6 +170,12 @@ public class CaseService {
         }
         newCase.setTest(createCaseDTO.isTest());
 
+        if (createCaseDTO.getOrigin() != null) {
+            newCase.setOrigin(createCaseDTO.getOrigin());
+        } else if (!isUpdate) {
+            newCase.setOrigin(RecordingOrigin.PRE);
+        }
+
         // todo update once CreateCaseDTO.state is made not nullable (currently breaking)
         newCase.setState(createCaseDTO.getState() == null ? CaseState.OPEN : createCaseDTO.getState());
         newCase.setClosedAt(createCaseDTO.getClosedAt());
@@ -273,19 +280,21 @@ public class CaseService {
         log.info("onCaseClosed: Case({})", c.getId());
         var shares = shareBookingService.deleteCascade(c);
 
-        try {
-            if (!emailServiceFactory.isEnabled()) {
-                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
-                    shares
-                        .stream()
-                        .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
-                        .toList());
-            } else {
-                var emailService = emailServiceFactory.getEnabledEmailService();
-                shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
+        if (!shares.isEmpty()) {
+            try {
+                if (!emailServiceFactory.isEnabled()) {
+                    caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
+                        shares
+                            .stream()
+                            .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
+                            .toList());
+                } else {
+                    var emailService = emailServiceFactory.getEnabledEmailService();
+                    shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
+                }
+            } catch (Exception e) {
+                log.error("Failed to notify users of case closure: {}", c.getId());
             }
-        } catch (Exception e) {
-            log.error("Failed to notify users of case closure: {}", c.getId());
         }
 
         bookingRepository
@@ -304,6 +313,10 @@ public class CaseService {
     public void onCaseClosureCancellation(Case c) {
         log.info("onCaseClosureCancellation: Case({})", c.getId());
         var shares = shareBookingService.getSharesForCase(c);
+
+        if (shares.isEmpty()) {
+            return;
+        }
 
         try {
             if (!emailServiceFactory.isEnabled()) {
@@ -326,6 +339,10 @@ public class CaseService {
     public void onCasePendingClosure(Case c) {
         log.info("onCasePendingClosure: Case({})", c.getId());
         var shares = shareBookingService.getSharesForCase(c);
+
+        if (shares.isEmpty()) {
+            return;
+        }
 
         try {
             if (!emailServiceFactory.isEnabled()) {

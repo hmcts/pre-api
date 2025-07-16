@@ -6,6 +6,9 @@ import com.azure.storage.blob.models.BlobItem;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.HashMap;
 
 @Slf4j
@@ -57,6 +60,44 @@ public abstract class AzureStorageService {
                 .listBlobs()
                 .stream()
                 .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase(blobName));
+    }
+
+    public BlobClient getBlob(String containerName, String blobName) {
+        if (!doesBlobExist(containerName, blobName)) {
+            throw new NotFoundException("Container: " + containerName + ", with blob: " + blobName);
+        }
+        return client.getBlobContainerClient(containerName)
+            .getBlobClient(blobName);
+    }
+
+    public boolean downloadBlob(String containerName, String blobName, String downloadPath) {
+        try {
+            log.info("Attempting to download blob {} from container {}", blobName, containerName);
+            getBlob(containerName, blobName).downloadToFile(downloadPath, true);
+            return true;
+        } catch (Exception e) {
+            log.error("Error downloading blob {} from container {}", blobName, containerName, e);
+            return false;
+        }
+    }
+
+    public boolean uploadBlob(String localFileName, String containerName, String uploadFileName) {
+        try {
+            var file = new File(localFileName);
+            var containerClient = client.createBlobContainerIfNotExists(containerName);
+            var blobClient = containerClient.getBlobClient(uploadFileName);
+            blobClient.upload(new FileInputStream(file), file.length(), true);
+            log.info("Successfully uploaded to ingest storage: {}/{}", containerName, uploadFileName);
+            return true;
+        } catch (IOException e) {
+            log.error("Failed to upload to ingest storage: {}/{}", containerName, uploadFileName, e);
+        }
+        return false;
+    }
+
+    public void createContainerIfNotExists(String containerName) {
+        log.info("Creating container: {}", containerName);
+        client.createBlobContainerIfNotExists(containerName);
     }
 
     public void tagAllBlobsInContainer(String containerName, String tagKey, String tagValue) {

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,12 +23,14 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -40,6 +43,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
@@ -56,19 +60,27 @@ public class MediaServiceController extends PreApiController {
     private final AzureFinalStorageService azureFinalStorageService;
     private final AzureIngestStorageService azureIngestStorageService;
     private final RecordingService recordingService;
+    private final EncodeJobService encodeJobService;
+
+    private final boolean enableEnhancedProcessing;
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
                                   RecordingService recordingService,
                                   AzureFinalStorageService azureFinalStorageService,
-                                  AzureIngestStorageService azureIngestStorageService) {
+                                  AzureIngestStorageService azureIngestStorageService,
+                                  EncodeJobService encodeJobService,
+                                  @Value("${feature-flags.enable-enhanced-processing:}")
+                                      Boolean enableEnhancedProcessing) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.recordingService = recordingService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.azureIngestStorageService = azureIngestStorageService;
+        this.encodeJobService = encodeJobService;
+        this.enableEnhancedProcessing = enableEnhancedProcessing;
     }
 
     @GetMapping("/health")
@@ -137,7 +149,7 @@ public class MediaServiceController extends PreApiController {
     }
 
     @GetMapping("/vod")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3')")
     public ResponseEntity<PlaybackDTO> getVod(
         @RequestParam UUID recordingId,
         @RequestParam(required = false) String mediaService
@@ -188,19 +200,48 @@ public class MediaServiceController extends PreApiController {
         }
 
         var recordingId = UUID.randomUUID();
-        dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
+        if (!enableEnhancedProcessing) {
+            // todo code to removed once feature fully enabled (deprecated)
+            dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
+        }
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
-            var status = mediaService.stopLiveEvent(dto, recordingId);
-            if (status == RecordingStatus.FAILURE) {
-                throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
-                                                     + captureSessionId
-                                                     + ")");
+            if (!enableEnhancedProcessing) {
+                // todo code to removed once feature fully enabled (deprecated)
+                var status = mediaService.stopLiveEventAndProcess(dto, recordingId);
+                if (status == RecordingStatus.FAILURE) {
+                    throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
+                                                         + captureSessionId
+                                                         + ")");
+                }
+                dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
+            } else {
+                mediaService.stopLiveEvent(dto, recordingId);
+                var jobName = mediaService.triggerProcessingStep1(
+                    dto,
+                    dto.getId().toString().replace("-", ""),
+                    recordingId
+                );
+                if (jobName == null) {
+                    dto =
+                        captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.NO_RECORDING, null);
+                } else {
+                    var encodeJob = new EncodeJobDTO();
+                    encodeJob.setCaptureSessionId(captureSessionId);
+                    encodeJob.setJobName(jobName);
+                    encodeJob.setRecordingId(recordingId);
+                    encodeJob.setTransform(EncodeTransform.ENCODE_FROM_INGEST);
+                    encodeJobService.upsert(encodeJob);
+                    dto = captureSessionService.stopCaptureSession(
+                        captureSessionId,
+                        RecordingStatus.PROCESSING,
+                        recordingId
+                    );
+                }
             }
-            dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
         } catch (Exception e) {
-            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
+            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
             throw e;
         }
 
@@ -261,9 +302,8 @@ public class MediaServiceController extends PreApiController {
         }
 
         if (captureSession.getFinishedAt() != null) {
-            throw new UnprocessableContentException("Resource: Capture Session("
-                                                        + captureSessionId
-                                                        + ") has already finished.");
+            log.info("Resource: Capture Session: {} has already finished.", captureSessionId);
+            return ResponseEntity.ok(captureSession);
         }
 
         if (captureSession.getStartedAt() == null) {
@@ -356,7 +396,7 @@ public class MediaServiceController extends PreApiController {
 
         log.info("Attempting to generate asset: {}", generateAssetDTO);
 
-        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
+        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO, true);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             // add new version to recording etc
             var parentRecording = recordingService.findById(generateAssetDTO.getParentRecordingId());

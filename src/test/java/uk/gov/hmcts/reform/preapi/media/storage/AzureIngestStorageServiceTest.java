@@ -11,8 +11,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -20,14 +23,18 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AzureIngestStorageService.class)
 public class AzureIngestStorageServiceTest {
-    @MockBean
+    @MockitoBean
     private BlobServiceClient ingestStorageClient;
 
     @Mock
@@ -73,6 +80,40 @@ public class AzureIngestStorageServiceTest {
         when(pagedIterable.stream()).thenAnswer(inv -> Stream.of(blobItem));
 
         assertFalse(azureIngestStorageService.doesValidAssetExist("test-container"));
+    }
+
+    @Test
+    void uploadBlobSuccess() throws IOException {
+        var tempFile = Files.createTempFile("test", ".mp4");
+        var localFileName = tempFile.toString();
+        var containerName = "test-container";
+        var uploadFileName = "uploaded.mp4";
+
+        when(ingestStorageClient.createBlobContainerIfNotExists(containerName)).thenReturn(blobContainerClient);
+        var mockBlobClient = mock(BlobClient.class);
+        when(blobContainerClient.getBlobClient(uploadFileName)).thenReturn(mockBlobClient);
+
+        assertTrue(azureIngestStorageService.uploadBlob(localFileName, containerName, uploadFileName));
+
+        verify(mockBlobClient, times(1)).upload(any(FileInputStream.class), anyLong(), eq(true));
+
+        // clean up
+        Files.deleteIfExists(tempFile);
+    }
+
+    @Test
+    void uploadBlobFileNotFound() {
+        var localFileName = "test.mp4";
+        var containerName = "test-container";
+        var uploadFileName = "uploaded.mp4";
+
+        when(ingestStorageClient.createBlobContainerIfNotExists(containerName)).thenReturn(blobContainerClient);
+        var mockBlobClient = mock(BlobClient.class);
+        when(blobContainerClient.getBlobClient(uploadFileName)).thenReturn(mockBlobClient);
+
+        assertFalse(azureIngestStorageService.uploadBlob(localFileName, containerName, uploadFileName));
+
+        verify(mockBlobClient, never()).upload(any(FileInputStream.class), anyLong(), eq(true));
     }
 
     @Test

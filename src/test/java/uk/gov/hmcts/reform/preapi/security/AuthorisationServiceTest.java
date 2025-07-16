@@ -5,11 +5,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -17,12 +18,14 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
+import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -40,23 +43,27 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = AuthorisationService.class)
 public class AuthorisationServiceTest {
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
 
-    @MockBean
+    @MockitoBean
     private CaseRepository caseRepository;
 
-    @MockBean
+    @MockitoBean
     private ParticipantRepository participantRepository;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionRepository captureSessionRepository;
 
-    @MockBean
+    @MockitoBean
     private RecordingRepository recordingRepository;
+
+    @MockitoBean
+    private EditRequestRepository editRequestRepository;
 
     @Autowired
     private AuthorisationService authorisationService;
+
     private UserAuthentication authenticationUser;
 
     @BeforeEach
@@ -683,6 +690,51 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @DisplayName("Should grant upsert access when creating a new case as a non-admin")
+    @Test
+    void hasUpsertAccessNewCase() {
+        var dto = new CreateCaseDTO();
+        dto.setId(UUID.randomUUID());
+        var court = UUID.randomUUID();
+        dto.setCourtId(court);
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(court);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should grant upsert access when not supplying a new case state for an open case")
+    @Test
+    void hasUpsertAccessNullState() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+
+        var existingCase = new Case();
+        existingCase.setId(UUID.randomUUID());
+        existingCase.setCourt(court);
+        existingCase.setState(CaseState.OPEN);
+
+        var dto = new CreateCaseDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(court.getId());
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(court.getId());
+        when(caseRepository.findById(dto.getId())).thenReturn(Optional.of(existingCase));
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+
+        existingCase.setState(CaseState.PENDING_CLOSURE);
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
     @DisplayName("Should grant upsert access when the user is the one sharing the booking and has booking access")
     @Test
     void hasUpsertAccessUserIsSharingAndHasBookingAccess() {
@@ -750,4 +802,52 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @Test
+    @DisplayName("Should grant upsert access when the user has access to recording for edit requests")
+    void hasUpsertAccessEditRequest() {
+        var dto = new CreateEditRequestDTO();
+        dto.setSourceRecordingId(UUID.randomUUID());
+
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @Test
+    @DisplayName("Should grant edit request access when request id is null")
+    void hasEditRequestAccessIdIsNull() {
+        assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, null));
+    }
+
+    @Test
+    @DisplayName("Should grant edit request access when user is admin")
+    void hasEditRequestAccessIsAdmin() {
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, null));
+    }
+
+    @Test
+    @DisplayName("Should grant access edit request access when id does not exist")
+    void hasEditRequestAccessNotFound() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.empty());
+
+        assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, id));
+    }
+
+    @Test
+    @DisplayName("Should grant access edit request access when has access to source recording")
+    void hasEditRequestAccessHasRecordingAccess() {
+        var id = UUID.randomUUID();
+        var recording = new Recording();
+        var editRequest = new EditRequest();
+        editRequest.setSourceRecording(recording);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.of(editRequest));
+
+        assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, id));
+    }
 }
