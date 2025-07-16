@@ -312,6 +312,7 @@ dependencies {
   implementation group: 'com.opencsv', name: 'opencsv', version: '5.11.2'
 
   implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.30.0'
+  implementation group: 'com.azure', name: 'azure-core-serializer-json-jackson', version: '1.5.10'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0'
 
   implementation group: 'org.testcontainers', name: 'postgresql', version: '1.21.2'
