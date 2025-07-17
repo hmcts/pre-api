@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -38,6 +39,7 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -158,7 +160,7 @@ public class CaptureSessionServiceTest {
         captureSessionService.deleteCascade(booking);
 
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
-        verify(recordingService, times(1)).deleteCascade(captureSession);
+        verify(recordingService, times(1)).checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         verify(captureSessionRepository, times(1)).save(captureSession);
     }
 
@@ -256,7 +258,7 @@ public class CaptureSessionServiceTest {
         captureSessionService.deleteById(captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
-        verify(recordingService, times(1)).deleteCascade(captureSession);
+        verify(recordingService, times(1)).checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         verify(captureSessionRepository, times(1)).saveAndFlush(captureSession);
     }
 
@@ -274,7 +276,7 @@ public class CaptureSessionServiceTest {
         assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
-        verify(recordingService, never()).deleteCascade(any());
+        verify(recordingService, never()).checkIfCaptureSessionHasAssociatedRecordings(any());
         verify(captureSessionRepository, never()).deleteById(any());
     }
 

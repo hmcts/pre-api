@@ -22,7 +22,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
@@ -533,7 +533,7 @@ class CaseControllerTest {
     @Test
     void deleteCaseRecordingNotDeleted() throws Exception {
         var caseId = UUID.randomUUID();
-        doThrow(new RecordingNotDeletedException()).when(caseService).deleteById(caseId);
+        doThrow(new CaptureSessionNotDeletedException()).when(caseService).deleteById(caseId);
         mockMvc.perform(delete("/cases/" + caseId)
                             .with(csrf()))
             .andExpect(status().isBadRequest())

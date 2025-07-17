@@ -26,7 +26,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -277,7 +277,7 @@ public class CaseService {
         });
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, noRollbackFor = RecordingNotDeletedException.class,
+    @Transactional(propagation = Propagation.REQUIRED, noRollbackFor = CaptureSessionNotDeletedException.class,
         rollbackFor = Exception.class)
     public void onCaseClosed(Case c) {
         log.info("onCaseClosed: Case({})", c.getId());

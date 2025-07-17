@@ -18,7 +18,7 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -162,9 +162,9 @@ public class RecordingService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void deleteCascade(CaptureSession captureSession) {
+    public void checkIfCaptureSessionHasAssociatedRecordings(CaptureSession captureSession) {
         if (recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)) {
-            throw new RecordingNotDeletedException();
+            throw new CaptureSessionNotDeletedException();
         }
     }
 

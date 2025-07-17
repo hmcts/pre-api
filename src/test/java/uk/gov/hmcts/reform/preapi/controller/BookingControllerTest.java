@@ -25,7 +25,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -527,7 +527,7 @@ class BookingControllerTest {
     @Test
     void deleteBookingRecordingNotDeleted() throws Exception {
         var bookingId = UUID.randomUUID();
-        doThrow(new RecordingNotDeletedException()).when(bookingService).markAsDeleted(bookingId);
+        doThrow(new CaptureSessionNotDeletedException()).when(bookingService).markAsDeleted(bookingId);
 
         mockMvc.perform(delete("/bookings/" + bookingId)
                             .with(csrf()))
