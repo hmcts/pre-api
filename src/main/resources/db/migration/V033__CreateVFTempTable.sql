@@ -7,7 +7,8 @@ CREATE TYPE public.VF_MIGRATION_STATUS AS ENUM (
  
 CREATE TABLE public.vf_migration_records (
     id UUID PRIMARY KEY,
- 
+    status VF_MIGRATION_STATUS NOT NULL DEFAULT 'PENDING',
+
     -- Metadata fields
     archive_id TEXT NOT NULL,
     archive_name TEXT NOT NULL,
@@ -19,13 +20,18 @@ CREATE TABLE public.vf_migration_records (
     defendant_name VARCHAR(100),
     witness_name VARCHAR(100),
     recording_version VARCHAR(4),
-    recording_version_number VARCHAR(1),
+    recording_version_number VARCHAR(10),
     mp4_file_name TEXT,
     file_size_mb VARCHAR(10),
  
     -- Status and error tracking
+    is_most_recent BOOLEAN,
+    parent_temp_id UUID,
+    recording_group_key TEXT,
+    booking_id UUID,
+    capture_session_id UUID,
     recording_id UUID,
-    status VF_MIGRATION_STATUS NOT NULL DEFAULT 'PENDING',
+    
     reason TEXT,
     error_message TEXT,
     resolved_at TIMESTAMPTZ,

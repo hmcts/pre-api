@@ -146,6 +146,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
             } catch (Exception e) {
                 loggingService.logError("Failed to upsert recording. Recording id: %s | %s",
                     recordingData.getId(), e);
+                throw e; 
             }
         }
     }

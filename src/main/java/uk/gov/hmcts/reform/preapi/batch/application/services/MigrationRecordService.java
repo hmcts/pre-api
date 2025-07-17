@@ -13,6 +13,8 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,6 +27,42 @@ public class MigrationRecordService {
         this.migrationRecordRepository = migrationRecordRepository;
     }
 
+    // =========================================
+    // ============ FIND =======================
+    // =========================================
+    @Transactional(readOnly = true)
+    public Optional<MigrationRecord> findByArchiveId(String archiveId) {
+        return migrationRecordRepository.findByArchiveId(archiveId);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<MigrationRecord> getOrigFromCopy(MigrationRecord copy) {
+        if (copy.getParentTempId() == null) {
+            return Optional.empty();
+        }
+        return migrationRecordRepository.findById(copy.getParentTempId());
+    }
+    
+    @Transactional(readOnly = true)
+    public boolean isMostRecentVersion(String archiveId) {
+        return migrationRecordRepository.findByArchiveId(archiveId)
+            .map(MigrationRecord::getIsMostRecent)
+            .orElse(false);
+    }
+    
+    @Transactional(readOnly = true)
+    public Optional<MigrationRecord> getMostRecentCopyWithParentInfo(String recordingGroupKey) {
+        List<MigrationRecord> group = migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey);
+
+        return group.stream()
+            .filter(r -> "COPY".equalsIgnoreCase(r.getRecordingVersion()))
+            .filter(MigrationRecord::getIsMostRecent)
+            .findFirst();
+    }
+    
+    // =========================================
+    // ============== UPSERT ===================
+    // =========================================
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(
@@ -106,6 +144,9 @@ public class MigrationRecordService {
         );
     }
 
+    // =========================================
+    // ============== UPDATE ===================
+    // =========================================
     @Transactional
     public void updateMetadataFields(String archiveId, ExtractedMetadata extracted) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
@@ -118,7 +159,17 @@ public class MigrationRecordService {
             record.setRecordingVersionNumber(extracted.getRecordingVersionNumber());
             record.setMp4FileName(extracted.getFileName());
             record.setFileSizeMb(extracted.getFileSize());
+            
+            String groupKey = String.join("|",
+                nullToEmpty(extracted.getUrn()),
+                nullToEmpty(extracted.getExhibitReference()),
+                nullToEmpty(extracted.getWitnessFirstName()),
+                nullToEmpty(extracted.getDefendantLastName())
+            ).toLowerCase().trim();
+
+            record.setRecordingGroupKey(groupKey);
             migrationRecordRepository.save(record);
+            setMostRecentFlag(record.getRecordingGroupKey());
         });
     }
 
@@ -133,11 +184,108 @@ public class MigrationRecordService {
     }
 
     @Transactional
-    public void updateToSuccess(String archiveId, UUID recordingId) {
+    public void updateToSuccess(String archiveId) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setStatus(VfMigrationStatus.SUCCESS);
+            migrationRecordRepository.save(record);
+        });
+    }
+
+    @Transactional
+    public void updateBookingId(String archiveId, UUID bookingId) {
+        migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
+            record.setBookingId(bookingId);
+            migrationRecordRepository.save(record);
+        });
+    }
+
+    @Transactional
+    public void updateRecordingId(String archiveId, UUID recordingId) {
+        migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setRecordingId(recordingId);
             migrationRecordRepository.save(record);
         });
     }
+
+    @Transactional
+    public void updateCaptureSessionId(String archiveId, UUID captureSessionId) {
+        migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
+            record.setCaptureSessionId(captureSessionId);
+            migrationRecordRepository.save(record);
+        });
+    }
+
+    @Transactional
+    public void updateParentTempIdIfCopy(String archiveId, String recordingGroupKey, String version) {
+        if (!"COPY".equalsIgnoreCase(version)) {
+            return;
+        }
+
+        Optional<MigrationRecord> maybeOrig = migrationRecordRepository
+            .findByRecordingGroupKey(recordingGroupKey)
+            .stream()
+            .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+            .findFirst();
+
+        if (maybeOrig.isEmpty()) {
+            return;
+        }
+
+        migrationRecordRepository.findByArchiveId(archiveId).ifPresent(copy -> {
+            copy.setParentTempId(maybeOrig.get().getId());
+            migrationRecordRepository.save(copy);
+        });
+    }
+
+    // =========================================
+    // ============ HELPERS ====================
+    // =========================================
+    private static String nullToEmpty(String input) {
+        return input == null ? "" : input;
+    }
+
+    public static String generateRecordingGroupKey(
+        String urn, String exhibitRef, String witnessName, String defendantName) {
+        return String.join("|",
+            nullToEmpty(urn),
+            nullToEmpty(exhibitRef),
+            nullToEmpty(witnessName),
+            nullToEmpty(defendantName)
+        ).toLowerCase().trim();
+    }
+
+    private void setMostRecentFlag(String groupKey) {
+        var groupRecords = migrationRecordRepository.findByRecordingGroupKey(groupKey);
+
+        if (groupRecords.isEmpty()) {
+            return;
+        }
+
+        groupRecords.stream()
+            .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+            .forEach(r -> r.setIsMostRecent(true));
+
+        var copyRecords = groupRecords.stream()
+            .filter(r -> "COPY".equalsIgnoreCase(r.getRecordingVersion()))
+            .filter(r -> r.getRecordingVersionNumber() != null && r.getRecordingVersionNumber().matches("\\d+"))
+            .toList();
+
+        if (copyRecords.size() == 1) {
+            copyRecords.get(0).setIsMostRecent(true);
+        } else {
+            MigrationRecord mostRecentCopy = copyRecords.stream()
+                .max((a, b) -> Integer.compare(
+                    Integer.parseInt(a.getRecordingVersionNumber()),
+                    Integer.parseInt(b.getRecordingVersionNumber())
+                ))
+                .orElse(null);
+
+            for (MigrationRecord copy : copyRecords) {
+                copy.setIsMostRecent(copy.equals(mostRecentCopy));
+            }
+        }
+
+        migrationRecordRepository.saveAll(groupRecords);
+    }
+    
 }

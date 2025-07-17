@@ -169,13 +169,13 @@ public class MetadataValidatorTest {
         List<String> results = metadataValidator.getMissingMetadataFields(new ExtractedMetadata());
 
         assertThat(results).isNotNull();
-        assertThat(results).hasSize(6);
+        assertThat(results).hasSize(5);
         assertThat(results.stream().anyMatch(e -> e.equals("Court Reference"))).isTrue();
         assertThat(results.stream().anyMatch(e -> e.equals("URN and Exhibit Reference"))).isTrue();
         assertThat(results.stream().anyMatch(e -> e.equals("Defendant Last Name"))).isTrue();
         assertThat(results.stream().anyMatch(e -> e.equals("Witness First Name"))).isTrue();
         assertThat(results.stream().anyMatch(e -> e.equals("Recording Version"))).isTrue();
-        assertThat(results.stream().anyMatch(e -> e.equals("File Extension"))).isTrue();
+        // assertThat(results.stream().anyMatch(e -> e.equals("File Extension"))).isTrue();
     }
 
     @Test

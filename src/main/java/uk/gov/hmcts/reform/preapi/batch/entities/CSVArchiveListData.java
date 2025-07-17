@@ -92,6 +92,11 @@ public class CSVArchiveListData implements IArchiveData  {
 
         try {
             long timestamp = Long.parseLong(createTime.trim());
+
+            if (timestamp == 0L || timestamp == 3600000L) {
+                return LocalDateTime.now();
+            }
+            
             return LocalDateTime.ofInstant(
                 java.time.Instant.ofEpochMilli(timestamp),
                 java.time.ZoneId.systemDefault()

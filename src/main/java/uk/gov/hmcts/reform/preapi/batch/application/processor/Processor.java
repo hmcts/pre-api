@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationGroupBuilderService;
@@ -19,13 +20,13 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.IArchiveData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 
 /**
  * Processes various CSV data types and transforms them into MigratedItemGroup for further processing.
@@ -130,14 +131,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logDebug("===============================================");
             loggingService.logDebug("Processor started for item: %s", archiveItem);
 
-            migrationRecordService.insertPending(archiveItem);
             // Extraction
             ExtractedMetadata extractedData = extractData(archiveItem);
             if (extractedData == null) {
                 return null;
             }
-
-            migrationRecordService.updateMetadataFields(archiveItem.getArchiveId(), extractedData);
 
             // Transformation
             ProcessedRecording cleansedData = transformData(extractedData);
@@ -235,43 +233,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
   
     private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
-        String key = cacheService.generateEntityCacheKey(
-            "recording",
-            cleansedData.getCaseReference(),
-            cleansedData.getDefendantLastName(),
-            cleansedData.getWitnessFirstName(),
-            cleansedData.getOrigVersionNumberStr()
-        );
+        Optional<MigrationRecord> maybeExisting = migrationRecordService.findByArchiveId(archiveItem.getArchiveId());
 
-        Map<String, Object> metadata = cacheService.getHashAll(key);
-        String archiveName = archiveItem.getArchiveName();
-        String versionStr = cleansedData.getExtractedRecordingVersion(); // e.g. ORIG1, COPY2
-        int version = cleansedData.getRecordingVersionNumber();
-
-        boolean isOrig = versionStr != null && versionStr.toUpperCase().startsWith("ORIG");
-        boolean isCopy = versionStr != null && versionStr.toUpperCase().startsWith("COPY");
-
-        String archiveKey = isOrig ? "origVersionArchiveName:" + version : "copyVersionArchiveName:" + version;
-
-        if (metadata != null) {
-            // boolean seen = Boolean.TRUE.equals(metadata.get(seenKey));
-            String seenArchive = (String) metadata.get(archiveKey);
-
-            // if (seen && archiveName.equalsIgnoreCase(seenArchive)) {
-            if (archiveName.equalsIgnoreCase(seenArchive)) {
-                handleError(archiveItem, "Duplicate recording already seen", "Duplicate");
-                return true;
-            }
-        } else {
-            metadata = new HashMap<>();
-        }
-
-        cacheService.saveHashAll(key, metadata);
-
-        boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
-        if (alreadyMigrated) {
-            loggingService.logDebug("Case already migrated: %s", cleansedData.getCaseReference());
-            handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
+        if (maybeExisting.isPresent() && maybeExisting.get().getStatus() == VfMigrationStatus.SUCCESS) {
+            loggingService.logDebug("Recording already migrated: %s", archiveItem.getArchiveId());
+            handleError(archiveItem, "Duplicate archiveId already migrated", "Duplicate");
             return true;
         }
 
