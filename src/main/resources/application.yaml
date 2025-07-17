@@ -25,6 +25,10 @@ spring:
     import: "optional:configtree:/mnt/secrets/pre-hmctskv/"
   application:
     name: Spring Boot Template
+  cache:
+    cache-names: users
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=10m
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:api}${DB_OPTIONS:}
@@ -34,17 +38,20 @@ spring:
       charSet: UTF-8
     hikari:
       minimumIdle: 2
-      maximumPoolSize: 10
+      maximumPoolSize: ${HIKARI_POOL_SIZE:10}
       idleTimeout: 10000
       poolName: PreHikariCP
       maxLifetime: 7200000
       connectionTimeout: 30000
     jpa:
+
+      show-sql: true
       hibernate:
         ddl-auto: none
       database-platform: org.hibernate.dialect.PostgreSQLDialect
       properties:
         hibernate:
+          format_sql: true
           default_schema: ${spring.datasource.schema}
           dialect: org.hibernate.dialect.PostgreSQLDialect
           globally_quoted_identifiers: true
@@ -132,10 +139,9 @@ tasks:
     cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
     job-poll-interval: 10000 # 10 seconds
 
-#logging:
-#  level:
-#    org.springframework.orm.jpa: DEBUG
-#    org.springframework.transaction: DEBUG
+feature-flags:
+  enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+
 #logging:
 #  level:
 #    uk:

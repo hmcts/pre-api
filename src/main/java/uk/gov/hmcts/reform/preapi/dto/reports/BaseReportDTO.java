@@ -11,19 +11,19 @@ import uk.gov.hmcts.reform.preapi.entities.Region;
 @NoArgsConstructor
 public abstract class BaseReportDTO {
     @Schema(description = "ReportCaseReference")
-    private String caseReference;
+    protected String caseReference;
 
     @Schema(description = "ReportCourt")
-    private String court;
+    protected String court;
 
     @Schema(description = "ReportCounty")
-    private String county;
+    protected String county;
 
     @Schema(description = "ReportPostcode")
-    private String postcode;
+    protected String postcode;
 
     @Schema(description = "ReportRegion")
-    private String region;
+    protected String region;
 
     protected BaseReportDTO(Case c) {
         if (c == null) {

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -18,10 +19,12 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,9 +48,6 @@ class BookingServiceIT extends IntegrationTestBase {
 
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
-
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
 
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
@@ -107,9 +107,6 @@ class BookingServiceIT extends IntegrationTestBase {
 
         var region = HelperFactory.createRegion("Foo Region", Set.of(court1, court2));
         entityManager.persist(region);
-
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court1, court2));
-        entityManager.persist(room);
 
         var caseEntity1 = HelperFactory.createCase(court1, "1234_Alpha", false, null);
         var caseEntity2 = HelperFactory.createCase(court2, "1234_Beta", false, null);
@@ -295,9 +292,6 @@ class BookingServiceIT extends IntegrationTestBase {
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
 
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
-
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
 
@@ -449,9 +443,6 @@ class BookingServiceIT extends IntegrationTestBase {
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
 
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
-
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
 
@@ -508,9 +499,6 @@ class BookingServiceIT extends IntegrationTestBase {
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
 
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
-
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
 
@@ -559,5 +547,61 @@ class BookingServiceIT extends IntegrationTestBase {
 
         assertThat(bookings.size()).isEqualTo(1);
         assertThat(bookings.getFirst().getId()).isEqualTo(booking1.getId());
+    }
+
+    @Test
+    @Transactional
+    void testFindAllBookingsForToday() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "1234");
+        entityManager.persist(court);
+
+        var region = HelperFactory.createRegion("Test Region", Set.of(court));
+        entityManager.persist(region);
+
+        var caseEntity = HelperFactory.createCase(court, "Test-Case", false, null);
+        entityManager.persist(caseEntity);
+
+        var currentDate = LocalDate.now();
+
+        var booking1ForToday = HelperFactory.createBooking(caseEntity,
+                                                           Timestamp.valueOf(currentDate.atTime(10, 0)),
+                                                           null,
+                                                           null);
+        var booking2ForToday = HelperFactory.createBooking(caseEntity,
+                                                           Timestamp.valueOf(currentDate.atTime(15, 0)),
+                                                           null,
+                                                           null);
+
+        var bookingForYesterday = HelperFactory.createBooking(caseEntity,
+                                                              Timestamp.valueOf(currentDate.minusDays(1).atTime(10, 0)),
+                                                              null,
+                                                   null);
+        var bookingForTomorrow = HelperFactory.createBooking(caseEntity,
+                                                             Timestamp.valueOf(currentDate.plusDays(1).atTime(10, 0)),
+                                                             null,
+                                                             null);
+
+        entityManager.persist(booking1ForToday);
+        entityManager.persist(booking2ForToday);
+        entityManager.persist(bookingForYesterday);
+        entityManager.persist(bookingForTomorrow);
+        entityManager.flush();
+
+        List<BookingDTO> bookings = bookingService.findAllBookingsForToday();
+
+        var bookingsForToday = List.of(booking1ForToday, booking2ForToday);
+        assertThat(bookings.size()).isEqualTo(bookingsForToday.size());
+
+        Set<UUID> expectedIds = bookingsForToday.stream()
+            .map(BaseEntity::getId)
+            .collect(Collectors.toSet());
+
+        Set<UUID> actualIds = bookings.stream()
+            .map(BookingDTO::getId)
+            .collect(Collectors.toSet());
+
+        assertEquals(expectedIds, actualIds);
     }
 }

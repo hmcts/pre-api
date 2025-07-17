@@ -20,36 +20,13 @@ import javax.annotation.Nullable;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "PlaybackReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class PlaybackReportDTOV2 extends BaseReportDTO {
-
-    @Schema(description = "PlaybackReportPlaybackDate")
-    private String playbackDate;
-
-    @Schema(description = "PlaybackReportPlaybackTime")
-    private String playbackTime;
+public class PlaybackReportDTOV2 extends UserRecordingPlaybackReportDTOV2 {
 
     @Schema(description = "PlaybackReportTimeZone")
     private String playbackTimeZone;
 
-    @Schema(description = "PlaybackReportUserFullName")
-    private String userFullName;
-
-    @Schema(description = "PlaybackReportUserEmail")
-    private String userEmail;
-
-    @Schema(description = "PlaybackReportUserOrganisation")
-    private String userOrganisation;
-
     public PlaybackReportDTOV2(Audit audit, User user, @Nullable Recording recording) {
-        super(recording != null ? recording.getCaptureSession().getBooking().getCaseId() : null);
-
-        playbackDate = DateTimeUtils.formatDate(audit.getCreatedAt());
-        playbackTime = DateTimeUtils.formatTime(audit.getCreatedAt());
+        super(audit, user, recording);
         playbackTimeZone = DateTimeUtils.getTimezoneAbbreviation(audit.getCreatedAt());
-        if (user != null) {
-            userFullName = user.getFullName();
-            userEmail = user.getEmail();
-            userOrganisation = user.getOrganisation();
-        }
     }
 }
