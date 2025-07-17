@@ -5,6 +5,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -37,6 +38,8 @@ public class MigrationGroupBuilderService {
     private final EntityCreationService entityCreationService;
     private final InMemoryCacheService cacheService;
     private final CaseRepository caseRepository;
+    private final MigrationRecordService migrationRecordService;
+
 
     protected final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
 
@@ -45,11 +48,13 @@ public class MigrationGroupBuilderService {
         final LoggingService loggingService,
         final EntityCreationService entityCreationService,
         final InMemoryCacheService cacheService,
+        final MigrationRecordService migrationRecordService,
         final CaseRepository caseRepository
     ) {
         this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
         this.cacheService = cacheService;
+        this.migrationRecordService = migrationRecordService;
         this.caseRepository = caseRepository;
     }
 
@@ -111,6 +116,8 @@ public class MigrationGroupBuilderService {
             aCase, booking, captureSession, recording, participants, passItem
         );
         loggingService.logDebug("Migrating group: %s", migrationGroup);
+
+        migrationRecordService.updateToSuccess(item.getArchiveId());
         return migrationGroup;
     }
 

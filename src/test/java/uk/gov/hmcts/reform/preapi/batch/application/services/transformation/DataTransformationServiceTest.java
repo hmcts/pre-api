@@ -9,6 +9,7 @@ import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -52,6 +53,9 @@ public class DataTransformationServiceTest {
     @MockitoBean
     private LoggingService loggingService;
 
+    @MockitoBean 
+    private MigrationRecordService migrationRecordService;
+
     @Autowired
     private DataTransformationService dataTransformationService;
 
@@ -59,6 +63,7 @@ public class DataTransformationServiceTest {
         "court_one", "Court One"
     );
 
+    private static final String ARCHIVE_ID = "archiveID";
     private static final String ARCHIVE_NAME = "archiveName";
 
     private static MockedStatic<RecordingUtils> mockedRecordingUtils;
@@ -320,6 +325,9 @@ public class DataTransformationServiceTest {
     @Test
     @DisplayName("Should successfully build processed recording when court is not found (with warning)")
     void buildProcessedRecordingNoCourtSuccess() {
+        mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
+            .thenReturn(new RecordingUtils.VersionDetails("ORIG", "1","1",null, 1, true));
+
         ExtractedMetadata data = new ExtractedMetadata(
             "court_one",
             "urn123",
@@ -333,21 +341,15 @@ public class DataTransformationServiceTest {
             3000,
             "filename.mp4",
             "12345",
+            ARCHIVE_ID,
             ARCHIVE_NAME
         );
 
-        String key = "vf:pre-process:urn123-defendantLastName-witnessFirstName";
-        when(cacheService.getHashAll(key))
-            .thenReturn(Map.of());
-        mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
-            .thenReturn(new RecordingUtils.VersionDetails("ORIG", "1","1",null, 1, true));
-        when(cacheService.getHashAll(key))
-            .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
-
         Map<String, String> courtData = new HashMap<>();
         courtData.put("Court One", null);
-        when(cacheService.getAllSiteReferences())
-            .thenReturn(courtData);
+        when(cacheService.getAllSiteReferences()).thenReturn(courtData);
+        when(migrationRecordService.isMostRecentVersion(data.getArchiveId())).thenReturn(true);
+
 
         ProcessedRecording result = dataTransformationService.buildProcessedRecording(data, SITES_DATA_MAP);
         assertThat(result.getUrn()).isEqualTo(data.getUrn());
@@ -389,6 +391,7 @@ public class DataTransformationServiceTest {
             3000,
             "filename.mp4",
             "12345",
+            ARCHIVE_ID,
             ARCHIVE_NAME
         );
 

@@ -27,12 +27,12 @@ public class PatternMatcherServiceTest {
         Optional<Map.Entry<String, Matcher>> result = patternMatcherService.findMatchingPattern(fileName);
 
         assertThat(result).isPresent();
-        assertThat(result.get().getKey()).isEqualTo("Digit Only");
+        assertThat(result.get().getKey()).isEqualTo("Digit Only Extension");
     }
 
     @Test
     void shouldMatchTestS28Pattern() {
-        String fileName = "S28_ABC_123456789012345.mp4";
+        String fileName = "S28_R112_123456789.mp4";
 
         Optional<Map.Entry<String, Matcher>> result = patternMatcherService.findMatchingPattern(fileName);
 

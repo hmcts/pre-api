@@ -45,7 +45,8 @@ public class ArchiveMetadataXmlExtractor {
      * @param containerName The Azure Blob container name.
      * @param outputDir     The directory where the CSV files will be written.
      */
-    public void extractAndReportArchiveMetadata(String containerName, String folderPrefix, String outputDir, String filename) {
+    public void extractAndReportArchiveMetadata(
+        String containerName, String folderPrefix, String outputDir, String filename) {
         try {
             loggingService.logInfo("Starting extraction for container: %s", containerName);
 
@@ -64,13 +65,10 @@ public class ArchiveMetadataXmlExtractor {
                 loggingService.logDebug("Generating archive metadata report in %s", outputDir);
                 
                 allArchiveMetadata.sort((a, b) -> {
-                    try {
-                        long t1 = Long.parseLong(a.get(1)); 
-                        long t2 = Long.parseLong(b.get(1));
-                        return Long.compare(t1, t2);
-                    } catch (NumberFormatException e) {
-                        return 0; 
-                    }
+                    String nameA = a.get(1); 
+                    String nameB = b.get(1);
+
+                    return nameB.compareToIgnoreCase(nameA); 
                 });
 
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
@@ -264,10 +262,10 @@ public class ArchiveMetadataXmlExtractor {
         try {
             double sizeInKb = Double.parseDouble(fileSizeKb);
             double sizeInMb = sizeInKb / 1024.0;
-            return Constants.FILE_SIZE_FORMAT.format(sizeInMb) + " MB";
+            return Constants.FILE_SIZE_FORMAT.format(sizeInMb);
         } catch (NumberFormatException e) {
             loggingService.logWarning("Invalid file size: " + fileSizeKb);
-            return "0.00 MB";
+            return "0.00";
         }
     }
 }

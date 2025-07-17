@@ -19,7 +19,9 @@ import java.util.StringJoiner;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProcessedRecording {
-
+    private String archiveId;
+    private String archiveName;
+    
     // Identifiers and court metadata
     private String courtReference;          // reference for the court
     private String courtName;               // Human-readable court name

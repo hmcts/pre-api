@@ -15,7 +15,10 @@ public final class RegexPatterns {
     public static final Pattern NO_DIGIT_PATTERN = Pattern.compile("^[^\\d]+\\.(mp4)$",
         Pattern.CASE_INSENSITIVE);
 
-    public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(?>_\\d+)*\\.mp4$");
+    public static final Pattern DIGIT_ONLY_EXT_PATTERN = Pattern.compile("^\\d+(?>_\\d+)*\\.mp4$");
+
+    public static final Pattern DIGIT_ONLY_NO_EXT_PATTERN =
+        Pattern.compile("^\\d+(?:_\\d+)+$", Pattern.CASE_INSENSITIVE);
 
     public static final Pattern S28_PATTERN = Pattern.compile(
         "^S?28.*?(VMR\\d+)?[_\\s-]*\\d{9,20}.*\\.(mp4|raw|mov|avi|mkv)$",
@@ -32,16 +35,23 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
+    public static final Pattern S28_VMR_TEST_PATTERN = Pattern.compile(
+        "^S?28.*?(VMR\\d+)?[_\\s-]*\\d{9,20}.*(?:\\.(mp4|raw|mov|avi|mkv))?$",
+        Pattern.CASE_INSENSITIVE
+    );
+
     public static final Pattern QC_FILENAME_PATTERN = Pattern.compile(".*QC.*", Pattern.CASE_INSENSITIVE);
 
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
 
 
     public static final Map<String, Pattern> TEST_PATTERNS = Map.of(
-        "Digit Only", DIGIT_ONLY_PATTERN,
+        "Digit Only Extension", DIGIT_ONLY_EXT_PATTERN,
+        "Digit Only No Ext", DIGIT_ONLY_NO_EXT_PATTERN,
         "Test Keyword", TEST_KEYWORDS_PATTERN,
         "S28 Pattern", S28_PATTERN,
         "UUID Pattern", UUID_FILENAME_PATTERN,
+        "VMR Test Pattern", S28_VMR_TEST_PATTERN,
         "Filename Pattern", FILENAME_PATTERN,
         "QC Filename Pattern", QC_FILENAME_PATTERN,
         "No Digit Pattern", NO_DIGIT_PATTERN
@@ -202,7 +212,6 @@ public final class RegexPatterns {
         + DATE_PATTERN + SEPARATOR_ZERO
         + URN_PATTERN
         + "(?<urn2>[A-Za-z0-9]{11})" + SEPARATOR_ZERO
-        // + "(?:[-_\\s](?<urn2>[A-Za-z0-9]+))?" + SEPARATOR_ZERO
         + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ZERO + ")?"
         + NAMES_PATTERN + SEPARATOR_ZERO
         + VERSION_PATTERN

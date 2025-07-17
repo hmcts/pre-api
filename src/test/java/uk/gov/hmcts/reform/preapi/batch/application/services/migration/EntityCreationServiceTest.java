@@ -2,13 +2,14 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -31,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -47,6 +49,9 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private InMemoryCacheService cacheService;
+
+    @MockitoBean
+    private MigrationRecordService migrationRecordService;  
 
     @MockitoBean
     private UserService userService;
@@ -124,23 +129,25 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should create a booking successfully")
     public void createBookingSuccess() {
-        ProcessedRecording processedRecording = ProcessedRecording.builder()
-            .recordingTimestamp(Timestamp.from(Instant.now()))
-            .extractedRecordingVersionNumberStr("1")
-            .build();
         CreateCaseDTO aCase = new CreateCaseDTO();
         aCase.setId(UUID.randomUUID());
         aCase.setParticipants(Set.of());
 
-        String bookingKey = cacheService.generateBookingCacheKey("key", "1");
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .recordingTimestamp(Timestamp.from(Instant.now()))
+            .archiveId("ARCHIVE1")
+            .extractedRecordingVersion("ORIG")
+            .extractedRecordingVersionNumberStr("1")
+            .build();
+
+        when(migrationRecordService.findByArchiveId("ARCHIVE1"))
+            .thenReturn(Optional.of(new MigrationRecord()));
 
         CreateBookingDTO result = entityCreationService.createBooking(processedRecording, aCase, "key");
         assertThat(result).isNotNull();
         assertThat(result.getId()).isNotNull();
         assertThat(result.getScheduledFor()).isEqualTo(processedRecording.getRecordingTimestamp());
         assertThat(result.getParticipants()).isNotNull();
-
-        verify(cacheService, times(1)).saveHashValue(bookingKey, "id", result.getId().toString());
     }
 
     @Test
@@ -172,9 +179,9 @@ public class EntityCreationServiceTest {
         assertThat(result.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
 
-        String expectedKey = "key:version:null:sessionId";
+        // String expectedKey = "key:version:null:sessionId";
         verify(userService, times(1)).findByEmail("vodafone@test.com");
-        verify(cacheService, times(1)).saveHashValue(expectedKey, "id", result.getId().toString());
+        // verify(cacheService, times(1)).saveHashValue(expectedKey, "id", result.getId().toString());
     }
 
     @Test
@@ -203,38 +210,46 @@ public class EntityCreationServiceTest {
         assertThat(result.getVersion()).isEqualTo(1);
         assertThat(result.getParentRecordingId()).isNull();
 
-        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> fieldCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
+        // ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        // ArgumentCaptor<String> fieldCaptor = ArgumentCaptor.forClass(String.class);
+        // ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
 
-        verify(cacheService).saveHashValue(
-            keyCaptor.capture(),
-            fieldCaptor.capture(),
-            valueCaptor.capture()
-        );
+        // verify(cacheService).saveHashValue(
+        //     keyCaptor.capture(),
+        //     fieldCaptor.capture(),
+        //     valueCaptor.capture()
+        // );
 
-        String expectedKey = cacheService.generateEntityCacheKey(
-            "recording",
-            processedRecording.getCaseReference(),
-            processedRecording.getDefendantLastName(),
-            processedRecording.getWitnessFirstName(),
-            processedRecording.getExtractedRecordingVersionNumberStr()
-        );
+        // String expectedKey = cacheService.generateEntityCacheKey(
+        //     "recording",
+        //     processedRecording.getCaseReference(),
+        //     processedRecording.getDefendantLastName(),
+        //     processedRecording.getWitnessFirstName(),
+        //     processedRecording.getExtractedRecordingVersionNumberStr()
+        // );
 
-        String expectedField = "parentLookup:null"; 
+        // String expectedField = "parentLookup:null"; 
 
-        assertThat(keyCaptor.getValue()).isEqualTo(expectedKey);
-        assertThat(fieldCaptor.getValue()).isEqualTo(expectedField);
-        assertThat(valueCaptor.getValue()).startsWith(result.getId().toString());
+        // assertThat(keyCaptor.getValue()).isEqualTo(expectedKey);
+        // assertThat(fieldCaptor.getValue()).isEqualTo(expectedField);
+        // assertThat(valueCaptor.getValue()).startsWith(result.getId().toString());
     }
 
     @Test
     @DisplayName("Should create a recording with parent ID when version is greater than 1 and metadata exists")
     public void createRecordingWithParent() {
         UUID parentId = UUID.randomUUID();
-        String metadata = parentId.toString();
+
+        CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+
+        MigrationRecord currentRecord = new MigrationRecord();
+        MigrationRecord origRecord = new MigrationRecord();
+        origRecord.setRecordingId(parentId);
+        origRecord.setArchiveId("ORIG123");
 
         ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId("ARCH123")
             .fileName("test_file.mp4")
             .duration(Duration.ofMinutes(5))
             .recordingVersionNumber(2)
@@ -246,15 +261,8 @@ public class EntityCreationServiceTest {
             .origVersionNumberStr("2")
             .build();
 
-        CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
-
-        String expectedKey = cacheService.generateEntityCacheKey(
-            "recording", "key", "Smith", "John","2"
-        );
-
-        String expectedField = "parentLookup:2";
-
-        when(cacheService.getHashValue(expectedKey, expectedField, String.class)).thenReturn(metadata);
+        when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(currentRecord));
+        when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.of(origRecord));
 
         CreateRecordingDTO result = entityCreationService.createRecording("key", processedRecording, captureSession);
 
@@ -372,23 +380,26 @@ public class EntityCreationServiceTest {
     }
 
     @Test
-    @DisplayName("Should get user by id")
+    @DisplayName("Should get user by email and return id")
     public void getUserByIdSuccess() {
+        String email = "example@example.com";
+        UUID userId = UUID.randomUUID();
+
         UserDTO user = new UserDTO();
-        user.setId(UUID.randomUUID());
+        user.setId(userId);
         user.setFirstName("Example");
         user.setLastName("User");
-        user.setEmail("example@example.com");
-        when(userService.findById(user.getId())).thenReturn(user);
+        user.setEmail(email);
 
-        CreateUserDTO result = entityCreationService.getUserById(user.getId().toString());
+        AccessDTO accessDTO = new AccessDTO();
+        accessDTO.setUser(user);
+
+        when(userService.findByEmail(email)).thenReturn(accessDTO);
+        
+        UUID result = entityCreationService.getUserByEmail(email);
+
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(user.getId());
-        assertThat(result.getFirstName()).isEqualTo(user.getFirstName());
-        assertThat(result.getLastName()).isEqualTo(user.getLastName());
-        assertThat(result.getEmail()).isEqualTo(user.getEmail());
-        assertThat(result.getPortalAccess()).isEmpty();
-        assertThat(result.getAppAccess()).isNull();
+        assertThat(result).isEqualTo(userId);        
     }
 
     @Test

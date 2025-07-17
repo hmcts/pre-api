@@ -1,16 +1,21 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -19,6 +24,9 @@ import static org.mockito.Mockito.when;
 public class DataValidationServiceTest {
     @MockitoBean
     private InMemoryCacheService inMemoryCacheService;
+
+    @MockitoBean
+    private MigrationRecordService migrationRecordService;  
 
     @Autowired
     private DataValidationService dataValidationService;
@@ -140,14 +148,15 @@ public class DataValidationServiceTest {
             .witnessFirstName("witness")
             .defendantLastName("defendant")
             .recordingVersionNumber(2)
+            .extractedRecordingVersion("COPY")
+            .archiveId("ARCHIVE123")
             .build();
+
         CSVArchiveListData archive = new CSVArchiveListData();
-        String baseKey = "base-key";
-        String participantPair = "witness-defendant";
-        when(inMemoryCacheService.generateEntityCacheKey(processedRecording.getCaseReference(), participantPair))
-            .thenReturn(baseKey);
-        when(inMemoryCacheService.getHashValue(baseKey, "recordingMetadata", String.class))
-            .thenReturn(null);
+
+        MigrationRecord currentRecord = new MigrationRecord(); 
+        when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
+        when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.empty());
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
             processedRecording,
