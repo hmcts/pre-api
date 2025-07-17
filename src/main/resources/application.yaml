@@ -143,6 +143,7 @@ tasks:
 
 feature-flags:
   enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+  enable-migration-admin-endpoints: ${ENABLE_MIGRATION_ADMIN_ENDPOINTS:false}
 
 #logging:
 #  level:
