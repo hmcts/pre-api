@@ -1,0 +1,126 @@
+package uk.gov.hmcts.reform.preapi.controllers;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.data.web.SortDefault;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
+import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
+import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
+import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
+import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/vf-migration-records")
+@ConditionalOnExpression("${feature-flags.enable-migration-admin-endpoints:false}")
+public class VfMigrationController extends PreApiController {
+    private final MigrationRecordService migrationRecordService;
+
+    @Autowired
+    public VfMigrationController(final MigrationRecordService migrationRecordService) {
+        this.migrationRecordService = migrationRecordService;
+    }
+
+    @GetMapping
+    @Operation(operationId = "getVfMigrationRecords", summary = "Search all migration records")
+    @Parameter(
+        name = "caseReference",
+        description = "The case reference to search for",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
+        name = "witnessName",
+        description = "The witness name to search for",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
+        name = "defendantName",
+        description = "The defendant name to search for",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
+        name = "courtId",
+        description = "The court id to search for",
+        schema = @Schema(implementation = UUID.class)
+    )
+    @Parameter(
+        name = "status",
+        description = "The status to search for",
+        schema = @Schema(implementation = VfMigrationStatus.class)
+    )
+    @Parameter(
+        name = "createDateFrom",
+        description = "The date the record was created to search from",
+        schema = @Schema(implementation = LocalDate.class, format = "date"),
+        example = "2024-04-27"
+    )
+    @Parameter(
+        name = "createDateTo",
+        description = "The date the record was created to search to",
+        schema = @Schema(implementation = LocalDate.class, format = "date"),
+        example = "2024-04-27"
+    )
+    @Parameter(
+        name = "sort",
+        description = "Sort by",
+        schema = @Schema(implementation = String.class),
+        example = "archiveName,desc"
+    )
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "0"
+    )
+    @Parameter(
+        name = "size",
+        description = "The number of search results to return per page",
+        schema = @Schema(implementation = Integer.class),
+        example = "10"
+    )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public HttpEntity<PagedModel<EntityModel<VfMigrationRecordDTO>>> getVfMigrationRecords(
+        @Parameter(hidden = true) @ModelAttribute SearchMigrationRecords params,
+        @SortDefault.SortDefaults(
+            @SortDefault(sort = "archiveName", direction = Sort.Direction.DESC)
+        ) @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<VfMigrationRecordDTO> assembler
+    ) {
+        return getPagedResponse(() -> migrationRecordService.findAllBy(params, pageable), assembler, pageable);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(operationId = "putVfMigrationRecord", summary = "Update vf migration record")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> updateVfMigrationRecord(@PathVariable UUID id,
+                                                        @Valid @RequestBody CreateVfMigrationRecordDTO dto) {
+        if (!id.equals(dto.getId())) {
+            throw new PathPayloadMismatchException("id", "createMigrationRecordDto.id");
+        }
+
+        return getUpsertResponse(migrationRecordService.update(dto), id);
+    }
+}
