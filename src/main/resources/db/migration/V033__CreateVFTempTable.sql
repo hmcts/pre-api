@@ -2,7 +2,7 @@ CREATE TYPE public.VF_MIGRATION_STATUS AS ENUM (
 	'PENDING',   -- default state when a recording is inserted in temp table but not yet processed
 	'SUCCESS',   -- recording was processed successfully
 	'FAILED',    -- recording failed processing due to validation or system error
-    'READY',
+  'READY',
 	'SUBMITTED'  -- admin has corrected the data and it is ready for reprocessing (once reprocessed to revert to success / failure)
 );
 

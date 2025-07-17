@@ -3,9 +3,11 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -26,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -41,6 +44,7 @@ public class EntityCreationService {
 
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
+    private final MigrationRecordService migrationRecordService;
     private final UserService userService;
 
     // =========================
@@ -67,24 +71,29 @@ public class EntityCreationService {
     }
 
     public CreateBookingDTO createBooking(ProcessedRecording cleansedData, CreateCaseDTO aCase, String key) {
- 
-        String bookingKey = cacheService.generateBookingCacheKey(
-            key,
-            cleansedData.getOrigVersionNumberStr()
-        );
-        String existingBookingId = cacheService.getHashValue(bookingKey, "id", String.class);
+        UUID bookingId;
 
-        var bookingDTO = new CreateBookingDTO();
-        if (existingBookingId != null) {
-            bookingDTO.setId(UUID.fromString(existingBookingId));
+        Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
+        String version = cleansedData.getExtractedRecordingVersion();
+
+        if (version != null && version.equalsIgnoreCase("COPY") && currentRecord.isPresent()) {
+            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecord.get());
+            if (maybeOrig.isPresent() && maybeOrig.get().getBookingId() != null) {
+                bookingId = maybeOrig.get().getBookingId();
+            } else {
+                return null;
+            }
         } else {
-            bookingDTO.setId(UUID.randomUUID());
-            cacheService.saveHashValue(bookingKey, "id", bookingDTO.getId().toString());
+            bookingId = UUID.randomUUID();
         }
 
+        CreateBookingDTO bookingDTO = new CreateBookingDTO();
+        bookingDTO.setId(bookingId);
         bookingDTO.setCaseId(aCase.getId());
         bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
         bookingDTO.setParticipants(aCase.getParticipants());
+
+        migrationRecordService.updateBookingId(cleansedData.getArchiveId(), bookingId);
 
         return bookingDTO;
     }
@@ -94,18 +103,24 @@ public class EntityCreationService {
         CreateBookingDTO booking,
         String key
     ) {
-        
-        String sessionKey = key + ":version:" + cleansedData.getOrigVersionNumberStr() + ":sessionId";
-        String existingId = cacheService.getHashValue(sessionKey, "id", String.class);
-        
-        var captureSessionDTO = new CreateCaptureSessionDTO();
-        
-        if (existingId != null) {
-            captureSessionDTO.setId(UUID.fromString(existingId));
+        UUID captureSessionId;
+
+        Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
+        String version = cleansedData.getExtractedRecordingVersion();
+
+        if (version != null && version.equalsIgnoreCase("COPY") && currentRecord.isPresent()) {
+            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecord.get());
+            if (maybeOrig.isPresent() && maybeOrig.get().getCaptureSessionId() != null) {
+                captureSessionId = maybeOrig.get().getCaptureSessionId();
+            } else {
+                return null;
+            }
         } else {
-            captureSessionDTO.setId(UUID.randomUUID());
-            cacheService.saveHashValue(sessionKey, "id", captureSessionDTO.getId().toString());
+            captureSessionId = UUID.randomUUID();
         }
+
+        var captureSessionDTO = new CreateCaptureSessionDTO();
+        captureSessionDTO.setId(captureSessionId);
         captureSessionDTO.setBookingId(booking.getId());
         captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
 
@@ -116,6 +131,8 @@ public class EntityCreationService {
         captureSessionDTO.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
+        migrationRecordService.updateCaptureSessionId(cleansedData.getArchiveId(), captureSessionId);
+        
         return captureSessionDTO;
     }
 
@@ -125,51 +142,40 @@ public class EntityCreationService {
         CreateCaptureSessionDTO captureSession
     ) {
         var recordingDTO = new CreateRecordingDTO();
-        recordingDTO.setId(UUID.randomUUID());
+        UUID recordingId = UUID.randomUUID();
+        recordingDTO.setId(recordingId);
         recordingDTO.setCaptureSessionId(captureSession.getId());
         recordingDTO.setDuration(cleansedData.getDuration());
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
 
-        // Extract key details
-        String caseRef = cleansedData.getCaseReference();
-        String witness = cleansedData.getWitnessFirstName();
-        String defendant = cleansedData.getDefendantLastName();
-        String version = cleansedData.getExtractedRecordingVersionNumberStr();
-        
-        String origVersion = cleansedData.getOrigVersionNumberStr();
-        
-        boolean isCopy = "COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion());
-        
-        String versionKey = cacheService.generateEntityCacheKey(
-            "recording",
-            caseRef, defendant, witness, origVersion
-        );
+        String version = cleansedData.getExtractedRecordingVersion();
+        boolean isCopy = "COPY".equalsIgnoreCase(version);
 
-        String archiveNameKey = String.format("archiveName:%s:%s", isCopy ? "copy" : "orig", version);
-        String parentKey = String.format("parentLookup:%s", cleansedData.getOrigVersionNumberStr());
+        Optional<MigrationRecord> currentRecordOpt = migrationRecordService.findByArchiveId(
+            cleansedData.getArchiveId());
 
-        // Resolve filename
-        String resolvedFilename = cacheService.getHashValue(versionKey, archiveNameKey, String.class);
-        recordingDTO.setFilename(resolvedFilename != null ? resolvedFilename : cleansedData.getFileName());
-        loggingService.logDebug("Resolved filename: %s", recordingDTO.getFilename());
+        if (isCopy && currentRecordOpt.isPresent()) {
+            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecordOpt.get());
 
-        if (isCopy) {
-            String parentIdStr = cacheService.getHashValue(versionKey, parentKey, String.class);
-            loggingService.logDebug("Looking up ORIG parent with key %s → %s", parentKey, parentIdStr);
+            maybeOrig.ifPresent(orig -> {
+                UUID parentRecordingId = orig.getRecordingId();
+                if (parentRecordingId != null) {
+                    recordingDTO.setParentRecordingId(parentRecordingId);
+                } else {
+                    loggingService.logWarning(
+                        "Parent ORIG found but has no recording ID (archiveId: %s)", orig.getArchiveId());
+                }
+            });
 
-            if (parentIdStr != null) {
-                recordingDTO.setParentRecordingId(UUID.fromString(parentIdStr));
-            } else {
-                loggingService.logWarning("No ORIG found for COPY version %d", version);
-            }
-        } else {
-            if (!cacheService.checkHashKeyExists(versionKey, parentKey)) {
-                cacheService.saveHashValue(versionKey, parentKey, recordingDTO.getId().toString());
-            } else {
-                loggingService.logDebug("Skipped storing ORIG ID under %s (already exists)", parentKey);
+            if (maybeOrig.isEmpty()) {
+                loggingService.logWarning("No ORIG found for COPY archiveId: %s", cleansedData.getArchiveId());
             }
         }
+
+        recordingDTO.setFilename(cleansedData.getFileName());
+        migrationRecordService.updateRecordingId(cleansedData.getArchiveId(), recordingId);
+  
         return recordingDTO;
     }
     
@@ -208,15 +214,6 @@ public class EntityCreationService {
         shareBookingDTO.setSharedWithUser(sharedWith.getId());
 
         return shareBookingDTO;
-    }
-
-    public String getUserIdFromCache(String email) {
-        return cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, email, String.class);
-    }
-
-    public CreateUserDTO getUserById(String userId) {
-        var user = userService.findById(UUID.fromString(userId));
-        return createUser(user.getFirstName(), user.getLastName(), user.getEmail(), user.getId());
     }
 
     public UUID getUserByEmail(String email) {
@@ -262,7 +259,6 @@ public class EntityCreationService {
 
         List<CreateInviteDTO> invites = new ArrayList<>();
         
-
         String existingUserId = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, String.class);
         CreateUserDTO sharedWith;
         if (existingUserId != null) {

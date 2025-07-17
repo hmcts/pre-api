@@ -64,6 +64,15 @@ public class MigrationRecord extends BaseEntity {
     @Column(name = "recording_id")
     private UUID recordingId;
 
+    @Column(name = "booking_id")
+    private UUID bookingId;
+
+    @Column(name = "capture_session_id")
+    private UUID captureSessionId;
+
+    @Column(name = "parent_temp_id")
+    private UUID parentTempId;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -81,6 +90,12 @@ public class MigrationRecord extends BaseEntity {
     @CreationTimestamp
     @Column(name = "created_at")
     private Timestamp createdAt;
+
+    @Column(name = "is_most_recent")
+    private Boolean isMostRecent;
+
+    @Column(name = "recording_group_key")
+    private String recordingGroupKey;
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {

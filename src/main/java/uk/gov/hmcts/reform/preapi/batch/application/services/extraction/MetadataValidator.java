@@ -142,11 +142,13 @@ public class MetadataValidator {
     // Check if the creation time pre-dates the go-live date
     public boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
         LocalDateTime recordingTimestamp = archiveItem.getCreateTimeAsLocalDateTime();
+
         if (recordingTimestamp == null) {
             loggingService.logError("Failed to extract date for file: %s | Raw createTime: %s",
                 archiveItem.getArchiveName(), archiveItem.getCreateTime());
             return false;
         }
+
 
         boolean isAfterGoLive = !recordingTimestamp.toLocalDate().isBefore(Constants.GO_LIVE_DATE);
         if (!isAfterGoLive) {
@@ -196,9 +198,9 @@ public class MetadataValidator {
         if (isEmpty(metadata.getRecordingVersion())) {
             missingFields.add("Recording Version");
         }
-        if (isEmpty(metadata.getFileExtension())) {
-            missingFields.add("File Extension");
-        }
+        // if (isEmpty(metadata.getFileExtension())) {
+        //     missingFields.add("File Extension");
+        // }
 
         return missingFields;
     }

@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -27,16 +28,19 @@ public class DataTransformationService {
     private static final String UNKNOWN_COURT = "Unknown Court";
 
     private final InMemoryCacheService cacheService;
+    private final MigrationRecordService migrationRecordService;
     private final CourtRepository courtRepository;
     private final LoggingService loggingService;
 
     @Autowired
     public DataTransformationService(
         InMemoryCacheService cacheService,
+        MigrationRecordService migrationRecordService,
         CourtRepository courtRepository,
         LoggingService loggingService
     ) {
         this.cacheService = cacheService;
+        this.migrationRecordService = migrationRecordService;
         this.courtRepository = courtRepository;
         this.loggingService = loggingService;
     }
@@ -96,12 +100,15 @@ public class DataTransformationService {
         }
 
         return ProcessedRecording.builder()
+            .archiveId(extracted.getArchiveId())
+            .archiveName(extracted.getArchiveName())
+
             .courtReference(extracted.getCourtReference())
             .court(court)
 
             .state(determineState(shareBookingContacts))
 
-            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
+            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTimeAsLocalDateTime()))
             .duration(Duration.ofSeconds(extracted.getDuration()))
 
             .urn(extracted.getUrn())
@@ -125,7 +132,9 @@ public class DataTransformationService {
             )
             .recordingVersionNumber(versionDetails.standardisedVersionNumber())    
     
-            .isMostRecentVersion(versionDetails.isMostRecent())
+            .isMostRecentVersion(
+                migrationRecordService.isMostRecentVersion(extracted.getArchiveId())
+            )
 
             .fileExtension(extracted.getFileExtension())
             .fileName(extracted.getFileName())

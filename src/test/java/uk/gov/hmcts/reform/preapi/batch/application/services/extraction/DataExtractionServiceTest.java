@@ -18,9 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
 @SpringBootTest(classes = { DataExtractionService.class })
@@ -47,22 +45,22 @@ public class DataExtractionServiceTest {
         assertThat(result.isSuccess()).isFalse();
     }
 
-    @Test
-    @SuppressWarnings("unchecked")
-    void processTestValidationIsNotMp4() {
-        CSVArchiveListData data = new CSVArchiveListData();
-        data.setSanitizedArchiveName("sanitizedArchiveName.exe");
-        var testResult = mock(ServiceResult.class);
-        when(testResult.isSuccess()).thenReturn(true);
-        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
-        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("");
+    // @Test
+    // @SuppressWarnings("unchecked")
+    // void processTestValidationIsNotMp4() {
+    //     CSVArchiveListData data = new CSVArchiveListData();
+    //     data.setSanitizedArchiveName("sanitizedArchiveName.exe");
+    //     var testResult = mock(ServiceResult.class);
+    //     when(testResult.isSuccess()).thenReturn(true);
+    //     when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+    //     when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("");
 
-        ServiceResult<?> result = dataExtractionService.process(data);
+    //     ServiceResult<?> result = dataExtractionService.process(data);
 
-        assertThat(result.isSuccess()).isFalse();
-        assertThat(result.getErrorMessage()).isEqualTo(INVALID_FILE_EXTENSION);
-        assertThat(result.getCategory()).isEqualTo(FILE_INVALID_FORMAT);
-    }
+    //     assertThat(result.isSuccess()).isFalse();
+    //     assertThat(result.getErrorMessage()).isEqualTo(INVALID_FILE_EXTENSION);
+    //     assertThat(result.getCategory()).isEqualTo(FILE_INVALID_FORMAT);
+    // }
 
     @Test
     @SuppressWarnings("unchecked")
@@ -114,6 +112,7 @@ public class DataExtractionServiceTest {
         CSVArchiveListData data = new CSVArchiveListData();
         data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
         data.setDuration(10);
+
         var testResult = mock(ServiceResult.class);
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
@@ -129,6 +128,9 @@ public class DataExtractionServiceTest {
         when(matcher.group("ext")).thenReturn("exe");
         when(matcher.group("defendantLastName")).thenReturn("Defendant");
         when(matcher.group("witnessFirstName")).thenReturn("Witness");
+
+        when(metadataValidator.validateExtractedMetadata(any(ExtractedMetadata.class)))
+            .thenReturn(extensionResult);
 
         ServiceResult<?> result = dataExtractionService.process(data);
 

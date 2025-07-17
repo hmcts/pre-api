@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -108,7 +109,25 @@ public class ExtractedMetadata implements IArchiveData {
 
     @Override
     public LocalDateTime getCreateTimeAsLocalDateTime() {
+        if (this.createTime == null) {
+            return LocalDateTime.now();
+        }
+
+        long seconds = this.createTime.toEpochSecond(ZoneOffset.UTC);
+        if (seconds == 0 || seconds == 3600) { 
+            return LocalDateTime.now();
+        }
+
         return this.createTime;
+    }
+
+    public boolean isCreateTimeDefaulted() {
+        if (this.createTime == null) {
+            return true;
+        }
+        
+        long seconds = this.createTime.toEpochSecond(ZoneOffset.UTC);
+        return seconds == 0 || seconds == 3600;
     }
 
     @Override

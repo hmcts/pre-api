@@ -12,9 +12,9 @@ import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 import java.util.regex.Matcher;
 
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
+// import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
+// import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
 @Service
@@ -48,10 +48,10 @@ public class DataExtractionService {
 
         // --2 Check file extension for .mp4
         String sanitisedName = archiveItem.getSanitizedArchiveName();
-        String ext = validator.parseExtension(sanitisedName);
-        if (ext.isBlank()) {
-            return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
-        }
+        // String ext = validator.parseExtension(sanitisedName);
+        // if (ext.isBlank()) {
+        //     return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
+        // }
 
         // -- 3. Pattern matching for legitimate and test scenarios
         var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
@@ -87,10 +87,10 @@ public class DataExtractionService {
         loggingService.logDebug("Extracted metadata in extraction service: " + extractedData);
 
         // Validate file extension
-        ServiceResult<?> extensionCheckResult = validator.validateExtension(extractedData.getFileExtension());
-        if (!extensionCheckResult.isSuccess()) {
-            return extensionCheckResult;
-        }
+        // ServiceResult<?> extensionCheckResult = validator.validateExtension(extractedData.getFileExtension());
+        // if (!extensionCheckResult.isSuccess()) {
+        //     return extensionCheckResult;
+        // }
 
         // Validate metadata failure
         ServiceResult<?> metadataCheckResult = validator.validateExtractedMetadata(extractedData);

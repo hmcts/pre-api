@@ -2,20 +2,23 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
+import java.util.Optional;
+
 @Service
 public class DataValidationService {
-    private final InMemoryCacheService cacheService;
+    private final MigrationRecordService migrationRecordService;
 
     @Autowired
-    public DataValidationService(InMemoryCacheService cacheService) {
-        this.cacheService = cacheService;
+    public DataValidationService(MigrationRecordService migrationRecordService) {
+        this.migrationRecordService = migrationRecordService;
     }
 
     /**
@@ -51,25 +54,17 @@ public class DataValidationService {
             );
         }
 
-        if (cleansedData.getRecordingVersionNumber() > 1) {
+        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
+            Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(
+                cleansedData.getArchiveId());
 
-            String recordingCacheKey = cacheService.generateEntityCacheKey(
-                "recording",
-                cleansedData.getCaseReference(),
-                cleansedData.getDefendantLastName(),
-                cleansedData.getWitnessFirstName(),
-                cleansedData.getOrigVersionNumberStr()
-            );
-
-            String parentArchiveKey = "archiveName:orig:" + cleansedData.getOrigVersionNumberStr();
-            String parentOrig = cacheService.getHashValue(recordingCacheKey, parentArchiveKey, String.class);
-
-            if (parentOrig == null) {
+            if (currentRecord.isPresent() && !isParentMigrated(currentRecord.get())) {
                 return ServiceResultUtil.failure(
                     Constants.ErrorMessages.NO_PARENT_FOUND,
                     Constants.Reports.FILE_MISSING_DATA
                 );
             }
+
         }
 
         return ServiceResultUtil.success(cleansedData);
@@ -115,11 +110,12 @@ public class DataValidationService {
             return ServiceResultUtil.failure("Missing file name", Constants.Reports.FILE_MISSING_DATA);
         }
 
-        if (cleansedData.getFileExtension() == null || cleansedData.getFileExtension().trim().isEmpty()) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.INVALID_FILE_EXTENSION, 
-                Constants.Reports.FILE_INVALID_FORMAT);
-        }
-
         return ServiceResultUtil.success(cleansedData);
+    }
+
+    private boolean isParentMigrated(MigrationRecord copy) {
+        return migrationRecordService.getOrigFromCopy(copy)
+            .map(MigrationRecord::getRecordingId)
+            .isPresent();
     }
 }

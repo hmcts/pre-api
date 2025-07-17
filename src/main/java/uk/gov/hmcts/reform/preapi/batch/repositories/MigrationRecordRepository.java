@@ -16,6 +16,8 @@ import java.util.UUID;
 public interface MigrationRecordRepository extends JpaRepository<MigrationRecord, UUID> {
     Optional<MigrationRecord> findByArchiveId(String archiveId);
 
+    List<MigrationRecord> findByRecordingGroupKey(String recordingGroupKey);
+
     List<MigrationRecord> findAllByStatus(VfMigrationStatus status);
 
     @Query("""
@@ -30,3 +32,4 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         """)
     Page<MigrationRecord> findAllBy(@Param("params") SearchMigrationRecords params, Pageable pageable);
 }
+
