@@ -7,7 +7,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
-import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
@@ -16,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
@@ -39,7 +37,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = ProcessCaptureSessions.class)
@@ -59,9 +56,6 @@ public class ProcessCaptureSessionsTest {
     @MockitoBean
     private EncodeJobService encodeJobService;
 
-    @MockitoBean
-    private AzureIngestStorageService azureIngestStorageService;
-
     private IMediaService mediaService;
     private ProcessCaptureSessions processCaptureSessions;
 
@@ -72,11 +66,10 @@ public class ProcessCaptureSessionsTest {
         processCaptureSessions = new ProcessCaptureSessions(
             userService,
             userAuthenticationService,
+            ROBOT_USER_EMAIL,
             captureSessionService,
             mediaServiceBroker,
-            encodeJobService,
-            azureIngestStorageService,
-            ROBOT_USER_EMAIL
+            encodeJobService
         );
         mediaService = mock(IMediaService.class);
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
@@ -104,7 +97,6 @@ public class ProcessCaptureSessionsTest {
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, dto.getJobName());
-        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -123,7 +115,6 @@ public class ProcessCaptureSessionsTest {
         verify(encodeJobService, times(1)).delete(dto.getId());
         verify(captureSessionService, times(1))
             .stopCaptureSession(dto.getCaptureSessionId(), RecordingStatus.FAILURE, null);
-        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -141,7 +132,6 @@ public class ProcessCaptureSessionsTest {
         verify(encodeJobService, times(1)).delete(dto.getId());
         verify(captureSessionService, times(1))
             .stopCaptureSession(dto.getCaptureSessionId(), RecordingStatus.FAILURE, null);
-        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -161,7 +151,6 @@ public class ProcessCaptureSessionsTest {
         verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, "jobName");
         verify(mediaService, times(1)).triggerProcessingStep2(dto.getRecordingId());
-        verifyNoInteractions(azureIngestStorageService);
 
         var argumentCaptor = ArgumentCaptor.forClass(EncodeJobDTO.class);
         verify(encodeJobService, times(1)).upsert(argumentCaptor.capture());
@@ -189,7 +178,6 @@ public class ProcessCaptureSessionsTest {
         verify(encodeJobService, times(1)).delete(any());
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(dto.getCaptureSessionId()), eq(RecordingStatus.NO_RECORDING), isNull());
-        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -201,9 +189,6 @@ public class ProcessCaptureSessionsTest {
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
         when(mediaService.verifyFinalAssetExists(dto.getRecordingId()))
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
-        captureSessionDTO.setBookingId(UUID.randomUUID());
-        when(captureSessionService.stopCaptureSession(any(), any(), any())).thenReturn(captureSessionDTO);
 
         processCaptureSessions.run();
 
@@ -216,7 +201,6 @@ public class ProcessCaptureSessionsTest {
             eq(RecordingStatus.RECORDING_AVAILABLE),
             eq(dto.getRecordingId())
         );
-        verify(azureIngestStorageService, times(2)).markContainerAsSafeToDelete(any());
     }
 
     @Test
@@ -237,7 +221,6 @@ public class ProcessCaptureSessionsTest {
         verify(encodeJobService, times(1)).delete(any());
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(dto.getCaptureSessionId()), eq(RecordingStatus.FAILURE), isNull());
-        verifyNoInteractions(azureIngestStorageService);
     }
 
     private EncodeJobDTO createEncodeJobDTO(EncodeTransform transform) {
