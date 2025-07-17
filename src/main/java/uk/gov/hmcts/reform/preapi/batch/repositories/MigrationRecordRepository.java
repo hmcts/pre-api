@@ -5,14 +5,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface MigrationRecordRepository extends JpaRepository<MigrationRecord, UUID> {
     Optional<MigrationRecord> findByArchiveId(String archiveId);
+
+    List<MigrationRecord> findAllByStatus(VfMigrationStatus status);
 
     @Query("""
         SELECT mr FROM MigrationRecord mr

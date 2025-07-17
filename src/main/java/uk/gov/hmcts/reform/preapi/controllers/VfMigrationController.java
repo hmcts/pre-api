@@ -18,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -122,5 +123,16 @@ public class VfMigrationController extends PreApiController {
         }
 
         return getUpsertResponse(migrationRecordService.update(dto), id);
+    }
+
+    @PostMapping("/submit")
+    @Operation(operationId = "submitMigrationRecords", summary = "Submits resolved migration records and runs import")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> submitMigrationRecords() {
+        migrationRecordService.markReadyRecordsAsSubmitted();
+
+        // todo trigger brute force task here
+
+        return ResponseEntity.noContent().build();
     }
 }

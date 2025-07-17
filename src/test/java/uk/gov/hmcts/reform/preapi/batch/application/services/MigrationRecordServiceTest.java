@@ -138,6 +138,39 @@ public class MigrationRecordServiceTest {
         verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
     }
 
+    @Test
+    @DisplayName("markReadyRecordsAsSubmitted should mark all READY records as SUBMITTED")
+    public void markReadyRecordsAsSubmitted_marksReadyRecordsAsSubmitted() {
+        final MigrationRecord readyRecord1 = createMigrationRecord();
+        readyRecord1.setStatus(VfMigrationStatus.READY);
+
+        final MigrationRecord readyRecord2 = createMigrationRecord();
+        readyRecord2.setStatus(VfMigrationStatus.READY);
+
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY))
+            .thenReturn(List.of(readyRecord1, readyRecord2));
+
+        migrationRecordService.markReadyRecordsAsSubmitted();
+
+        assertThat(readyRecord1.getStatus()).isEqualTo(VfMigrationStatus.SUBMITTED);
+        assertThat(readyRecord2.getStatus()).isEqualTo(VfMigrationStatus.SUBMITTED);
+
+        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.READY);
+        verify(migrationRecordRepository, times(2)).saveAndFlush(any(MigrationRecord.class));
+        verifyNoMoreInteractions(migrationRecordRepository);
+    }
+
+    @Test
+    @DisplayName("markReadyRecordsAsSubmitted should do nothing when there are no READY records")
+    public void markReadyRecordsAsSubmitted_doesNothingWhenNoReadyRecords() {
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY)).thenReturn(List.of());
+
+        migrationRecordService.markReadyRecordsAsSubmitted();
+
+        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.READY);
+        verifyNoMoreInteractions(migrationRecordRepository);
+    }
+
     private MigrationRecord createMigrationRecord() {
         final MigrationRecord migrationRecord = new MigrationRecord();
         migrationRecord.setId(UUID.randomUUID());

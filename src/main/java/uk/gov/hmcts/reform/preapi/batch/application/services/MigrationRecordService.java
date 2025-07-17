@@ -178,4 +178,13 @@ public class MigrationRecordService {
 
         return UpsertResult.UPDATED;
     }
+
+    @Transactional
+    public void markReadyRecordsAsSubmitted() {
+        migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY)
+            .forEach(record -> {
+                record.setStatus(VfMigrationStatus.SUBMITTED);
+                migrationRecordRepository.saveAndFlush(record);
+            });
+    }
 }
