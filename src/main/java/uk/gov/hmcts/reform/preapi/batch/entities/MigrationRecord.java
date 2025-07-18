@@ -52,7 +52,7 @@ public class MigrationRecord extends BaseEntity {
     @Column(name = "recording_version", length = 4)
     private String recordingVersion;
 
-    @Column(name = "recording_version_number", length = 1)
+    @Column(name = "recording_version_number", length = 10)
     private String recordingVersionNumber;
 
     @Column(name = "mp4_file_name", length = 10)
@@ -87,15 +87,15 @@ public class MigrationRecord extends BaseEntity {
     @Column(name = "resolved_at")
     private Timestamp resolvedAt;
 
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private Timestamp createdAt;
-
     @Column(name = "is_most_recent")
     private Boolean isMostRecent;
 
     @Column(name = "recording_group_key")
     private String recordingGroupKey;
+
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private Timestamp createdAt;
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
@@ -114,10 +114,14 @@ public class MigrationRecord extends BaseEntity {
         details.put("mp4FileName", mp4FileName);
         details.put("fileSizeMb", fileSizeMb);
         details.put("recordingId", recordingId);
+        details.put("bookingId", bookingId);
+        details.put("captureSessionId", captureSessionId);
         details.put("status", status);
         details.put("reason", reason);
         details.put("errorMessage", errorMessage);
         details.put("resolvedAt", resolvedAt);
+        details.put("isMostRecent", isMostRecent);
+        details.put("recordingGroupKey", recordingGroupKey);
         return details;
     }
 }

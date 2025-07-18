@@ -19,6 +19,8 @@ public class VfMigrationRecordDTOTest {
         UUID courtId = UUID.randomUUID();
         Timestamp createTime = Timestamp.from(Instant.now());
         UUID recordingId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
+        UUID captureSessionId = UUID.randomUUID();
         Timestamp resolvedAt = Timestamp.from(Instant.now().plusSeconds(1));
         Timestamp createdAt = Timestamp.from(Instant.now().minusSeconds(1));
 
@@ -38,10 +40,14 @@ public class VfMigrationRecordDTOTest {
         entity.setMp4FileName("recording.mp4");
         entity.setFileSizeMb("100MB");
         entity.setRecordingId(recordingId);
+        entity.setBookingId(bookingId);
+        entity.setCaptureSessionId(captureSessionId);
         entity.setStatus(VfMigrationStatus.SUCCESS);
         entity.setReason("Test reason");
         entity.setErrorMessage("No error");
         entity.setResolvedAt(resolvedAt);
+        entity.setIsMostRecent(true);
+        entity.setRecordingGroupKey("abc");
         entity.setCreatedAt(createdAt);
 
         VfMigrationRecordDTO dto = new VfMigrationRecordDTO(entity);
@@ -61,10 +67,14 @@ public class VfMigrationRecordDTOTest {
         assertThat(dto.getFilename()).isEqualTo("recording.mp4");
         assertThat(dto.getFileSize()).isEqualTo("100MB");
         assertThat(dto.getRecordingId()).isEqualTo(recordingId);
+        assertThat(dto.getBookingId()).isEqualTo(bookingId);
+        assertThat(dto.getCaptureSessionId()).isEqualTo(captureSessionId);
         assertThat(dto.getStatus()).isEqualTo(VfMigrationStatus.SUCCESS);
         assertThat(dto.getReason()).isEqualTo("Test reason");
         assertThat(dto.getErrorMessage()).isEqualTo("No error");
         assertThat(dto.getResolvedAt()).isEqualTo(resolvedAt);
+        assertThat(dto.getIsMostRecent()).isTrue();
+        assertThat(dto.getRecordingGroupKey()).isEqualTo("abc");
         assertThat(dto.getCreatedAt()).isEqualTo(createdAt);
     }
 }

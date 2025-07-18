@@ -65,6 +65,15 @@ public class VfMigrationRecordDTO {
     @Schema(description = "MigrationRecordRecordingId")
     private UUID recordingId;
 
+    @Schema(description = "MigrationRecordBookingId")
+    private UUID bookingId;
+
+    @Schema(description = "MigrationRecordCaptureSessionId")
+    private UUID captureSessionId;
+
+    @Schema(description = "MigrationRecordParentTempId")
+    private UUID parentTempId;
+
     @Schema(description = "MigrationRecordStatus")
     private VfMigrationStatus status;
 
@@ -76,6 +85,12 @@ public class VfMigrationRecordDTO {
 
     @Schema(description = "MigrationRecordResolvedAt")
     private Timestamp resolvedAt;
+
+    @Schema(description = "MigrationRecordIsMostRecent")
+    private Boolean isMostRecent;
+
+    @Schema(description = "MigrationRecordRecordingGroupKey")
+    private String recordingGroupKey;
 
     @Schema(description = "MigrationRecordCreatedAt")
     private Timestamp createdAt;
@@ -96,10 +111,14 @@ public class VfMigrationRecordDTO {
         filename = entity.getMp4FileName();
         fileSize = entity.getFileSizeMb();
         recordingId = entity.getRecordingId();
+        bookingId = entity.getBookingId();
+        captureSessionId = entity.getCaptureSessionId();
         status = entity.getStatus();
         reason = entity.getReason();
         errorMessage = entity.getErrorMessage();
         resolvedAt = entity.getResolvedAt();
+        isMostRecent = entity.getIsMostRecent();
+        recordingGroupKey = entity.getRecordingGroupKey();
         createdAt = entity.getCreatedAt();
     }
 }
