@@ -59,7 +59,8 @@ public class FunctionalTestBase {
     protected static final String USERS_ENDPOINT = "/users";
     protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
-    protected static final String REPORTS_ENDPOINT = "/reports";
+    protected static final String LEGACY_REPORTS_ENDPOINT = "/reports";
+    protected static final String REPORTS_ENDPOINT = "/reports-v2";
 
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -233,8 +234,6 @@ public class FunctionalTestBase {
     }
 
     protected CreateCourtDTO createCourt() {
-        var roomId = doPostRequest("/testing-support/create-room", null)
-            .body().jsonPath().getUUID("roomId");
         var regionId = doPostRequest("/testing-support/create-region", null)
             .body().jsonPath().getUUID("regionId");
 
@@ -242,7 +241,7 @@ public class FunctionalTestBase {
         dto.setId(UUID.randomUUID());
         dto.setName("Example Court");
         dto.setCourtType(CourtType.CROWN);
-        dto.setRooms(List.of(roomId));
+        dto.setRooms(List.of(UUID.randomUUID()));
         dto.setRegions(List.of(regionId));
         dto.setLocationCode("123456789");
         return dto;

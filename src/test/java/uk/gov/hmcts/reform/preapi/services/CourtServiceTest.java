@@ -18,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,9 +40,6 @@ public class CourtServiceTest {
 
     @MockitoBean
     private RegionRepository regionRepository;
-
-    @MockitoBean
-    private RoomRepository roomRepository;
 
     @Autowired
     private CourtService courtService;
@@ -119,7 +115,6 @@ public class CourtServiceTest {
         var courtEntity = new Court();
 
         when(regionRepository.existsById(any())).thenReturn(true);
-        when(roomRepository.existsById(any())).thenReturn(true);
         when(courtRepository.findById(courtModel.getId())).thenReturn(Optional.empty());
         when(courtRepository.save(courtEntity)).thenReturn(courtEntity);
 
@@ -138,7 +133,6 @@ public class CourtServiceTest {
         var courtEntity = new Court();
 
         when(regionRepository.existsById(any())).thenReturn(true);
-        when(roomRepository.existsById(any())).thenReturn(true);
         when(courtRepository.findById(courtModel.getId())).thenReturn(Optional.of(courtEntity));
         when(courtRepository.save(courtEntity)).thenReturn(courtEntity);
 
@@ -157,26 +151,6 @@ public class CourtServiceTest {
         courtModel.setRegions(List.of(regionId));
 
         when(regionRepository.existsById(regionId)).thenReturn(false);
-
-        assertThrows(
-            NotFoundException.class,
-            () -> courtService.upsert(courtModel)
-        );
-    }
-
-    @DisplayName("Create/update a court with an invalid room")
-    @Test
-    void updateCourtRoomBadRequest() {
-        var roomId = UUID.randomUUID();
-        var courtModel = new CreateCourtDTO();
-        courtModel.setId(UUID.randomUUID());
-        courtModel.setName("Example Court");
-        courtModel.setCourtType(CourtType.CROWN);
-        courtModel.setLocationCode("1234567890");
-        courtModel.setRooms(List.of(roomId));
-
-        when(regionRepository.existsById(any())).thenReturn(true);
-        when(roomRepository.existsById(roomId)).thenReturn(false);
 
         assertThrows(
             NotFoundException.class,

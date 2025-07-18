@@ -2,23 +2,35 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,7 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static java.lang.String.format;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,6 +55,10 @@ public class CheckForMissingRecordingsTest {
     private SlackClient slackClient;
     private RecordingService recordingService;
     private static final String ROBOT_USER_EMAIL = "example@example.com";
+    private AzureFinalStorageService azureFinalStorageService;
+
+    private Booking booking;
+    private User user;
 
     @BeforeEach
     public void setUp() {
@@ -54,6 +70,7 @@ public class CheckForMissingRecordingsTest {
         slackClient = mock(SlackClient.class);
         recordingService = mock(RecordingService.class);
         captureSessionService = mock(CaptureSessionService.class);
+        azureFinalStorageService = mock(AzureFinalStorageService.class);
 
         UserService userService = mock(UserService.class);
         UserAuthenticationService userAuthenticationService = mock(UserAuthenticationService.class);
@@ -66,6 +83,17 @@ public class CheckForMissingRecordingsTest {
 
         String platformEnv = "Local-Testing";
 
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", null);
+        Case testCase = HelperFactory.createCase(
+            court, "ref1234", true,
+            new Timestamp(System.currentTimeMillis())
+        );
+        booking = HelperFactory.createBooking(
+            testCase, Timestamp.valueOf(LocalDateTime.now()),
+            new Timestamp(System.currentTimeMillis())
+        );
+        user = HelperFactory.createDefaultTestUser();
+
         checkForMissingRecordingsTask = new CheckForMissingRecordings(
             captureSessionService,
             slackClient,
@@ -73,77 +101,216 @@ public class CheckForMissingRecordingsTest {
             userAuthenticationService,
             ROBOT_USER_EMAIL,
             recordingService,
-            platformEnv
+            platformEnv,
+            azureFinalStorageService
         );
     }
 
-    private RecordingDTO createRecording(Integer duration, UUID bookingId) {
-        RecordingDTO zeroDurationRecording = new RecordingDTO();
-        zeroDurationRecording.setId(bookingId);
-        zeroDurationRecording.setDuration(Duration.of(duration, ChronoUnit.MINUTES));
-        return zeroDurationRecording;
-    }
-
-    private CaptureSession createCaptureSession(UUID bookingId) {
-        CaptureSession captureSession = new CaptureSession();
-        Booking booking = new Booking();
-        booking.setId(bookingId);
-        captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
-        return captureSession;
-    }
-
     @Test
-    public void testMissingRecordingsAreFound() {
-        UUID zeroId = UUID.randomUUID();
-        RecordingDTO zeroDurationRecording = createRecording(0, zeroId);
-        CaptureSession zeroDurationCS = createCaptureSession(zeroId);
+    public void testRecordingsWithAvailableStatus() {
+        final CaptureSession captureSessionZeroRec =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        RecordingDTO zeroDurationRecording = createRecording(0, captureSessionZeroRec);
+        zeroDurationRecording.setDuration(Duration.ZERO);
 
-        UUID noRecId = UUID.randomUUID();
-        CaptureSession csWithoutRecording = createCaptureSession(noRecId);
+        final CaptureSession captureSessionWithoutRecording =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
 
-        UUID happyId = UUID.randomUUID();
-        RecordingDTO happyRecording = createRecording(3, happyId);
-        CaptureSession happyCS = createCaptureSession(happyId);
+        final CaptureSession captureSessionRecNotInSA =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        RecordingDTO recordingNotInSA = createRecording(3, captureSessionRecNotInSA);
+        recordingNotInSA.setDuration(Duration.ofMinutes(3));
 
-        UUID noCSId = UUID.randomUUID();
-        RecordingDTO recordingWithoutACaptureSession = createRecording(3, noCSId);
+        final CaptureSession captureSessionNoLiveOutputUrl =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        captureSessionNoLiveOutputUrl.setLiveOutputUrl(null);
+        RecordingDTO noLiveUrl = createRecording(3, captureSessionNoLiveOutputUrl);
+        noLiveUrl.setDuration(Duration.ofMinutes(3));
+
+        final CaptureSession captureSessionAvailable =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        RecordingDTO normalDurationRecording = createRecording(3, captureSessionAvailable);
+        normalDurationRecording.setDuration(Duration.ofMinutes(3));
 
         when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
             .thenReturn(new PageImpl<>(List.of(
-                recordingWithoutACaptureSession,
                 zeroDurationRecording,
-                happyRecording
+                recordingNotInSA,
+                normalDurationRecording,
+                noLiveUrl
             )));
 
-        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
-            zeroDurationCS,
-            csWithoutRecording,
-            happyCS
+        when(azureFinalStorageService.getRecordingDuration(normalDurationRecording.getId()))
+            .thenReturn(Duration.of(3, ChronoUnit.MINUTES));
+
+        when(azureFinalStorageService.getRecordingDuration(noLiveUrl.getId()))
+            .thenReturn(Duration.of(3, ChronoUnit.MINUTES));
+
+        when(azureFinalStorageService.getRecordingDuration(recordingNotInSA.getId()))
+            .thenReturn(null);
+
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
+            captureSessionZeroRec,
+            captureSessionWithoutRecording,
+            captureSessionRecNotInSA,
+            captureSessionNoLiveOutputUrl,
+            captureSessionAvailable
         ));
         checkForMissingRecordingsTask.run();
 
-        verify(captureSessionService, times(1)).findAvailableSessionsByDate(any(LocalDate.class));
-        verify(slackClient, times(1)).postSlackMessage(format(
-            "{\"text\":\":globe_with_meridians: *Environment:* Local-Testing\\n\\n"
-                + ":warning: *Missing Recordings:*"
-                + "\\n\\n\\t:siren: %s :siren:\\n\\n"
-                + ":warning: *Zero-Duration Recordings:*"
-                + "\\n\\n\\t:siren: %s :siren:\\n\\n\"}", noRecId, zeroId
-        ));
+        verify(azureFinalStorageService, times(1))
+            .getRecordingDuration(recordingNotInSA.getId());
+        verify(azureFinalStorageService, times(1))
+            .getRecordingDuration(normalDurationRecording.getId());
+        verify(captureSessionService, times(1))
+            .findSessionsByDate(any(LocalDate.class));
+        verify(slackClient, times(1)).postSlackMessage(anyString());
+
+        ArgumentCaptor<String> slackCaptor = ArgumentCaptor.forClass(String.class);
+        verify(slackClient).postSlackMessage(slackCaptor.capture());
+
+        assertThat(slackCaptor.getValue())
+            .contains("\\n\\n:warning: *Capture sessions: RECORDING_AVAILABLE but with problems:*\\n");
+
+        assertThat(slackCaptor.getValue())
+            .contains("\\nRecording for capture session "
+                          + captureSessionZeroRec.getId() + " has zero duration in database\\n");
+
+        assertThat(slackCaptor.getValue())
+            .contains("\\nMissing recording for capture session " + captureSessionWithoutRecording.getId()
+                          + ": not in database\\n");
+
+        assertThat(slackCaptor.getValue())
+            .contains("\\nCapture session " + captureSessionNoLiveOutputUrl.getId()
+                          + " missing live output url\\n");
+
+        assertThat(slackCaptor.getValue())
+            .contains("Missing recording for capture session " + captureSessionRecNotInSA.getId()
+                          + ": not in final SA\\n");
     }
 
     @Test
     public void testNoMissingRecordingsAreFound() {
-        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class)))
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class)))
             .thenReturn(Collections.emptyList());
         checkForMissingRecordingsTask.run();
 
         verify(captureSessionService, times(1))
-            .findAvailableSessionsByDate(any(LocalDate.class));
+            .findSessionsByDate(any(LocalDate.class));
         verify(recordingService, times(0))
             .findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged()));
         verify(slackClient, times(0)).postSlackMessage(anyString());
+    }
+
+    @Test
+    public void testWithNonAvailableRecordings() {
+        final CaptureSession processingStatus = createCaptureSessionForStatus(RecordingStatus.PROCESSING);
+        final CaptureSession failedStatus = createCaptureSessionForStatus(RecordingStatus.FAILURE);
+        final CaptureSession noRecording = createCaptureSessionForStatus(RecordingStatus.NO_RECORDING);
+
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class)))
+            .thenReturn(List.of(processingStatus, failedStatus, noRecording));
+        checkForMissingRecordingsTask.run();
+
+        verify(captureSessionService, times(1))
+            .findSessionsByDate(any(LocalDate.class));
+        verify(recordingService, times(0))
+            .findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged()));
+        verify(slackClient, times(1)).postSlackMessage(anyString());
+
+        ArgumentCaptor<String> slackCaptor = ArgumentCaptor.forClass(String.class);
+        verify(slackClient).postSlackMessage(slackCaptor.capture());
+
+        assertThat(slackCaptor.getValue())
+            .doesNotContain("NO_RECORDING");
+
+        assertThat(slackCaptor.getValue())
+            .contains("\\n\\n:warning: *Capture sessions with FAILURE status:*\\n" + failedStatus.getId());
+
+        assertThat(slackCaptor.getValue())
+            .contains("\\n\\n:warning: *Capture sessions with PROCESSING status:*\\n" + processingStatus.getId());
+    }
+
+    @Test
+    public void testRecordingsWithMultipleMatchingStatus() {
+        final CaptureSession failure1 =
+            createCaptureSessionForStatus(RecordingStatus.FAILURE);
+
+        final CaptureSession failure2 =
+            createCaptureSessionForStatus(RecordingStatus.FAILURE);
+
+        final CaptureSession failure3 =
+            createCaptureSessionForStatus(RecordingStatus.FAILURE);
+
+        final CaptureSession failure4 =
+            createCaptureSessionForStatus(RecordingStatus.FAILURE);
+
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
+            failure1,
+            failure2,
+            failure3,
+            failure4
+        ));
+        checkForMissingRecordingsTask.run();
+
+        verify(slackClient, times(1)).postSlackMessage(anyString());
+
+        ArgumentCaptor<String> slackCaptor = ArgumentCaptor.forClass(String.class);
+        verify(slackClient).postSlackMessage(slackCaptor.capture());
+
+        assertThat(slackCaptor.getValue())
+            .contains("\\n\\n:warning: *Capture sessions with FAILURE status:*\\n");
+
+        assertThat(slackCaptor.getValue())
+            .contains(failure4.getId().toString());
+    }
+
+    @Test
+    public void testMultipleRecordingsForSameCaptureSession() {
+        final CaptureSession captureSession =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        RecordingDTO rec1 = createRecording(3, captureSession);
+        rec1.setVersion(2);
+        RecordingDTO rec2 = createRecording(3, captureSession);
+        rec2.setVersion(1);
+
+        when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
+            .thenReturn(new PageImpl<>(List.of(rec1, rec2)));
+
+        when(azureFinalStorageService.getRecordingDuration(rec1.getId()))
+            .thenReturn(Duration.of(3, ChronoUnit.MINUTES));
+
+        when(azureFinalStorageService.getRecordingDuration(rec2.getId()))
+            .thenReturn(Duration.of(3, ChronoUnit.MINUTES));
+
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class)))
+            .thenReturn(List.of(captureSession));
+
+        checkForMissingRecordingsTask.run();
+
+        verify(azureFinalStorageService, times(0)).getRecordingDuration(rec2.getId()); // Version 1
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(rec1.getId()); // Version 2
+        verify(captureSessionService, times(1))
+            .findSessionsByDate(any(LocalDate.class));
+        verify(slackClient, times(0)).postSlackMessage(anyString());
+    }
+
+    private CaptureSession createCaptureSessionForStatus(RecordingStatus recordingStatus) {
+        return HelperFactory.createCaptureSession(
+            booking, RecordingOrigin.PRE, "TestIngestAddress", "TestLiveOutputAddress",
+            new Timestamp(System.currentTimeMillis()), user,
+            new Timestamp(System.currentTimeMillis()), user,
+            recordingStatus,
+            new Timestamp(System.currentTimeMillis())
+        );
+    }
+
+    private RecordingDTO createRecording(Integer duration, CaptureSession captureSession) {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+        recording.setDuration(Duration.of(duration, ChronoUnit.MINUTES));
+        recording.setCaptureSession(new CaptureSessionDTO(captureSession));
+        return recording;
     }
 
 }
