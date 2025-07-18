@@ -16,7 +16,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
@@ -192,7 +192,7 @@ public class CaseServiceIT extends IntegrationTestBase {
         entityManager.persist(recording);
 
         var message = Assertions.assertThrows(
-            RecordingNotDeletedException.class,
+            CaptureSessionNotDeletedException.class,
             () ->  caseService.deleteById(caseEntity.getId())
         ).getMessage();
 
