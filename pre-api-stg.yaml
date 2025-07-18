@@ -3619,6 +3619,11 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: The version number to search by
+          format: int32
+          in: query
+          name: version
+          type: integer
         - description: Sort by
           in: query
           name: sort
