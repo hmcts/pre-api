@@ -114,12 +114,12 @@ task smoke(type: Test) {
 
 checkstyle {
   maxWarnings = 0
-  toolVersion = '10.25.1'
+  toolVersion = '10.26.1'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
 }
 
 pmd {
-  toolVersion = "7.11.0"
+  toolVersion = "7.15.0"
   sourceSets = [sourceSets.main]
   reportsDir = file("$project.buildDir/reports/pmd")
   // https://github.com/pmd/pmd/issues/876
@@ -279,6 +279,9 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
   implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.5.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
+  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.22.0'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-cache'
+  implementation group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: '3.2.1'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.20.0'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: reformLoggingVersion
@@ -288,7 +291,7 @@ dependencies {
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
   implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.5.0'
 
-  implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '8.0'
+  implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '8.1'
 
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '11.6.0'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '11.6.0'
@@ -310,8 +313,9 @@ dependencies {
 
   implementation group: 'com.opencsv', name: 'opencsv', version: '5.11.2'
 
-  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.29.0'
-  implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
+  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.30.0'
+  implementation group: 'com.azure', name: 'azure-core-serializer-json-jackson', version: '1.5.10'
+  implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0'
 
   implementation group: 'org.testcontainers', name: 'postgresql', version: '1.21.2'
 
