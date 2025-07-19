@@ -94,4 +94,56 @@ public class PortalAccessServiceTest {
         verify(portalAccessRepository, times(1)).save(any());
     }
 
+    @Test
+    @DisplayName("Update should set registeredAt when status is active and registeredAt is null")
+    public void updateShouldSetRegisteredAtWhenStatusIsActiveAndRegisteredAtIsNull() {
+        CreatePortalAccessDTO model = new CreatePortalAccessDTO();
+        model.setId(UUID.randomUUID());
+        model.setStatus(AccessStatus.ACTIVE);
+        model.setLastAccess(Timestamp.from(Instant.now()));
+        model.setInvitedAt(Timestamp.from(Instant.now()));
+        model.setRegisteredAt(null);
+
+        PortalAccess entity = new PortalAccess();
+        entity.setId(model.getId());
+        entity.setRegisteredAt(null);
+        entity.setStatus(AccessStatus.INACTIVE);
+
+        when(portalAccessRepository.findByIdAndDeletedAtIsNull(model.getId()))
+            .thenReturn(Optional.of(entity));
+
+        assertThat(portalAccessService.update(model)).isEqualTo(UpsertResult.UPDATED);
+
+        verify(portalAccessRepository, times(1)).findByIdAndDeletedAtIsNull(model.getId());
+        verify(portalAccessRepository, times(1)).save(any());
+
+        assertThat(entity.getRegisteredAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Update should not override registeredAt when already set")
+    public void updateShouldNotOverrideRegisteredAtWhenAlreadySet() {
+        Timestamp existingRegisteredAt = Timestamp.from(Instant.now());
+        CreatePortalAccessDTO model = new CreatePortalAccessDTO();
+        model.setId(UUID.randomUUID());
+        model.setStatus(AccessStatus.INACTIVE);
+        model.setLastAccess(Timestamp.from(Instant.now()));
+        model.setInvitedAt(Timestamp.from(Instant.now()));
+        model.setRegisteredAt(existingRegisteredAt);
+
+        PortalAccess entity = new PortalAccess();
+        entity.setId(model.getId());
+        entity.setRegisteredAt(existingRegisteredAt);
+        entity.setStatus(AccessStatus.ACTIVE);
+
+        when(portalAccessRepository.findByIdAndDeletedAtIsNull(model.getId()))
+            .thenReturn(Optional.of(entity));
+
+        assertThat(portalAccessService.update(model)).isEqualTo(UpsertResult.UPDATED);
+
+        verify(portalAccessRepository, times(1)).findByIdAndDeletedAtIsNull(model.getId());
+        verify(portalAccessRepository, times(1)).save(any());
+
+        assertThat(entity.getRegisteredAt()).isEqualTo(model.getRegisteredAt());
+    }
 }
