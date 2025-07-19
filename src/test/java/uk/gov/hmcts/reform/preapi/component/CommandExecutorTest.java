@@ -47,7 +47,7 @@ public class CommandExecutorTest {
         var executorService = mock(ExecutorService.class);
         executors.when(Executors::newSingleThreadExecutor).thenReturn(executorService);
         var command = CommandLine.parse("echo hello world");
-        when(mockFuture.get()).thenReturn(null);
+        when(mockFuture.get()).thenReturn("hello world\n");
         when(executorService.submit(any(CommandRunner.class))).thenReturn(mockFuture);
 
         var result = commandExecutor.execute(command);
