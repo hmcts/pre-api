@@ -128,8 +128,4 @@ public abstract class AzureStorageService {
         newTags.put(tagKey, tagValue);
         blob.setTags(newTags);
     }
-
-    public void deleteContainer(String containerName) {
-        client.getBlobContainerClient(containerName).deleteIfExists();
-    }
 }
