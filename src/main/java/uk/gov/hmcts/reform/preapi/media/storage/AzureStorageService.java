@@ -104,12 +104,22 @@ public abstract class AzureStorageService {
 
     public void tagAllBlobsInContainer(String containerName, String tagKey, String tagValue) {
         log.info("Setting all blob's tags in container '{}': '{}' to '{}'", containerName, tagKey, tagValue);
-        BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
-        containerClient.listBlobs()
-            .stream()
-            .map(BlobItem::getName)
-            .map(containerClient::getBlobClient)
-            .forEach(blob -> setBlobTag(blob, tagKey, tagValue));
+        try {
+            BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
+            containerClient.listBlobs()
+                .stream()
+                .map(BlobItem::getName)
+                .map(containerClient::getBlobClient)
+                .forEach(blob -> setBlobTag(blob, tagKey, tagValue));
+        } catch (Exception e) {
+            log.error(
+                "Failed to set all blob's tags (key = {}, value = {}) in container '{}'",
+                tagKey,
+                tagValue,
+                containerName,
+                e
+            );
+        }
     }
 
     protected void setBlobTag(BlobClient blob, String tagKey, String tagValue) {
