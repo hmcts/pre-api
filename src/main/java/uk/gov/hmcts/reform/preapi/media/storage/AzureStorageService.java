@@ -1,13 +1,17 @@
 package uk.gov.hmcts.reform.preapi.media.storage;
 
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.models.BlobItem;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public abstract class AzureStorageService {
@@ -96,5 +100,32 @@ public abstract class AzureStorageService {
     public void createContainerIfNotExists(String containerName) {
         log.info("Creating container: {}", containerName);
         client.createBlobContainerIfNotExists(containerName);
+    }
+
+    public void tagAllBlobsInContainer(String containerName, String tagKey, String tagValue) {
+        log.info("Setting all blob's tags in container '{}': '{}' to '{}'", containerName, tagKey, tagValue);
+        try {
+            BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
+            containerClient.listBlobs()
+                .stream()
+                .map(BlobItem::getName)
+                .map(containerClient::getBlobClient)
+                .forEach(blob -> setBlobTag(blob, tagKey, tagValue));
+        } catch (Exception e) {
+            log.error(
+                "Failed to set all blob's tags (key = {}, value = {}) in container '{}'",
+                tagKey,
+                tagValue,
+                containerName,
+                e
+            );
+        }
+    }
+
+    protected void setBlobTag(BlobClient blob, String tagKey, String tagValue) {
+        Map<String, String> currentTags = blob.getTags();
+        Map<String, String> newTags = new HashMap<>(currentTags);
+        newTags.put(tagKey, tagValue);
+        blob.setTags(newTags);
     }
 }
