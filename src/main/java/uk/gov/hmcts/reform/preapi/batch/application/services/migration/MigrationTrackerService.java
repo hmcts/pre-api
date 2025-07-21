@@ -85,8 +85,8 @@ public class MigrationTrackerService {
             .add(item);
 
         loggingService.logInfo(
-            "Adding failed item: Category = %s | Filename = %s",
-            item.getFailureCategory(), item.getFileName()
+            "Adding failed item: Category = %s | ArchiveName = %s | Filename = %s",
+            item.getFailureCategory(), item.getItem().getArchiveName(), item.getFileName()
         );
     }
 

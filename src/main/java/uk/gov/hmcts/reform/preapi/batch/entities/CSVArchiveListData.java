@@ -86,28 +86,31 @@ public class CSVArchiveListData implements IArchiveData  {
     }
 
     public LocalDateTime getCreateTimeAsLocalDateTime() {
-        if (createTime == null || createTime.isEmpty()) {
-            return null;
-        }
+        return getParsedCreateTime();
+    }
+
+    public LocalDateTime getCreateTimeForLogic() {
+        LocalDateTime time = getParsedCreateTime();
+        return (time == null) ? LocalDateTime.now() : time;
+    }
+
+   
+    public LocalDateTime getParsedCreateTime() {
+        if (createTime == null || createTime.isBlank()) return null;
 
         try {
             long timestamp = Long.parseLong(createTime.trim());
+            if (timestamp == 0L || timestamp == 3600000L) return null;
 
-            if (timestamp == 0L || timestamp == 3600000L) {
-                return LocalDateTime.now();
-            }
-            
             return LocalDateTime.ofInstant(
                 java.time.Instant.ofEpochMilli(timestamp),
                 java.time.ZoneId.systemDefault()
             );
-
         } catch (NumberFormatException e) {
             return DATE_PATTERNS.stream()
                 .map(pattern -> {
                     try {
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.UK);
-                        return LocalDateTime.parse(createTime.trim(), formatter);
+                        return LocalDateTime.parse(createTime.trim(), DateTimeFormatter.ofPattern(pattern, Locale.UK));
                     } catch (DateTimeParseException ex) {
                         return null;
                     }

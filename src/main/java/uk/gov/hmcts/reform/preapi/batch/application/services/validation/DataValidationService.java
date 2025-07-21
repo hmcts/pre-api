@@ -67,6 +67,13 @@ public class DataValidationService {
 
         }
 
+        if (!cleansedData.isPreferred()) {
+            return ServiceResultUtil.failure(
+                Constants.ErrorMessages.NOT_PREFERRED,
+                Constants.Reports.FILE_NOT_PREFERRED
+            );
+        }
+
         return ServiceResultUtil.success(cleansedData);
     }
 

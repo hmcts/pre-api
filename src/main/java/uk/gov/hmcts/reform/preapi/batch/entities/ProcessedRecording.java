@@ -48,6 +48,7 @@ public class ProcessedRecording {
     private int recordingVersionNumber;                     // Parsed version number (1 = ORIG, 2 = COPY)
     
     private boolean isMostRecentVersion; // (used to skip older recordings)
+    private boolean isPreferred;
     
     private String fileExtension;                           // e.g. ".mp4", ".raw"
     private String fileName;                                // Full filename of the recording

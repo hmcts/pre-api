@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsv
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.IArchiveData;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
@@ -108,10 +109,15 @@ public class MigrationTrackerServiceTest {
     @Test
     void addFailedItem() {
         FailedItem item = mock(FailedItem.class);
+        IArchiveData archiveData = mock(IArchiveData.class);
+        when(archiveData.getArchiveName()).thenReturn("Test Archive");
+        when(item.getItem()).thenReturn(archiveData);
         when(item.getFailureCategory()).thenReturn("Category");
+
         migrationTrackerService.addFailedItem(item);
+        
         assertThat(migrationTrackerService.categorizedFailures.get("Category")).hasSize(1);
-        verify(loggingService, times(1)).logInfo(anyString(), anyString(), isNull());
+        verify(loggingService, times(1)).logInfo(anyString(), anyString(), anyString(), isNull());
     }
 
     @Test

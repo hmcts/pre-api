@@ -71,23 +71,30 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     @Override
     public MigratedItemGroup process(Object item) throws Exception {
-        if (item == null) {
-            loggingService.logWarning("Received null item to process");
-            return null;
-        }
-        if (item instanceof CSVArchiveListData csvArchiveListData) {
-            return processArchiveItem(csvArchiveListData);
-        }
-        if (item instanceof CSVExemptionListData csvExemptionListData) {
-            return processExemptionItem(csvExemptionListData);
-        }
-        if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
-            referenceDataProcessor.process(item);
-            return null;
-        }
+        try {
+            if (item == null) {
+                loggingService.logWarning("Received null item to process");
+                return null;
+            }
+            if (item instanceof CSVArchiveListData csvArchiveListData) {
+                loggingService.logDebug("1");
+                return processArchiveItem(csvArchiveListData);
+            }
+            if (item instanceof CSVExemptionListData csvExemptionListData) {
+                return processExemptionItem(csvExemptionListData);
+            }
+            if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
+                referenceDataProcessor.process(item);
+                return null;
+            }
 
-        loggingService.logError("Unsupported item type: %s", item.getClass().getName());
-        return null;
+            loggingService.logError("Unsupported item type: %s", item.getClass().getName());
+            return null;
+        } catch (Exception e) {
+            loggingService.logError("Error in processor: %s", e.getMessage(), e);
+            return null;
+        }
+            
     }
 
     private MigratedItemGroup processExemptionItem(CSVExemptionListData exemptionItem) {
@@ -131,31 +138,43 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logDebug("===============================================");
             loggingService.logDebug("Processor started for item: %s", archiveItem);
 
+            // if (migrationRecordService.findByArchiveId(archiveItem.getArchiveId()).isPresent()) {
+            //     loggingService.logDebug("Recording already processed: %s", archiveItem.getArchiveId());
+            //     return null;
+            // }
+
+
             // Extraction
+            loggingService.logDebug("2");
             ExtractedMetadata extractedData = extractData(archiveItem);
             if (extractedData == null) {
                 return null;
             }
 
             // Transformation
+            loggingService.logDebug("3");
             ProcessedRecording cleansedData = transformData(extractedData);
             if (cleansedData == null) {
                 return null;
             }
 
             // Check if already migrated
+            loggingService.logDebug("4");
             if (isMigrated(cleansedData, archiveItem)) {
                 return null;
             }
 
             // Validation
+            loggingService.logDebug("5");
             if (!isValidated(cleansedData, archiveItem)) {
                 return null;
             }
             
+            loggingService.logDebug("6");
             loggingService.incrementProgress();           
             cacheService.dumpToFile();
 
+            loggingService.logDebug("7");
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
         } catch (Exception e) {
             loggingService.logError("Error processing archive %s: %s", archiveItem.getArchiveName(), e.getMessage(), e);
@@ -175,7 +194,15 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         // Handle test items
         if (extractionResult.isTest()) {
             TestItem testItem = extractionResult.getTestItem();
-            migrationRecordService.updateToFailed(archiveItem.getArchiveId(), "Test", testItem.getReason());
+
+            String reason = testItem.getReason();
+            String keywords = testItem.getKeywordFound();
+            String errorMsg = "Test: " + reason
+                    + (keywords != null && !keywords.isEmpty()
+                    ? " — keywords: " + keywords
+                    : "");
+
+            migrationRecordService.updateToFailed(archiveItem.getArchiveId(), "Test", errorMsg);
             handleTest(testItem);
             return null;
         }

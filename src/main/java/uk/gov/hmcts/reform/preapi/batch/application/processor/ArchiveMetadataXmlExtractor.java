@@ -7,6 +7,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -30,12 +31,17 @@ import javax.xml.parsers.ParserConfigurationException;
 public class ArchiveMetadataXmlExtractor {
 
     private final AzureVodafoneStorageService azureVodafoneStorageService;
+    private final MigrationRecordService migrationRecordService;
     private final LoggingService loggingService;
 
     @Autowired
-    public ArchiveMetadataXmlExtractor(AzureVodafoneStorageService azureVodafoneStorageService,
-                                       LoggingService loggingService) {
+    public ArchiveMetadataXmlExtractor(
+        AzureVodafoneStorageService azureVodafoneStorageService,
+        MigrationRecordService migrationRecordService,
+        LoggingService loggingService
+    ) {
         this.azureVodafoneStorageService = azureVodafoneStorageService;
+        this.migrationRecordService = migrationRecordService;
         this.loggingService = loggingService;
     }
 
@@ -71,6 +77,21 @@ public class ArchiveMetadataXmlExtractor {
                     return nameB.compareToIgnoreCase(nameA); 
                 });
 
+                for (List<String> row : allArchiveMetadata) {
+                    try {
+                        migrationRecordService.insertPendingFromXml(
+                            row.get(0), // archiveId
+                            row.get(1), // displayName
+                            row.get(2), // createTime
+                            row.get(3), // duration
+                            row.get(4), // fileName
+                            row.get(5)  // fileSizeMb
+                        );
+                    } catch (Exception e) {
+                        loggingService.logError("Failed to insert row into migration records: %s", e.getMessage());
+                    }
+                }
+                
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
                 loggingService.logInfo(
                     "Successfully generated " + filename + " with " + allArchiveMetadata.size() + " entries"

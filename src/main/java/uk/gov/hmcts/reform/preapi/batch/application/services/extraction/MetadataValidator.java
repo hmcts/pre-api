@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.NOT_PREFERRED;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PREDATES_GO_LIVE;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_DURATION;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_ITEM_NAME;
@@ -51,7 +51,7 @@ public class MetadataValidator {
 
     public ServiceResult<?> validateExtension(String extension) {
         return !isValidExtension(extension)
-            ? ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT)
+            ? ServiceResultUtil.failure(NOT_PREFERRED, FILE_INVALID_FORMAT)
             : ServiceResultUtil.success(extension);
     }
 
@@ -139,7 +139,6 @@ public class MetadataValidator {
         return true;
     }
 
-    // Check if the creation time pre-dates the go-live date
     public boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
         LocalDateTime recordingTimestamp = archiveItem.getCreateTimeAsLocalDateTime();
 
@@ -198,9 +197,6 @@ public class MetadataValidator {
         if (isEmpty(metadata.getRecordingVersion())) {
             missingFields.add("Recording Version");
         }
-        // if (isEmpty(metadata.getFileExtension())) {
-        //     missingFields.add("File Extension");
-        // }
 
         return missingFields;
     }

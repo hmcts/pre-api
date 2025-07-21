@@ -15,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import java.sql.Timestamp;
 import java.util.UUID;
 
-
 @Getter
 @Setter
 @Entity
@@ -91,6 +90,11 @@ public class MigrationRecord extends BaseEntity {
     @Column(name = "is_most_recent")
     private Boolean isMostRecent;
 
+    @Column(name = "is_preferred")
+    private Boolean isPreferred = true; 
+
     @Column(name = "recording_group_key")
     private String recordingGroupKey;
+
+    
 }

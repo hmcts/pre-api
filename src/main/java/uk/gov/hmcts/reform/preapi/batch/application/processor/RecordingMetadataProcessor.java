@@ -43,8 +43,11 @@ public class RecordingMetadataProcessor {
    
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
+            if (migrationRecordService.findByArchiveId(archiveItem.getArchiveId()).isPresent()) {
+                return;
+            }
 
-            migrationRecordService.insertPending(archiveItem);
+            // migrationRecordService.insertPending(archiveItem);
 
             ServiceResult<?> extracted = extractionService.process(archiveItem);
             if (extracted.getErrorMessage() != null || extracted.isTest()) {

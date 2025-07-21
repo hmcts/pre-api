@@ -9,7 +9,10 @@ import java.util.UUID;
 
 public interface MigrationRecordRepository extends JpaRepository<MigrationRecord, UUID> {
     Optional<MigrationRecord> findByArchiveId(String archiveId);
+
+    Optional<MigrationRecord> findByArchiveName(String archiveName);
     
     List<MigrationRecord> findByRecordingGroupKey(String recordingGroupKey);
+
 }
 

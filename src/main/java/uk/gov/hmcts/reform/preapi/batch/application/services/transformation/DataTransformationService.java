@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class DataTransformationService {
@@ -73,26 +74,43 @@ public class DataTransformationService {
 
     protected ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
+
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
-        
-        String origVersionStr =
-            extracted.getRecordingVersion().startsWith("COPY")
-                ? extracted.getRecordingVersionNumber().split("\\.")[0] 
-                : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber();
 
-        String key = cacheService.generateRecordingVersionKey(extracted, origVersionStr);
-        Map<String, Object> existingData = cacheService.getHashAll(key);
-        
-        RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
-            extracted.getRecordingVersion(),
-            extracted.getRecordingVersionNumber(),
+        String groupKey = MigrationRecordService.generateRecordingGroupKey(
             extracted.getUrn(),
-            extracted.getDefendantLastName(),
+            extracted.getExhibitReference(),
             extracted.getWitnessFirstName(),
-            existingData
+            extracted.getDefendantLastName()
         );
 
+        Optional<String> mostRecentVersionOpt = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey);
+
+        boolean isMostRecent = mostRecentVersionOpt
+            .map(mostRecent -> RecordingUtils.compareVersionStrings(
+                extracted.getRecordingVersionNumber(),
+                mostRecent
+            ) >= 0)
+            .orElse(true); 
+
+        RecordingUtils.VersionDetails versionDetails = new RecordingUtils.VersionDetails(
+            extracted.getRecordingVersion(),
+            extracted.getRecordingVersionNumber(),
+            extracted.getRecordingVersion().startsWith("COPY")
+                ? extracted.getRecordingVersionNumber().split("\\.")[0]
+                : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber(),
+            extracted.getRecordingVersion().startsWith("COPY") && extracted.getRecordingVersionNumber().contains(".")
+                ? extracted.getRecordingVersionNumber().split("\\.")[1]
+                : null,
+            RecordingUtils.getStandardizedVersionNumberFromType(extracted.getRecordingVersion()),
+            isMostRecent
+        );
+        
+        boolean isPreferred = true;
+        if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4")) {
+            migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveName());
+        }
 
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
         if (court == null) {
@@ -136,6 +154,7 @@ public class DataTransformationService {
                 migrationRecordService.isMostRecentVersion(extracted.getArchiveId())
             )
 
+            .isPreferred(isPreferred)
             .fileExtension(extracted.getFileExtension())
             .fileName(extracted.getFileName())
 
@@ -155,7 +174,6 @@ public class DataTransformationService {
         String courtReference = extracted.getCourtReference();
         if (courtReference == null || courtReference.isEmpty()) {
             loggingService.logError("Court reference is null or empty");
-            throw new IllegalArgumentException("Court reference cannot be null or empty");
         }
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
@@ -212,7 +230,7 @@ public class DataTransformationService {
         Map<String, String> sites = cacheService.getAllSiteReferences();
         if (sites.isEmpty()) {
             loggingService.logError("Sites data not found in Cache");
-            throw new IllegalStateException("Sites data not found in Cache");
+            return new HashMap<>();
         }
         return sites;
     }

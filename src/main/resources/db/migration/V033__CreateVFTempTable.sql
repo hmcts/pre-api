@@ -15,17 +15,18 @@ CREATE TABLE public.vf_migration_records (
     create_time TIMESTAMPTZ,
     duration INTEGER,
     court_reference VARCHAR(25),
-    urn VARCHAR(11),
+    urn VARCHAR(20),
     exhibit_reference VARCHAR(15),
     defendant_name VARCHAR(100),
     witness_name VARCHAR(100),
     recording_version VARCHAR(4),
-    recording_version_number VARCHAR(10),
+    recording_version_number VARCHAR(50),
     mp4_file_name TEXT,
-    file_size_mb VARCHAR(10),
+    file_size_mb VARCHAR(20),
  
     -- Status and error tracking
     is_most_recent BOOLEAN,
+    is_preferred BOOLEAN DEFAULT TRUE,
     parent_temp_id UUID,
     recording_group_key TEXT,
     booking_id UUID,
@@ -37,3 +38,5 @@ CREATE TABLE public.vf_migration_records (
     resolved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE INDEX idx_migration_record_is_preferred ON public.vf_migration_records(is_preferred);

@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
@@ -9,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
+import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 
 import java.sql.Timestamp;
@@ -64,7 +64,6 @@ public class MigrationRecordService {
     // ============== UPSERT ===================
     // =========================================
     @Transactional
-    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(
         String archiveId,
         String archiveName,
@@ -119,13 +118,59 @@ public class MigrationRecordService {
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
+
+    @Transactional
+    public void insertPendingFromXml(
+        String archiveId,
+        String archiveName,
+        String createTimeEpoch,
+        String duration,
+        String mp4FileName,
+        String fileSizeMb
+    ) {
+        Timestamp createTime = null;
+        long epoch = Long.parseLong(createTimeEpoch);
+        if (epoch > 0) {
+            if (epoch < 100_000_000_000L) { 
+                epoch *= 1000;
+            }
+            createTime = new Timestamp(epoch);
+        }
+
+        Integer parsedDuration = null;
+        parsedDuration = duration != null ? Integer.valueOf(duration) : null;
+      
+
+        upsert(
+            archiveId,
+            archiveName,
+            createTime,
+            parsedDuration,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            mp4FileName,
+            fileSizeMb,
+            VfMigrationStatus.PENDING,
+            null,
+            null,
+            null,
+            null
+        );
+    }
+    
     @Transactional
     public void insertPending(CSVArchiveListData archiveItem) {
         upsert(
             archiveItem.getArchiveId(),
             archiveItem.getArchiveName(),
-            archiveItem.getCreateTimeAsLocalDateTime() != null 
-                ? Timestamp.valueOf(archiveItem.getCreateTimeAsLocalDateTime()) : null,
+            Optional.ofNullable(archiveItem.getCreateTimeAsLocalDateTime())
+                .map(Timestamp::valueOf)
+                .orElse(null),
             null,
             null, 
             null,
@@ -242,6 +287,29 @@ public class MigrationRecordService {
     // =========================================
     private static String nullToEmpty(String input) {
         return input == null ? "" : input;
+    }
+
+    @Transactional
+    public void markNonMp4AsNotPreferred(String currentArchiveName) {
+    
+        String mp4Name = currentArchiveName.replaceAll("\\.[^.]+$", ".mp4");
+
+        if (migrationRecordRepository.findByArchiveName(mp4Name).isPresent()) {
+            migrationRecordRepository.findByArchiveName(currentArchiveName)
+                .ifPresent(nonPreferred -> {
+                    nonPreferred.setIsPreferred(false);
+                    migrationRecordRepository.save(nonPreferred);
+                });
+        }
+    }
+
+    public Optional<String> findMostRecentVersionNumberInGroup(String groupKey) {
+        List<MigrationRecord> groupRecords = migrationRecordRepository.findByRecordingGroupKey(groupKey);
+
+        return groupRecords.stream()
+            .map(MigrationRecord::getRecordingVersionNumber)
+            .filter(version -> version != null && !version.isBlank())
+            .max(RecordingUtils::compareVersionStrings);
     }
 
     public static String generateRecordingGroupKey(
