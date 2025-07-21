@@ -160,6 +160,7 @@ public class EditRequestService {
         }
         // throws 404 when doesn't exist
         azureIngestStorageService.getMp4FileName(sourceContainer);
+        azureIngestStorageService.markContainerAsProcessing(sourceContainer);
         var assetName = newRecordingId.toString().replace("-", "");
 
         azureFinalStorageService.createContainerIfNotExists(newRecordingId.toString());
@@ -181,6 +182,7 @@ public class EditRequestService {
                                                  + ", new recording: "
                                                  + newRecordingId);
         }
+        azureIngestStorageService.markContainerAsSafeToDelete(sourceContainer);
         return azureFinalStorageService.getMp4FileName(newRecordingId.toString());
     }
 
