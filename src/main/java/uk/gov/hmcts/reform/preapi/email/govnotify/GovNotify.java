@@ -117,6 +117,20 @@ public class GovNotify implements IEmailService {
         }
     }
 
+    @Override
+    public EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode) {
+        var template = new uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailVerification(
+            email, firstName, lastName, verificationCode
+        );
+        try {
+            log.info("Email verification sent to {}", email);
+            return EmailResponse.fromGovNotifyResponse(sendEmail(template));
+        } catch (NotificationClientException e) {
+            log.error("Failed to send email verification to {}", email, e);
+            throw new EmailFailedToSendException(email);
+        }
+    }
+
     private SendEmailResponse sendEmail(BaseTemplate email) throws NotificationClientException {
         return client.sendEmail(email.getTemplateId(), email.getTo(), email.getVariables(), email.getReference());
     }

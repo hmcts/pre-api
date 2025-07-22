@@ -33,6 +33,7 @@ public class SecurityConfig {
         new AntPathRequestMatcher("/users/by-email/**"),
         new AntPathRequestMatcher("/reports/**"),
         new AntPathRequestMatcher("/audit/**"),
+        new AntPathRequestMatcher("/b2c/**"),
         new AntPathRequestMatcher("/error"),
         new AntPathRequestMatcher("/invites", "GET"),
         new AntPathRequestMatcher("/invites/redeem", "POST"),
