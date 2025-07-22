@@ -16,6 +16,7 @@ RUN chmod 777 /usr/bin/azcopy
  # renovate: datasource=github-releases depName=microsoft/ApplicationInsights-Java
 FROM hmctspublic.azurecr.io/base/java:21-distroless
 COPY --from=build-env /usr/bin/ffmpeg /usr/bin
+COPY --from=build-env /usr/bin/ffprobe /usr/bin
 COPY --from=build-env /usr/bin/azcopy /usr/bin
 
 COPY lib/applicationinsights.json /opt/app/
