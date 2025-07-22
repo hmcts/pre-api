@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -30,6 +29,6 @@ public class MigrateResolved extends BaseTask {
 
     @Override
     public void run() throws RuntimeException {
-        startJob(resolvedMigrationRecordJob, "Process Resolved Migration Records", MigrationType.FULL);
+        startJob(resolvedMigrationRecordJob, "Process Resolved Migration Records");
     }
 }

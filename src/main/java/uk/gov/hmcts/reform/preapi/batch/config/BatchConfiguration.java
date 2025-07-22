@@ -15,7 +15,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.ArchiveMetadataXmlExtractor;
-import uk.gov.hmcts.reform.preapi.batch.application.processor.DeltaProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.RecordingMetadataProcessor;
@@ -28,7 +27,6 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
-import java.util.Objects;
 
 @Configuration
 @EnableBatchProcessing
@@ -40,7 +38,6 @@ public class BatchConfiguration implements StepExecutionListener {
     public static final String SITES_CSV = BASE_PATH + "reference_data/Sites.csv";
     public static final String CHANNEL_USER_CSV = BASE_PATH + "reference_data/Channel_User_Report.csv";
     public static final String ARCHIVE_LIST_INITAL = BASE_PATH + "Archive_List_initial.csv";
-    public static final String DELTA_RECORDS_CSV = BASE_PATH + "Archive_List_delta.csv";
     public static final String EXCEMPTIONS_LIST_CSV = BASE_PATH + "Excemption_List.csv";
 
     public final JobRepository jobRepository;
@@ -54,7 +51,6 @@ public class BatchConfiguration implements StepExecutionListener {
     public final MigrationRecordService migrationRecordService;
     public final BatchRobotUserTask robotUserTask;
     public final ArchiveMetadataXmlExtractor xmlProcessingService;
-    public final DeltaProcessor deltaProcessor;
     public final CaseService caseService;
     public LoggingService loggingService;
 
@@ -72,8 +68,7 @@ public class BatchConfiguration implements StepExecutionListener {
         MigrationRecordService migrationRecordService,
         BatchRobotUserTask robotUserTask,
         ArchiveMetadataXmlExtractor xmlProcessingService,
-        LoggingService loggingService,
-        DeltaProcessor deltaProcessor
+        LoggingService loggingService
     ) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
@@ -88,23 +83,6 @@ public class BatchConfiguration implements StepExecutionListener {
         this.robotUserTask = robotUserTask;
         this.xmlProcessingService = xmlProcessingService;
         this.loggingService = loggingService;
-        this.deltaProcessor = deltaProcessor;
-    }
-
-
-    @Bean
-    public Step createDeltaProcessingStep() {
-        return new StepBuilder("deltaProcessingStep", jobRepository)
-            .tasklet((contribution, chunkContext) -> {
-                String deltaFilePath = "src/main/resources/batch/Archive_List_delta.csv";
-                deltaProcessor.processDelta(
-                    "src/main/resources/batch/Archive_List_initial.csv",
-                    "src/main/resources/batch/Archive_List_updated.csv",
-                    deltaFilePath
-                );
-                return RepeatStatus.FINISHED;
-            }, transactionManager)
-            .build();
     }
 
     @Bean
@@ -165,21 +143,6 @@ public class BatchConfiguration implements StepExecutionListener {
     // =========================
     // Utility and Helper Functions
     // =========================
-
-    @Bean
-    public JobExecutionDecider deltaProcessingDecider() {
-        return (jobExecution, stepExecution) -> {
-            var migrationType = MigrationType.fromString(
-                (String) Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))
-            );
-
-            if (migrationType.equals(MigrationType.DELTA)) {
-                return new FlowExecutionStatus("DELTA");
-            } else {
-                return new FlowExecutionStatus("FULL");
-            }
-        };
-    }
 
     public JobExecutionDecider fileAvailabilityDecider() {
         return (jobExecution, stepExecution) -> {

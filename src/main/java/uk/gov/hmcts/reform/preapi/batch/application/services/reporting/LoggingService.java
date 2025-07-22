@@ -3,13 +3,9 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -40,8 +36,7 @@ public class LoggingService {
 
     private LocalDateTime startTime;
 
-    public void initializeLogFile(MigrationType migrationType) {
-        setTotalRecordsFromFile(migrationType);
+    public void initializeLogFile() {
         startTime = LocalDateTime.now();
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE_PATH, false))) {
@@ -180,25 +175,4 @@ public class LoggingService {
 
     }
 
-    // ==============================
-    // SETTING RECORDS FROM FILE
-    // ==============================
-    public void setTotalRecordsFromFile(MigrationType migrationType) {
-        String filePath = migrationType.equals(MigrationType.DELTA)
-            ? "src/main/resources/batch/Archive_List_delta.csv"
-            : "src/main/resources/batch/Archive_List_initial.csv";
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)))) {
-            int lineCount = (int) reader.lines()
-                .skip(1)
-                .filter(line -> !line.trim().isEmpty())
-                .count();
-
-            totalRecords = Math.max(lineCount, 1);
-            logInfo("Total records set from file '%s': %d", filePath, totalRecords);
-        } catch (IOException e) {
-            logError("Failed to count lines in file: %s | %s", filePath, e.getMessage());
-            totalRecords = 1;
-        }
-    }
 }

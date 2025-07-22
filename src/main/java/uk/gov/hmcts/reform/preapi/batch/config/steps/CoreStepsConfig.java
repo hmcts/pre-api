@@ -19,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
@@ -85,14 +84,10 @@ public class CoreStepsConfig {
                                                              .getJobParameters()
                                                              .get("debug");
 
-                    var migrationType = MigrationType.fromString((String) chunkContext.getStepContext()
-                                                                                      .getJobParameters()
-                                                                                      .get("migrationType"));
-
                     boolean debug = Boolean.parseBoolean(debugParam);
 
                     loggingService.setDebugEnabled(debug);
-                    loggingService.initializeLogFile(migrationType);
+                    loggingService.initializeLogFile();
                     loggingService.logInfo("Job started with debug mode: " + debug);
 
                     return RepeatStatus.FINISHED;
@@ -155,19 +150,6 @@ public class CoreStepsConfig {
         return createReadStep(
             "archiveListDataStep",
             new ClassPathResource(BatchConfiguration.ARCHIVE_LIST_INITAL),
-            new String[]{"archive_id", "archive_name", "create_time", "duration", "file_name", "file_size"},
-            CSVArchiveListData.class,
-            true,
-            getDryRunFlag()
-        );
-    }
-
-    @Bean
-    @JobScope
-    public Step createDeltaListStep() {
-        return createReadStep(
-            "deltaDataStep",
-            new ClassPathResource(BatchConfiguration.DELTA_RECORDS_CSV),
             new String[]{"archive_id", "archive_name", "create_time", "duration", "file_name", "file_size"},
             CSVArchiveListData.class,
             true,

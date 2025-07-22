@@ -56,9 +56,7 @@ public class ProcessCSVJobConfig {
         @Qualifier("createPreProcessMetadataStep") Step createPreProcessMetadataStep,
         @Qualifier("createArchiveListStep") Step createArchiveListStep,
         @Qualifier("createWriteToCSVStep") Step createWriteToCSVStep,
-        @Qualifier("pendingMigrationRecordStep") Step pendingMigrationRecordStep,
-        @Qualifier("createDeltaProcessingStep") Step createDeltaProcessingStep,
-        @Qualifier("createDeltaListStep") Step createDeltaListStep
+        @Qualifier("pendingMigrationRecordStep") Step pendingMigrationRecordStep
     ) {
         return new JobBuilder("processCSVJob", jobRepository)
             .incrementer(new RunIdIncrementer())
@@ -71,15 +69,9 @@ public class ProcessCSVJobConfig {
             .next(createChannelUserStep)
             .next(createRobotUserSignInStep)
             .next(createPreProcessStep)
-
-            .next(batchConfiguration.deltaProcessingDecider())
-            .on("FULL").to(createPreProcessMetadataStep)
-                          .next(pendingMigrationRecordStep)
-                          .next(createWriteToCSVStep)
-            .from(batchConfiguration.deltaProcessingDecider())
-            .on("DELTA").to(createDeltaProcessingStep)
-                          .next(createDeltaListStep)
-                          .next(createWriteToCSVStep)
+            .next(createPreProcessMetadataStep)
+            .next(pendingMigrationRecordStep)
+            .next(createWriteToCSVStep)
             .end()
             .build();
     }

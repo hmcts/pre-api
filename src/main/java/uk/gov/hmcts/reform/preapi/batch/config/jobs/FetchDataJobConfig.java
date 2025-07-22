@@ -16,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.ArchiveMetadataXml
 import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 
@@ -69,11 +68,7 @@ public class FetchDataJobConfig {
             .tasklet((contribution, chunkContext) -> {
                 var jobParams = chunkContext.getStepContext().getJobParameters();
 
-                MigrationType migrationType = MigrationType.fromString((String) jobParams.get("migrationType"));
-                String outputFileName = migrationType.equals(MigrationType.DELTA)
-                    ? "Archive_List_updated"
-                    : "Archive_List_initial";
-
+                String outputFileName = "Archive_List_initial";
                 String sourceType = (String) jobParams.getOrDefault("sourceType", "xml");
                 if ("csv".equalsIgnoreCase(sourceType)) {
                     loggingService.logInfo(

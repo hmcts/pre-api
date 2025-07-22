@@ -317,18 +317,30 @@ public class MigrationRecordService {
 
     @Transactional
     public boolean markNonMp4AsNotPreferred(String currentArchiveName) {
-    
-        String mp4Name = currentArchiveName.replaceAll("\\.[^.]+$", ".mp4");
+        String mp4Name = currentArchiveName.contains(".")
+            ? currentArchiveName.replaceAll("\\.[^.]+$", ".mp4")
+            : currentArchiveName + ".mp4";
 
-        if (migrationRecordRepository.findByArchiveName(mp4Name).isPresent()) {
-            migrationRecordRepository.findByArchiveName(currentArchiveName)
-                .ifPresent(nonPreferred -> {
-                    nonPreferred.setIsPreferred(false);
-                    migrationRecordRepository.save(nonPreferred);
-                });
-            return true;
+        boolean mp4Exists = migrationRecordRepository.findByArchiveName(mp4Name).isPresent();
+        boolean updated = false;
+
+        if (mp4Exists) {
+            Optional<MigrationRecord> maybeNonPreferred = migrationRecordRepository.findByArchiveName(
+                currentArchiveName);
+            if (maybeNonPreferred.isPresent()) {
+                var nonPreferred = maybeNonPreferred.get();
+                nonPreferred.setIsPreferred(false);
+                migrationRecordRepository.save(nonPreferred);
+                updated = true;
+            }
         }
-        return false;
+
+        loggingService.logDebug(
+            "Marking as not preferred? archive=%s, mp4Exists=%s, updated=%s",
+            currentArchiveName, mp4Exists, updated
+        );
+
+        return updated;
     }
 
     public Optional<String> findMostRecentVersionNumberInGroup(String groupKey) {
