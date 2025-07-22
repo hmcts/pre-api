@@ -2257,6 +2257,16 @@ definitions:
         description: PlaybackReportWitness
         type: string
     type: object
+  VerifyEmailRequestDTO:
+    description: VerifyEmailRequestDTO
+    properties:
+      email:
+        description: Email
+        type: string
+      verification_code:
+        description: VerificationCode
+        type: string
+    type: object
 externalDocs:
   description: README
   url: 'https://github.com/hmcts/pre-api'
@@ -2341,6 +2351,30 @@ paths:
       summary: Create an Audit Entry
       tags:
         - audit-controller
+  /b2c/email-verification:
+    post:
+      consumes:
+        - application/json
+      operationId: postEmailVerification
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/VerifyEmailRequestDTO'
+      responses:
+        '204':
+          description: No Content
+      summary: Trigger an email verification email to be sent out via gov notify
+      tags:
+        - b-2-c-controller
   /bookings:
     get:
       operationId: searchBookings
