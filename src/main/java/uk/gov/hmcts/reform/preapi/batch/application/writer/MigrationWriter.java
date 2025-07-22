@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
-@Transactional(propagation = Propagation.REQUIRED)
+@Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final LoggingService loggingService;
     private final CaseService caseService;
@@ -64,12 +64,8 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
             return;
         }
 
-        try {
-            saveMigratedItems(migratedItems);
-            logBatchStatistics();
-        } catch (Exception e) {
-            loggingService.logError("Error while processing chunk: %s", e.getMessage());
-        }
+        saveMigratedItems(migratedItems);
+        logBatchStatistics();
     }
 
     private List<MigratedItemGroup> filterValidItems(Chunk<? extends MigratedItemGroup> items) {

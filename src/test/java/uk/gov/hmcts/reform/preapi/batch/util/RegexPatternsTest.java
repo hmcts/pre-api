@@ -13,10 +13,10 @@ class RegexPatternsTest {
 
     @Test
     void testDigitOnlyPattern() {
-        assertTrue(RegexPatterns.DIGIT_ONLY_PATTERN.matcher("12345.mp4").matches());
-        assertTrue(RegexPatterns.DIGIT_ONLY_PATTERN.matcher("12345_234325.mp4").matches());
-        assertTrue(RegexPatterns.DIGIT_ONLY_PATTERN.matcher("12345_234325_234325.mp4").matches());
-        assertFalse(RegexPatterns.DIGIT_ONLY_PATTERN.matcher("123a45.mp4").matches());
+        assertTrue(RegexPatterns.DIGIT_ONLY_EXT_PATTERN.matcher("12345.mp4").matches());
+        assertTrue(RegexPatterns.DIGIT_ONLY_EXT_PATTERN.matcher("12345_234325.mp4").matches());
+        assertTrue(RegexPatterns.DIGIT_ONLY_EXT_PATTERN.matcher("12345_234325_234325.mp4").matches());
+        assertFalse(RegexPatterns.DIGIT_ONLY_EXT_PATTERN.matcher("123a45.mp4").matches());
     }
 
     @Test

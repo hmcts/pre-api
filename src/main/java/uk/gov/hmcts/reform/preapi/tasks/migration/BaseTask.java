@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.tasks.RobotUserTask;
@@ -35,13 +34,18 @@ public abstract class BaseTask extends RobotUserTask {
         this.dryRun = dryRun;
     }
 
-    protected void startJob(Job job, String jobName, MigrationType migrationType) {
+    protected void startJob(Job job, String jobName, String... extraParams) {
         try {
             var jobParametersBuilder = new JobParametersBuilder()
                 .addLong("time", System.currentTimeMillis())
                 .addString("debug", String.valueOf(debug))
-                .addString("dryRun", String.valueOf(dryRun))
-                .addString("migrationType", migrationType.name());
+                .addString("dryRun", String.valueOf(dryRun));
+
+            for (int i = 0; i < extraParams.length - 1; i += 2) {
+                String key = extraParams[i];
+                String value = extraParams[i + 1];
+                jobParametersBuilder.addString(key, value);
+            }
 
             jobLauncher.run(job, jobParametersBuilder.toJobParameters());
             loggingService.logInfo("Successfully completed " + jobName + " batch job");

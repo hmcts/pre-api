@@ -30,7 +30,7 @@ public final class Constants {
         "sample", "mock", "dummy", "example", "playback", "predefined",
         "fig_room", "failover", "viw", "support", "wrong", "rmx006",
         "rmx005", "recording", "rpms", "rmx-load", "snoc",
-        "s28 rpcs room", "rpp1 user", "qc"
+        "s28 rpcs room", "rpp1", "qc"
     );
 
     // Cache keys
@@ -48,7 +48,8 @@ public final class Constants {
         public static final String TEST_DURATION = "Duration is less than 10 seconds.";
 
         // File validation errors
-        public static final String INVALID_FILE_EXTENSION = "Only .mp4 files are allowed.";
+        public static final String NOT_PREFERRED = 
+            "A more preferred version of this recording exists (e.g. a file with .mp4 in the name).";
 
         // Court validation errors
         public static final String MISSING_COURT = "No valid court is associated with this recording.";
@@ -79,6 +80,7 @@ public final class Constants {
         public static final String FILE_NOT_RECENT = "Not_Most_Recent";
         public static final String FILE_PRE_GO_LIVE = "Pre_Go_Live";
         public static final String FILE_REGEX = "Regex_Matching_Errors";
+        public static final String FILE_NOT_PREFERRED = "Alternative_Found";
     }
 
     public static final class XmlFields {

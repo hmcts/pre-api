@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -21,22 +22,26 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class DataTransformationService {
     private static final String UNKNOWN_COURT = "Unknown Court";
 
     private final InMemoryCacheService cacheService;
+    private final MigrationRecordService migrationRecordService;
     private final CourtRepository courtRepository;
     private final LoggingService loggingService;
 
     @Autowired
     public DataTransformationService(
         InMemoryCacheService cacheService,
+        MigrationRecordService migrationRecordService,
         CourtRepository courtRepository,
         LoggingService loggingService
     ) {
         this.cacheService = cacheService;
+        this.migrationRecordService = migrationRecordService;
         this.courtRepository = courtRepository;
         this.loggingService = loggingService;
     }
@@ -69,26 +74,44 @@ public class DataTransformationService {
 
     protected ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
+
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
-        
-        String origVersionStr =
-            extracted.getRecordingVersion().startsWith("COPY")
-                ? extracted.getRecordingVersionNumber().split("\\.")[0] 
-                : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber();
 
-        String key = cacheService.generateRecordingVersionKey(extracted, origVersionStr);
-        Map<String, Object> existingData = cacheService.getHashAll(key);
-        
-        RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
-            extracted.getRecordingVersion(),
-            extracted.getRecordingVersionNumber(),
+        String groupKey = MigrationRecordService.generateRecordingGroupKey(
             extracted.getUrn(),
-            extracted.getDefendantLastName(),
+            extracted.getExhibitReference(),
             extracted.getWitnessFirstName(),
-            existingData
+            extracted.getDefendantLastName()
         );
 
+        Optional<String> mostRecentVersionOpt = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey);
+
+        boolean isMostRecent = mostRecentVersionOpt
+            .map(mostRecent -> RecordingUtils.compareVersionStrings(
+                extracted.getRecordingVersionNumber(),
+                mostRecent
+            ) >= 0)
+            .orElse(true); 
+
+        RecordingUtils.VersionDetails versionDetails = new RecordingUtils.VersionDetails(
+            extracted.getRecordingVersion(),
+            extracted.getRecordingVersionNumber(),
+            extracted.getRecordingVersion().startsWith("COPY")
+                ? extracted.getRecordingVersionNumber().split("\\.")[0]
+                : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber(),
+            extracted.getRecordingVersion().startsWith("COPY") && extracted.getRecordingVersionNumber().contains(".")
+                ? extracted.getRecordingVersionNumber().split("\\.")[1]
+                : null,
+            RecordingUtils.getStandardizedVersionNumberFromType(extracted.getRecordingVersion()),
+            isMostRecent
+        );
+        
+        boolean isPreferred = true;
+        if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4")) {
+            boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveName());
+            isPreferred = !updated;
+        }
 
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
         if (court == null) {
@@ -96,12 +119,15 @@ public class DataTransformationService {
         }
 
         return ProcessedRecording.builder()
+            .archiveId(extracted.getArchiveId())
+            .archiveName(extracted.getArchiveName())
+
             .courtReference(extracted.getCourtReference())
             .court(court)
 
             .state(determineState(shareBookingContacts))
 
-            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
+            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTimeAsLocalDateTime()))
             .duration(Duration.ofSeconds(extracted.getDuration()))
 
             .urn(extracted.getUrn())
@@ -125,8 +151,11 @@ public class DataTransformationService {
             )
             .recordingVersionNumber(versionDetails.standardisedVersionNumber())    
     
-            .isMostRecentVersion(versionDetails.isMostRecent())
+            .isMostRecentVersion(
+                migrationRecordService.isMostRecentVersion(extracted.getArchiveId())
+            )
 
+            .isPreferred(isPreferred)
             .fileExtension(extracted.getFileExtension())
             .fileName(extracted.getFileName())
 
@@ -146,7 +175,6 @@ public class DataTransformationService {
         String courtReference = extracted.getCourtReference();
         if (courtReference == null || courtReference.isEmpty()) {
             loggingService.logError("Court reference is null or empty");
-            throw new IllegalArgumentException("Court reference cannot be null or empty");
         }
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
@@ -203,7 +231,7 @@ public class DataTransformationService {
         Map<String, String> sites = cacheService.getAllSiteReferences();
         if (sites.isEmpty()) {
             loggingService.logError("Sites data not found in Cache");
-            throw new IllegalStateException("Sites data not found in Cache");
+            return new HashMap<>();
         }
         return sites;
     }

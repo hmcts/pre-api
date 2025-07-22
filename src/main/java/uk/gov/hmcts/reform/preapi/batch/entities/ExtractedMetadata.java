@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,7 @@ public class ExtractedMetadata implements IArchiveData {
     private int duration;
     private String fileName;
     private String fileSize;
+    private String archiveId;
     private String archiveName;
     private String sanitizedArchiveName = "";
 
@@ -41,13 +43,18 @@ public class ExtractedMetadata implements IArchiveData {
         int duration,
         String fileName,
         String fileSize,
+        String archiveId,
         String archiveName
     ) {
         this.courtReference = courtReference;
         this.urn = urn != null ? urn.toUpperCase() : null;
         this.exhibitReference = exhibitReference != null ? exhibitReference.toUpperCase() : null;
-        this.defendantLastName = formatName(defendantLastName.toLowerCase());
-        this.witnessFirstName = formatName(witnessFirstName.toLowerCase());
+        this.defendantLastName = formatName(
+            defendantLastName != null ? defendantLastName.toLowerCase() : ""
+        );
+        this.witnessFirstName = formatName(
+            witnessFirstName != null ? witnessFirstName.toLowerCase() : ""
+        );
         this.recordingVersion = recordingVersion;
         this.recordingVersionNumber = recordingVersionNumber;
         this.fileExtension = fileExtension;
@@ -55,6 +62,7 @@ public class ExtractedMetadata implements IArchiveData {
         this.duration = duration;
         this.fileName = fileName;
         this.fileSize = fileSize;
+        this.archiveId = archiveId;
         this.archiveName = archiveName;
     }
 
@@ -105,7 +113,25 @@ public class ExtractedMetadata implements IArchiveData {
 
     @Override
     public LocalDateTime getCreateTimeAsLocalDateTime() {
+        if (this.createTime == null) {
+            return LocalDateTime.now();
+        }
+
+        long seconds = this.createTime.toEpochSecond(ZoneOffset.UTC);
+        if (seconds == 0 || seconds == 3600) { 
+            return LocalDateTime.now();
+        }
+
         return this.createTime;
+    }
+
+    public boolean isCreateTimeDefaulted() {
+        if (this.createTime == null) {
+            return true;
+        }
+        
+        long seconds = this.createTime.toEpochSecond(ZoneOffset.UTC);
+        return seconds == 0 || seconds == 3600;
     }
 
     @Override

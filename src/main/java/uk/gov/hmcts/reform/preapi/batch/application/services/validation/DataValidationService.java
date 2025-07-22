@@ -2,30 +2,34 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
+import java.util.Optional;
+
 @Service
 public class DataValidationService {
-    private final InMemoryCacheService cacheService;
+    private final MigrationRecordService migrationRecordService;
+    private final LoggingService loggingService;
 
     @Autowired
-    public DataValidationService(InMemoryCacheService cacheService) {
-        this.cacheService = cacheService;
+    public DataValidationService(MigrationRecordService migrationRecordService, LoggingService loggingService) {
+        this.migrationRecordService = migrationRecordService;
+        this.loggingService = loggingService;
     }
 
     /**
      * Validates the cleansed data against a series of checks.
      * @param cleansedData The cleansed data to validate.
-     * @param archiveItem The original archive item for reference.
      * @return A ServiceResult containing either the validated data or an error message.
      */
     public ServiceResult<ProcessedRecording> validateProcessedRecording(
-            ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
+            ProcessedRecording cleansedData) {
 
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
@@ -51,34 +55,34 @@ public class DataValidationService {
             );
         }
 
-        if (cleansedData.getRecordingVersionNumber() > 1) {
+        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
+            Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(
+                cleansedData.getArchiveId());
 
-            String recordingCacheKey = cacheService.generateEntityCacheKey(
-                "recording",
-                cleansedData.getCaseReference(),
-                cleansedData.getDefendantLastName(),
-                cleansedData.getWitnessFirstName(),
-                cleansedData.getOrigVersionNumberStr()
-            );
-
-            String parentArchiveKey = "archiveName:orig:" + cleansedData.getOrigVersionNumberStr();
-            String parentOrig = cacheService.getHashValue(recordingCacheKey, parentArchiveKey, String.class);
-
-            if (parentOrig == null) {
+            if (currentRecord.isPresent() && !isParentMigrated(currentRecord.get())) {
                 return ServiceResultUtil.failure(
                     Constants.ErrorMessages.NO_PARENT_FOUND,
                     Constants.Reports.FILE_MISSING_DATA
                 );
             }
+
+        }
+
+        if (!cleansedData.isPreferred()) {
+            return ServiceResultUtil.failure(
+                Constants.ErrorMessages.NOT_PREFERRED,
+                Constants.Reports.FILE_NOT_PREFERRED
+            );
         }
 
         return ServiceResultUtil.success(cleansedData);
     }
 
 
-    public ServiceResult<ProcessedRecording> validateExemptionRecording(
+    public ServiceResult<ProcessedRecording> validateResolvedRecording(
         ProcessedRecording cleansedData, String archiveName) {
 
+        loggingService.logDebug("Processed Recording", cleansedData);
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT, 
                 Constants.Reports.FILE_MISSING_DATA);
@@ -115,11 +119,12 @@ public class DataValidationService {
             return ServiceResultUtil.failure("Missing file name", Constants.Reports.FILE_MISSING_DATA);
         }
 
-        if (cleansedData.getFileExtension() == null || cleansedData.getFileExtension().trim().isEmpty()) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.INVALID_FILE_EXTENSION, 
-                Constants.Reports.FILE_INVALID_FORMAT);
-        }
-
         return ServiceResultUtil.success(cleansedData);
+    }
+
+    private boolean isParentMigrated(MigrationRecord copy) {
+        return migrationRecordService.getOrigFromCopy(copy)
+            .map(MigrationRecord::getRecordingId)
+            .isPresent();
     }
 }
