@@ -7,8 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 
 import java.sql.Timestamp;
@@ -32,7 +32,7 @@ public class MetadataValidatorTest {
     private MetadataValidator metadataValidator;
 
     @Mock
-    private CSVArchiveListData archiveItem;
+    private MigrationRecord archiveItem;
 
     @Test
     void validateTestFailureWhenArchivePredatesGoLive() {
@@ -141,7 +141,7 @@ public class MetadataValidatorTest {
 
     @Test
     void isValidDurationTrue() {
-        CSVArchiveListData data = new CSVArchiveListData();
+        MigrationRecord data = new MigrationRecord();
         data.setDuration(10);
 
         assertThat(metadataValidator.isValidDuration(data)).isTrue();
@@ -149,7 +149,7 @@ public class MetadataValidatorTest {
 
     @Test
     void isValidDurationFalse() {
-        CSVArchiveListData data = new CSVArchiveListData();
+        MigrationRecord data = new MigrationRecord();
         data.setDuration(9);
 
         assertThat(metadataValidator.isValidDuration(data)).isFalse();

@@ -7,9 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
@@ -23,10 +22,10 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = DataValidationService.class)
 public class DataValidationServiceTest {
     @MockitoBean
-    private InMemoryCacheService inMemoryCacheService;
+    private MigrationRecordService migrationRecordService;  
 
     @MockitoBean
-    private MigrationRecordService migrationRecordService;  
+    private LoggingService loggingService;
 
     @Autowired
     private DataValidationService dataValidationService;
@@ -36,11 +35,9 @@ public class DataValidationServiceTest {
     void validateProcessedRecordingCourtNull() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .build();
-        CSVArchiveListData archive = new CSVArchiveListData();
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
-            processedRecording,
-            archive
+            processedRecording
         );
 
         assertThat(result).isNotNull();
@@ -59,11 +56,9 @@ public class DataValidationServiceTest {
             .extractedRecordingVersion("COPY")
             .isMostRecentVersion(false)
             .build();
-        CSVArchiveListData archive = new CSVArchiveListData();
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
-            processedRecording,
-            archive
+            processedRecording
         );
 
         assertThat(result).isNotNull();
@@ -80,11 +75,9 @@ public class DataValidationServiceTest {
             .court(new Court())
             .isMostRecentVersion(true)
             .build();
-        CSVArchiveListData archive = new CSVArchiveListData();
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
-            processedRecording,
-            archive
+            processedRecording
         );
 
         assertThat(result).isNotNull();
@@ -102,11 +95,9 @@ public class DataValidationServiceTest {
             .isMostRecentVersion(true)
             .caseReference("SHORTREF")
             .build();
-        CSVArchiveListData archive = new CSVArchiveListData();
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
-            processedRecording,
-            archive
+            processedRecording
         );
 
         assertThat(result).isNotNull();
@@ -124,11 +115,9 @@ public class DataValidationServiceTest {
             .isMostRecentVersion(true)
             .caseReference("_25_CHAR_STR_25_CHAR_STR_")
             .build();
-        CSVArchiveListData archive = new CSVArchiveListData();
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
-            processedRecording,
-            archive
+            processedRecording
         );
 
         assertThat(result).isNotNull();
@@ -152,15 +141,12 @@ public class DataValidationServiceTest {
             .archiveId("ARCHIVE123")
             .build();
 
-        CSVArchiveListData archive = new CSVArchiveListData();
-
         MigrationRecord currentRecord = new MigrationRecord(); 
         when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
         when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.empty());
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
-            processedRecording,
-            archive
+            processedRecording
         );
 
         assertThat(result).isNotNull();

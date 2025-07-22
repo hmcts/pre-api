@@ -35,13 +35,19 @@ public abstract class BaseTask extends RobotUserTask {
         this.dryRun = dryRun;
     }
 
-    protected void startJob(Job job, String jobName, MigrationType migrationType) {
+    protected void startJob(Job job, String jobName, MigrationType migrationType, String... extraParams) {
         try {
             var jobParametersBuilder = new JobParametersBuilder()
                 .addLong("time", System.currentTimeMillis())
                 .addString("debug", String.valueOf(debug))
                 .addString("dryRun", String.valueOf(dryRun))
                 .addString("migrationType", migrationType.name());
+
+            for (int i = 0; i < extraParams.length - 1; i += 2) {
+                String key = extraParams[i];
+                String value = extraParams[i + 1];
+                jobParametersBuilder.addString(key, value);
+            }
 
             jobLauncher.run(job, jobParametersBuilder.toJobParameters());
             loggingService.logInfo("Successfully completed " + jobName + " batch job");

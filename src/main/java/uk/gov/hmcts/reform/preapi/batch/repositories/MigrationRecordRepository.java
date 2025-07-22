@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 
 import java.util.List;
@@ -12,6 +13,8 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     Optional<MigrationRecord> findByArchiveName(String archiveName);
     
+    List<MigrationRecord> findByStatus(VfMigrationStatus status);
+
     List<MigrationRecord> findByRecordingGroupKey(String recordingGroupKey);
 
 }

@@ -43,6 +43,10 @@ public class MigrationRecordService {
         return migrationRecordRepository.findById(copy.getParentTempId());
     }
     
+    public List<MigrationRecord> getPendingMigrationRecords() {
+        return migrationRecordRepository.findByStatus(VfMigrationStatus.PENDING);
+    }
+
     @Transactional(readOnly = true)
     public boolean isMostRecentVersion(String archiveId) {
         return migrationRecordRepository.findByArchiveId(archiveId)
@@ -99,7 +103,7 @@ public class MigrationRecordService {
         recording.setWitnessName(witnessName);
         recording.setRecordingVersion(recordingVersion);
         recording.setRecordingVersionNumber(recordingVersionNumber);
-        recording.setMp4FileName(mp4FileName);
+        recording.setFileName(mp4FileName);
         recording.setFileSizeMb(fileSizeMb);
         recording.setStatus(status);
         recording.setReason(reason);
@@ -139,7 +143,7 @@ public class MigrationRecordService {
 
         Integer parsedDuration = null;
         parsedDuration = duration != null ? Integer.valueOf(duration) : null;
-      
+    
 
         upsert(
             archiveId,
@@ -171,7 +175,7 @@ public class MigrationRecordService {
             Optional.ofNullable(archiveItem.getCreateTimeAsLocalDateTime())
                 .map(Timestamp::valueOf)
                 .orElse(null),
-            null,
+            archiveItem.getDuration(),
             null, 
             null,
             null, 
@@ -179,8 +183,8 @@ public class MigrationRecordService {
             null,
             null,
             null, 
-            null,
-            null,
+            archiveItem.getFileName(), 
+            archiveItem.getFileSize(), 
             VfMigrationStatus.PENDING,
             null,
             null,
@@ -202,7 +206,7 @@ public class MigrationRecordService {
             record.setWitnessName(extracted.getWitnessFirstName());
             record.setRecordingVersion(extracted.getRecordingVersion());
             record.setRecordingVersionNumber(extracted.getRecordingVersionNumber());
-            record.setMp4FileName(extracted.getFileName());
+            record.setFileName(extracted.getFileName());
             record.setFileSizeMb(extracted.getFileSize());
             
             String groupKey = String.join("|",
@@ -232,6 +236,8 @@ public class MigrationRecordService {
     public void updateToSuccess(String archiveId) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setStatus(VfMigrationStatus.SUCCESS);
+            record.setReason("");
+            record.setErrorMessage("");
             migrationRecordRepository.save(record);
         });
     }

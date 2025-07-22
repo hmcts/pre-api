@@ -12,10 +12,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.IArchiveData;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
@@ -95,9 +95,9 @@ public class MigrationTrackerServiceTest {
     @Test
     void addTestItem() {
         TestItem item = mock(TestItem.class);
-        CSVArchiveListData csvArchiveListData = mock(CSVArchiveListData.class);
-        when(item.getArchiveItem()).thenReturn(csvArchiveListData);
-        when(csvArchiveListData.getFileName()).thenReturn("testFile");
+        MigrationRecord migrationRecord = mock(MigrationRecord.class);
+        when(item.getArchiveItem()).thenReturn(migrationRecord);
+        when(migrationRecord.getFileName()).thenReturn("testFile");
 
         migrationTrackerService.addTestItem(item);
 
@@ -375,12 +375,12 @@ public class MigrationTrackerServiceTest {
     }
 
     private TestItem createMockTestItem() {
-        CSVArchiveListData archiveItem = mock(CSVArchiveListData.class);
+        MigrationRecord archiveItem = mock(MigrationRecord.class);
 
         when(archiveItem.getArchiveName()).thenReturn("Test Archive");
-        when(archiveItem.getCreateTime()).thenReturn(Timestamp.from(Instant.now()).toString());
+        when(archiveItem.getCreateTime()).thenReturn(Timestamp.from(Instant.now()));
         when(archiveItem.getFileName()).thenReturn("testfile.mp4");
-        when(archiveItem.getFileSize()).thenReturn("100");
+        when(archiveItem.getFileSizeMb()).thenReturn("100");
 
         TestItem testItem = mock(TestItem.class);
         when(testItem.getArchiveItem()).thenReturn(archiveItem);

@@ -12,9 +12,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemor
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.validation.DataValidationService;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
@@ -73,124 +71,120 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     public MigratedItemGroup process(Object item) throws Exception {
         try {
             if (item == null) {
-                loggingService.logWarning("Received null item to process");
+                loggingService.logWarning("Processor - Received null item. Skipping.");
                 return null;
             }
-            if (item instanceof CSVArchiveListData csvArchiveListData) {
-                loggingService.logDebug("1");
-                return processArchiveItem(csvArchiveListData);
+
+            loggingService.logDebug("Processor - Processing item of type: %s", item.getClass().getSimpleName());
+
+            if (item instanceof MigrationRecord migrationRecord) {
+                return processRecording(migrationRecord);
             }
-            if (item instanceof CSVExemptionListData csvExemptionListData) {
-                return processExemptionItem(csvExemptionListData);
-            }
+ 
             if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
                 referenceDataProcessor.process(item);
                 return null;
             }
 
-            loggingService.logError("Unsupported item type: %s", item.getClass().getName());
+            loggingService.logError("Processor - Unsupported item type: %s", item.getClass().getName());
             return null;
         } catch (Exception e) {
-            loggingService.logError("Error in processor: %s", e.getMessage(), e);
+            loggingService.logError("Processor - Error: %s", e.getMessage(), e);
             return null;
         }
             
     }
 
-    private MigratedItemGroup processExemptionItem(CSVExemptionListData exemptionItem) {
-        loggingService.logDebug("===============================================");
-        loggingService.logDebug("Processing Exemption Item: %s", exemptionItem);
+    private MigratedItemGroup processRecording(MigrationRecord migrationRecord) {
+        String archiveId = migrationRecord.getArchiveId();
+        String archiveName = migrationRecord.getArchiveName();
+        VfMigrationStatus status = migrationRecord.getStatus();
+        loggingService.logDebug(
+            "Processing Recording: %s  with status: %s, | archiveId = %s", archiveName, status, archiveId);
 
-        ExtractedMetadata extractedData = convertToExtractedMetadata(exemptionItem);
-        try {
-            if (extractedData == null) {
+        if (status == VfMigrationStatus.PENDING) {
+            try {
+                ExtractedMetadata extractedData = extractData(migrationRecord);
+                if (extractedData == null) {
+                    return null;
+                }
+
+                migrationRecordService.updateMetadataFields(archiveId, extractedData);
+
+                // Transformation
+                ProcessedRecording cleansedData = transformData(extractedData);
+                if (cleansedData == null) {
+                    return null;
+                }
+
+                // Check if already migrated
+                if (isMigrated(cleansedData, migrationRecord)) {
+                    return null;
+                }
+
+                // Validation
+                if (!isValidated(cleansedData, migrationRecord)) {
+                    return null;
+                }
+                
+                loggingService.incrementProgress();           
+                cacheService.dumpToFile();
+
+                return migrationService.createMigratedItemGroup(extractedData, cleansedData);
+            } catch (Exception e) {
+                loggingService.logError("Error processing archive %s: %s", archiveName, e.getMessage(), e);
+                migrationRecordService.updateToFailed(archiveId, "Error", e.getMessage());
+                handleError(migrationRecord, "Failed to create migrated item group: " + e.getMessage(), "Error");
                 return null;
             }
 
-            ProcessedRecording cleansedData = transformData(extractedData);
-            if (cleansedData == null) {
-                return null;
-            }
-
-            if (!isExemptionValidated(cleansedData, exemptionItem)) {
-                return null;
-            }
-
-            loggingService.incrementProgress();           
-            cacheService.dumpToFile();
-            
-            return migrationService.createMigratedItemGroup(extractedData, cleansedData);
-
-        } catch (Exception e) {
-            loggingService.logError(
-                "Error processing archive %s: %s",
-                extractedData.getArchiveName(),
-                e.getMessage(),
-                e
-            );
-            handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
-            return null;
-        }
-    }
-
-    private MigratedItemGroup processArchiveItem(CSVArchiveListData archiveItem) {
-        try {
-            loggingService.logDebug("===============================================");
-            loggingService.logDebug("Processor started for item: %s", archiveItem);
-
-            // if (migrationRecordService.findByArchiveId(archiveItem.getArchiveId()).isPresent()) {
-            //     loggingService.logDebug("Recording already processed: %s", archiveItem.getArchiveId());
-            //     return null;
-            // }
-
-
-            // Extraction
-            loggingService.logDebug("2");
-            ExtractedMetadata extractedData = extractData(archiveItem);
-            if (extractedData == null) {
-                return null;
-            }
-
-            // Transformation
-            loggingService.logDebug("3");
-            ProcessedRecording cleansedData = transformData(extractedData);
-            if (cleansedData == null) {
-                return null;
-            }
-
-            // Check if already migrated
-            loggingService.logDebug("4");
-            if (isMigrated(cleansedData, archiveItem)) {
-                return null;
-            }
-
-            // Validation
-            loggingService.logDebug("5");
-            if (!isValidated(cleansedData, archiveItem)) {
-                return null;
-            }
-            
-            loggingService.logDebug("6");
-            loggingService.incrementProgress();           
-            cacheService.dumpToFile();
-
-            loggingService.logDebug("7");
-            return migrationService.createMigratedItemGroup(extractedData, cleansedData);
-        } catch (Exception e) {
-            loggingService.logError("Error processing archive %s: %s", archiveItem.getArchiveName(), e.getMessage(), e);
-            migrationRecordService.updateToFailed(archiveItem.getArchiveId(), "Error", e.getMessage());
-            handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
-            return null;
         }
 
+        if (status == VfMigrationStatus.RESOLVED) {
+            ExtractedMetadata extractedData = convertToExtractedMetadata(migrationRecord);
+            try {
+                if (extractedData == null) {
+                    return null;
+                }
+
+                ProcessedRecording cleansedData = transformData(extractedData);
+                if (cleansedData == null) {
+                    return null;
+                }
+
+                if (!isResolvedValidated(cleansedData, migrationRecord)) {
+                    return null;
+                }
+
+                loggingService.incrementProgress();           
+                cacheService.dumpToFile();
+                
+                return migrationService.createMigratedItemGroup(extractedData, cleansedData);
+
+            } catch (Exception e) {
+                loggingService.logError(
+                    "Processor - Unsupported item type: %s: %s",
+                    extractedData.getArchiveName(),
+                    e.getMessage(),
+                    e
+                );
+                handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
+                return null;
+            }
+        }
+
+        loggingService.logWarning("MigrationRecord with archiveId=%s has unexpected status: %s",
+            migrationRecord.getArchiveId(), status);
+        return null;
     }
+    
 
     // =========================
     // Extraction, Transformation and Validation
     // =========================
-    private ExtractedMetadata extractData(CSVArchiveListData archiveItem) {
-        ServiceResult<?> extractionResult = extractionService.process(archiveItem);
-
+    private ExtractedMetadata extractData(MigrationRecord migrationRecord) {
+        ServiceResult<?> extractionResult = extractionService.process(migrationRecord);
+        
         // Handle test items
         if (extractionResult.isTest()) {
             TestItem testItem = extractionResult.getTestItem();
@@ -202,7 +196,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     ? " — keywords: " + keywords
                     : "");
 
-            migrationRecordService.updateToFailed(archiveItem.getArchiveId(), "Test", errorMsg);
+            migrationRecordService.updateToFailed(migrationRecord.getArchiveId(), "Test", errorMsg);
             handleTest(testItem);
             return null;
         }
@@ -210,8 +204,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         // Handle extraction errors
         if (!extractionResult.isSuccess()) {
             migrationRecordService.updateToFailed(
-                archiveItem.getArchiveId(), extractionResult.getCategory(), extractionResult.getErrorMessage());
-            handleError(archiveItem, extractionResult.getErrorMessage(), extractionResult.getCategory());
+                migrationRecord.getArchiveId(), extractionResult.getCategory(), extractionResult.getErrorMessage());
+            handleError(migrationRecord, extractionResult.getErrorMessage(), extractionResult.getCategory());
             return null;
         }
 
@@ -231,10 +225,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return result.getData();
     }
 
-    private boolean isValidated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
+    private boolean isValidated(ProcessedRecording cleansedData, MigrationRecord archiveItem) {
         ServiceResult<ProcessedRecording> result = validationService.validateProcessedRecording(
-            cleansedData,
-            archiveItem
+            cleansedData
         );
         if (checkForError(result, archiveItem)) {
             return false;
@@ -244,13 +237,13 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return true;
     }
 
-    private boolean isExemptionValidated(ProcessedRecording cleansedData, CSVExemptionListData exemptionItem) {
-        ServiceResult<ProcessedRecording> result = validationService.validateExemptionRecording(
+    private boolean isResolvedValidated(ProcessedRecording cleansedData, MigrationRecord migrationRecord) {
+        ServiceResult<ProcessedRecording> result = validationService.validateResolvedRecording(
             cleansedData,
-            exemptionItem.getArchiveName()
+            migrationRecord.getArchiveName()
         );
 
-        if (checkForError(result, exemptionItem)) {
+        if (checkForError(result, migrationRecord)) {
             return false;
         }
     
@@ -259,7 +252,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
   
-    private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
+    private boolean isMigrated(ProcessedRecording cleansedData, MigrationRecord archiveItem) {
         Optional<MigrationRecord> maybeExisting = migrationRecordService.findByArchiveId(archiveItem.getArchiveId());
 
         if (maybeExisting.isPresent() && maybeExisting.get().getStatus() == VfMigrationStatus.SUCCESS) {
@@ -297,28 +290,37 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return null;
     }
 
-    private ExtractedMetadata convertToExtractedMetadata(CSVExemptionListData exemptionItem) {
-        if (exemptionItem == null) {
-            loggingService.logWarning("Received NULL exemption item for conversion!");
+    private ExtractedMetadata convertToExtractedMetadata(MigrationRecord migrationRecord) {
+        if (migrationRecord == null) {
+            loggingService.logWarning("Migration Record is null. Skipping extraction.");
             return null;
         }
 
-        loggingService.logInfo("Converting Exemption Item to ExtractedMetadata: " + exemptionItem);
+        loggingService.logInfo("Converting MigrationRecord to ExtractedMetadata: " + migrationRecord);
+
+        String fileExtension = null;
+        String fileName = migrationRecord.getFileName();
+        if (fileName != null && fileName.contains(".")) {
+            fileExtension = fileName.substring(fileName.lastIndexOf('.') + 1);
+        }
+
         return new ExtractedMetadata(
-            exemptionItem.getCourtReference(),
-            exemptionItem.getUrn(),
-            exemptionItem.getExhibitReference(),
-            exemptionItem.getDefendantName(),
-            exemptionItem.getWitnessName(),
-            exemptionItem.getRecordingVersion(),
-            String.valueOf(exemptionItem.getRecordingVersionNumber()),
-            exemptionItem.getFileExtension(),
-            exemptionItem.getCreateTimeAsLocalDateTime(),
-            exemptionItem.getDuration(),
-            exemptionItem.getFileName(),
-            exemptionItem.getFileSize(),
-            exemptionItem.getArchiveId(),
-            exemptionItem.getArchiveName()
+            migrationRecord.getCourtReference(),
+            migrationRecord.getUrn(),
+            migrationRecord.getExhibitReference(),
+            migrationRecord.getDefendantName(),
+            migrationRecord.getWitnessName(),
+            migrationRecord.getRecordingVersion(),
+            migrationRecord.getRecordingVersionNumber(),
+            fileExtension,
+            migrationRecord.getCreateTime() != null
+                ? migrationRecord.getCreateTime().toLocalDateTime()
+                : null,
+            migrationRecord.getDuration() != null ? migrationRecord.getDuration() : 0,
+            fileName,
+            migrationRecord.getFileSizeMb(),
+            migrationRecord.getArchiveId(),
+            migrationRecord.getArchiveName()
         );
     }
 

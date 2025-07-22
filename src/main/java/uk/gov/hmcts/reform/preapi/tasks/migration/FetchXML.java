@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 public class FetchXML extends BaseTask {
 
     private final MigrationType migrationType;
+    private final String sourceType;
     private final Job fetchXmlJob;
 
     public FetchXML(UserService userService,
@@ -24,14 +25,16 @@ public class FetchXML extends BaseTask {
                     @Value("${migration.debug}") boolean debug,
                     @Value("${migration.dry-run:false}") boolean dryRun,
                     @Value("${migration.type}") String migrationType,
+                    @Value("${migration.source-type:xml}") String sourceType,
                     @Qualifier("fetchXmlJob") Job fetchXmlJob) {
         super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug, dryRun);
         this.migrationType = MigrationType.fromString(migrationType);
+        this.sourceType = sourceType;
         this.fetchXmlJob = fetchXmlJob;
     }
 
     @Override
     public void run() throws RuntimeException {
-        startJob(fetchXmlJob, "Fetch XML", migrationType);
+        startJob(fetchXmlJob, "Fetch XML", migrationType, "sourceType", sourceType);
     }
 }

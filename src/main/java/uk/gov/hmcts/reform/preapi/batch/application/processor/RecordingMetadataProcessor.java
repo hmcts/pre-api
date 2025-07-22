@@ -6,14 +6,14 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordServ
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 /**
- * Processes recording metadata from CSVArchiveListData and caches it.
+ * Processes recording metadata from vf_migration_records with status PENDING.
  */
 @Component
 public class RecordingMetadataProcessor {
@@ -41,13 +41,11 @@ public class RecordingMetadataProcessor {
      * @param archiveItem List of CSVArchiveListData to process.
      */
    
-    public void processRecording(CSVArchiveListData archiveItem) {
+    public void processRecording(MigrationRecord archiveItem) {
         try {
             if (migrationRecordService.findByArchiveId(archiveItem.getArchiveId()).isPresent()) {
                 return;
             }
-
-            // migrationRecordService.insertPending(archiveItem);
 
             ServiceResult<?> extracted = extractionService.process(archiveItem);
             if (extracted.getErrorMessage() != null || extracted.isTest()) {

@@ -79,6 +79,7 @@ public class FetchXMLTest {
                                     false,
                                     false,
                                     MigrationType.FULL.name(),
+                                    "xml",
                                     fetchXmlJob);
         fetchXML.run();
 
@@ -110,6 +111,7 @@ public class FetchXMLTest {
                                     false,
                                     false,
                                     MigrationType.DELTA.name(),
+                                    "xml",
                                     fetchXmlJob);
         fetchXML.run();
 
@@ -144,6 +146,7 @@ public class FetchXMLTest {
                                     false,
                                     false,
                                     MigrationType.FULL.name(),
+                                    "xml",
                                     fetchXmlJob);
         fetchXML.run();
 

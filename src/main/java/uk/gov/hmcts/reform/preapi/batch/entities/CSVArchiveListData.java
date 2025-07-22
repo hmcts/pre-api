@@ -96,11 +96,15 @@ public class CSVArchiveListData implements IArchiveData  {
 
    
     public LocalDateTime getParsedCreateTime() {
-        if (createTime == null || createTime.isBlank()) return null;
+        if (createTime == null || createTime.isBlank()) {
+            return null;
+        }
 
         try {
             long timestamp = Long.parseLong(createTime.trim());
-            if (timestamp == 0L || timestamp == 3600000L) return null;
+            if (timestamp == 0L || timestamp == 3600000L) {
+                return null;
+            }
 
             return LocalDateTime.ofInstant(
                 java.time.Instant.ofEpochMilli(timestamp),

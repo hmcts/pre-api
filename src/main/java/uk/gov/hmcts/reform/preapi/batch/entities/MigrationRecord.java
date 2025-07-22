@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.util.ArchiveNameSanitizer;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.sql.Timestamp;
@@ -19,7 +20,32 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "vf_migration_records")
-public class MigrationRecord extends BaseEntity {
+public class MigrationRecord extends BaseEntity implements IArchiveData {
+
+    @Override
+    public String getFileName() {
+        return this.fileName;
+    }
+
+    @Override
+    public java.time.LocalDateTime getCreateTimeAsLocalDateTime() {
+        return this.createTime != null ? this.createTime.toLocalDateTime() : null;
+    }
+
+    @Override
+    public String getArchiveId() {
+        return this.archiveId;
+    }
+
+    @Override
+    public String getArchiveName() {
+        return this.archiveName;
+    }
+
+    @jakarta.persistence.Transient
+    public String getSanitizedArchiveName() {
+        return ArchiveNameSanitizer.sanitize(this.archiveName);
+    }
 
     @Column(name = "archive_id", nullable = false)
     private String archiveId;
@@ -54,7 +80,7 @@ public class MigrationRecord extends BaseEntity {
     private String recordingVersionNumber;
  
     @Column(name = "mp4_file_name", length = 10)
-    private String mp4FileName;
+    private String fileName;
 
     @Column(name = "file_size_mb")
     private String fileSizeMb;

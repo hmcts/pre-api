@@ -3,8 +3,8 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
@@ -15,20 +15,21 @@ import java.util.Optional;
 @Service
 public class DataValidationService {
     private final MigrationRecordService migrationRecordService;
+    private final LoggingService loggingService;
 
     @Autowired
-    public DataValidationService(MigrationRecordService migrationRecordService) {
+    public DataValidationService(MigrationRecordService migrationRecordService, LoggingService loggingService) {
         this.migrationRecordService = migrationRecordService;
+        this.loggingService = loggingService;
     }
 
     /**
      * Validates the cleansed data against a series of checks.
      * @param cleansedData The cleansed data to validate.
-     * @param archiveItem The original archive item for reference.
      * @return A ServiceResult containing either the validated data or an error message.
      */
     public ServiceResult<ProcessedRecording> validateProcessedRecording(
-            ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
+            ProcessedRecording cleansedData) {
 
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
@@ -78,9 +79,10 @@ public class DataValidationService {
     }
 
 
-    public ServiceResult<ProcessedRecording> validateExemptionRecording(
+    public ServiceResult<ProcessedRecording> validateResolvedRecording(
         ProcessedRecording cleansedData, String archiveName) {
 
+        loggingService.logDebug("Processed Recording", cleansedData);
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT, 
                 Constants.Reports.FILE_MISSING_DATA);

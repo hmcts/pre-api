@@ -5,8 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
@@ -37,7 +37,7 @@ public class DataExtractionServiceTest {
 
     @Test
     void processTestValidationFailure() {
-        CSVArchiveListData data = new CSVArchiveListData();
+        MigrationRecord data = new MigrationRecord();
         when(metadataValidator.validateTest(data)).thenReturn(ServiceResultUtil.failure("", ""));
 
         ServiceResult<?> result = dataExtractionService.process(data);
@@ -48,11 +48,11 @@ public class DataExtractionServiceTest {
     // @Test
     // @SuppressWarnings("unchecked")
     // void processTestValidationIsNotMp4() {
-    //     CSVArchiveListData data = new CSVArchiveListData();
+    //     MigrationRecord data = new MigrationRecord();
     //     data.setSanitizedArchiveName("sanitizedArchiveName.exe");
     //     var testResult = mock(ServiceResult.class);
     //     when(testResult.isSuccess()).thenReturn(true);
-    //     when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+    //     when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
     //     when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("");
 
     //     ServiceResult<?> result = dataExtractionService.process(data);
@@ -65,11 +65,11 @@ public class DataExtractionServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void processTestValidationFailsPatternMatch() {
-        CSVArchiveListData data = new CSVArchiveListData();
-        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("sanitizedArchiveName.mp4");
         var testResult = mock(ServiceResult.class);
         when(testResult.isSuccess()).thenReturn(true);
-        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
         when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName())).thenReturn(Optional.empty());
 
@@ -83,12 +83,12 @@ public class DataExtractionServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void processTestValidationMatchesTestPattern() {
-        CSVArchiveListData data = new CSVArchiveListData();
-        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("sanitizedArchiveName.mp4");
         data.setDuration(10);
         var testResult = mock(ServiceResult.class);
         when(testResult.isSuccess()).thenReturn(true);
-        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
         when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName()))
             .thenReturn(Optional.of(Map.entry("UUID Pattern", mock(Matcher.class))));
@@ -109,13 +109,13 @@ public class DataExtractionServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void processTestValidationFailExtensionCheck() {
-        CSVArchiveListData data = new CSVArchiveListData();
-        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("sanitizedArchiveName.mp4");
         data.setDuration(10);
 
         var testResult = mock(ServiceResult.class);
         when(testResult.isSuccess()).thenReturn(true);
-        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
 
         var extensionResult = mock(ServiceResult.class);
@@ -141,12 +141,12 @@ public class DataExtractionServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void processTestValidationMetadataFailure() {
-        CSVArchiveListData data = new CSVArchiveListData();
-        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("sanitizedArchiveName.mp4");
         data.setDuration(10);
         var testResult = mock(ServiceResult.class);
         when(testResult.isSuccess()).thenReturn(true);
-        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
 
         var extensionResult = mock(ServiceResult.class);
@@ -173,12 +173,12 @@ public class DataExtractionServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void processTestValidationSuccess() {
-        CSVArchiveListData data = new CSVArchiveListData();
-        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("sanitizedArchiveName.mp4");
         data.setDuration(10);
         var testResult = mock(ServiceResult.class);
         when(testResult.isSuccess()).thenReturn(true);
-        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
 
         var extensionResult = mock(ServiceResult.class);

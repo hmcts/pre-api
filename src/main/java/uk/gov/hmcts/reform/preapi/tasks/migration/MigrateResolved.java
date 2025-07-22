@@ -10,25 +10,26 @@ import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
-@Component("migrateExclusions")
-public class MigrateExclusions extends BaseTask {
+@Component("migrateResolved")
+public class MigrateResolved extends BaseTask {
 
-    private final Job processExclusionsJob;
+    private final Job resolvedMigrationRecordJob;
 
-    public MigrateExclusions(UserService userService,
+    public MigrateResolved(UserService userService,
                              UserAuthenticationService userAuthenticationService,
                              @Value("${cron-user-email}") String cronUserEmail,
                              JobLauncher jobLauncher,
                              LoggingService loggingService,
                              @Value("${migration.debug}") boolean debug,
                              @Value("${migration.dry-run:false}") boolean dryRun,
-                             @Qualifier("processExclusionsJob") Job processExclusionsJob) {
+                             @Qualifier("resolvedMigrationRecordJob") Job resolvedMigrationRecordJob 
+    ) {
         super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug, dryRun);
-        this.processExclusionsJob = processExclusionsJob;
+        this.resolvedMigrationRecordJob = resolvedMigrationRecordJob;
     }
 
     @Override
     public void run() throws RuntimeException {
-        startJob(processExclusionsJob, "Process Exclusions", MigrationType.FULL);
+        startJob(resolvedMigrationRecordJob, "Process Resolved Migration Records", MigrationType.FULL);
     }
 }

@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class TestItem {
-    private CSVArchiveListData archiveItem;
+    private MigrationRecord archiveItem;
     private String reason;
     private boolean durationCheck;
     private int durationInSeconds;

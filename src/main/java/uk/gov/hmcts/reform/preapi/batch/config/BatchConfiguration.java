@@ -1,16 +1,12 @@
 package uk.gov.hmcts.reform.preapi.batch.config;
 
-import lombok.Cleanup;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.ExecutionContext;
-import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -23,20 +19,16 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.DeltaProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.RecordingMetadataProcessor;
-import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
-import uk.gov.hmcts.reform.preapi.batch.config.steps.CommonStepUtils;
-import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
 import java.util.Objects;
-import java.util.Optional;
 
 @Configuration
 @EnableBatchProcessing
@@ -59,13 +51,12 @@ public class BatchConfiguration implements StepExecutionListener {
     public final Processor itemProcessor;
     public final MigrationWriter itemWriter;
     public final MigrationTrackerService migrationTrackerService;
+    public final MigrationRecordService migrationRecordService;
     public final BatchRobotUserTask robotUserTask;
     public final ArchiveMetadataXmlExtractor xmlProcessingService;
     public final DeltaProcessor deltaProcessor;
     public final CaseService caseService;
     public LoggingService loggingService;
-    private final CoreStepsConfig coreSteps;
-    private final CommonStepUtils stepUtils;
 
     @Autowired
     public BatchConfiguration(
@@ -78,12 +69,11 @@ public class BatchConfiguration implements StepExecutionListener {
         InMemoryCacheService cacheService,
         MigrationWriter itemWriter,
         MigrationTrackerService migrationTrackerService,
+        MigrationRecordService migrationRecordService,
         BatchRobotUserTask robotUserTask,
         ArchiveMetadataXmlExtractor xmlProcessingService,
         LoggingService loggingService,
-        DeltaProcessor deltaProcessor,
-        CoreStepsConfig coreSteps,
-        CommonStepUtils stepUtils
+        DeltaProcessor deltaProcessor
     ) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
@@ -94,12 +84,11 @@ public class BatchConfiguration implements StepExecutionListener {
         this.itemProcessor = itemProcessor;
         this.itemWriter = itemWriter;
         this.migrationTrackerService = migrationTrackerService;
+        this.migrationRecordService = migrationRecordService;
         this.robotUserTask = robotUserTask;
         this.xmlProcessingService = xmlProcessingService;
         this.loggingService = loggingService;
         this.deltaProcessor = deltaProcessor;
-        this.coreSteps = coreSteps;
-        this.stepUtils = stepUtils;
     }
 
 
@@ -119,26 +108,6 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     @Bean
-    @JobScope
-    public Step createExemptionListStep() {
-        return stepUtils.buildChunkStep(
-            "excemptionListDataStep",
-            new ClassPathResource(EXCEMPTIONS_LIST_CSV),
-            new String[] {
-                "archive_name","create_time","duration","court_reference","urn",
-                "exhibit_reference","defendant_name","witness_name","recording_version",
-                "recording_version_number","file_extension","file_name","file_size","reason","added_by"
-            },
-            CSVExemptionListData.class,
-            coreSteps.getDryRunFlag() ? coreSteps.noOpWriter() : itemWriter,
-            jobRepository,
-            transactionManager
-        );
-    }
-
-
-
-    @Bean
     public Step createPreProcessStep() {
         return new StepBuilder("preProcessStep", jobRepository)
             .tasklet(
@@ -154,26 +123,17 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("preProcessMetadataStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
-                    String migrationType = Optional.ofNullable((String) chunkContext.getStepContext()
-                                    .getJobParameters().get("migrationType")).orElse("FULL");
+                    var pendingRecords = migrationRecordService.getPendingMigrationRecords();
 
-                    String filePath = "FULL".equalsIgnoreCase(migrationType)
-                        ? ARCHIVE_LIST_INITAL
-                        : DELTA_RECORDS_CSV;
-
-                    Resource resource = new ClassPathResource(filePath);
-                    String[] fieldNames = {"archive_id","archive_name", "create_time", "duration", 
-                        "file_name", "file_size"};
-
-                    @Cleanup FlatFileItemReader<CSVArchiveListData> reader = CSVReader.createReader(
-                        resource, fieldNames, CSVArchiveListData.class
-                    );
-                    reader.open(new ExecutionContext());
-
-                    CSVArchiveListData item;
-                    while ((item = reader.read()) != null) {
-                        recordingPreProcessor.processRecording(item);
+                    if (pendingRecords.isEmpty()) {
+                        loggingService.logInfo("No pending migration records to pre-process.");
+                        return RepeatStatus.FINISHED;
                     }
+
+                    for (MigrationRecord record : pendingRecords) {
+                        recordingPreProcessor.processRecording(record);
+                    }
+
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
             .build();

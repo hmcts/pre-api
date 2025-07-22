@@ -57,10 +57,11 @@ public class ArchiveMetadataXmlExtractor {
             loggingService.logInfo("Starting extraction for container: %s", containerName);
 
             List<String> blobNames = azureVodafoneStorageService.fetchBlobNamesWithPrefix(containerName, folderPrefix);
-            loggingService.logDebug("Found %d blobs in container: %s", blobNames.size(), containerName);
+            loggingService.logDebug(
+                "Found %d blobs in container: %s with prefix: %s", blobNames.size(), containerName, folderPrefix);
 
             if (blobNames.isEmpty()) {
-                loggingService.logWarning("No XML blobs found in container: " + containerName);
+                loggingService.logWarning("No XML blobs found in container: %s" + containerName);
                 return;
             }
 
@@ -68,7 +69,7 @@ public class ArchiveMetadataXmlExtractor {
             loggingService.logDebug("Extracted metadata for %d recordings", allArchiveMetadata.size());
 
             if (!allArchiveMetadata.isEmpty()) {
-                loggingService.logDebug("Generating archive metadata report in %s", outputDir);
+                loggingService.logDebug("Generating archive metadata report in directory: %s", outputDir);
                 
                 allArchiveMetadata.sort((a, b) -> {
                     String nameA = a.get(1); 
@@ -77,6 +78,7 @@ public class ArchiveMetadataXmlExtractor {
                     return nameB.compareToIgnoreCase(nameA); 
                 });
 
+                int insertCount = 0;
                 for (List<String> row : allArchiveMetadata) {
                     try {
                         migrationRecordService.insertPendingFromXml(
@@ -87,6 +89,7 @@ public class ArchiveMetadataXmlExtractor {
                             row.get(4), // fileName
                             row.get(5)  // fileSizeMb
                         );
+                        insertCount++;
                     } catch (Exception e) {
                         loggingService.logError("Failed to insert row into migration records: %s", e.getMessage());
                     }
@@ -94,8 +97,10 @@ public class ArchiveMetadataXmlExtractor {
                 
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
                 loggingService.logInfo(
-                    "Successfully generated " + filename + " with " + allArchiveMetadata.size() + " entries"
-                );
+                    "Successfully generated %s.csv with %d entries",filename, allArchiveMetadata.size());
+                loggingService.logInfo(
+                    "ArchiveMetadataXmlExtractor - Inserted %d records into migration table", insertCount);
+
             } else {
                 loggingService.logWarning("No archive metadata found to generate report");
             }
