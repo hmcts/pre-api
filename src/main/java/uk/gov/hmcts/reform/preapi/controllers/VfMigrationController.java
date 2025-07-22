@@ -30,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -39,10 +40,13 @@ import java.util.UUID;
 @ConditionalOnExpression("${feature-flags.enable-migration-admin-endpoints:false}")
 public class VfMigrationController extends PreApiController {
     private final MigrationRecordService migrationRecordService;
+    private final MigrateResolved migrateResolved;
 
     @Autowired
-    public VfMigrationController(final MigrationRecordService migrationRecordService) {
+    public VfMigrationController(final MigrationRecordService migrationRecordService,
+                                 final MigrateResolved migrateResolved) {
         this.migrationRecordService = migrationRecordService;
+        this.migrateResolved = migrateResolved;
     }
 
     @GetMapping
@@ -130,8 +134,7 @@ public class VfMigrationController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
     public ResponseEntity<Void> submitMigrationRecords() {
         migrationRecordService.markReadyRecordsAsSubmitted();
-
-        // todo trigger brute force task here
+        migrateResolved.asyncMigrateExclusions();
 
         return ResponseEntity.noContent().build();
     }
