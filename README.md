@@ -262,7 +262,7 @@ TASK_NAME=CleanupLiveEvents ./gradlew bootRun
 This can be run in the same way as cron jobs.For example:
 
 ```bash
-MIGRATION_DEBUG=true MIGRATION_TYPE=SECOND TASK_NAME=FetchXML ./gradlew bootRun
+MIGRATION_DEBUG=true MIGRATION_TYPE=SECOND TASK_NAME=FetchData ./gradlew bootRun
 ```
 
 ## License

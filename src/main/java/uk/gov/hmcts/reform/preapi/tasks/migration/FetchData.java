@@ -10,14 +10,14 @@ import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
-@Component("fetchXML")
-public class FetchXML extends BaseTask {
+@Component("fetchData")
+public class FetchData extends BaseTask {
 
     private final MigrationType migrationType;
     private final String sourceType;
-    private final Job fetchXmlJob;
+    private final Job fetchDataJob;
 
-    public FetchXML(UserService userService,
+    public FetchData(UserService userService,
                     UserAuthenticationService userAuthenticationService,
                     @Value("${cron-user-email}") String cronUserEmail,
                     JobLauncher jobLauncher,
@@ -26,15 +26,15 @@ public class FetchXML extends BaseTask {
                     @Value("${migration.dry-run:false}") boolean dryRun,
                     @Value("${migration.type}") String migrationType,
                     @Value("${migration.source-type:xml}") String sourceType,
-                    @Qualifier("fetchXmlJob") Job fetchXmlJob) {
+                    @Qualifier("fetchDataJob") Job fetchDataJob) {
         super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug, dryRun);
         this.migrationType = MigrationType.fromString(migrationType);
         this.sourceType = sourceType;
-        this.fetchXmlJob = fetchXmlJob;
+        this.fetchDataJob = fetchDataJob;
     }
 
     @Override
     public void run() throws RuntimeException {
-        startJob(fetchXmlJob, "Fetch XML", migrationType, "sourceType", sourceType);
+        startJob(fetchDataJob, "Fetch Data", migrationType, "sourceType", sourceType);
     }
 }

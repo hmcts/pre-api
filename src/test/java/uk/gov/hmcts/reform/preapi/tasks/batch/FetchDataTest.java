@@ -19,7 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
-import uk.gov.hmcts.reform.preapi.tasks.migration.FetchXML;
+import uk.gov.hmcts.reform.preapi.tasks.migration.FetchData;
 
 import java.util.Optional;
 import java.util.Set;
@@ -32,13 +32,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class FetchXMLTest {
+public class FetchDataTest {
 
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
     private static JobLauncher jobLauncher;
     private static LoggingService loggingService;
-    private static Job fetchXmlJob;
+    private static Job fetchDataJob;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
 
@@ -60,18 +60,18 @@ public class FetchXMLTest {
 
         jobLauncher = mock(JobLauncher.class);
         loggingService = mock(LoggingService.class);
-        fetchXmlJob = mock(Job.class);
+        fetchDataJob = mock(Job.class);
     }
 
 
-    @DisplayName("Test Fetch XML")
+    @DisplayName("Test Fetch Data")
     @Test
     public void testRun() throws JobInstanceAlreadyCompleteException,
         JobExecutionAlreadyRunningException,
         JobParametersInvalidException,
         JobRestartException {
 
-        var fetchXML = new FetchXML(userService,
+        var fetchData = new FetchData(userService,
                                     userAuthenticationService,
                                     CRON_USER_EMAIL,
                                     jobLauncher,
@@ -80,12 +80,12 @@ public class FetchXMLTest {
                                     false,
                                     MigrationType.FULL.name(),
                                     "xml",
-                                    fetchXmlJob);
-        fetchXML.run();
+                                    fetchDataJob);
+        fetchData.run();
 
         ArgumentCaptor<JobParameters> jobParameters = ArgumentCaptor.forClass(JobParameters.class);
 
-        verify(jobLauncher, times(1)).run(eq(fetchXmlJob), jobParameters.capture());
+        verify(jobLauncher, times(1)).run(eq(fetchDataJob), jobParameters.capture());
 
         Assertions.assertEquals(String.valueOf(false),
                                 jobParameters.getValue().getString("debug"));
@@ -93,7 +93,7 @@ public class FetchXMLTest {
         Assertions.assertEquals(MigrationType.FULL.name(),
                                 jobParameters.getValue().getString("migrationType"));
 
-        verify(loggingService, times(1)).logInfo("Successfully completed Fetch XML batch job");
+        verify(loggingService, times(1)).logInfo("Successfully completed Fetch Data batch job");
     }
 
     @DisplayName("Test Fetch XML Second Type")
@@ -103,7 +103,7 @@ public class FetchXMLTest {
         JobParametersInvalidException,
         JobRestartException {
 
-        var fetchXML = new FetchXML(userService,
+        var fetchData = new FetchData(userService,
                                     userAuthenticationService,
                                     CRON_USER_EMAIL,
                                     jobLauncher,
@@ -112,12 +112,12 @@ public class FetchXMLTest {
                                     false,
                                     MigrationType.DELTA.name(),
                                     "xml",
-                                    fetchXmlJob);
-        fetchXML.run();
+                                    fetchDataJob);
+        fetchData.run();
 
         ArgumentCaptor<JobParameters> jobParameters = ArgumentCaptor.forClass(JobParameters.class);
 
-        verify(jobLauncher, times(1)).run(eq(fetchXmlJob), jobParameters.capture());
+        verify(jobLauncher, times(1)).run(eq(fetchDataJob), jobParameters.capture());
 
         Assertions.assertEquals(String.valueOf(false),
                                 jobParameters.getValue().getString("debug"));
@@ -125,20 +125,20 @@ public class FetchXMLTest {
         Assertions.assertEquals(MigrationType.DELTA.name(),
                                 jobParameters.getValue().getString("migrationType"));
 
-        verify(loggingService, times(1)).logInfo("Successfully completed Fetch XML batch job");
+        verify(loggingService, times(1)).logInfo("Successfully completed Fetch Data batch job");
     }
 
-    @DisplayName("Test FetchXML Exception")
+    @DisplayName("Test FetchData Exception")
     @Test
     public void testRunException() throws JobInstanceAlreadyCompleteException,
         JobExecutionAlreadyRunningException,
         JobParametersInvalidException,
         JobRestartException {
 
-        when(jobLauncher.run(eq(fetchXmlJob), any()))
+        when(jobLauncher.run(eq(fetchDataJob), any()))
             .thenThrow(new JobExecutionAlreadyRunningException("Test"));
 
-        var fetchXML = new FetchXML(userService,
+        var fetchData = new FetchData(userService,
                                     userAuthenticationService,
                                     CRON_USER_EMAIL,
                                     jobLauncher,
@@ -147,11 +147,11 @@ public class FetchXMLTest {
                                     false,
                                     MigrationType.FULL.name(),
                                     "xml",
-                                    fetchXmlJob);
-        fetchXML.run();
+                                    fetchDataJob);
+        fetchData.run();
 
         verify(loggingService, times(1))
-            .logError(eq("Error starting Fetch XML batch job"),
+            .logError(eq("Error starting Fetch Data batch job"),
                       any(JobExecutionAlreadyRunningException.class));
     }
 }

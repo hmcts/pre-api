@@ -81,7 +81,7 @@ public class ArchiveMetadataXmlExtractor {
                 int insertCount = 0;
                 for (List<String> row : allArchiveMetadata) {
                     try {
-                        migrationRecordService.insertPendingFromXml(
+                        boolean inserted = migrationRecordService.insertPendingFromXml(
                             row.get(0), // archiveId
                             row.get(1), // displayName
                             row.get(2), // createTime
@@ -89,7 +89,9 @@ public class ArchiveMetadataXmlExtractor {
                             row.get(4), // fileName
                             row.get(5)  // fileSizeMb
                         );
-                        insertCount++;
+                        if (inserted) {
+                            insertCount++;
+                        }
                     } catch (Exception e) {
                         loggingService.logError("Failed to insert row into migration records: %s", e.getMessage());
                     }

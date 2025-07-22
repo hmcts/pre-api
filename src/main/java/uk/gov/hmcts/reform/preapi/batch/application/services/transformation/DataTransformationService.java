@@ -109,7 +109,8 @@ public class DataTransformationService {
         
         boolean isPreferred = true;
         if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4")) {
-            migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveName());
+            boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveName());
+            isPreferred = !updated;
         }
 
         Court court = fetchCourtFromDB(extracted, sitesDataMap);

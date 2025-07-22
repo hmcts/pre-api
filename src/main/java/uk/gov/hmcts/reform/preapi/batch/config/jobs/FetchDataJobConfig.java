@@ -21,7 +21,7 @@ import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 
 @Configuration
-public class FetchXmlJobConfig {
+public class FetchDataJobConfig {
 
     // public static final String CONTAINER_NAME = "pre-vodafone-spike";
     // public static final String CONTAINER_NAME = "piotr";
@@ -38,7 +38,7 @@ public class FetchXmlJobConfig {
     private final LoggingService loggingService;
 
 
-    public FetchXmlJobConfig(
+    public FetchDataJobConfig(
         JobRepository jobRepository,
         PlatformTransactionManager transactionManager,
         CoreStepsConfig coreSteps,
@@ -55,8 +55,8 @@ public class FetchXmlJobConfig {
     }
 
     @Bean
-    public Job fetchXmlJob() {
-        return new JobBuilder("fetchXmlJob", jobRepository)
+    public Job fetchDataJob() {
+        return new JobBuilder("fetchDataJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(coreSteps.startLogging())
             .next(createXmlFetchStep())
@@ -77,7 +77,7 @@ public class FetchXmlJobConfig {
                 String sourceType = (String) jobParams.getOrDefault("sourceType", "xml");
                 if ("csv".equalsIgnoreCase(sourceType)) {
                     loggingService.logInfo(
-                        "FetchXmlJob - Skipping XML fetch. Using pre-generated CSV file: %s.csv%n", outputFileName);
+                        "FetchDataJob - Skipping XML fetch. Using pre-generated CSV file: %s.csv%n", outputFileName);
                     var resource = new FileSystemResource(FULL_PATH + "/" + outputFileName + ".csv");
 
                     FlatFileItemReader<CSVArchiveListData> reader = CSVReader.createReader(
@@ -96,9 +96,9 @@ public class FetchXmlJobConfig {
                     }
 
                     reader.close();
-                    loggingService.logInfo("FetchXmlJob - Inserted %d pending records from CSV.", count);
+                    loggingService.logInfo("FetchDataJob - Inserted %d pending records from CSV.", count);
                 } else {
-                    loggingService.logInfo("FetchXmlJob - Fetching XMLs from Azure container '%s' with prefix '%s'%n", 
+                    loggingService.logInfo("FetchDataJob - Fetching XMLs from Azure container '%s' with prefix '%s'%n", 
                         CONTAINER_NAME, XML_PREFIX);
                     xmlProcessingService.extractAndReportArchiveMetadata(
                         CONTAINER_NAME, XML_PREFIX, FULL_PATH, outputFileName);

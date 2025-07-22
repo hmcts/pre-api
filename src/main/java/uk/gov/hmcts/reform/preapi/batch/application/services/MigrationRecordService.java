@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
@@ -21,10 +22,15 @@ import java.util.UUID;
 public class MigrationRecordService {
 
     private final MigrationRecordRepository migrationRecordRepository;
+    private final LoggingService loggingService;
 
     @Autowired
-    public MigrationRecordService(final MigrationRecordRepository migrationRecordRepository) {
+    public MigrationRecordService(
+        final MigrationRecordRepository migrationRecordRepository,
+        final LoggingService loggingService
+    ) {
         this.migrationRecordRepository = migrationRecordRepository;
+        this.loggingService = loggingService;
     }
 
     // =========================================
@@ -124,7 +130,7 @@ public class MigrationRecordService {
 
 
     @Transactional
-    public void insertPendingFromXml(
+    public boolean insertPendingFromXml(
         String archiveId,
         String archiveName,
         String createTimeEpoch,
@@ -132,6 +138,11 @@ public class MigrationRecordService {
         String mp4FileName,
         String fileSizeMb
     ) {
+        if (migrationRecordRepository.findByArchiveId(archiveId).isPresent()) {
+            loggingService.logInfo("Already processed: %s", archiveName);
+            return false;
+        }
+
         Timestamp createTime = null;
         long epoch = Long.parseLong(createTimeEpoch);
         if (epoch > 0) {
@@ -165,10 +176,17 @@ public class MigrationRecordService {
             null,
             null
         );
+
+        return true;
     }
     
     @Transactional
-    public void insertPending(CSVArchiveListData archiveItem) {
+    public boolean insertPending(CSVArchiveListData archiveItem) {
+        if (migrationRecordRepository.findByArchiveId(archiveItem.getArchiveId()).isPresent()) {
+            loggingService.logInfo("Already processed: %s", archiveItem.getArchiveName());
+            return false;
+        }
+
         upsert(
             archiveItem.getArchiveId(),
             archiveItem.getArchiveName(),
@@ -191,6 +209,8 @@ public class MigrationRecordService {
             null,
             null
         );
+
+        return true;
     }
 
     // =========================================
@@ -296,7 +316,7 @@ public class MigrationRecordService {
     }
 
     @Transactional
-    public void markNonMp4AsNotPreferred(String currentArchiveName) {
+    public boolean markNonMp4AsNotPreferred(String currentArchiveName) {
     
         String mp4Name = currentArchiveName.replaceAll("\\.[^.]+$", ".mp4");
 
@@ -306,7 +326,9 @@ public class MigrationRecordService {
                     nonPreferred.setIsPreferred(false);
                     migrationRecordRepository.save(nonPreferred);
                 });
+            return true;
         }
+        return false;
     }
 
     public Optional<String> findMostRecentVersionNumberInGroup(String groupKey) {
