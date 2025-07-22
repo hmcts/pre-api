@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class CommandRunnerTest {
     @Test
     @DisplayName("Should return command output when runs successfully")
-    void callSuccess() {
+    void callSuccess() throws Exception {
         var commandLine = CommandLine.parse("echo Mock output");
         var runner = new CommandRunner(commandLine);
         var result = runner.call();
@@ -30,6 +30,6 @@ public class CommandRunnerTest {
             runner::call
         ).getMessage();
 
-        assertThat(message).startsWith("Command failed:");
+        assertThat(message).isEqualTo("Command failed with this output: ");
     }
 }

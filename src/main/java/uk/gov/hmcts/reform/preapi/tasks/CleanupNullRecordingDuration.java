@@ -109,10 +109,8 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
         log.info("Attempting to get duration for recording {} from mp4: {}", dto.getId(), dto.getFilename());
 
         try {
-            final String sasToken = azureFinalStorageService.generateReadSasUrl(
-                dto.getId().toString(),
-                dto.getFilename());
-            final Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+            final Duration duration = ffmpegService.getDurationFromMp4(dto.getId().toString(),
+                                                                       dto.getFilename());
             dto.setDuration(duration);
         } catch (Exception e) {
             log.info("Failed to get duration from MP4 for recording {}: {}", dto.getId(), e.getMessage());

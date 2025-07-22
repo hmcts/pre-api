@@ -19,7 +19,7 @@ public final class CommandRunner implements Callable<String> {
     private final CommandLine commandLine;
 
     @Override
-    public String call() {
+    public String call() throws Exception {
         var stdout = new ByteArrayOutputStream();
         var stderr = new ByteArrayOutputStream();
         var exec = DefaultExecutor.builder().get();
@@ -29,11 +29,8 @@ public final class CommandRunner implements Callable<String> {
         try {
             exec.execute(commandLine);
         } catch (Exception e) {
-            String stdErrOutput = stderr.toString(StandardCharsets.UTF_8);
-            String stdOutOutput = stdout.toString(StandardCharsets.UTF_8);
-            throw new CommandExecutionException("Command failed:"
-                                                    + "\nSTDOUT: " + stdOutOutput
-                                                    + "\nSTDERR: " + stdErrOutput, e);
+            throw new CommandExecutionException("Command failed with this output: "
+                                                    + stderr.toString("UTF-8"), e);
         }
 
         var outputString = stdout.toString(StandardCharsets.UTF_8);

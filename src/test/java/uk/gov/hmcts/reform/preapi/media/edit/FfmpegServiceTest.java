@@ -265,13 +265,16 @@ public class FfmpegServiceTest {
 
     @Test
     @DisplayName("Should return correct duration when valid output is provided")
-    void getDurationFromMp4ViaSasTokenSuccess() {
-        String sasToken = "https://example.com/video.mp4?token";
+    void getDurationFromMp4Success() {
+        String containerName = "container-name";
+        String fileName = "file-name";
         String mockOutput = "123.456";
 
+        when(azureFinalStorageService.downloadBlob(containerName, fileName, fileName))
+            .thenReturn(true);
         when(commandExecutor.executeAndGetOutput(any(CommandLine.class))).thenReturn(mockOutput);
 
-        Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+        Duration duration = ffmpegService.getDurationFromMp4(containerName, fileName);
 
         assertThat(duration).isNotNull();
         assertThat(duration.toMillis()).isEqualTo(123456);
@@ -279,34 +282,43 @@ public class FfmpegServiceTest {
 
     @Test
     @DisplayName("Should return null when ffprobe output is non-numeric")
-    void getDurationFromMp4ViaSasTokenInvalidOutput() {
-        String sasToken = "https://example.com/video.mp4?token";
+    void getDurationFromMp4InvalidOutput() {
+        String containerName = "container-name";
+        String fileName = "file-name";
+        when(azureFinalStorageService.downloadBlob(containerName, fileName, fileName))
+            .thenReturn(true);
         when(commandExecutor.executeAndGetOutput(any(CommandLine.class))).thenReturn("not_a_number");
 
-        Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+        Duration duration = ffmpegService.getDurationFromMp4(containerName, fileName);
 
         assertThat(duration).isNull();
     }
 
     @Test
     @DisplayName("Should return null when exception is thrown during command execution")
-    void getDurationFromMp4ViaSasTokenThrowsException() {
-        String sasToken = "https://example.com/video.mp4?token";
+    void getDurationFromMp4ThrowsException() {
+        String containerName = "container-name";
+        String fileName = "file-name";
+        when(azureFinalStorageService.downloadBlob(containerName, fileName, fileName))
+            .thenReturn(true);
         when(commandExecutor.executeAndGetOutput(any(CommandLine.class)))
             .thenThrow(new RuntimeException("An error occurred"));
 
-        Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+        Duration duration = ffmpegService.getDurationFromMp4(containerName, fileName);
 
         assertThat(duration).isNull();
     }
 
     @Test
     @DisplayName("Should return null when ffprobe returns empty output")
-    void getDurationFromMp4ViaSasTokenEmptyOutput() {
-        String sasToken = "https://example.com/video.mp4?token";
+    void getDurationFromMp4EmptyOutput() {
+        String containerName = "container-name";
+        String fileName = "file-name";
+        when(azureFinalStorageService.downloadBlob(containerName, fileName, fileName))
+            .thenReturn(true);
         when(commandExecutor.executeAndGetOutput(any(CommandLine.class))).thenReturn("  ");
 
-        Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+        Duration duration = ffmpegService.getDurationFromMp4(containerName, fileName);
 
         assertThat(duration).isNull();
     }
