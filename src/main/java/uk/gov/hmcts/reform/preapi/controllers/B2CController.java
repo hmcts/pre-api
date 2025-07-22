@@ -5,7 +5,11 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -28,7 +32,10 @@ public class B2CController {
 
     @PostMapping("/email-verification")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(operationId = "postEmailVerification", summary = "Trigger an email verification email to be sent out via gov notify")
+    @Operation(
+        operationId = "postEmailVerification",
+        summary = "Trigger an email verification email to be sent out via gov notify"
+    )
     public void postEmailVerification(@Valid @RequestBody VerifyEmailRequestDTO request) {
         var user = userService.findByEmail(request.getEmail()).getUser();
         var emailService = this.emailServiceFactory.getEnabledEmailService(emailServiceName);
