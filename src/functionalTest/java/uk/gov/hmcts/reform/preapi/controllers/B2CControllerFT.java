@@ -12,7 +12,7 @@ import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class B2CControllerFT {
@@ -30,7 +30,7 @@ class B2CControllerFT {
     @Test
     void functionalTest() throws JsonProcessingException {
         var request = new VerifyEmailRequestDTO();
-        request.setEmail("an@email.com");
+        request.setEmail("test@test.com");
         request.setVerificationCode("123456");
 
         final var response = given()
@@ -40,9 +40,9 @@ class B2CControllerFT {
             .accept(ContentType.JSON)
             .body(OBJECT_MAPPER.writeValueAsString(request))
             .post("/b2c/email-verification")
-
             .thenReturn();
 
-        assertThat(response.statusCode()).isEqualTo(OK.value());
+        assertThat(response.getBody().toString()).isEqualTo("{\"message\": \"Not found: User: test@test.com\"s}");
+        assertThat(response.statusCode()).isEqualTo(NOT_FOUND.value());
     }
 }

@@ -69,11 +69,10 @@ public class OpenAPIConfiguration {
     }
 
     @Bean
-    public GroupedOpenApi b2cApi(OperationCustomizer customGlobalHeaders) {
+    public GroupedOpenApi b2cApi() {
         return GroupedOpenApi.builder()
             .group("b2c-api")
             .pathsToMatch("/b2c/**")
-            .addOperationCustomizer(customGlobalHeaders)
             .build();
     }
 }
