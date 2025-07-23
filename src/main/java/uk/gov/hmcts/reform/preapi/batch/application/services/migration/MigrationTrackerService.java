@@ -172,6 +172,10 @@ public class MigrationTrackerService {
 
         loggingService.setTotalMigrated(migratedItems.size());
         loggingService.setTotalFailed(categorizedFailures, testFailures);
+
+        int totalRecords = migratedItems.size() + testFailures.size()
+            + categorizedFailures.values().stream().mapToInt(List::size).sum();
+        loggingService.setTotalRecords(totalRecords);
         loggingService.logSummary();
     }
 
