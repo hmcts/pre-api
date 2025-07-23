@@ -25,6 +25,10 @@ spring:
     import: "optional:configtree:/mnt/secrets/pre-hmctskv/"
   application:
     name: Spring Boot Template
+  cache:
+    cache-names: users
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=10m
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:api}${DB_OPTIONS:}
@@ -40,11 +44,14 @@ spring:
       maxLifetime: 7200000
       connectionTimeout: 30000
     jpa:
+
+      show-sql: true
       hibernate:
         ddl-auto: none
       database-platform: org.hibernate.dialect.PostgreSQLDialect
       properties:
         hibernate:
+          format_sql: true
           default_schema: ${spring.datasource.schema}
           dialect: org.hibernate.dialect.PostgreSQLDialect
           globally_quoted_identifiers: true
@@ -137,10 +144,6 @@ feature-flags:
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
 
-#logging:
-#  level:
-#    org.springframework.orm.jpa: DEBUG
-#    org.springframework.transaction: DEBUG
 #logging:
 #  level:
 #    uk:
