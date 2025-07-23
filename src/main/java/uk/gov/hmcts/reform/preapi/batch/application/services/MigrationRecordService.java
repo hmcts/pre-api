@@ -48,7 +48,7 @@ public class MigrationRecordService {
         }
         return migrationRecordRepository.findById(copy.getParentTempId());
     }
-    
+
     public List<MigrationRecord> getPendingMigrationRecords() {
         return migrationRecordRepository.findByStatus(VfMigrationStatus.PENDING);
     }
@@ -59,7 +59,7 @@ public class MigrationRecordService {
             .map(MigrationRecord::getIsMostRecent)
             .orElse(false);
     }
-    
+
     @Transactional(readOnly = true)
     public Optional<MigrationRecord> getMostRecentCopyWithParentInfo(String recordingGroupKey) {
         List<MigrationRecord> group = migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey);
@@ -69,7 +69,7 @@ public class MigrationRecordService {
             .filter(MigrationRecord::getIsMostRecent)
             .findFirst();
     }
-    
+
     // =========================================
     // ============== UPSERT ===================
     // =========================================
@@ -96,7 +96,7 @@ public class MigrationRecordService {
     ) {
         var existing = migrationRecordRepository.findByArchiveId(archiveId);
 
-        var recording = existing.orElse(new MigrationRecord()); 
+        var recording = existing.orElse(new MigrationRecord());
 
         recording.setArchiveId(archiveId);
         recording.setArchiveName(archiveName);
@@ -146,7 +146,7 @@ public class MigrationRecordService {
         Timestamp createTime = null;
         long epoch = Long.parseLong(createTimeEpoch);
         if (epoch > 0) {
-            if (epoch < 100_000_000_000L) { 
+            if (epoch < 100_000_000_000L) {
                 epoch *= 1000;
             }
             createTime = new Timestamp(epoch);
@@ -154,7 +154,7 @@ public class MigrationRecordService {
 
         Integer parsedDuration = null;
         parsedDuration = duration != null ? Integer.valueOf(duration) : null;
-    
+
 
         upsert(
             archiveId,
@@ -179,7 +179,7 @@ public class MigrationRecordService {
 
         return true;
     }
-    
+
     @Transactional
     public boolean insertPending(CSVArchiveListData archiveItem) {
         if (migrationRecordRepository.findByArchiveId(archiveItem.getArchiveId()).isPresent()) {
@@ -194,15 +194,15 @@ public class MigrationRecordService {
                 .map(Timestamp::valueOf)
                 .orElse(null),
             archiveItem.getDuration(),
-            null, 
-            null,
-            null, 
             null,
             null,
             null,
-            null, 
-            archiveItem.getFileName(), 
-            archiveItem.getFileSize(), 
+            null,
+            null,
+            null,
+            null,
+            archiveItem.getFileName(),
+            archiveItem.getFileSize(),
             VfMigrationStatus.PENDING,
             null,
             null,
@@ -228,7 +228,7 @@ public class MigrationRecordService {
             record.setRecordingVersionNumber(extracted.getRecordingVersionNumber());
             record.setFileName(extracted.getFileName());
             record.setFileSizeMb(extracted.getFileSize());
-            
+
             String groupKey = String.join("|",
                 nullToEmpty(extracted.getUrn()),
                 nullToEmpty(extracted.getExhibitReference()),
@@ -395,5 +395,41 @@ public class MigrationRecordService {
 
         migrationRecordRepository.saveAll(groupRecords);
     }
-    
+
+    @Transactional(readOnly = true)
+    public Page<VfMigrationRecordDTO> findAllBy(final SearchMigrationRecords params, final Pageable pageable) {
+        return migrationRecordRepository.findAllBy(params, pageable)
+            .map(VfMigrationRecordDTO::new);
+    }
+
+    @Transactional
+    public UpsertResult update(final CreateVfMigrationRecordDTO dto) {
+        MigrationRecord entity = migrationRecordRepository.findById(dto.getId())
+            .orElseThrow(() -> new NotFoundException("Migration Record: " + dto.getId()));
+
+        if (!courtRepository.existsById(dto.getCourtId())) {
+            throw new NotFoundException("Court: " + dto.getCourtId());
+        }
+
+        entity.setCourtId(dto.getCourtId());
+        entity.setUrn(dto.getUrn());
+        entity.setExhibitReference(dto.getExhibitReference());
+        entity.setDefendantName(dto.getDefendantName());
+        entity.setWitnessName(dto.getWitnessName());
+        entity.setRecordingVersion(dto.getRecordingVersion().toString());
+        entity.setStatus(dto.getStatus());
+        entity.setResolvedAt(dto.getResolvedAt());
+        migrationRecordRepository.saveAndFlush(entity);
+
+        return UpsertResult.UPDATED;
+    }
+
+    @Transactional
+    public void markReadyRecordsAsSubmitted() {
+        migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY)
+            .forEach(record -> {
+                record.setStatus(VfMigrationStatus.SUBMITTED);
+                migrationRecordRepository.saveAndFlush(record);
+            });
+    }
 }
