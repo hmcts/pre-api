@@ -18,9 +18,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -89,6 +93,7 @@ class TestingSupportController {
     private final ScheduledTaskRunner scheduledTaskRunner;
     private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
+    private final MigrationRecordRepository migrationRecordRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -106,7 +111,8 @@ class TestingSupportController {
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
                              final EditRequestService editRequestService,
-                             final AzureFinalStorageService azureFinalStorageService) {
+                             final AzureFinalStorageService azureFinalStorageService,
+                             MigrationRecordRepository migrationRecordRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -123,6 +129,7 @@ class TestingSupportController {
         this.scheduledTaskRunner = scheduledTaskRunner;
         this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.migrationRecordRepository = migrationRecordRepository;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -497,6 +504,62 @@ class TestingSupportController {
         recordingRepository.save(recording);
 
         return ResponseEntity.ok(new RecordingDTO(recording));
+    }
+
+    @PostMapping("/create-random-formed-migration-record")
+    public ResponseEntity<VfMigrationRecordDTO> createRandomFormedMigrationRecord() {
+        String randomArchiveId = UUID.randomUUID().toString();
+        String randomArchiveName = "archive_" + randomArchiveId.substring(0, 8);
+        MigrationRecord record = new MigrationRecord();
+        record.setId(UUID.randomUUID());
+        record.setArchiveId(randomArchiveId);
+        record.setArchiveName(randomArchiveName);
+        record.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        record.setDuration((int) (Math.random() * 1000));
+        record.setCourtReference(courtRepository.findAll().getFirst().getName());
+        record.setUrn("urn" + (int) (Math.random() * 100000));
+        record.setExhibitReference(RandomStringUtils.randomAlphabetic(10));
+        record.setDefendantName("defendant");
+        record.setWitnessName("witness");
+        record.setRecordingVersion("ORIG");
+        record.setRecordingVersionNumber("1");
+        record.setFileName("file_" + randomArchiveId.substring(0, 4) + ".mp4");
+        record.setFileSizeMb(String.valueOf((Math.random() * 100) + 1));
+        record.setRecordingId(UUID.randomUUID());
+        record.setCaptureSessionId(UUID.randomUUID());
+        record.setBookingId(UUID.randomUUID());
+        record.setStatus(VfMigrationStatus.FAILED);
+        record.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        record.setReason("reason");
+        record.setErrorMessage("error_message");
+        record.setIsMostRecent(true);
+        record.setIsPreferred(true);
+        record.setRecordingGroupKey("group_key");
+        migrationRecordRepository.saveAndFlush(record);
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
+    }
+
+    @PostMapping("/create-random-empty-migration-record")
+    public ResponseEntity<VfMigrationRecordDTO> createRandomEmptyMigrationRecord() {
+        String randomArchiveId = UUID.randomUUID().toString();
+        String randomArchiveName = "archive_" + randomArchiveId.substring(0, 8);
+        MigrationRecord record = new MigrationRecord();
+        record.setId(UUID.randomUUID());
+        record.setArchiveId(randomArchiveId);
+        record.setArchiveName(randomArchiveName);
+        record.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        record.setDuration((int) (Math.random() * 1000));
+        record.setFileName("file_" + randomArchiveId.substring(0, 4) + ".mp4");
+        record.setFileSizeMb(String.valueOf((Math.random() * 100) + 1));
+        record.setStatus(VfMigrationStatus.FAILED);
+        record.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        record.setReason("reason");
+        record.setErrorMessage("error_message");
+        record.setIsMostRecent(true);
+        record.setIsPreferred(true);
+        record.setRecordingGroupKey("group_key");
+        migrationRecordRepository.saveAndFlush(record);
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
     }
 
     private Court createTestCourt() {
