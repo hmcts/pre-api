@@ -49,7 +49,7 @@ public final class Constants {
 
         // File validation errors
         public static final String NOT_PREFERRED = 
-            "A more preferred version of this recording exists (e.g. a file with .mp4 in the name).";
+            "A more preferred version of this recording exists.";
 
         // Court validation errors
         public static final String MISSING_COURT = "No valid court is associated with this recording.";

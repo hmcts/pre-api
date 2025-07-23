@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -316,19 +317,49 @@ public class MigrationRecordService {
     }
 
     @Transactional
+    public boolean deduplicatePreferredByArchiveId(String archiveId) {
+        Optional<MigrationRecord> maybeCurrent = migrationRecordRepository.findByArchiveId(archiveId);
+        if (maybeCurrent.isEmpty()) {
+            return false;
+        }
+
+        MigrationRecord current = maybeCurrent.get();
+        String archiveName = current.getArchiveName();
+
+        List<MigrationRecord> duplicates = migrationRecordRepository.findAllByArchiveName(archiveName);
+        if (duplicates.isEmpty()) {
+            return false;
+        }
+
+        duplicates.sort(Comparator.comparing(MigrationRecord::getCreateTime).reversed());
+        MigrationRecord preferredRecord = duplicates.get(0);
+
+        for (MigrationRecord record : duplicates) {
+            record.setIsPreferred(record.getArchiveId().equals(preferredRecord.getArchiveId()));
+            migrationRecordRepository.save(record);
+        }
+
+        loggingService.logInfo(
+            "Deduplicated archiveName=%s: %d duplicates found, preferred archiveId=%s",
+            archiveName, duplicates.size(), preferredRecord.getArchiveId()
+        );
+
+        return preferredRecord.getArchiveId().equals(archiveId);
+    }
+
+    @Transactional
     public boolean markNonMp4AsNotPreferred(String currentArchiveName) {
         String mp4Name = currentArchiveName.contains(".")
             ? currentArchiveName.replaceAll("\\.[^.]+$", ".mp4")
             : currentArchiveName + ".mp4";
 
-        boolean mp4Exists = migrationRecordRepository.findByArchiveName(mp4Name).isPresent();
+        boolean mp4Exists = !migrationRecordRepository.findAllByArchiveName(mp4Name).isEmpty();
         boolean updated = false;
 
         if (mp4Exists) {
-            Optional<MigrationRecord> maybeNonPreferred = migrationRecordRepository.findByArchiveName(
+            List<MigrationRecord> nonPreferredRecords = migrationRecordRepository.findAllByArchiveName(
                 currentArchiveName);
-            if (maybeNonPreferred.isPresent()) {
-                var nonPreferred = maybeNonPreferred.get();
+            for (MigrationRecord nonPreferred : nonPreferredRecords) {
                 nonPreferred.setIsPreferred(false);
                 migrationRecordRepository.save(nonPreferred);
                 updated = true;

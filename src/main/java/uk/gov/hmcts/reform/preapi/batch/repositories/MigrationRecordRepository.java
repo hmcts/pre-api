@@ -12,6 +12,8 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
     Optional<MigrationRecord> findByArchiveId(String archiveId);
 
     Optional<MigrationRecord> findByArchiveName(String archiveName);
+
+    List<MigrationRecord> findAllByArchiveName(String archiveName);
     
     List<MigrationRecord> findByStatus(VfMigrationStatus status);
 
