@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 
 import java.util.List;
 import java.util.Optional;

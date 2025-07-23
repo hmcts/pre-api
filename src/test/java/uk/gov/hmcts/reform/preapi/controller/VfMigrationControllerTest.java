@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.controllers;
+package uk.gov.hmcts.reform.preapi.controller;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +24,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
-import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateExclusions;
+import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -59,7 +59,7 @@ public class VfMigrationControllerTest {
     private UserAuthenticationService userAuthenticationService;
 
     @MockitoBean
-    private MigrateExclusions migrateExclusions;
+    private MigrateResolved migrateResolved;
 
     @MockitoBean
     private ScheduledTaskRunner taskRunner;
@@ -520,6 +520,6 @@ public class VfMigrationControllerTest {
             .andExpect(status().isNoContent());
 
         verify(migrationRecordService, times(1)).markReadyRecordsAsSubmitted();
-        verify(migrateExclusions, times(1)).asyncMigrateExclusions();
+        verify(migrateResolved, times(1)).asyncMigrateResolved();
     }
 }
