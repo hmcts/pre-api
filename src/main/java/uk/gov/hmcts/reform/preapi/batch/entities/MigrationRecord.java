@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.UUID;
 
 @Getter
@@ -108,5 +109,35 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Override
     public LocalDateTime getCreateTimeAsLocalDateTime() {
         return createTime != null ? createTime.toLocalDateTime() : null;
+    }
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        HashMap<String, Object> details = new HashMap<>();
+        details.put("archiveId", archiveId);
+        details.put("status", status);
+        details.put("archiveName", archiveName);
+        details.put("createTime", createTime);
+        details.put("duration", duration);
+        details.put("courtReference", courtReference);
+        details.put("urn", urn);
+        details.put("exhibitReference", exhibitReference);
+        details.put("defendantName", defendantName);
+        details.put("witnessName", witnessName);
+        details.put("recordingVersion", recordingVersion);
+        details.put("recordingVersionNumber", recordingVersionNumber);
+        details.put("fileName", fileName);
+        details.put("fileSizeMb", fileSizeMb);
+        details.put("recordingId", recordingId);
+        details.put("bookingId", bookingId);
+        details.put("captureSessionId", captureSessionId);
+        details.put("parentTempId", parentTempId);
+        details.put("reason", reason);
+        details.put("errorMessage", errorMessage);
+        details.put("resolvedAt", resolvedAt);
+        details.put("isMostRecent", isMostRecent);
+        details.put("isPreferred", isPreferred);
+        details.put("recordingGroupKey", recordingGroupKey);
+        return details;
     }
 }
