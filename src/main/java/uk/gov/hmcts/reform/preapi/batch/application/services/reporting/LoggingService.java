@@ -27,8 +27,9 @@ public class LoggingService {
     private int totalMigrated = 0;
     @Setter
     private int totalInvited = 0;
-
+    @Setter
     private int totalRecords;
+
     private int processedRecords = 0;
     private int totalFailed = 0;
 
@@ -155,15 +156,13 @@ public class LoggingService {
                 | %-25s | %10d\s
                 | %-25s | %10d\s
                 | %-25s | %10d\s
-                | %-25s | %10d\s
                 | %-25s | %10s sec\s
                 =====================================================
                 """,
             "Total Records Processed", totalRecords,
             "Total Migrated Items", totalMigrated,
             "Total Failed Items", totalFailed,
-            "Total Unaccounted Items", totalRecords - totalMigrated - totalFailed,
-            "Total Execution Time", String.format("%10d", seconds)
+            "Total Execution Time", seconds
         );
 
         try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);

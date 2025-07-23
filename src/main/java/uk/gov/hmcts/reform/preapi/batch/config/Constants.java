@@ -49,14 +49,14 @@ public final class Constants {
 
         // File validation errors
         public static final String NOT_PREFERRED = 
-            "A more preferred version of this recording exists (e.g. a file with .mp4 in the name).";
+            "A more preferred version of this recording exists.";
 
         // Court validation errors
         public static final String MISSING_COURT = "No valid court is associated with this recording.";
 
         // Version validation errors
         public static final String NOT_MOST_RECENT_VERSION = "The recording is not the most recent version.";
-        public static final String NO_PARENT_FOUND = "No parent recording found in cache, but version > 1";
+        public static final String NO_PARENT_FOUND = "No parent recording found, but version > 1";
 
         // Case reference validation errors
         public static final String CASE_REFERENCE_TOO_LONG = "Case reference exceeds the 24-character limit.";
