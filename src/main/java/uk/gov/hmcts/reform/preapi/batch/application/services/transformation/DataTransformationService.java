@@ -72,6 +72,7 @@ public class DataTransformationService {
         }
     }
 
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     protected ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
 
@@ -92,7 +93,7 @@ public class DataTransformationService {
                 extracted.getRecordingVersionNumber(),
                 mostRecent
             ) >= 0)
-            .orElse(true); 
+            .orElse(true);
 
         RecordingUtils.VersionDetails versionDetails = new RecordingUtils.VersionDetails(
             extracted.getRecordingVersion(),
@@ -106,16 +107,17 @@ public class DataTransformationService {
             RecordingUtils.getStandardizedVersionNumberFromType(extracted.getRecordingVersion()),
             isMostRecent
         );
-        
+
         boolean isPreferred = true;
         if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4")) {
             boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveName());
-           if (updated) {
+            if (updated) {
                 isPreferred = false;
             }
         }
 
-        boolean isPreferredFromDeduplication = migrationRecordService.deduplicatePreferredByArchiveId(extracted.getArchiveId());
+        boolean isPreferredFromDeduplication = migrationRecordService
+            .deduplicatePreferredByArchiveId(extracted.getArchiveId());
         if (!isPreferredFromDeduplication) {
             isPreferred = false;
         }
@@ -146,7 +148,7 @@ public class DataTransformationService {
             .caseReference(extracted.createCaseReference())
             .defendantLastName(extracted.getDefendantLastName())
             .witnessFirstName(extracted.getWitnessFirstName())
-            
+
             .extractedRecordingVersion(extracted.getRecordingVersion())  // ORIG or COPY
             .extractedRecordingVersionNumberStr(extracted.getRecordingVersionNumber()) // "2"
             .origVersionNumberStr(
@@ -155,13 +157,13 @@ public class DataTransformationService {
                     : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber()
             )
             .copyVersionNumberStr(
-                extracted.getRecordingVersion().startsWith("COPY") 
+                extracted.getRecordingVersion().startsWith("COPY")
                     && extracted.getRecordingVersionNumber().contains(".")
                     ? extracted.getRecordingVersionNumber().split("\\.")[1]
                     : null
             )
-            .recordingVersionNumber(versionDetails.standardisedVersionNumber())    
-    
+            .recordingVersionNumber(versionDetails.standardisedVersionNumber())
+
             .isMostRecentVersion(
                 migrationRecordService.isMostRecentVersion(extracted.getArchiveId())
             )
