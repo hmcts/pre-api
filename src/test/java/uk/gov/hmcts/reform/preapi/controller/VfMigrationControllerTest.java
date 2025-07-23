@@ -18,6 +18,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.PropertyNamingSt
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
+import uk.gov.hmcts.reform.preapi.controllers.VfMigrationController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
@@ -519,7 +520,7 @@ public class VfMigrationControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent());
 
-        verify(migrationRecordService, times(1)).markReadyRecordsAsSubmitted();
+        verify(migrationRecordService, times(1)).markResolvedRecordsAsPending();
         verify(migrateResolved, times(1)).asyncMigrateResolved();
     }
 }

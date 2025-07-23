@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
@@ -10,7 +12,13 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
+import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
+import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -23,13 +31,16 @@ public class MigrationRecordService {
 
     private final MigrationRecordRepository migrationRecordRepository;
     private final LoggingService loggingService;
+    private final CourtRepository courtRepository;
 
     @Autowired
     public MigrationRecordService(
         final MigrationRecordRepository migrationRecordRepository,
+        final CourtRepository courtRepository,
         final LoggingService loggingService
     ) {
         this.migrationRecordRepository = migrationRecordRepository;
+        this.courtRepository = courtRepository;
         this.loggingService = loggingService;
     }
 
@@ -50,7 +61,7 @@ public class MigrationRecordService {
     }
 
     public List<MigrationRecord> getPendingMigrationRecords() {
-        return migrationRecordRepository.findByStatus(VfMigrationStatus.PENDING);
+        return migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING);
     }
 
     @Transactional(readOnly = true)
@@ -398,6 +409,11 @@ public class MigrationRecordService {
 
     @Transactional(readOnly = true)
     public Page<VfMigrationRecordDTO> findAllBy(final SearchMigrationRecords params, final Pageable pageable) {
+        if (params.getCourtId() != null) {
+            params.setCourtReference(courtRepository.findById(params.getCourtId())
+                                         .map(Court::getName)
+                                         .orElse(null));
+        }
         return migrationRecordRepository.findAllBy(params, pageable)
             .map(VfMigrationRecordDTO::new);
     }
@@ -407,11 +423,11 @@ public class MigrationRecordService {
         MigrationRecord entity = migrationRecordRepository.findById(dto.getId())
             .orElseThrow(() -> new NotFoundException("Migration Record: " + dto.getId()));
 
-        if (!courtRepository.existsById(dto.getCourtId())) {
-            throw new NotFoundException("Court: " + dto.getCourtId());
-        }
+        String courtName = courtRepository.findById(dto.getCourtId())
+            .map(Court::getName)
+            .orElseThrow(() -> new NotFoundException("Court: " + dto.getCourtId()));
 
-        entity.setCourtId(dto.getCourtId());
+        entity.setCourtReference(courtName);
         entity.setUrn(dto.getUrn());
         entity.setExhibitReference(dto.getExhibitReference());
         entity.setDefendantName(dto.getDefendantName());
@@ -425,10 +441,10 @@ public class MigrationRecordService {
     }
 
     @Transactional
-    public void markReadyRecordsAsSubmitted() {
-        migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY)
+    public void markResolvedRecordsAsPending() {
+        migrationRecordRepository.findAllByStatus(VfMigrationStatus.RESOLVED)
             .forEach(record -> {
-                record.setStatus(VfMigrationStatus.SUBMITTED);
+                record.setStatus(VfMigrationStatus.PENDING);
                 migrationRecordRepository.saveAndFlush(record);
             });
     }

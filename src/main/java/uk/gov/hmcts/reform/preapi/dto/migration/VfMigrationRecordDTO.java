@@ -36,7 +36,7 @@ public class VfMigrationRecordDTO {
     private Integer duration;
 
     @Schema(description = "MigrationRecordCourtId")
-    private UUID courtId;
+    private String courtReference;
 
     @Schema(description = "MigrationRecordUrn")
     private String urn;
@@ -101,14 +101,14 @@ public class VfMigrationRecordDTO {
         archiveName = entity.getArchiveName();
         createTime = entity.getCreateTime();
         duration = entity.getDuration();
-        courtId = entity.getCourtId();
+        courtReference = entity.getCourtReference();
         urn = entity.getUrn();
         exhibitReference = entity.getExhibitReference();
         defendantName = entity.getDefendantName();
         witnessName = entity.getWitnessName();
         recordingVersion = entity.getRecordingVersion();
         recordingVersionNumber = entity.getRecordingVersionNumber();
-        filename = entity.getMp4FileName();
+        filename = entity.getFileName();
         fileSize = entity.getFileSizeMb();
         recordingId = entity.getRecordingId();
         bookingId = entity.getBookingId();

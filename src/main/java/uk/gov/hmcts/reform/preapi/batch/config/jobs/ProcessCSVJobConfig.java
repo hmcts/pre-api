@@ -36,7 +36,6 @@ public class ProcessCSVJobConfig {
 
     public ProcessCSVJobConfig(
         JobRepository jobRepository,
-        
         PlatformTransactionManager transactionManager,
         BatchConfiguration batchConfiguration,
         CoreStepsConfig coreSteps
@@ -63,7 +62,6 @@ public class ProcessCSVJobConfig {
             .start(batchConfiguration.fileAvailabilityDecider())
             .on("FAILED").end()
             .on("COMPLETED")
-            
             .to(coreSteps.startLogging())
             .next(createSitesDataStep)
             .next(createChannelUserStep)
@@ -100,7 +98,7 @@ public class ProcessCSVJobConfig {
         MigrationRecordRepository repository,
         LoggingService loggingService
     ) {
-        List<MigrationRecord> pending = repository.findByStatus(VfMigrationStatus.PENDING);
+        List<MigrationRecord> pending = repository.findAllByStatus(VfMigrationStatus.PENDING);
         if (pending.isEmpty()) {
             loggingService.logInfo("No pending migration records found.");
         } else {

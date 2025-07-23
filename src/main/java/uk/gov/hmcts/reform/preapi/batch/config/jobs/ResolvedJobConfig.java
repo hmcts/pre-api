@@ -48,7 +48,7 @@ public class ResolvedJobConfig {
         MigrationRecordRepository repository,
         LoggingService loggingService
     ) {
-        List<MigrationRecord> resolved = repository.findByStatus(VfMigrationStatus.RESOLVED);
+        List<MigrationRecord> resolved = repository.findAllByStatus(VfMigrationStatus.RESOLVED);
         if (resolved.isEmpty()) {
             loggingService.logInfo("No resolved migration records found.");
         } else {

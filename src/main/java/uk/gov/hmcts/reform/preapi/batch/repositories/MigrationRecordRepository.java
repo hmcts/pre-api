@@ -18,10 +18,9 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     Optional<MigrationRecord> findByArchiveName(String archiveName);
 
-    List<MigrationRecord> findByStatus(VfMigrationStatus status);
+    List<MigrationRecord> findAllByStatus(VfMigrationStatus status);
 
     List<MigrationRecord> findByRecordingGroupKey(String recordingGroupKey);
-
 
     @Query("""
         SELECT mr FROM MigrationRecord mr
@@ -31,7 +30,7 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         AND (:#{#params.caseReference} IS NULL OR mr.exhibitReference ILIKE %:#{#params.caseReference}%)
         AND (:#{#params.createDateFrom} IS NULL OR mr.createTime >= :#{#params.createDateFrom})
         AND (:#{#params.createDateTo} IS NULL OR mr.createTime <= :#{#params.createDateTo})
-        AND (:#{#params.courtId} IS NULL OR mr.courtId = :#{#params.courtId})
+        AND (:#{#params.courtReference} IS NULL OR mr.courtReference = :#{#params.courtReference})
         """)
     Page<MigrationRecord> findAllBy(@Param("params") SearchMigrationRecords params, Pageable pageable);
 }

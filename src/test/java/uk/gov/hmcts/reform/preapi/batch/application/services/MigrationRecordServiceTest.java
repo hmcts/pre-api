@@ -10,11 +10,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -41,6 +43,9 @@ public class MigrationRecordServiceTest {
 
     @MockitoBean
     private CourtRepository courtRepository;
+
+    @MockitoBean
+    private LoggingService loggingService;
 
     @Autowired
     private MigrationRecordService migrationRecordService;
@@ -98,7 +103,7 @@ public class MigrationRecordServiceTest {
         assertThat(message).isEqualTo("Not found: Court: " +  dto.getCourtId());
 
         verify(migrationRecordRepository, times(1)).findById(dto.getId());
-        verify(courtRepository, times(1)).existsById(dto.getCourtId());
+        verify(courtRepository, times(1)).findById(dto.getCourtId());
         verifyNoMoreInteractions(migrationRecordRepository);
     }
 
@@ -113,18 +118,21 @@ public class MigrationRecordServiceTest {
         dto.setWitnessName("witnessName");
         dto.setDefendantName("defendantName");
         dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
-        dto.setStatus(VfMigrationStatus.READY);
+        dto.setStatus(VfMigrationStatus.RESOLVED);
         dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
 
         final MigrationRecord migrationRecord = createMigrationRecord();
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
-        when(courtRepository.existsById(dto.getCourtId())).thenReturn(true);
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
 
         UpsertResult result = migrationRecordService.update(dto);
 
         assertThat(result).isEqualTo(UpsertResult.UPDATED);
-        assertThat(migrationRecord.getCourtId()).isEqualTo(dto.getCourtId());
+        assertThat(migrationRecord.getCourtReference()).isEqualTo(court.getName());
         assertThat(migrationRecord.getUrn()).isEqualTo(dto.getUrn());
         assertThat(migrationRecord.getExhibitReference()).isEqualTo(dto.getExhibitReference());
         assertThat(migrationRecord.getWitnessName()).isEqualTo(dto.getWitnessName());
@@ -134,40 +142,40 @@ public class MigrationRecordServiceTest {
         assertThat(migrationRecord.getResolvedAt()).isEqualTo(dto.getResolvedAt());
 
         verify(migrationRecordRepository, times(1)).findById(dto.getId());
-        verify(courtRepository, times(1)).existsById(dto.getCourtId());
+        verify(courtRepository, times(1)).findById(dto.getCourtId());
         verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
     }
 
     @Test
-    @DisplayName("markReadyRecordsAsSubmitted should mark all READY records as SUBMITTED")
-    public void markReadyRecordsAsSubmitted_marksReadyRecordsAsSubmitted() {
+    @DisplayName("markResolvedRecordsAsPending should mark all READY records as SUBMITTED")
+    public void markReadyRecordsAsSubmitted_marksResolvedRecordsAsPending() {
         final MigrationRecord readyRecord1 = createMigrationRecord();
-        readyRecord1.setStatus(VfMigrationStatus.READY);
+        readyRecord1.setStatus(VfMigrationStatus.RESOLVED);
 
         final MigrationRecord readyRecord2 = createMigrationRecord();
-        readyRecord2.setStatus(VfMigrationStatus.READY);
+        readyRecord2.setStatus(VfMigrationStatus.RESOLVED);
 
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY))
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.RESOLVED))
             .thenReturn(List.of(readyRecord1, readyRecord2));
 
-        migrationRecordService.markReadyRecordsAsSubmitted();
+        migrationRecordService.markResolvedRecordsAsPending();
 
-        assertThat(readyRecord1.getStatus()).isEqualTo(VfMigrationStatus.SUBMITTED);
-        assertThat(readyRecord2.getStatus()).isEqualTo(VfMigrationStatus.SUBMITTED);
+        assertThat(readyRecord1.getStatus()).isEqualTo(VfMigrationStatus.PENDING);
+        assertThat(readyRecord2.getStatus()).isEqualTo(VfMigrationStatus.PENDING);
 
-        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.READY);
+        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.RESOLVED);
         verify(migrationRecordRepository, times(2)).saveAndFlush(any(MigrationRecord.class));
         verifyNoMoreInteractions(migrationRecordRepository);
     }
 
     @Test
-    @DisplayName("markReadyRecordsAsSubmitted should do nothing when there are no READY records")
-    public void markReadyRecordsAsSubmitted_doesNothingWhenNoReadyRecords() {
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY)).thenReturn(List.of());
+    @DisplayName("markResolvedRecordsAsPending should do nothing when there are no READY records")
+    public void markReadyRecordsAsSubmitted_doesNothingWhenNoResolvedRecords() {
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.RESOLVED)).thenReturn(List.of());
 
-        migrationRecordService.markReadyRecordsAsSubmitted();
+        migrationRecordService.markResolvedRecordsAsPending();
 
-        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.READY);
+        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.RESOLVED);
         verifyNoMoreInteractions(migrationRecordRepository);
     }
 
