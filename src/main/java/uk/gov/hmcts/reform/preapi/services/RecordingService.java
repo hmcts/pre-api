@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -122,6 +123,37 @@ public class RecordingService {
         }
 
         var recordingEntity = recording.orElse(new Recording());
+        recordingEntity.setId(createRecordingDTO.getId());
+        recordingEntity.setCaptureSession(captureSession);
+        if (createRecordingDTO.getParentRecordingId() != null) {
+            var parentRecording = recordingRepository.findById(createRecordingDTO.getParentRecordingId());
+            if (parentRecording.isEmpty()) {
+                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
+            }
+            recordingEntity.setParentRecording(parentRecording.get());
+        } else {
+            recordingEntity.setParentRecording(null);
+        }
+        recordingEntity.setVersion(createRecordingDTO.getVersion());
+        recordingEntity.setFilename(createRecordingDTO.getFilename());
+        recordingEntity.setDuration(createRecordingDTO.getDuration());
+        recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
+
+        recordingRepository.save(recordingEntity);
+
+        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    @Transactional
+    public UpsertResult forceUpsert(CreateRecordingDTO createRecordingDTO) {
+        // ignores deleted_at and case state
+        Optional<Recording> recording = recordingRepository.findById(createRecordingDTO.getId());
+
+        CaptureSession captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(createRecordingDTO.getCaptureSessionId())
+            .orElseThrow(() -> new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId()));
+
+        Recording recordingEntity = recording.orElse(new Recording());
         recordingEntity.setId(createRecordingDTO.getId());
         recordingEntity.setCaptureSession(captureSession);
         if (createRecordingDTO.getParentRecordingId() != null) {

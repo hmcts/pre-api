@@ -125,7 +125,7 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
 
         log.info("Updating duration for recording {} to {}", dto.getId(), dto.getDuration());
         if (enableUpsert) {
-            recordingService.upsert(dto);
+            recordingService.forceUpsert(dto);
         }
         return false;
     }
