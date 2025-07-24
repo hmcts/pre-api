@@ -124,4 +124,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Recording> findAllCompletedCaptureSessionsWithRecordings();
+
+    List<Recording> findAllByDurationIsNullAndDeletedAtIsNull();
 }
