@@ -49,6 +49,5 @@ EOF
 else
     echo "Unable to port forward to Bastion Host"
     echo "Check Active Packages: https://myaccess.microsoft.com/@CJSCommonPlatform.onmicrosoft.com#/access-packages/active"
-EOF
-  exit 1
+    exit 1
 fi
