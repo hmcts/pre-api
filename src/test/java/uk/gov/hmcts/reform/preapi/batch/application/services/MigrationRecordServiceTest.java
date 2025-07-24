@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
@@ -66,6 +67,30 @@ public class MigrationRecordServiceTest {
         assertThat(result.getContent().getFirst().getId()).isEqualTo(migrationRecord.getId());
 
         verify(migrationRecordRepository, times(1)).findAllBy(any(SearchMigrationRecords.class), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("Update should throw ResourceInWrongStateException when record status is SUCCESS")
+    public void updateThrowsResourceInWrongStateException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(VfMigrationStatus.RESOLVED);
+
+        final MigrationRecord migrationRecord = new MigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.SUCCESS);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        final String message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> migrationRecordService.update(dto)
+        ).getMessage();
+        assertThat(message).contains("MigrationRecord")
+            .contains(dto.getId().toString())
+            .contains(dto.getStatus().toString());
+
+        verify(migrationRecordRepository, times(1)).findById(dto.getId());
+        verifyNoMoreInteractions(migrationRecordRepository);
     }
 
     @Test

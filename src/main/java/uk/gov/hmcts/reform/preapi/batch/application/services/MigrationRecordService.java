@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
@@ -453,6 +454,15 @@ public class MigrationRecordService {
     public UpsertResult update(final CreateVfMigrationRecordDTO dto) {
         MigrationRecord entity = migrationRecordRepository.findById(dto.getId())
             .orElseThrow(() -> new NotFoundException("Migration Record: " + dto.getId()));
+
+        if (entity.getStatus() == VfMigrationStatus.SUCCESS) {
+            throw new ResourceInWrongStateException(
+                "MigrationRecord",
+                dto.getId().toString(),
+                dto.getStatus().toString(),
+                "PENDING, FAILED or RESOLVED"
+            );
+        }
 
         String courtName = courtRepository.findById(dto.getCourtId())
             .map(Court::getName)
