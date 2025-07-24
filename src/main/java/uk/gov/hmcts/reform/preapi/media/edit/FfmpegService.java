@@ -6,6 +6,7 @@ import org.apache.commons.exec.CommandLine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.component.CommandExecutor;
+import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -14,7 +15,11 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Service
@@ -161,6 +166,47 @@ public class FfmpegService implements IEditingService {
             .addArgument("-c:a").addArgument("aac")
             .addArgument(outputFileName);
         return command;
+    }
+
+    private CommandLine generateSingleEditCommand(FfmpegEditInstructionDTO instruction,
+                                                  String inputFileName,
+                                                  String outputFileName) {
+        return new CommandLine("ffmpeg")
+            .addArgument("-y")
+            .addArgument("-ss").addArgument(String.valueOf(instruction.getStart()))
+            .addArgument("-to").addArgument(String.valueOf(instruction.getEnd()))
+            .addArgument("-i").addArgument(inputFileName)
+            .addArgument("-c").addArgument("copy")
+            .addArgument("-avoid_negative_ts").addArgument("1")
+            .addArgument(outputFileName);
+    }
+
+    private Map<String, CommandLine> generateMultiEditCommands(EditRequest editRequest,
+                                                               String inputFileName,
+                                                               String outputFileName) {
+        EditInstructions instructions = fromJson(editRequest.getEditInstruction());
+
+        if (instructions.getFfmpegInstructions() == null
+            || instructions.getFfmpegInstructions().isEmpty()) {
+            throw new UnknownServerException("Malformed edit instructions");
+        }
+
+        if (instructions.getFfmpegInstructions().size() == 1) {
+            FfmpegEditInstructionDTO instruction = instructions.getFfmpegInstructions().getFirst();
+            return Map.of(outputFileName, generateSingleEditCommand(instruction, inputFileName, outputFileName));
+        }
+
+        return IntStream.range(0, instructions.getFfmpegInstructions().size())
+            .mapToObj(i -> {
+                FfmpegEditInstructionDTO instruction = instructions.getFfmpegInstructions().get(i);
+                String segmentFileName = String.format("%d_segment.mp4", i);
+                return Map.entry(outputFileName,
+                                 generateSingleEditCommand(instruction, inputFileName, segmentFileName));
+            })
+            .collect(Collectors.toMap(Map.Entry::getKey,
+                                      Map.Entry::getValue,
+                                      (e1, e2) -> e1,
+                                      LinkedHashMap::new));
     }
 
     private EditInstructions fromJson(String editInstructions) {
