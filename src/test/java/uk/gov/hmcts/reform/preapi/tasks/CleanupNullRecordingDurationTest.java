@@ -47,7 +47,7 @@ class CleanupNullRecordingDurationTest {
             cleanupNullRecordingDuration.run();
 
             ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
-            verify(recordingService).upsert(captor.capture());
+            verify(recordingService).forceUpsert(captor.capture());
             CreateRecordingDTO capturedRecording = captor.getValue();
             assertThat(capturedRecording.getDuration()).isEqualTo(Duration.ofMinutes(10));
         }
@@ -64,7 +64,7 @@ class CleanupNullRecordingDurationTest {
             cleanupNullRecordingDuration.run();
 
             verifyNoInteractions(ffmpegService);
-            verify(recordingService, never()).upsert(any());
+            verify(recordingService, never()).forceUpsert(any());
         }
 
         @Test
@@ -92,7 +92,7 @@ class CleanupNullRecordingDurationTest {
             verify(azureFinalStorageService, times(1)).getMp4FileName(recordingId.toString());
             verify(ffmpegService, times(1)).getDurationFromMp4(recordingId.toString(), newFilename);
             ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
-            verify(recordingService, times(1)).upsert(captor.capture());
+            verify(recordingService, times(1)).forceUpsert(captor.capture());
 
             CreateRecordingDTO capturedRecording = captor.getValue();
             assertThat(capturedRecording.getDuration()).isEqualTo(Duration.ofMinutes(10));
@@ -119,7 +119,7 @@ class CleanupNullRecordingDurationTest {
 
             verify(azureFinalStorageService, times(1)).doesContainerExist(recordingId.toString());
             verify(azureFinalStorageService).getMp4FileName(recordingId.toString());
-            verify(recordingService, never()).upsert(any());
+            verify(recordingService, never()).forceUpsert(any());
         }
 
         @Test
@@ -142,7 +142,7 @@ class CleanupNullRecordingDurationTest {
             cleanupNullRecordingDuration.run();
 
             verify(ffmpegService).getDurationFromMp4(recordingId.toString(), "test.mp4");
-            verify(recordingService).upsert(any(CreateRecordingDTO.class));
+            verify(recordingService).forceUpsert(any(CreateRecordingDTO.class));
         }
 
         @Test
@@ -166,7 +166,7 @@ class CleanupNullRecordingDurationTest {
             cleanupNullRecordingDuration.run();
 
             verify(ffmpegService).getDurationFromMp4(recordingId.toString(), "test.mp4");
-            verify(recordingService, never()).upsert(any());
+            verify(recordingService, never()).forceUpsert(any());
         }
 
         @Test
@@ -198,7 +198,7 @@ class CleanupNullRecordingDurationTest {
             verify(ffmpegService).getDurationFromMp4(recordingId.toString(), fallbackFilename);
 
             ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
-            verify(recordingService).upsert(captor.capture());
+            verify(recordingService).forceUpsert(captor.capture());
 
             CreateRecordingDTO captured = captor.getValue();
             assertThat(captured.getFilename()).isEqualTo(fallbackFilename);
@@ -228,7 +228,7 @@ class CleanupNullRecordingDurationTest {
 
             cleanupNullRecordingDuration.run();
 
-            verify(recordingService, never()).upsert(any());
+            verify(recordingService, never()).forceUpsert(any());
         }
 
         @Test
@@ -255,7 +255,7 @@ class CleanupNullRecordingDurationTest {
             verify(azureFinalStorageService, never()).doesBlobExist(any(), any());
             verify(azureFinalStorageService, times(1)).getMp4FileName(recordingId.toString());
             verify(ffmpegService, times(1)).getDurationFromMp4(recordingId.toString(), newFilename);
-            verify(recordingService, never()).upsert(any());
+            verify(recordingService, never()).forceUpsert(any());
         }
 
         @Test
@@ -278,7 +278,7 @@ class CleanupNullRecordingDurationTest {
             cleanupNullRecordingDuration.run();
 
             verify(ffmpegService).getDurationFromMp4(recordingId.toString(), "test.mp4");
-            verify(recordingService, never()).upsert(any());
+            verify(recordingService, never()).forceUpsert(any());
         }
 
         @Test
@@ -308,7 +308,7 @@ class CleanupNullRecordingDurationTest {
 
             verify(azureFinalStorageService).getMp4FileName(recordingId.toString());
             verify(ffmpegService).getDurationFromMp4(recordingId.toString(), fallbackFilename);
-            verify(recordingService, never()).upsert(any());
+            verify(recordingService, never()).forceUpsert(any());
         }
     }
 }
