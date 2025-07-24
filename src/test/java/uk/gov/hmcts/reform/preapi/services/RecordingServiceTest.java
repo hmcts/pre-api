@@ -473,7 +473,7 @@ class RecordingServiceTest {
             () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
         ).getMessage();
 
-        assertThat(message).isEqualTo("Cannot delete because and associated recording has not been deleted.");
+        assertThat(message).isEqualTo("Cannot delete because an associated recording has not been deleted.");
     }
 
     @DisplayName("Should set started at from and until when started at is set")

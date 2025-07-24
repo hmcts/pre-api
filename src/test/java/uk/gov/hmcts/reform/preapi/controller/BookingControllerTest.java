@@ -533,7 +533,7 @@ class BookingControllerTest {
                             .with(csrf()))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
-                           .value("Cannot delete because and associated recording has not been deleted."));
+                           .value("Cannot delete because an associated recording has not been deleted."));
 
     }
 

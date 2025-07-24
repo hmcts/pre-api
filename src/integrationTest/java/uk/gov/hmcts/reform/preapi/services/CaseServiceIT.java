@@ -14,9 +14,9 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
@@ -196,7 +196,7 @@ public class CaseServiceIT extends IntegrationTestBase {
             () ->  caseService.deleteById(caseEntity.getId())
         ).getMessage();
 
-        Assertions.assertEquals(message, "Cannot delete because and associated recording has not been deleted.");
+        Assertions.assertEquals(message, "Cannot delete because an associated recording has not been deleted.");
 
         entityManager.refresh(caseEntity);
         entityManager.refresh(booking);

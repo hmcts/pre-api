@@ -31,7 +31,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCaptureSessionResponse, 400);
         assertThat(deleteCaptureSessionResponse.getBody().jsonPath().getString("message"))
-            .isEqualTo("Cannot delete because and associated recording has not been deleted.");
+            .isEqualTo("Cannot delete because an associated recording has not been deleted.");
 
         assertCaptureSessionExists(captureSessionId, true);
     }
