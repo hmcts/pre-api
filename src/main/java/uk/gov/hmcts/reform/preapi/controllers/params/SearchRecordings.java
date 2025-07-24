@@ -28,6 +28,7 @@ public class SearchRecordings {
     private String defendantName;
     private Boolean includeDeleted;
     private String id;
+    private Integer version;
 
     @Nullable
     private Timestamp startedAtFrom;

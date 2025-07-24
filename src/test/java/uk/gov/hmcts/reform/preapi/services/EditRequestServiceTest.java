@@ -13,10 +13,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
@@ -51,9 +53,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -816,6 +821,95 @@ public class EditRequestServiceTest {
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
         verify(mediaService, times(1)).importAsset(any(), eq(false));
         verify(azureFinalStorageService, times(1)).getMp4FileName(any());
+    }
+
+    @Test
+    @DisplayName("Search edit requests as admin user should not set additional filters")
+    void findAllAsAdminUseSetsNullFilters() {
+        UserAuthentication auth = mock(UserAuthentication.class);
+        when(auth.isAdmin()).thenReturn(true);
+        when(auth.isAppUser()).thenReturn(false);
+        when(auth.isPortalUser()).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        court.setName("Example Court");
+        Case aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+        CaptureSession captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        Recording recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+        EditRequest editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(recording);
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        editRequest.setCreatedBy(user);
+
+        SearchEditRequests params = new SearchEditRequests();
+        when(editRequestRepository.searchAllBy(any(), any())).thenReturn(new PageImpl<>(List.of(editRequest)));
+
+        Page<EditRequestDTO> result = editRequestService.findAll(params, Pageable.unpaged());
+
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        verify(editRequestRepository).searchAllBy(
+            argThat(search ->
+                        search.getAuthorisedBookings() == null
+                        && search.getAuthorisedCourt() == null),
+            any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("Search edit requests as app user should set additional filters")
+    void findAllAsAppUserSetsCourtFilterOnly() {
+        UserAuthentication auth = mock(UserAuthentication.class);
+        when(auth.isAdmin()).thenReturn(false);
+        when(auth.isAppUser()).thenReturn(true);
+        when(auth.isPortalUser()).thenReturn(false);
+        when(auth.getCourtId()).thenReturn(UUID.randomUUID());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        SearchEditRequests params = new SearchEditRequests();
+        when(editRequestRepository.searchAllBy(any(), any())).thenReturn(Page.empty());
+
+        editRequestService.findAll(params, Pageable.unpaged());
+
+        verify(editRequestRepository).searchAllBy(
+            argThat(p ->
+                        p.getAuthorisedBookings() == null
+                        && p.getAuthorisedCourt().equals(auth.getCourtId())),
+            any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("Search edit requests as portal user should set additional filters")
+    void findAllAsPortalUserSetsAuthedBookingFilterOnly() {
+        UserAuthentication auth = mock(UserAuthentication.class);
+        when(auth.isAdmin()).thenReturn(false);
+        when(auth.isAppUser()).thenReturn(false);
+        when(auth.isPortalUser()).thenReturn(true);
+        when(auth.getSharedBookings()).thenReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        SearchEditRequests params = new SearchEditRequests();
+        when(editRequestRepository.searchAllBy(any(), any())).thenReturn(Page.empty());
+
+        editRequestService.findAll(params, Pageable.unpaged());
+
+        verify(editRequestRepository).searchAllBy(
+            argThat(p ->
+                        p.getAuthorisedBookings().containsAll(auth.getSharedBookings())
+                        && p.getAuthorisedCourt() == null),
+            any(Pageable.class));
     }
 
     @Test

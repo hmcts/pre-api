@@ -14,20 +14,24 @@ import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportArgsRecord;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
@@ -44,6 +48,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -283,7 +288,6 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
             .andExpect(jsonPath("$[0].shared_with").value(reportItem.getSharedWith()))
             .andExpect(jsonPath("$[0].shared_with_full_name").value(reportItem.getSharedWithFullName()))
-            .andExpect(jsonPath("$[0].organisation_shared_with").value(reportItem.getOrganisationSharedWith()))
             .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
 
@@ -396,7 +400,8 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for source 'PORTAL'")
     @Test
     void reportPlaybackPortalSuccess() throws Exception {
-        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
+        var args = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
+        var reportItem = new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
 
         when(reportService.reportPlayback(AuditLogSource.PORTAL)).thenReturn(List.of(reportItem));
 
@@ -411,6 +416,8 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
             .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].witness").value("John Doe"))
+            .andExpect(jsonPath("$[0].defendants").value(matchesPattern("(Will Doe, Jane Doe|Jane Doe, Will Doe)")))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
             .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
@@ -422,7 +429,8 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for source 'APPLICATION'")
     @Test
     void reportPlaybackApplicationSuccess() throws Exception {
-        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-07-01 00:00:00"));
+        var args = createPlaybackReport(Timestamp.valueOf("2025-07-01 00:00:00"));
+        var reportItem = new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
 
         when(reportService.reportPlayback(AuditLogSource.APPLICATION)).thenReturn(List.of(reportItem));
 
@@ -448,16 +456,16 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for no source")
     @Test
     void reportPlaybackAllSuccess() throws Exception {
-        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
+        var args = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
+        var reportItem = new UserRecordingPlaybackReportDTOV2(args.audit(), args.user(), args.recording());
 
-        when(reportService.reportPlayback(null)).thenReturn(List.of(reportItem));
+        when(reportService.userRecordingPlaybackReport()).thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports-v2/playback"))
+        mockMvc.perform(get("/reports-v2/user-recording-playback"))
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$[0].playback_date").value("01/01/2025"))
                .andExpect(jsonPath("$[0].playback_time").value("00:00:00"))
-               .andExpect(jsonPath("$[0].playback_time_zone").value("GMT"))
                .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
                .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
                .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
@@ -467,10 +475,10 @@ public class ReportControllerTest {
                .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
                .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
 
-        verify(reportService, times(1)).reportPlayback(null);
+        verify(reportService, times(1)).userRecordingPlaybackReport();
     }
 
-    private PlaybackReportDTOV2 createPlaybackReport(Timestamp createdAt) {
+    private PlaybackReportArgsRecord createPlaybackReport(Timestamp createdAt) {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setOrganisation("FooOrg");
@@ -500,9 +508,27 @@ public class ReportControllerTest {
         caseEntity.setCourt(courtEntity);
         caseEntity.setReference("ABC123");
 
+        var witness = new Participant();
+        witness.setParticipantType(ParticipantType.WITNESS);
+        witness.setFirstName("John");
+        witness.setLastName("Doe");
+
+        var defendant = new Participant();
+        defendant.setParticipantType(ParticipantType.DEFENDANT);
+        defendant.setFirstName("Jane");
+        defendant.setLastName("Doe");
+
+        var defendant2 = new Participant();
+        defendant2.setParticipantType(ParticipantType.DEFENDANT);
+        defendant2.setFirstName("Will");
+        defendant2.setLastName("Doe");
+
         var bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
         bookingEntity.setCaseId(caseEntity);
+        bookingEntity.setParticipants(
+            Set.of(witness, defendant, defendant2)
+        );
 
         var captureSessionEntity = new CaptureSession();
         captureSessionEntity.setId(UUID.randomUUID());
@@ -515,7 +541,7 @@ public class ReportControllerTest {
         auditEntity.setCreatedAt(createdAt);
         auditEntity.setTableRecordId(recordingEntity.getId());
 
-        return new PlaybackReportDTOV2(auditEntity, user, null);
+        return new PlaybackReportArgsRecord(auditEntity, user, recordingEntity);
     }
 
     private SharedReportDTOV2 createSharedReport() {
@@ -526,7 +552,6 @@ public class ReportControllerTest {
         reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setSharedWith("shared-with@example.com");
         reportItem.setSharedWithFullName("Example One");
-        reportItem.setOrganisationSharedWith("Example Organisation");
         reportItem.setGrantedBy("shared-by@example.com");
         reportItem.setGrantedByFullName("Example Two");
         reportItem.setCaseReference("ABC123");

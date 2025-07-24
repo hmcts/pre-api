@@ -54,9 +54,6 @@ public class CourtDTO {
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .sorted(Comparator.comparing(RegionDTO::getName))
             .collect(Collectors.toList());
-        this.rooms = Stream.ofNullable(courtEntity.getRooms())
-            .flatMap(rooms -> rooms.stream().map(RoomDTO::new))
-            .sorted(Comparator.comparing(RoomDTO::getName))
-            .collect(Collectors.toList());
+        this.rooms = List.of();
     }
 }

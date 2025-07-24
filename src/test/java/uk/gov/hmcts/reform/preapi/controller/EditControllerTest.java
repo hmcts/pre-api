@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.TestPropertySource;
@@ -16,12 +17,15 @@ import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import uk.gov.hmcts.reform.preapi.controllers.EditController;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +36,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -174,4 +179,59 @@ public class EditControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: Edit Request: " + id));
     }
+
+    @Test
+    @DisplayName("Should get a list of edits with 200 response code")
+    void getEdits() throws Exception {
+        EditRequestDTO dto = new EditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstruction("{}");
+
+        RecordingDTO recordingDTO = new RecordingDTO();
+        recordingDTO.setId(UUID.randomUUID());
+        dto.setSourceRecording(recordingDTO);
+
+        when(editRequestService.findAll(any(), any())).thenReturn(new PageImpl<>(List.of(dto)));
+
+        mockMvc.perform(get("/edits")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpectAll(
+                status().isOk(),
+                jsonPath("$._embedded.editRequestDTOList").isNotEmpty(),
+                jsonPath("$._embedded.editRequestDTOList[0].id").value(dto.getId().toString()),
+                jsonPath("$._embedded.editRequestDTOList[0].status").value(dto.getStatus().toString()),
+                jsonPath("$._embedded.editRequestDTOList[0].source_recording.id").value(recordingDTO.getId().toString())
+            );
+
+        verify(editRequestService, times(1)).findAll(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should get a list of edits with 400 response code when requesting out of range")
+    void getEditsOutOfBounds() throws Exception {
+        EditRequestDTO dto = new EditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstruction("{}");
+
+        RecordingDTO recordingDTO = new RecordingDTO();
+        recordingDTO.setId(UUID.randomUUID());
+        dto.setSourceRecording(recordingDTO);
+
+        when(editRequestService.findAll(any(), any())).thenReturn(new PageImpl<>(List.of(dto)));
+
+        mockMvc.perform(get("/edits")
+                            .param("page", "2")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpectAll(
+                status().is4xxClientError(),
+                jsonPath("$.message").value("Requested page {2} is out of range. Max page is {1}")
+            );
+
+        verify(editRequestService, times(1)).findAll(any(), any());
+    }
+
 }

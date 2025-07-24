@@ -1732,6 +1732,9 @@ definitions:
       court:
         description: ReportCourt
         type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
       playback_date:
         description: PlaybackReportPlaybackDate
         type: string
@@ -1744,6 +1747,10 @@ definitions:
       postcode:
         description: ReportPostcode
         type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
       region:
         description: ReportRegion
         type: string
@@ -1755,6 +1762,9 @@ definitions:
         type: string
       user_organisation:
         description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
         type: string
     type: object
   PortalAccessDTO:
@@ -2083,9 +2093,6 @@ definitions:
       granted_by_full_name:
         description: SharedReportGrantedByFullName
         type: string
-      organisation_shared_with:
-        description: SharedReportOrganisationAllocatedTo
-        type: string
       postcode:
         description: ReportPostcode
         type: string
@@ -2204,6 +2211,50 @@ definitions:
         type: string
       role_name:
         description: UserPrimaryCourtReportRoleName
+        type: string
+    type: object
+  UserRecordingPlaybackReportDTOV2:
+    description: UserRecordingPlaybackReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
+      region:
+        description: ReportRegion
+        type: string
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
         type: string
     type: object
 externalDocs:
@@ -3568,6 +3619,11 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: The version number to search by
+          format: int32
+          in: query
+          name: version
+          type: integer
         - description: Sort by
           in: query
           name: sort
@@ -3741,7 +3797,7 @@ paths:
             items:
               $ref: '#/definitions/CompletedCaptureSessionReportDTOV2'
             type: array
-      summary: Get a report on capture sessions with available recordings
+      summary: Get a report on capture sessions with available recordings v2
       tags:
         - report-controller
   /reports-v2/edits:
@@ -3764,7 +3820,7 @@ paths:
             items:
               $ref: '#/definitions/EditReportDTOV2'
             type: array
-      summary: Get a report on recordings edits
+      summary: Get a report on recordings edits v2
       tags:
         - report-controller
   /reports-v2/playback:
@@ -3797,7 +3853,7 @@ paths:
             items:
               $ref: '#/definitions/PlaybackReportDTOV2'
             type: array
-      summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION) v2'
       tags:
         - report-controller
   /reports-v2/recording-participants:
@@ -3820,7 +3876,7 @@ paths:
             items:
               $ref: '#/definitions/RecordingParticipantsReportDTO'
             type: array
-      summary: Get report on participants and the recordings they are part of
+      summary: Get report on participants and the recordings they are part of v2
       tags:
         - report-controller
   /reports-v2/recordings-per-case:
@@ -3843,7 +3899,7 @@ paths:
             items:
               $ref: '#/definitions/RecordingsPerCaseReportDTOV2'
             type: array
-      summary: Get the number of completed capture sessions for each case
+      summary: Get the number of completed capture sessions for each case v2
       tags:
         - report-controller
   /reports-v2/schedules:
@@ -3866,7 +3922,7 @@ paths:
             items:
               $ref: '#/definitions/ScheduleReportDTOV2'
             type: array
-      summary: Get a list of completed capture sessions with booking details
+      summary: Get a list of completed capture sessions with booking details v2
       tags:
         - report-controller
   /reports-v2/share-bookings-removed:
@@ -3889,7 +3945,7 @@ paths:
             items:
               $ref: '#/definitions/AccessRemovedReportDTOV2'
             type: array
-      summary: Get report on booking share removal
+      summary: Get report on booking share removal v2
       tags:
         - report-controller
   /reports-v2/shared-bookings:
@@ -3940,7 +3996,7 @@ paths:
             items:
               $ref: '#/definitions/SharedReportDTOV2'
             type: array
-      summary: Get a report on the bookings that have been shared
+      summary: Get a report on the bookings that have been shared v2
       tags:
         - report-controller
   /reports-v2/user-primary-courts:
@@ -3963,7 +4019,30 @@ paths:
             items:
               $ref: '#/definitions/UserPrimaryCourtReportDTO'
             type: array
-      summary: Get report on app users and their primary courts
+      summary: Get report on app users and their primary courts v2
+      tags:
+        - report-controller
+  /reports-v2/user-recording-playback:
+    get:
+      operationId: userRecordingPlaybackReport
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserRecordingPlaybackReportDTOV2'
+            type: array
+      summary: Get report on playback by playback for all sources v2
       tags:
         - report-controller
   /reports/capture-sessions-concurrent:
