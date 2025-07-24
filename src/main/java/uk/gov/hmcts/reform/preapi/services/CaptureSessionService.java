@@ -145,12 +145,13 @@ public class CaptureSessionService {
             throw new ResourceInWrongStateException(
                 "Capture Session ("
                     + id
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is "
                     + captureSession.getStatus()
             );
         }
 
-        recordingService.deleteCascade(captureSession);
+        recordingService.checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         captureSession.setDeleteOperation(true);
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
         captureSessionRepository.saveAndFlush(captureSession);
@@ -167,11 +168,12 @@ public class CaptureSessionService {
                     throw new ResourceInWrongStateException(
                         "Capture Session ("
                             + captureSession.getId()
-                            + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                            + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                            + "Current state is "
                             + captureSession.getStatus()
                     );
                 }
-                recordingService.deleteCascade(captureSession);
+                recordingService.checkIfCaptureSessionHasAssociatedRecordings(captureSession);
                 captureSession.setDeleteOperation(true);
                 captureSession.setDeletedAt(Timestamp.from(Instant.now()));
                 captureSessionRepository.save(captureSession);
@@ -296,8 +298,7 @@ public class CaptureSessionService {
                 recordingService.upsert(recording);
                 auditService.upsert(createStopAudit(captureSessionId), userId);
             }
-            case NO_RECORDING, FAILURE ->
-                auditService.upsert(createStopAudit(captureSessionId), userId);
+            case NO_RECORDING, FAILURE -> auditService.upsert(createStopAudit(captureSessionId), userId);
             default -> {
             }
         }
