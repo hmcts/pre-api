@@ -4,6 +4,7 @@ import com.azure.resourcemanager.mediaservices.models.JobState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.PessimisticLockingFailureException;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
@@ -159,6 +161,8 @@ public class EditRequestServiceTest {
 
         when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
         when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
+        when(recordingService.findAll(any(SearchRecordings.class), eq(false), any(Pageable.class)))
+            .thenReturn(Page.empty());
         var newRecordingDto = new RecordingDTO();
         newRecordingDto.setParentRecordingId(recording.getId());
         when(recordingService.findById(any(UUID.class))).thenReturn(newRecordingDto);
@@ -175,6 +179,7 @@ public class EditRequestServiceTest {
         verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
+        verify(recordingService, times(1)).findAll(any(SearchRecordings.class), eq(false), any(Pageable.class));
         verify(recordingService, times(1)).findById(any(UUID.class));
         verify(azureIngestStorageService, times(1)).doesContainerExist(anyString());
         verify(azureIngestStorageService, times(1)).getMp4FileName(anyString());
@@ -672,7 +677,13 @@ public class EditRequestServiceTest {
 
         when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
 
-        var dto = editRequestService.createRecordingDto(newRecordingId, "index.mp4", editRequest);
+        editRequestService.createRecordingDto(newRecordingId, "index.mp4", editRequest);
+
+        verify(recordingService, times(1)).getNextVersionNumber(recording.getId());
+        ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
+        verify(recordingService, times(1)).upsert(captor.capture());
+
+        final CreateRecordingDTO dto = captor.getValue();
         assertThat(dto).isNotNull();
         assertThat(dto.getId()).isEqualTo(newRecordingId);
         assertThat(dto.getParentRecordingId()).isEqualTo(recording.getId());
@@ -680,8 +691,6 @@ public class EditRequestServiceTest {
         assertThat(dto.getEditInstructions()).isEqualTo("{}");
         assertThat(dto.getCaptureSessionId()).isEqualTo(captureSession.getId());
         assertThat(dto.getFilename()).isEqualTo("index.mp4");
-
-        verify(recordingService, times(1)).getNextVersionNumber(recording.getId());
     }
 
     @Test
@@ -901,6 +910,26 @@ public class EditRequestServiceTest {
                         p.getAuthorisedBookings().containsAll(auth.getSharedBookings())
                         && p.getAuthorisedCourt() == null),
             any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("Should mark previous edits for a recording as deleted")
+    void clearPreviousEdits() {
+        RecordingDTO recording1 = new RecordingDTO();
+        recording1.setId(UUID.randomUUID());
+        RecordingDTO recording2 = new RecordingDTO();
+        recording2.setId(UUID.randomUUID());
+        UUID parentRecordingId = UUID.randomUUID();
+
+        when(recordingService.findAll(any(SearchRecordings.class), eq(false), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of(recording1, recording2)));
+
+        editRequestService.clearPreviousEdits(parentRecordingId);
+
+        verify(recordingService, times(1))
+            .findAll(any(SearchRecordings.class), eq(false), any(Pageable.class));
+        verify(recordingService, times(1)).deleteById(recording1.getId());
+        verify(recordingService, times(1)).deleteById(recording2.getId());
     }
 
     private void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,
