@@ -34,7 +34,7 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequestMapping("/edits")
-@ConditionalOnExpression("${editing.enable:false}")
+@ConditionalOnExpression("${editing.enable:true}")
 public class EditController {
     private final EditRequestService editRequestService;
 
