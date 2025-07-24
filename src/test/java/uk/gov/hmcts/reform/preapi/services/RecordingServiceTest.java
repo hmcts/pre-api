@@ -670,17 +670,17 @@ class RecordingServiceTest {
     @Test
     @DisplayName("ForceUpsert - Create a recording when it does not exist")
     void forceUpsertCreateSuccess() {
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
+        var captureSession1 = new CaptureSession();
+        captureSession1.setId(UUID.randomUUID());
         var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
-        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setCaptureSessionId(captureSession1.getId());
         recordingModel.setVersion(1);
         recordingModel.setFilename("test-creation.mp4");
 
         when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession1.getId()))
+            .thenReturn(Optional.of(captureSession1));
         when(recordingRepository.save(any(Recording.class))).thenAnswer(i -> i.getArgument(0));
 
         assertThat(recordingService.forceUpsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
@@ -690,22 +690,22 @@ class RecordingServiceTest {
     @Test
     @DisplayName("ForceUpsert - Update a recording when it already exists")
     void forceUpsertUpdateSuccess() {
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
+        var captureSession1 = new CaptureSession();
+        captureSession1.setId(UUID.randomUUID());
         var existingRecording = new Recording();
         existingRecording.setId(UUID.randomUUID());
         existingRecording.setVersion(1);
 
         var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(existingRecording.getId());
-        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setCaptureSessionId(captureSession1.getId());
         recordingModel.setVersion(2);
         recordingModel.setFilename("test-update.mp4");
 
         when(recordingRepository.findById(recordingModel.getId()))
             .thenReturn(Optional.of(existingRecording));
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession1.getId()))
+            .thenReturn(Optional.of(captureSession1));
         when(recordingRepository.save(any(Recording.class))).thenAnswer(i -> i.getArgument(0));
 
         assertThat(recordingService.forceUpsert(recordingModel)).isEqualTo(UpsertResult.UPDATED);
@@ -715,17 +715,17 @@ class RecordingServiceTest {
     @Test
     @DisplayName("ForceUpsert - Fail when parent recording is not found")
     void forceUpsertParentRecordingNotFound() {
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
+        var captureSession1 = new CaptureSession();
+        captureSession1.setId(UUID.randomUUID());
         var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
-        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setCaptureSessionId(captureSession1.getId());
         recordingModel.setParentRecordingId(UUID.randomUUID());
         recordingModel.setVersion(1);
 
         when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession1.getId()))
+            .thenReturn(Optional.of(captureSession1));
         when(recordingRepository.findById(recordingModel.getParentRecordingId()))
             .thenReturn(Optional.empty());
 

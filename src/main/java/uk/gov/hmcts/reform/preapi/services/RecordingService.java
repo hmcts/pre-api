@@ -100,6 +100,33 @@ public class RecordingService {
     }
 
     @Transactional
+    protected UpsertResult upsert(Optional<Recording> recording,
+                                  CaptureSession captureSession,
+                                  CreateRecordingDTO createRecordingDTO) {
+        Recording recordingEntity = recording.orElse(new Recording());
+        recordingEntity.setId(createRecordingDTO.getId());
+        recordingEntity.setCaptureSession(captureSession);
+        if (createRecordingDTO.getParentRecordingId() != null) {
+            Optional<Recording> parentRecording = recordingRepository
+                .findById(createRecordingDTO.getParentRecordingId());
+            if (parentRecording.isEmpty()) {
+                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
+            }
+            recordingEntity.setParentRecording(parentRecording.get());
+        } else {
+            recordingEntity.setParentRecording(null);
+        }
+        recordingEntity.setVersion(createRecordingDTO.getVersion());
+        recordingEntity.setFilename(createRecordingDTO.getFilename());
+        recordingEntity.setDuration(createRecordingDTO.getDuration());
+        recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
+
+        recordingRepository.save(recordingEntity);
+
+        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createRecordingDTO)")
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateRecordingDTO createRecordingDTO) {
@@ -122,26 +149,7 @@ public class RecordingService {
             );
         }
 
-        var recordingEntity = recording.orElse(new Recording());
-        recordingEntity.setId(createRecordingDTO.getId());
-        recordingEntity.setCaptureSession(captureSession);
-        if (createRecordingDTO.getParentRecordingId() != null) {
-            var parentRecording = recordingRepository.findById(createRecordingDTO.getParentRecordingId());
-            if (parentRecording.isEmpty()) {
-                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
-            }
-            recordingEntity.setParentRecording(parentRecording.get());
-        } else {
-            recordingEntity.setParentRecording(null);
-        }
-        recordingEntity.setVersion(createRecordingDTO.getVersion());
-        recordingEntity.setFilename(createRecordingDTO.getFilename());
-        recordingEntity.setDuration(createRecordingDTO.getDuration());
-        recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
-
-        recordingRepository.save(recordingEntity);
-
-        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return upsert(recording, captureSession, createRecordingDTO);
     }
 
     @Transactional
@@ -153,26 +161,7 @@ public class RecordingService {
             .findByIdAndDeletedAtIsNull(createRecordingDTO.getCaptureSessionId())
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId()));
 
-        Recording recordingEntity = recording.orElse(new Recording());
-        recordingEntity.setId(createRecordingDTO.getId());
-        recordingEntity.setCaptureSession(captureSession);
-        if (createRecordingDTO.getParentRecordingId() != null) {
-            var parentRecording = recordingRepository.findById(createRecordingDTO.getParentRecordingId());
-            if (parentRecording.isEmpty()) {
-                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
-            }
-            recordingEntity.setParentRecording(parentRecording.get());
-        } else {
-            recordingEntity.setParentRecording(null);
-        }
-        recordingEntity.setVersion(createRecordingDTO.getVersion());
-        recordingEntity.setFilename(createRecordingDTO.getFilename());
-        recordingEntity.setDuration(createRecordingDTO.getDuration());
-        recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
-
-        recordingRepository.save(recordingEntity);
-
-        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return upsert(recording, captureSession, createRecordingDTO);
     }
 
     @Transactional
