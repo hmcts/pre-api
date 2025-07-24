@@ -143,19 +143,20 @@ feature-flags:
   enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
+  ffmpeg-multi-command: true
 
-#logging:
-#  level:
-#    uk:
-#      gov:
-#        hmcts:
-#          reform:
-#            preapi:
+logging:
+  level:
+    uk:
+      gov:
+        hmcts:
+          reform:
+            preapi:
 #              actuator:
 #                PreApiHealthIndicator: DEBUG
-#              component:
-#                util:
-#                  CommandRunner: DEBUG
+              component:
+                util:
+                  CommandRunner: DEBUG
 #              email:
 #                StopLiveEventNotifierFlowClient: DEBUG
 #                CaseStateChangeNotifierFlowClient: DEBUG
