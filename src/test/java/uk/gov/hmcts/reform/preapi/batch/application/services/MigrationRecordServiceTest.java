@@ -146,39 +146,6 @@ public class MigrationRecordServiceTest {
         verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
     }
 
-    @Test
-    @DisplayName("markResolvedRecordsAsPending should mark all READY records as SUBMITTED")
-    public void markReadyRecordsAsSubmitted_marksResolvedRecordsAsPending() {
-        final MigrationRecord readyRecord1 = createMigrationRecord();
-        readyRecord1.setStatus(VfMigrationStatus.RESOLVED);
-
-        final MigrationRecord readyRecord2 = createMigrationRecord();
-        readyRecord2.setStatus(VfMigrationStatus.RESOLVED);
-
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.RESOLVED))
-            .thenReturn(List.of(readyRecord1, readyRecord2));
-
-        migrationRecordService.markResolvedRecordsAsPending();
-
-        assertThat(readyRecord1.getStatus()).isEqualTo(VfMigrationStatus.PENDING);
-        assertThat(readyRecord2.getStatus()).isEqualTo(VfMigrationStatus.PENDING);
-
-        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.RESOLVED);
-        verify(migrationRecordRepository, times(2)).saveAndFlush(any(MigrationRecord.class));
-        verifyNoMoreInteractions(migrationRecordRepository);
-    }
-
-    @Test
-    @DisplayName("markResolvedRecordsAsPending should do nothing when there are no READY records")
-    public void markReadyRecordsAsSubmitted_doesNothingWhenNoResolvedRecords() {
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.RESOLVED)).thenReturn(List.of());
-
-        migrationRecordService.markResolvedRecordsAsPending();
-
-        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.RESOLVED);
-        verifyNoMoreInteractions(migrationRecordRepository);
-    }
-
     private MigrationRecord createMigrationRecord() {
         final MigrationRecord migrationRecord = new MigrationRecord();
         migrationRecord.setId(UUID.randomUUID());

@@ -520,7 +520,6 @@ public class VfMigrationControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent());
 
-        verify(migrationRecordService, times(1)).markResolvedRecordsAsPending();
         verify(migrateResolved, times(1)).asyncMigrateResolved();
     }
 }

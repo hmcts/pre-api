@@ -133,7 +133,6 @@ public class VfMigrationController extends PreApiController {
     @Operation(operationId = "submitMigrationRecords", summary = "Submits resolved migration records and runs import")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
     public ResponseEntity<Void> submitMigrationRecords() {
-        migrationRecordService.markResolvedRecordsAsPending();
         migrateResolved.asyncMigrateResolved();
 
         return ResponseEntity.noContent().build();

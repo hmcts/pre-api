@@ -470,13 +470,4 @@ public class MigrationRecordService {
 
         return UpsertResult.UPDATED;
     }
-
-    @Transactional
-    public void markResolvedRecordsAsPending() {
-        migrationRecordRepository.findAllByStatus(VfMigrationStatus.RESOLVED)
-            .forEach(record -> {
-                record.setStatus(VfMigrationStatus.PENDING);
-                migrationRecordRepository.saveAndFlush(record);
-            });
-    }
 }
