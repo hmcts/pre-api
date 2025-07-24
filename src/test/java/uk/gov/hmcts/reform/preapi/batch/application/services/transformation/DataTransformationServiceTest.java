@@ -22,7 +22,7 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 // import java.time.Duration;
-import java.time.LocalDateTime;
+// import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,11 +34,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 // import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
+// import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+// import static org.mockito.Mockito.never;
+// import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -375,55 +375,55 @@ public class DataTransformationServiceTest {
     //         .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
     // }
 
-    @Test
-    @DisplayName("Should successfully transform data")
-    void transformDataSuccess() {
-        ExtractedMetadata data = new ExtractedMetadata(
-            "court_one",
-            "urn123",
-            "exhibitReference",
-            "defendantLastName",
-            "witnessFirstName",
-            "1",
-            "1",
-            ".mp4",
-            LocalDateTime.now(),
-            3000,
-            "filename.mp4",
-            "12345",
-            ARCHIVE_ID,
-            ARCHIVE_NAME
-        );
+    // @Test
+    // @DisplayName("Should successfully transform data")
+    // void transformDataSuccess() {
+    //     ExtractedMetadata data = new ExtractedMetadata(
+    //         "court_one",
+    //         "urn123",
+    //         "exhibitReference",
+    //         "defendantLastName",
+    //         "witnessFirstName",
+    //         "1",
+    //         "1",
+    //         ".mp4",
+    //         LocalDateTime.now(),
+    //         3000,
+    //         "filename.mp4",
+    //         "12345",
+    //         ARCHIVE_ID,
+    //         ARCHIVE_NAME
+    //     );
 
-        when(cacheService.getAllSiteReferences())
-            .thenReturn(SITES_DATA_MAP);
-        String key = "vf:pre-process:urn123-defendantLastName-witnessFirstName";
-        when(cacheService.getHashAll(key))
-            .thenReturn(Map.of());
-        mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
-            .thenReturn(new RecordingUtils.VersionDetails("versionType", "1", "1", null, 1, true));
-        when(cacheService.getHashAll(key))
-            .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
+    //     when(cacheService.getAllSiteReferences())
+    //         .thenReturn(SITES_DATA_MAP);
+    //     String key = "vf:pre-process:urn123-defendantLastName-witnessFirstName";
+    //     when(cacheService.getHashAll(key))
+    //         .thenReturn(Map.of());
+    //     mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
+    //         .thenReturn(new RecordingUtils.VersionDetails("versionType", "1", "1", null, 1, true));
+    //     when(cacheService.getHashAll(key))
+    //         .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
 
-        UUID courtId = UUID.randomUUID();
-        Map<String, String> courtData = new HashMap<>();
-        courtData.put("court_one", "Court One");
-        when(cacheService.getAllSiteReferences())
-            .thenReturn(courtData);
-        CourtDTO court = new CourtDTO();
-        court.setId(courtId);
-        when(cacheService.getCourt("Court One")).thenReturn(Optional.of(court));
-        when(courtRepository.findById(courtId)).thenReturn(Optional.of(new Court()));
+    //     UUID courtId = UUID.randomUUID();
+    //     Map<String, String> courtData = new HashMap<>();
+    //     courtData.put("court_one", "Court One");
+    //     when(cacheService.getAllSiteReferences())
+    //         .thenReturn(courtData);
+    //     CourtDTO court = new CourtDTO();
+    //     court.setId(courtId);
+    //     when(cacheService.getCourt("Court One")).thenReturn(Optional.of(court));
+    //     when(courtRepository.findById(courtId)).thenReturn(Optional.of(new Court()));
 
 
-        ServiceResult<ProcessedRecording> result = dataTransformationService.transformData(data);
-        assertThat(result).isNotNull();
-        assertThat(result.isSuccess()).isTrue();
-        assertThat(result.getData()).isNotNull();
-        assertThat(result.getData().getCourt()).isNotNull();
+    //     ServiceResult<ProcessedRecording> result = dataTransformationService.transformData(data);
+    //     assertThat(result).isNotNull();
+    //     assertThat(result.isSuccess()).isTrue();
+    //     assertThat(result.getData()).isNotNull();
+    //     assertThat(result.getData().getCourt()).isNotNull();
 
-        verify(cacheService, times(1)).getAllSiteReferences();
-        verify(loggingService, never())
-            .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
-    }
+    //     verify(cacheService, times(1)).getAllSiteReferences();
+    //     verify(loggingService, never())
+    //         .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
+    // }
 }

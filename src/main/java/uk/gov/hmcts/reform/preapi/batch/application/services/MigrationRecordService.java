@@ -244,6 +244,14 @@ public class MigrationRecordService {
     }
 
     @Transactional
+    public void updateIsPreferred(String archiveId, boolean isPreferred) {
+        migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
+            record.setIsPreferred(isPreferred);
+            migrationRecordRepository.save(record);
+        });
+    }
+
+    @Transactional
     public void updateToFailed(String archiveId, String reason, String errorMessage) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setStatus(VfMigrationStatus.FAILED);
@@ -288,15 +296,16 @@ public class MigrationRecordService {
     }
 
     @Transactional
-    public void updateParentTempIdIfCopy(String archiveId, String recordingGroupKey, String version) {
-        if (!"COPY".equalsIgnoreCase(version)) {
-            return;
-        }
-
+    public void updateParentTempIdIfCopy(String archiveId, String recordingGroupKey, String origVersionStr) {
         Optional<MigrationRecord> maybeOrig = migrationRecordRepository
             .findByRecordingGroupKey(recordingGroupKey)
             .stream()
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+            .filter(r -> r.getIsPreferred() != null && r.getIsPreferred()) 
+            .filter(r -> {
+                String recVersion = r.getRecordingVersionNumber();
+                return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
+            })
             .findFirst();
 
         if (maybeOrig.isEmpty()) {
@@ -312,6 +321,13 @@ public class MigrationRecordService {
     // =========================================
     // ============ HELPERS ====================
     // =========================================
+    @Transactional(readOnly = true)
+    public Optional<MigrationRecord> findOrigByGroupKey(String groupKey) {
+        return migrationRecordRepository.findByRecordingGroupKey(groupKey).stream()
+            .filter(record -> "ORIG".equalsIgnoreCase(record.getRecordingVersion()))
+            .findFirst();
+    }
+
     private static String nullToEmpty(String input) {
         return input == null ? "" : input;
     }
@@ -366,12 +382,23 @@ public class MigrationRecordService {
             }
         }
 
+
+
         loggingService.logDebug(
             "Marking as not preferred? archive=%s, mp4Exists=%s, updated=%s",
             currentArchiveName, mp4Exists, updated
         );
 
         return updated;
+    }
+
+    public List<String> findOrigVersionsByBaseGroupKey(String baseGroupKey) {
+        return migrationRecordRepository.findByRecordingGroupKeyStartingWith(baseGroupKey).stream()
+            .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+            .map(MigrationRecord::getRecordingVersionNumber)
+            .map(v -> v.split("\\.")[0]) 
+            .distinct()
+            .toList();
     }
 
     public Optional<String> findMostRecentVersionNumberInGroup(String groupKey) {
@@ -385,6 +412,7 @@ public class MigrationRecordService {
 
     public static String generateRecordingGroupKey(
         String urn, String exhibitRef, String witnessName, String defendantName) {
+
         return String.join("|",
             nullToEmpty(urn),
             nullToEmpty(exhibitRef),

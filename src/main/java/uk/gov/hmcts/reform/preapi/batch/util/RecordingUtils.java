@@ -3,80 +3,33 @@ package uk.gov.hmcts.reform.preapi.batch.util;
 import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
+import java.util.HashSet;
+import java.util.Set;
+
 
 @UtilityClass
 public final class RecordingUtils {
 
-    public record VersionDetails(
-        String extractedVersionType,             // "ORIG" or "COPY"
-        String extractedVersionNumberStr,        // e.g. "1.2"
-        String origVersionNumberStr,             // always set
-        String copyVersionNumberStr,             // only for COPY recordings
-        int standardisedVersionNumber,           // 1 for ORIG, 2 for COPY
-        boolean isMostRecent
-    ) {
-        @Override
-        public String toString() {
-            return String.format(
-                "VersionDetails[type=%s, number=%s, versionNum=%d, isMostRecent=%b]",
-                extractedVersionType, extractedVersionNumberStr, standardisedVersionNumber, isMostRecent
-            );
-        }
+    public static final Set<String> VALID_VERSION_TYPES = new HashSet<>();
 
+    static {
+        VALID_VERSION_TYPES.addAll(Constants.VALID_ORIG_TYPES);
+        VALID_VERSION_TYPES.addAll(Constants.VALID_COPY_TYPES);
     }
 
-    public VersionDetails processVersioning(
-        String extractedRecordingVersion,
-        String extractedVersionNumberStr,
-        String urn,
-        String defendant,
-        String witness,
-        Map<String, Object> existingCacheData
-    ) {
-        Map<String, Object> dataMap = existingCacheData != null ? existingCacheData : Collections.emptyMap();
-
-        String extractedVersionType = Optional.ofNullable(extractedRecordingVersion)
-            .map(String::toUpperCase)
-            .filter(Constants.VALID_VERSION_TYPES::contains)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid recording version: " + extractedRecordingVersion));
-
-        int recordingVersionNumber = getStandardizedVersionNumberFromType(extractedVersionType);
-
-        String origVersion = "1";
-        String copyVersion = null;
-
-        if ("COPY".equalsIgnoreCase(extractedRecordingVersion)) {
-            String[] parts = extractedVersionNumberStr != null 
-                ? extractedVersionNumberStr.split("\\.") : new String[]{"1"};
-            origVersion = parts.length > 0 ? parts[0] : "1";
-            copyVersion = parts.length > 1 ? parts[1] : null;
-        } else {
-            origVersion = getValidVersionNumber(extractedVersionNumberStr);
+    public static String normalizeVersionType(String input) {
+        if (input == null) {
+            return "ORIG";
         }
 
-        String versionKey = getCacheKeyForVersionType(extractedVersionType);
-        String cachedVersionStr = (String) dataMap.get(versionKey);
-
-        boolean isMostRecent;
-        
-        if ("COPY".equalsIgnoreCase(extractedRecordingVersion)) {
-            int comparison = compareVersionStrings(extractedVersionNumberStr, cachedVersionStr);
-            isMostRecent = comparison == 0;
-        } else {
-            isMostRecent = true;
+        String upper = input.trim().toUpperCase();
+        if (Constants.VALID_ORIG_TYPES.contains(upper)) {
+            return "ORIG";
         }
-
-        return new VersionDetails(
-            extractedVersionType,
-            extractedVersionNumberStr,
-            origVersion,
-            copyVersion,
-            recordingVersionNumber,
-            isMostRecent
-        );
+        if (Constants.VALID_COPY_TYPES.contains(upper)) {
+            return "COPY";
+        }
+        return "ORIG"; 
     }
 
 
@@ -88,17 +41,11 @@ public final class RecordingUtils {
         return (versionNumStr == null || versionNumStr.trim().isEmpty()) ? "1" : versionNumStr.trim();
     }
 
-    private String getCacheKeyForVersionType(String versionType) {
-        return Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())
-            ? "origVersionNumber"
-            : "copyVersionNumber";
-    }
-
     public int compareVersionStrings(String v1, String v2) {
-        if (v1 == null) {
+        if (v1 == null || v1.isBlank()) {
             v1 = "0";
         }
-        if (v2 == null) {
+        if (v2 == null || v2.isBlank()) {
             v2 = "0";
         }
 
@@ -107,9 +54,8 @@ public final class RecordingUtils {
 
         int length = Math.max(v1Parts.length, v2Parts.length);
         for (int i = 0; i < length; i++) {
-            int v1Part = (i < v1Parts.length) ? Integer.parseInt(v1Parts[i]) : 0;
-            int v2Part = (i < v2Parts.length) ? Integer.parseInt(v2Parts[i]) : 0;
-
+            int v1Part = (i < v1Parts.length) ? parseVersionPart(v1Parts[i]) : 0;
+            int v2Part = (i < v2Parts.length) ? parseVersionPart(v2Parts[i]) : 0;
             if (v1Part < v2Part) {
                 return -1;
             }
@@ -120,4 +66,24 @@ public final class RecordingUtils {
         }
         return 0;
     }
+
+    private int parseVersionPart(String part) {
+        try {
+            return Integer.parseInt(part.replaceAll("[^0-9]", ""));
+        } catch (NumberFormatException e) {
+            return 0; 
+        }
+    }
+
+    public record VersionDetails(
+        String extractedVersionType,             // "ORIG" or "COPY"
+        String extractedVersionNumberStr,        // e.g. "1.2"
+        String origVersionNumberStr,             // always set
+        String copyVersionNumberStr,             // only for COPY recordings
+        int standardisedVersionNumber,           // 1 for ORIG, 2 for COPY
+        boolean isMostRecent
+    ) {
+    }
+
+    
 }

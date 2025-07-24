@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
@@ -11,6 +12,8 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
+
+import java.util.Optional;
 
 /**
  * Processes recording metadata from vf_migration_records with status PENDING.
@@ -43,7 +46,10 @@ public class RecordingMetadataProcessor {
    
     public void processRecording(MigrationRecord archiveItem) {
         try {
-            if (migrationRecordService.findByArchiveId(archiveItem.getArchiveId()).isPresent()) {
+
+            Optional<MigrationRecord> existingRecord = migrationRecordService.findByArchiveId(
+                archiveItem.getArchiveId());
+            if (existingRecord.isPresent() && existingRecord.get().getStatus() != VfMigrationStatus.PENDING) {
                 return;
             }
 
@@ -63,8 +69,12 @@ public class RecordingMetadataProcessor {
             }
             
             ProcessedRecording cleansedData = result.getData();
+            migrationRecordService.updateIsPreferred(
+                cleansedData.getArchiveId(),
+                cleansedData.isPreferred()
+            );
         
-            String extractedVersionType = cleansedData.getExtractedRecordingVersion().toUpperCase(); // ORIG or COPY
+            String origVersionStr = cleansedData.getOrigVersionNumberStr();
 
             String groupKey = MigrationRecordService.generateRecordingGroupKey(
                 extractedData.getUrn(),
@@ -77,7 +87,7 @@ public class RecordingMetadataProcessor {
                 migrationRecordService.updateParentTempIdIfCopy(
                     archiveItem.getArchiveId(), 
                     groupKey,
-                    extractedVersionType 
+                    origVersionStr
                 );
             }
 

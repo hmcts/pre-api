@@ -7,6 +7,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
 import uk.gov.hmcts.reform.preapi.batch.util.RegexPatterns;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
@@ -107,6 +108,7 @@ public class DataExtractionService {
     private ExtractedMetadata extractMetaData(Matcher matcher, MigrationRecord archiveItem) {
         String versionType = getMatcherGroup(matcher, "versionType");
         String versionNumber = getMatcherGroup(matcher, "versionNumber");
+        versionType = RecordingUtils.normalizeVersionType(versionType);
 
         if (Constants.VALID_ORIG_TYPES.contains(versionType != null ? versionType.toUpperCase() : "") 
             && (versionNumber == null || versionNumber.isEmpty())) {
