@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -649,5 +650,21 @@ class RecordingServiceTest {
         verify(azureFinalStorageService, times(1)).getMp4FileName(recording.getId().toString());
         verify(azureFinalStorageService, times(1)).getRecordingDuration(recording.getId());
         verify(recordingRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("Find all recordings with null duration")
+    void findAllDurationNullSuccess() {
+        recordingEntity.setDuration(null);
+
+        when(recordingRepository.findAllByDurationIsNullAndDeletedAtIsNull())
+            .thenReturn(List.of(recordingEntity));
+
+        List<RecordingDTO> results = recordingService.findAllDurationNull();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().getId()).isEqualTo(recordingEntity.getId());
+
+        verify(recordingRepository, times(1)).findAllByDurationIsNullAndDeletedAtIsNull();
     }
 }

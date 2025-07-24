@@ -8,6 +8,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -16,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -179,5 +186,56 @@ public class RecordingServiceIT extends IntegrationTestBase {
         entityManager.persist(recording2);
         var nextVersion2 = recordingService.getNextVersionNumber(recording1.getId());
         assertThat(nextVersion2).isEqualTo(3);
+    }
+
+    @Test
+    @Transactional
+    void findAllDurationNullReturnsOnlyRecordingsWithNullDuration() {
+        mockAdminUser();
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        Case caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        Booking booking = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking);
+
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        Recording recordingWithNullDuration = HelperFactory.createRecording(
+            captureSession, null, 1, "nullDurationFile", null);
+        entityManager.persist(recordingWithNullDuration);
+
+        Recording recordingWithDuration = HelperFactory.createRecording(
+            captureSession,
+            null,
+            2,
+            "withDurationFile",
+            Timestamp.from(Instant.now())
+        );
+        entityManager.persist(recordingWithDuration);
+
+        Recording deletedRecording = HelperFactory.createRecording(captureSession, null, 3, "deletedFile", null);
+        deletedRecording.setDeletedAt(Timestamp.from(Instant.now()));
+        entityManager.persist(deletedRecording);
+
+        List<RecordingDTO> results = recordingService.findAllDurationNull();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().getId()).isEqualTo(recordingWithNullDuration.getId());
     }
 }
