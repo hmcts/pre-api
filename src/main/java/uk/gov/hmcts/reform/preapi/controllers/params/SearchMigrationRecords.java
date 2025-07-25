@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 
-import java.time.LocalDate;
+import java.util.Date;
 import java.util.UUID;
 
 @Data
@@ -22,8 +22,8 @@ public class SearchMigrationRecords {
     private VfMigrationStatus status;
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private LocalDate createDateFrom;
+    private Date createDateFrom;
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private LocalDate createDateTo;
+    private Date createDateTo;
 }

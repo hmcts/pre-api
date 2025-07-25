@@ -32,7 +32,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
-import java.time.LocalDate;
+import java.util.Date;
 import java.util.UUID;
 
 @RestController
@@ -79,13 +79,13 @@ public class VfMigrationController extends PreApiController {
     @Parameter(
         name = "createDateFrom",
         description = "The date the record was created to search from",
-        schema = @Schema(implementation = LocalDate.class, format = "date"),
+        schema = @Schema(implementation = Date.class, format = "date"),
         example = "2024-04-27"
     )
     @Parameter(
         name = "createDateTo",
         description = "The date the record was created to search to",
-        schema = @Schema(implementation = LocalDate.class, format = "date"),
+        schema = @Schema(implementation = Date.class, format = "date"),
         example = "2024-04-27"
     )
     @Parameter(

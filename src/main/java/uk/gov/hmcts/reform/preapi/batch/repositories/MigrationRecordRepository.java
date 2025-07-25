@@ -16,8 +16,6 @@ import java.util.UUID;
 public interface MigrationRecordRepository extends JpaRepository<MigrationRecord, UUID> {
     Optional<MigrationRecord> findByArchiveId(String archiveId);
 
-    Optional<MigrationRecord> findByArchiveName(String archiveName);
-
     List<MigrationRecord> findAllByArchiveName(String archiveName);
 
     List<MigrationRecord> findAllByStatus(VfMigrationStatus status);
@@ -32,9 +30,8 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         AND (:#{#params.witnessName} IS NULL OR mr.witnessName ILIKE %:#{#params.witnessName}%)
         AND (:#{#params.defendantName} IS NULL OR mr.defendantName ILIKE %:#{#params.defendantName}%)
         AND (:#{#params.caseReference} IS NULL OR mr.exhibitReference ILIKE %:#{#params.caseReference}%)
-        AND (:#{#params.createDateFrom} IS NULL OR mr.createTime >= :#{#params.createDateFrom})
-        AND (:#{#params.createDateTo} IS NULL OR mr.createTime <= :#{#params.createDateTo})
-        AND (:#{#params.courtReference} IS NULL OR mr.courtReference = :#{#params.courtReference})
+        AND (CAST(:#{#params.createDateFrom} as Timestamp) IS NULL OR mr.createTime >= :#{#params.createDateFrom})
+        AND (CAST(:#{#params.createDateTo} as Timestamp) IS NULL OR mr.createTime <= :#{#params.createDateTo})
         AND (:#{#params.courtId} IS NULL OR mr.courtId = :#{#params.courtId})
         """)
     Page<MigrationRecord> findAllBy(@Param("params") SearchMigrationRecords params, Pageable pageable);
