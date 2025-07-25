@@ -11,6 +11,8 @@ public final class ArchiveNameSanitizer {
         }
 
         return archiveName
+            .replaceFirst("^(?i)OLD[-_\\s]+", "") 
+            .replaceFirst("^(?i)NEW[-_\\s]+", "") 
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")

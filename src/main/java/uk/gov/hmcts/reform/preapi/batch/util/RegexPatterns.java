@@ -60,6 +60,10 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
+    public static final Pattern UUID_STYLE_R_PREFIX_PATTERN = Pattern.compile(
+        "^R[a-f0-9]{32}$", Pattern.CASE_INSENSITIVE
+    );
+
     public static final Pattern QC_FILENAME_PATTERN = Pattern.compile(".*QC.*", Pattern.CASE_INSENSITIVE);
 
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
@@ -78,7 +82,8 @@ public final class RegexPatterns {
         Map.entry("Batch Pattern", SIMPLE_BATCH_PATTERN),
         Map.entry("VMR Timestamp Pattern",VMR_TIMESTAMP_PATTERN),
         Map.entry("Postrmx Pattern", POSTRMX_PATTERN),
-        Map.entry("VMR Simple Pattern", SIMPLE_VMR_TEST_PATTERN)
+        Map.entry("VMR Simple Pattern", SIMPLE_VMR_TEST_PATTERN),
+        Map.entry("UUID R Prefix Pattern",UUID_STYLE_R_PREFIX_PATTERN)
     );
 
     private static Pattern buildTestKeywordsPattern() {
@@ -321,6 +326,8 @@ public final class RegexPatterns {
         + EXTENSION_PATTERN + "$",
         Pattern.CASE_INSENSITIVE
     );
+
+   
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
         Map.entry("Standard", RegexPatterns.STANDARD_PATTERN),

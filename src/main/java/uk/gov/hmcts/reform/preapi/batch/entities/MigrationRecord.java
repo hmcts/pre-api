@@ -61,6 +61,10 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Column(name = "court_reference", length = 25)
     private String courtReference;
 
+
+    @Column(name = "court_id")
+    private UUID courtId;
+
     @Column(length = 11)
     private String urn;
 

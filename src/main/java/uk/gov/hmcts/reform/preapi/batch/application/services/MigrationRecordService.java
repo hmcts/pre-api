@@ -221,6 +221,7 @@ public class MigrationRecordService {
     public void updateMetadataFields(String archiveId, ExtractedMetadata extracted) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setCourtReference(extracted.getCourtReference());
+            record.setCourtId(extracted.getCourtId());
             record.setUrn(extracted.getUrn());
             record.setExhibitReference(extracted.getExhibitReference());
             record.setDefendantName(extracted.getDefendantLastName());

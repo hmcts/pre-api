@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Getter
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class ExtractedMetadata implements IArchiveData {
     private String courtReference;
+    private UUID courtId;
     private String urn;
     private String exhibitReference;
     private String defendantLastName;
@@ -32,6 +34,7 @@ public class ExtractedMetadata implements IArchiveData {
 
     public ExtractedMetadata(
         String courtReference,
+        UUID courtId,
         String urn,
         String exhibitReference,
         String defendantLastName,
@@ -47,6 +50,7 @@ public class ExtractedMetadata implements IArchiveData {
         String archiveName
     ) {
         this.courtReference = courtReference;
+        this.courtId = courtId;
         this.urn = urn != null ? urn.toUpperCase() : null;
         this.exhibitReference = exhibitReference != null ? exhibitReference.toUpperCase() : null;
         this.defendantLastName = formatName(
