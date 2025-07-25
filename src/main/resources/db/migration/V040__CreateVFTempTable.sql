@@ -16,7 +16,6 @@ CREATE TABLE public.vf_migration_records (
     duration INTEGER,
     court_id UUID,
     court_reference VARCHAR(25),
-    court_id UUID,
     urn VARCHAR(20),
     exhibit_reference VARCHAR(15),
     defendant_name VARCHAR(100),

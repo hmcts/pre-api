@@ -8,11 +8,12 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.specialized.BlobInputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest(classes = AzureVodafoneStorageService.class)
 public class AzureVodafoneStorageServiceTest {
     @MockitoBean
     private BlobServiceClient vodafoneStorageClient;
@@ -37,6 +38,9 @@ public class AzureVodafoneStorageServiceTest {
     private BlobClient blobClient;
 
     @MockitoBean
+    private AzureConfiguration azureConfiguration;
+
+    @Autowired
     private AzureVodafoneStorageService azureVodafoneStorageService;
 
     @BeforeEach

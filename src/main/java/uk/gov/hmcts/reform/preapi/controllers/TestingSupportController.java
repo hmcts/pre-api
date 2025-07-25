@@ -550,6 +550,7 @@ class TestingSupportController {
         record.setArchiveName(randomArchiveName);
         record.setCreateTime(new Timestamp(System.currentTimeMillis()));
         record.setDuration((int) (Math.random() * 1000));
+        record.setRecordingVersionNumber("1");
         record.setFileName("file_" + randomArchiveId.substring(0, 4) + ".mp4");
         record.setFileSizeMb(String.valueOf((Math.random() * 100) + 1));
         record.setStatus(VfMigrationStatus.FAILED);
