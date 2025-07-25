@@ -13,6 +13,7 @@ jobs:
     with:
       test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisherTest'
       java_version: 17
+      api_name: 'pre-api-core'
   publish-b2c-api:
     uses: hmcts/workflow-publish-openapi-spec/.github/workflows/publish-openapi.yml@specify-api-name
     secrets:
