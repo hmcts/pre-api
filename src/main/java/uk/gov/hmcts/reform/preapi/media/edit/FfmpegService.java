@@ -73,7 +73,7 @@ public class FfmpegService implements IEditingService {
         runFfmpegCommand(request.getId(), command, inputFileName, outputFileName, filesToDelete);
 
         // upload to ingest storage
-        uploadOutputFie(newRecordingId, outputFileName, filesToDelete);
+        uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
 
         cleanup(filesToDelete);
     }
@@ -98,7 +98,7 @@ public class FfmpegService implements IEditingService {
                     outputFileName,
                     filesToDelete
                 );
-                uploadOutputFie(newRecordingId, outputFileName, filesToDelete);
+                uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
                 cleanup(filesToDelete);
                 return;
             }
@@ -120,7 +120,7 @@ public class FfmpegService implements IEditingService {
             final long ffmpegEnd = System.currentTimeMillis();
             log.info("All ffmpeg commands completed in {} ms", (ffmpegEnd - ffmpegStart));
 
-            uploadOutputFie(newRecordingId, outputFileName, filesToDelete);
+            uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
         } finally {
             cleanup(filesToDelete);
         }
@@ -321,9 +321,9 @@ public class FfmpegService implements IEditingService {
 
     }
 
-    private void uploadOutputFie(final UUID newRecordingId,
-                                 final String outputFileName,
-                                 final List<String> filesToDelete) {
+    private void uploadOutputFile(final UUID newRecordingId,
+                                  final String outputFileName,
+                                  final List<String> filesToDelete) {
         final long uploadStart = System.currentTimeMillis();
         if (!azureIngestStorageService.uploadBlob(outputFileName, newRecordingId + "-input", outputFileName)) {
             cleanup(filesToDelete);
