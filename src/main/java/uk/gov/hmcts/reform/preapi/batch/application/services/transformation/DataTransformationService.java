@@ -72,13 +72,13 @@ public class DataTransformationService {
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
         // === Normalize version type and number ===
-        String rawVersionType = extracted.getRecordingVersion();          
-        String rawVersionNumber = extracted.getRecordingVersionNumber();    
+        String rawVersionType = extracted.getRecordingVersion();
+        String rawVersionNumber = extracted.getRecordingVersionNumber();
 
         String versionType = RecordingUtils.normalizeVersionType(rawVersionType);
-        String versionNumber = RecordingUtils.getValidVersionNumber(rawVersionNumber); 
+        String versionNumber = RecordingUtils.getValidVersionNumber(rawVersionNumber);
 
-        String origVersionStr = "1"; 
+        String origVersionStr = "1";
         String copyVersionStr = null;
 
         if ("COPY".equals(versionType)) {
@@ -94,7 +94,7 @@ public class DataTransformationService {
                 : versionNumber;
 
             List<String> availableOrigVersions = migrationRecordService
-                .findOrigVersionsByBaseGroupKey(baseGroupKey); 
+                .findOrigVersionsByBaseGroupKey(baseGroupKey);
 
             if (availableOrigVersions.contains(versionPrefix)) {
                 origVersionStr = versionPrefix;
@@ -188,8 +188,8 @@ public class DataTransformationService {
             .copyVersionNumberStr(copyVersionStr)
             .extractedRecordingVersion(versionType)
             .extractedRecordingVersionNumberStr(versionNumber)
-            .recordingVersionNumber(versionDetails.standardisedVersionNumber())    
-    
+            .recordingVersionNumber(versionDetails.standardisedVersionNumber())
+
             .isMostRecentVersion(isMostRecent)
 
             .isPreferred(isPreferred)
