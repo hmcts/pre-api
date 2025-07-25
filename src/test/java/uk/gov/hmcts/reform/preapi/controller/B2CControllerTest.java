@@ -114,4 +114,66 @@ class B2CControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .contains("Unknown email service: GovNotify");
     }
+
+    @DisplayName("Should not send email verification email invalid email")
+    @Test
+    void sendEmailVerificationEmailInvalidEmail() throws Exception {
+
+        var email = "testtest.com";
+        var accessDTO = mock(AccessDTO.class);
+        var user = mock(BaseUserDTO.class);
+        when(accessDTO.getUser()).thenReturn(user);
+        when(user.getFirstName()).thenReturn("Foo");
+        when(user.getLastName()).thenReturn("Bar");
+
+        var emailService = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService("GovNotify")).thenReturn(emailService);
+
+        when(userService.findByEmail(email)).thenReturn(accessDTO);
+        when(emailService.emailVerification(email, "Foo", "Bar", "123456"))
+            .thenReturn(null); // no errors
+
+        var request = new VerifyEmailRequestDTO();
+        request.setEmail(email);
+        request.setVerificationCode("123456");
+
+        mockMvc.perform(post(TEST_URL + "/b2c/email-verification")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(request))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+    }
+
+    @DisplayName("Should not send email verification email invalid verification code")
+    @Test
+    void sendEmailVerificationEmailInvalidVerificationCode() throws Exception {
+
+        var email = "test@test.com";
+        var accessDTO = mock(AccessDTO.class);
+        var user = mock(BaseUserDTO.class);
+        when(accessDTO.getUser()).thenReturn(user);
+        when(user.getFirstName()).thenReturn("Foo");
+        when(user.getLastName()).thenReturn("Bar");
+
+        var emailService = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService("GovNotify")).thenReturn(emailService);
+
+        when(userService.findByEmail(email)).thenReturn(accessDTO);
+        when(emailService.emailVerification(email, "Foo", "Bar", "123456"))
+            .thenReturn(null); // no errors
+
+        var request = new VerifyEmailRequestDTO();
+        request.setEmail(email);
+        request.setVerificationCode("123456DFSGDFG");
+
+        mockMvc.perform(post(TEST_URL + "/b2c/email-verification")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(request))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+    }
 }
