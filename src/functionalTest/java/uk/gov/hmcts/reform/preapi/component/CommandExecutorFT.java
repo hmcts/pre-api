@@ -18,5 +18,6 @@ public class CommandExecutorFT {
     @DisplayName("Should have access to use ffmpeg command")
     void ffmpeg() {
         assertTrue(commandExecutor.execute(new CommandLine("ffmpeg").addArgument("-version")));
+        assertTrue(commandExecutor.execute(new CommandLine("ffprobe").addArgument("-version")));
     }
 }

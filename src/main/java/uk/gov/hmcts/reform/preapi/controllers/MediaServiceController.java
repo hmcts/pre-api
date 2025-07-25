@@ -227,17 +227,18 @@ public class MediaServiceController extends PreApiController {
                     dto =
                         captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.NO_RECORDING, null);
                 } else {
-                    var encodeJob = new EncodeJobDTO();
-                    encodeJob.setCaptureSessionId(captureSessionId);
-                    encodeJob.setJobName(jobName);
-                    encodeJob.setRecordingId(recordingId);
-                    encodeJob.setTransform(EncodeTransform.ENCODE_FROM_INGEST);
-                    encodeJobService.upsert(encodeJob);
                     dto = captureSessionService.stopCaptureSession(
                         captureSessionId,
                         RecordingStatus.PROCESSING,
                         recordingId
                     );
+                    var encodeJob = new EncodeJobDTO();
+                    encodeJob.setId(UUID.randomUUID());
+                    encodeJob.setCaptureSessionId(captureSessionId);
+                    encodeJob.setJobName(jobName);
+                    encodeJob.setRecordingId(recordingId);
+                    encodeJob.setTransform(EncodeTransform.ENCODE_FROM_INGEST);
+                    encodeJobService.upsert(encodeJob);
                 }
             }
         } catch (Exception e) {

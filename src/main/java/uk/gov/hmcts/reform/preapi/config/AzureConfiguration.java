@@ -103,4 +103,8 @@ public class AzureConfiguration {
             return null;
         }
     }
+
+    public boolean isUsingManagedIdentity() {
+        return managedIdentityClientId != null && !managedIdentityClientId.isEmpty();
+    }
 }
