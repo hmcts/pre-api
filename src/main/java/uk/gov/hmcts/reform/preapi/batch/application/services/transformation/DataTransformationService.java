@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class DataTransformationService {
@@ -54,13 +53,8 @@ public class DataTransformationService {
 
         try {
             loggingService.logDebug(
-                "Extracted data : %s",
-                extracted
-            );
-
-            loggingService.logDebug(
                 "Starting data transformation for archive: %s",
-                extracted.getSanitizedArchiveName()
+                extracted.getSanitizedArchiveName(), extracted
             );
 
             Map<String, String> sitesDataMap = getSitesData();
@@ -72,12 +66,53 @@ public class DataTransformationService {
         }
     }
 
-    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     protected ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
 
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
-        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
+
+        // === Normalize version type and number ===
+        String rawVersionType = extracted.getRecordingVersion();
+        String rawVersionNumber = extracted.getRecordingVersionNumber();
+
+        String versionType = RecordingUtils.normalizeVersionType(rawVersionType);
+        String versionNumber = RecordingUtils.getValidVersionNumber(rawVersionNumber);
+
+        String origVersionStr = "1";
+        String copyVersionStr = null;
+
+        if ("COPY".equals(versionType)) {
+            String baseGroupKey = MigrationRecordService.generateRecordingGroupKey(
+                extracted.getUrn(),
+                extracted.getExhibitReference(),
+                extracted.getWitnessFirstName(),
+                extracted.getDefendantLastName()
+            );
+
+            String versionPrefix = versionNumber.contains(".")
+                ? versionNumber.split("\\.")[0]
+                : versionNumber;
+
+            List<String> availableOrigVersions = migrationRecordService
+                .findOrigVersionsByBaseGroupKey(baseGroupKey);
+
+            if (availableOrigVersions.contains(versionPrefix)) {
+                origVersionStr = versionPrefix;
+            } else if (!availableOrigVersions.isEmpty()) {
+                origVersionStr = availableOrigVersions.stream()
+                    .sorted(RecordingUtils::compareVersionStrings)
+                    .findFirst()
+                    .orElse("1");
+            } else {
+                origVersionStr = "1";
+            }
+
+            if (versionNumber.contains(".")) {
+                copyVersionStr = versionNumber.split("\\.")[1];
+            }
+        } else if (versionType.equals("ORIG")) {
+            origVersionStr = versionNumber;
+        }
 
         String groupKey = MigrationRecordService.generateRecordingGroupKey(
             extracted.getUrn(),
@@ -86,29 +121,17 @@ public class DataTransformationService {
             extracted.getDefendantLastName()
         );
 
-        Optional<String> mostRecentVersionOpt = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey);
+        // === Determine if this COPY is the most recent ===
+        boolean isMostRecent = true;
+        if ("COPY".equalsIgnoreCase(versionType)) {
+            isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
+                .map(mostRecent -> RecordingUtils.compareVersionStrings(versionNumber, mostRecent) >= 0)
+                .orElse(true);
+        }
 
-        boolean isMostRecent = mostRecentVersionOpt
-            .map(mostRecent -> RecordingUtils.compareVersionStrings(
-                extracted.getRecordingVersionNumber(),
-                mostRecent
-            ) >= 0)
-            .orElse(true);
-
-        RecordingUtils.VersionDetails versionDetails = new RecordingUtils.VersionDetails(
-            extracted.getRecordingVersion(),
-            extracted.getRecordingVersionNumber(),
-            extracted.getRecordingVersion().startsWith("COPY")
-                ? extracted.getRecordingVersionNumber().split("\\.")[0]
-                : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber(),
-            extracted.getRecordingVersion().startsWith("COPY") && extracted.getRecordingVersionNumber().contains(".")
-                ? extracted.getRecordingVersionNumber().split("\\.")[1]
-                : null,
-            RecordingUtils.getStandardizedVersionNumberFromType(extracted.getRecordingVersion()),
-            isMostRecent
-        );
-
+        // === Determine preference ===
         boolean isPreferred = true;
+
         if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4")) {
             boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveName());
             if (updated) {
@@ -116,8 +139,8 @@ public class DataTransformationService {
             }
         }
 
-        boolean isPreferredFromDeduplication = migrationRecordService
-            .deduplicatePreferredByArchiveId(extracted.getArchiveId());
+        boolean isPreferredFromDeduplication = migrationRecordService.deduplicatePreferredByArchiveId(
+            extracted.getArchiveId());
         if (!isPreferredFromDeduplication) {
             isPreferred = false;
         }
@@ -126,11 +149,24 @@ public class DataTransformationService {
             loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
         }
 
+        // === Court Resolution ===
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
         if (court == null) {
             loggingService.logWarning("Court not found for reference: %s", extracted.getCourtReference());
         }
 
+        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
+
+        // === Version details holder ===
+        RecordingUtils.VersionDetails versionDetails = new RecordingUtils.VersionDetails(
+            versionType,
+            versionNumber,
+            origVersionStr,
+            copyVersionStr,
+            RecordingUtils.getStandardizedVersionNumberFromType(versionType),
+            isMostRecent
+        );
+        // === Build final recording ===
         return ProcessedRecording.builder()
             .archiveId(extracted.getArchiveId())
             .archiveName(extracted.getArchiveName())
@@ -148,25 +184,13 @@ public class DataTransformationService {
             .caseReference(extracted.createCaseReference())
             .defendantLastName(extracted.getDefendantLastName())
             .witnessFirstName(extracted.getWitnessFirstName())
-
-            .extractedRecordingVersion(extracted.getRecordingVersion())  // ORIG or COPY
-            .extractedRecordingVersionNumberStr(extracted.getRecordingVersionNumber()) // "2"
-            .origVersionNumberStr(
-                extracted.getRecordingVersion().startsWith("COPY")
-                    ? extracted.getRecordingVersionNumber().split("\\.")[0]
-                    : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber()
-            )
-            .copyVersionNumberStr(
-                extracted.getRecordingVersion().startsWith("COPY")
-                    && extracted.getRecordingVersionNumber().contains(".")
-                    ? extracted.getRecordingVersionNumber().split("\\.")[1]
-                    : null
-            )
+            .origVersionNumberStr(origVersionStr)
+            .copyVersionNumberStr(copyVersionStr)
+            .extractedRecordingVersion(versionType)
+            .extractedRecordingVersionNumberStr(versionNumber)
             .recordingVersionNumber(versionDetails.standardisedVersionNumber())
 
-            .isMostRecentVersion(
-                migrationRecordService.isMostRecentVersion(extracted.getArchiveId())
-            )
+            .isMostRecentVersion(isMostRecent)
 
             .isPreferred(isPreferred)
             .fileExtension(extracted.getFileExtension())

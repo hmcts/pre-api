@@ -24,6 +24,8 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     List<MigrationRecord> findByRecordingGroupKey(String recordingGroupKey);
 
+    List<MigrationRecord> findByRecordingGroupKeyStartingWith(String baseGroupKey);
+
     @Query("""
         SELECT mr FROM MigrationRecord mr
         WHERE (:#{#params.status} IS NULL OR mr.status = :#{#params.status})

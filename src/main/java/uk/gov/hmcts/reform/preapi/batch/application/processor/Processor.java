@@ -306,6 +306,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
         return new ExtractedMetadata(
             migrationRecord.getCourtReference(),
+            migrationRecord.getCourtId(),
             migrationRecord.getUrn(),
             migrationRecord.getExhibitReference(),
             migrationRecord.getDefendantName(),

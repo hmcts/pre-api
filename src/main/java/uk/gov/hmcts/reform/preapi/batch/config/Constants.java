@@ -30,7 +30,8 @@ public final class Constants {
         "sample", "mock", "dummy", "example", "playback", "predefined",
         "fig_room", "failover", "viw", "support", "wrong", "rmx006",
         "rmx005", "recording", "rpms", "rmx-load", "snoc",
-        "s28 rpcs room", "rpp1", "qc"
+        "s28 rpcs room", "rpp1", "qc", "g7500","vmr754",
+        "pre-change_ms_upgrade","delete"
     );
 
     // Cache keys

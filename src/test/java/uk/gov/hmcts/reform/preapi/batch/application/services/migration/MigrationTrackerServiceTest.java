@@ -271,7 +271,7 @@ public class MigrationTrackerServiceTest {
     @Test
     void writeCategorizedFailureReportsFailure() {
         ExtractedMetadata extractedMetadata1 = new ExtractedMetadata();
-        extractedMetadata1.setFileName("test.csv");
+        extractedMetadata1.setFileSize("test.csv");
         extractedMetadata1.setFileSize("5");
         FailedItem failedItem = new FailedItem(extractedMetadata1, "ReasonA", "CategoryA");
 

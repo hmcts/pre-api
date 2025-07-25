@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.io.InputStream;
@@ -46,6 +47,9 @@ import static org.mockito.Mockito.when;
 public class AzureFinalStorageServiceTest {
     @MockitoBean
     private BlobServiceClient finalStorageClient;
+
+    @MockitoBean
+    private AzureConfiguration azureConfiguration;
 
     @Mock
     private BlobContainerClient blobContainerClient;
@@ -378,5 +382,40 @@ public class AzureFinalStorageServiceTest {
         azureFinalStorageService.createContainerIfNotExists(containerName);
 
         verify(finalStorageClient, times(1)).createBlobContainerIfNotExists(containerName);
+    }
+
+    @Test
+    void generateReadSasUrlSuccess() {
+        String containerName = "test-container";
+        String blobName = "video.mp4";
+        BlobItem blobItem = mock(BlobItem.class);
+
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(blobItem.getName()).thenReturn(blobName);
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+        BlobClient blobClient = mock(BlobClient.class);
+        when(blobContainerClient.getBlobClient(blobName)).thenReturn(blobClient);
+        when(blobClient.getBlobUrl()).thenReturn("https://example.com/" + blobName);
+
+        String expectedSasUrl = "https://example.com/" + blobName;
+        when(blobClient.getBlobUrl()).thenReturn(expectedSasUrl);
+        when(blobClient.generateSas(any())).thenReturn("sasToken=token");
+
+        String actualSasUrl = azureFinalStorageService.generateReadSasUrl(containerName, blobName);
+
+        assertThat(actualSasUrl).isEqualTo(expectedSasUrl + "?sasToken=token");
+    }
+
+    @Test
+    void generateReadSasUrlBlobDoesNotExist() {
+        var containerName = "test-container";
+        var blobName = "nonexistent.mp4";
+
+        when(blobContainerClient.exists()).thenReturn(false);
+
+        assertThrows(
+            NotFoundException.class,
+            () -> azureFinalStorageService.generateReadSasUrl(containerName, blobName)
+        );
     }
 }
