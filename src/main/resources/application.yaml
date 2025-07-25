@@ -128,7 +128,7 @@ slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
 editing:
-  enable: ${ENABLE_AUTOMATED_EDITING:false}
+  enable: ${ENABLE_AUTOMATED_EDITING:true}
 
 tasks:
   start-live-event:
