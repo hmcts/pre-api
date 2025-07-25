@@ -2342,10 +2342,16 @@ definitions:
     properties:
       email:
         description: Email
+        minLength: 1
         type: string
       verification_code:
         description: VerificationCode
+        minLength: 1
+        pattern: '^[0-9]{6}$'
         type: string
+    required:
+      - email
+      - verification_code
     type: object
 externalDocs:
   description: README
