@@ -105,9 +105,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (status == VfMigrationStatus.PENDING) {
             try {
                 ExtractedMetadata extractedData = extractData(migrationRecord);
-                if (extractedData == null) {
-                    return null;
-                }
 
                 migrationRecordService.updateMetadataFields(archiveId, extractedData);
 
