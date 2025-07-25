@@ -243,8 +243,8 @@ public class FfmpegService implements IEditingService {
     }
 
     protected CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
-                                                  final String inputFileName,
-                                                  final String outputFileName) {
+                                                    final String inputFileName,
+                                                    final String outputFileName) {
         return new CommandLine("ffmpeg")
             .addArgument("-y")
             .addArgument("-ss").addArgument(String.valueOf(instruction.getStart()))
@@ -269,8 +269,8 @@ public class FfmpegService implements IEditingService {
     }
 
     protected LinkedHashMap<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
-                                                               final String inputFileName,
-                                                               final String outputFileName) {
+                                                                           final String inputFileName,
+                                                                           final String outputFileName) {
         EditInstructions instructions = fromJson(editRequest.getEditInstruction());
 
         if (instructions.getFfmpegInstructions() == null
