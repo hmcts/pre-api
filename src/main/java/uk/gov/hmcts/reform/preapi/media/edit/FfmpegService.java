@@ -66,7 +66,7 @@ public class FfmpegService implements IEditingService {
         var command = generateCommand(request, inputFileName, outputFileName);
 
         // download from final storage
-        downloadInputFile(request, outputFileName);
+        downloadInputFile(request, inputFileName);
         List<String> filesToDelete = List.of(inputFileName, outputFileName);
 
         // apply ffmpeg
@@ -76,6 +76,54 @@ public class FfmpegService implements IEditingService {
         uploadOutputFie(newRecordingId, outputFileName, filesToDelete);
 
         cleanup(filesToDelete);
+    }
+
+    private void performEditsAsMultiCommand(final EditRequest request,
+                                            final UUID newRecordingId,
+                                            final String inputFileName,
+                                            final String outputFileName) {
+        final List<String> filesToDelete = new ArrayList<>();
+        filesToDelete.add(inputFileName);
+        filesToDelete.add(outputFileName);
+        final Map<String, CommandLine> commands = generateMultiEditCommands(request, inputFileName, outputFileName);
+
+        downloadInputFile(request, inputFileName);
+        try {
+            // single command
+            if (commands.size() == 1) {
+                runFfmpegCommand(
+                    request.getId(),
+                    commands.get(outputFileName),
+                    inputFileName,
+                    outputFileName,
+                    filesToDelete
+                );
+                uploadOutputFie(newRecordingId, outputFileName, filesToDelete);
+                cleanup(filesToDelete);
+                return;
+            }
+
+            final long ffmpegStart = System.currentTimeMillis();
+
+            // multi-command
+            commands.forEach((segmentFileName, command) -> {
+                filesToDelete.add(segmentFileName);
+                runFfmpegCommand(request.getId(), command, inputFileName, segmentFileName, filesToDelete);
+            });
+
+            // concat segments
+            generateConcatListFile(commands.keySet(), CONCAT_FILENAME);
+            filesToDelete.add(CONCAT_FILENAME);
+            final CommandLine concatCommand = generateConcatCommand(CONCAT_FILENAME, outputFileName);
+            runFfmpegConcatCommand(request.getId(), concatCommand, outputFileName);
+
+            final long ffmpegEnd = System.currentTimeMillis();
+            log.info("All ffmpeg commands completed in {} ms", (ffmpegEnd - ffmpegStart));
+
+            uploadOutputFie(newRecordingId, outputFileName, filesToDelete);
+        } finally {
+            cleanup(filesToDelete);
+        }
     }
 
     private void runFfmpegCommand(final UUID requestId,
@@ -103,53 +151,6 @@ public class FfmpegService implements IEditingService {
         log.info("Successfully applied ffmpeg concat command and created output: {}", outputFileName);
         final long ffmpegEnd = System.currentTimeMillis();
         log.info("Ffmpeg concat completed in {} ms", (ffmpegEnd - ffmpegStart));
-    }
-
-    private void performEditsAsMultiCommand(final EditRequest request,
-                                            final UUID newRecordingId,
-                                            final String inputFileName,
-                                            final String outputFileName) {
-        final List<String> filesToDelete = new ArrayList<>();
-        filesToDelete.add(inputFileName);
-        filesToDelete.add(outputFileName);
-        final Map<String, CommandLine> commands = generateMultiEditCommands(request, inputFileName, outputFileName);
-
-        downloadInputFile(request, inputFileName);
-        try {
-            // single command
-            if (commands.size() == 1) {
-                runFfmpegCommand(
-                    request.getId(),
-                    commands.get(outputFileName),
-                    inputFileName,
-                    outputFileName,
-                    filesToDelete
-                );
-                cleanup(filesToDelete);
-                return;
-            }
-
-            final long ffmpegStart = System.currentTimeMillis();
-
-            // multi-command
-            commands.forEach((segmentFileName, command) -> {
-                filesToDelete.add(segmentFileName);
-                runFfmpegCommand(request.getId(), command, inputFileName, segmentFileName, filesToDelete);
-            });
-
-            // concat segments
-            generateConcatListFile(commands.keySet(), CONCAT_FILENAME);
-            filesToDelete.add(CONCAT_FILENAME);
-            final CommandLine concatCommand = generateConcatCommand(CONCAT_FILENAME, outputFileName);
-            runFfmpegConcatCommand(request.getId(), concatCommand, outputFileName);
-
-            final long ffmpegEnd = System.currentTimeMillis();
-            log.info("All ffmpeg commands completed in {} ms", (ffmpegEnd - ffmpegStart));
-
-            uploadOutputFie(newRecordingId, outputFileName, filesToDelete);
-        } finally {
-            cleanup(filesToDelete);
-        }
     }
 
     public void cleanup(final List<String> files) {
@@ -199,7 +200,7 @@ public class FfmpegService implements IEditingService {
         }
     }
 
-    private CommandLine generateCommand(EditRequest editRequest, String inputFileName, String outputFileName) {
+    protected CommandLine generateCommand(EditRequest editRequest, String inputFileName, String outputFileName) {
         var instructions = fromJson(editRequest.getEditInstruction());
 
         if (instructions.getFfmpegInstructions() == null
@@ -241,7 +242,7 @@ public class FfmpegService implements IEditingService {
         return command;
     }
 
-    private CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
+    protected CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
                                                   final String inputFileName,
                                                   final String outputFileName) {
         return new CommandLine("ffmpeg")
@@ -254,7 +255,7 @@ public class FfmpegService implements IEditingService {
             .addArgument(outputFileName);
     }
 
-    private CommandLine generateConcatCommand(String concatListFileName, String outputFileName) {
+    protected CommandLine generateConcatCommand(final String concatListFileName, final String outputFileName) {
         return new CommandLine("ffmpeg")
             .addArgument("-f")
             .addArgument("concat")
@@ -267,7 +268,7 @@ public class FfmpegService implements IEditingService {
             .addArgument(outputFileName);
     }
 
-    private Map<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
+    protected LinkedHashMap<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
                                                                final String inputFileName,
                                                                final String outputFileName) {
         EditInstructions instructions = fromJson(editRequest.getEditInstruction());
@@ -279,7 +280,9 @@ public class FfmpegService implements IEditingService {
 
         if (instructions.getFfmpegInstructions().size() == 1) {
             FfmpegEditInstructionDTO instruction = instructions.getFfmpegInstructions().getFirst();
-            return Map.of(outputFileName, generateSingleEditCommand(instruction, inputFileName, outputFileName));
+            return new LinkedHashMap<>(Map.of(
+                outputFileName,
+                generateSingleEditCommand(instruction, inputFileName, outputFileName)));
         }
 
         return IntStream.range(0, instructions.getFfmpegInstructions().size())
@@ -295,12 +298,14 @@ public class FfmpegService implements IEditingService {
                                       LinkedHashMap::new));
     }
 
-    private EditInstructions fromJson(String editInstructions) {
-        try {
-            return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
-        } catch (Exception e) {
-            log.error("Error reading edit instructions: {} with message: {}", editInstructions, e.getMessage());
-            throw new UnknownServerException("Unable to read edit instructions");
+    protected void generateConcatListFile(final Set<String> segmentFiles, final String outputPath) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath))) {
+            for (String file : segmentFiles) {
+                writer.write("file '" + file + "'");
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            throw new UnknownServerException("Error occurred when attempting to generate concat list file");
         }
     }
 
@@ -328,14 +333,12 @@ public class FfmpegService implements IEditingService {
         log.info("Upload completed in {} ms", (uploadEnd - uploadStart));
     }
 
-    public void generateConcatListFile(final Set<String> segmentFiles, final String outputPath) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath))) {
-            for (String file : segmentFiles) {
-                writer.write("file '" + file + "'");
-                writer.newLine();
-            }
-        } catch (IOException e) {
-            throw new UnknownServerException("Error occurred when attempting to generate concat list file");
+    private EditInstructions fromJson(String editInstructions) {
+        try {
+            return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
+        } catch (Exception e) {
+            log.error("Error reading edit instructions: {} with message: {}", editInstructions, e.getMessage());
+            throw new UnknownServerException("Unable to read edit instructions");
         }
     }
 }
