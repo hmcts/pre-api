@@ -52,4 +52,35 @@ class CSVArchiveListDataTest {
         data.setArchiveName("CP_Case_testfile.csv");
         assertEquals("Case_testfile.csv", data.getSanitizedArchiveName());
     }
+
+    @Test
+    void getParsedCreateTimeHandlesEpochMillis() {
+        long millis = 1627849200000L; 
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setCreateTime(String.valueOf(millis));
+
+        LocalDateTime expected = LocalDateTime.ofInstant(
+            java.time.Instant.ofEpochMilli(millis),
+            java.time.ZoneId.systemDefault()
+        );
+
+        assertEquals(expected, data.getParsedCreateTime());
+    }
+
+    @Test
+    void getParsedCreateTimeReturnsNullForZeroTimestamp() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setCreateTime("0");
+
+        assertEquals(null, data.getParsedCreateTime());
+    }
+
+    @Test
+    void getParsedCreateTimeReturnsNullForJunkString() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setCreateTime("nonsense");
+
+        assertEquals(null, data.getParsedCreateTime());
+    }
 }
+
