@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 import java.util.List;
 
@@ -16,8 +17,8 @@ import java.util.List;
 @Slf4j
 public class AzureVodafoneStorageService extends AzureStorageService {
     @Autowired
-    public AzureVodafoneStorageService(BlobServiceClient vodafoneStorageClient) {
-        super(vodafoneStorageClient);
+    public AzureVodafoneStorageService(BlobServiceClient vodafoneStorageClient, AzureConfiguration azureConfiguration) {
+        super(vodafoneStorageClient, azureConfiguration);
     }
 
     public List<String> fetchBlobNames(String containerName) {

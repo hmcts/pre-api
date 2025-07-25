@@ -314,7 +314,7 @@ public class MigrationRecordService {
             .findByRecordingGroupKey(recordingGroupKey)
             .stream()
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
-            .filter(r -> r.getIsPreferred() != null && r.getIsPreferred()) 
+            .filter(r -> r.getIsPreferred() != null && r.getIsPreferred())
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
                 return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
@@ -361,7 +361,7 @@ public class MigrationRecordService {
         }
 
         duplicates.sort(Comparator.comparing(MigrationRecord::getCreateTime).reversed());
-        MigrationRecord preferredRecord = duplicates.get(0);
+        MigrationRecord preferredRecord = duplicates.getFirst();
 
         for (MigrationRecord record : duplicates) {
             record.setIsPreferred(record.getArchiveId().equals(preferredRecord.getArchiveId()));
@@ -409,7 +409,7 @@ public class MigrationRecordService {
         return migrationRecordRepository.findByRecordingGroupKeyStartingWith(baseGroupKey).stream()
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
             .map(MigrationRecord::getRecordingVersionNumber)
-            .map(v -> v.split("\\.")[0]) 
+            .map(v -> v.split("\\.")[0])
             .distinct()
             .toList();
     }
@@ -451,13 +451,10 @@ public class MigrationRecordService {
             .toList();
 
         if (copyRecords.size() == 1) {
-            copyRecords.get(0).setIsMostRecent(true);
+            copyRecords.getFirst().setIsMostRecent(true);
         } else {
             MigrationRecord mostRecentCopy = copyRecords.stream()
-                .max((a, b) -> Integer.compare(
-                    Integer.parseInt(a.getRecordingVersionNumber()),
-                    Integer.parseInt(b.getRecordingVersionNumber())
-                ))
+                .max(Comparator.comparingInt(a -> Integer.parseInt(a.getRecordingVersionNumber())))
                 .orElse(null);
 
             for (MigrationRecord copy : copyRecords) {
