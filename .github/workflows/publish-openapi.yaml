@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - "master"
+      - "S28-4064/verify-email-endpoint"
 
 jobs:
   publish-pre-api:
@@ -19,3 +20,4 @@ jobs:
     with:
       test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIB2CPublisherTest'
       java_version: 17
+      api_name: 'pre-api-b2c'
