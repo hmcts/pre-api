@@ -14,6 +14,7 @@ CREATE TABLE public.vf_migration_records (
     archive_name TEXT NOT NULL,
     create_time TIMESTAMPTZ,
     duration INTEGER,
+    court_id UUID,
     court_reference VARCHAR(25),
     urn VARCHAR(20),
     exhibit_reference VARCHAR(15),
