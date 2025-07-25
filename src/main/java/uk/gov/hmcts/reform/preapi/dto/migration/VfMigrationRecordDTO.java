@@ -35,8 +35,11 @@ public class VfMigrationRecordDTO {
     @Schema(description = "MigrationRecordDuration")
     private Integer duration;
 
-    @Schema(description = "MigrationRecordCourtId")
+    @Schema(description = "MigrationRecordCourtReference")
     private String courtReference;
+
+    @Schema(description = "MigrationRecordCourtId")
+    private UUID courtId;
 
     @Schema(description = "MigrationRecordUrn")
     private String urn;

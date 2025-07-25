@@ -470,11 +470,6 @@ public class MigrationRecordService {
 
     @Transactional(readOnly = true)
     public Page<VfMigrationRecordDTO> findAllBy(final SearchMigrationRecords params, final Pageable pageable) {
-        if (params.getCourtId() != null) {
-            params.setCourtReference(courtRepository.findById(params.getCourtId())
-                                         .map(Court::getName)
-                                         .orElse(null));
-        }
         return migrationRecordRepository.findAllBy(params, pageable)
             .map(VfMigrationRecordDTO::new);
     }
@@ -498,6 +493,7 @@ public class MigrationRecordService {
             .orElseThrow(() -> new NotFoundException("Court: " + dto.getCourtId()));
 
         entity.setCourtReference(courtName);
+        entity.setCourtId(dto.getCourtId());
         entity.setUrn(dto.getUrn());
         entity.setExhibitReference(dto.getExhibitReference());
         entity.setDefendantName(dto.getDefendantName());

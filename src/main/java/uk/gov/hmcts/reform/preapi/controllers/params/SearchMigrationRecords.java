@@ -19,8 +19,6 @@ public class SearchMigrationRecords {
 
     private UUID courtId;
 
-    private String courtReference;
-
     private VfMigrationStatus status;
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")

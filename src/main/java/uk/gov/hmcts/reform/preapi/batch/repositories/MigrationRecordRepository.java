@@ -35,6 +35,7 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         AND (:#{#params.createDateFrom} IS NULL OR mr.createTime >= :#{#params.createDateFrom})
         AND (:#{#params.createDateTo} IS NULL OR mr.createTime <= :#{#params.createDateTo})
         AND (:#{#params.courtReference} IS NULL OR mr.courtReference = :#{#params.courtReference})
+        AND (:#{#params.courtId} IS NULL OR mr.courtId = :#{#params.courtId})
         """)
     Page<MigrationRecord> findAllBy(@Param("params") SearchMigrationRecords params, Pageable pageable);
 }

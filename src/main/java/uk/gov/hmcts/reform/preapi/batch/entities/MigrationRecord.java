@@ -39,7 +39,6 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Column(name = "court_reference", length = 25)
     private String courtReference;
 
-
     @Column(name = "court_id")
     private UUID courtId;
 
@@ -124,6 +123,7 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
         details.put("createTime", createTime);
         details.put("duration", duration);
         details.put("courtReference", courtReference);
+        details.put("courtId", courtReference);
         details.put("urn", urn);
         details.put("exhibitReference", exhibitReference);
         details.put("defendantName", defendantName);
