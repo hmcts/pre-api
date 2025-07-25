@@ -145,18 +145,18 @@ feature-flags:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
   ffmpeg-multi-command: ${ENABLE_MULTI_FFMPEG_COMMAND:false}
 
-logging:
-  level:
-    uk:
-      gov:
-        hmcts:
-          reform:
-            preapi:
+#logging:
+#  level:
+#    uk:
+#      gov:
+#        hmcts:
+#          reform:
+#            preapi:
 #              actuator:
 #                PreApiHealthIndicator: DEBUG
-              component:
-                util:
-                  CommandRunner: DEBUG
+#              component:
+#                util:
+#                  CommandRunner: DEBUG
 #              email:
 #                StopLiveEventNotifierFlowClient: DEBUG
 #                CaseStateChangeNotifierFlowClient: DEBUG
