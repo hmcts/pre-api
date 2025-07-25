@@ -11,8 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpStatus.OK;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class OpenAPISpecFunctionalTest {
-    private static final String SPEC_ENDPOINT = "/v3/api-docs/pre-api";
+class OpenAPISpecB2CFunctionalTest {
+    private static final String SPEC_ENDPOINT = "/v3/api-docs/b2c-api";
 
     @LocalServerPort
     private int port;
