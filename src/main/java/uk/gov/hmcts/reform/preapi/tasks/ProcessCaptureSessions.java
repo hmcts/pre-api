@@ -46,7 +46,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
 
         encodeJobService.findAllProcessing()
             .stream()
-            .filter(job -> job.getCreatedAt().before(Timestamp.from(Instant.now().minusSeconds(120))))
+            .filter(job -> job.getCreatedAt().before(Timestamp.from(Instant.now().minusSeconds(7200)))) // 2hrs
             .forEach(job -> {
                 log.error(
                     "Processing job {} for capture session {} has timed out",
