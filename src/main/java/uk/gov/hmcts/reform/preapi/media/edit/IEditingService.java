@@ -6,6 +6,4 @@ import java.util.UUID;
 
 public interface IEditingService {
     void performEdit(UUID newRecordingId, EditRequest request);
-
-    void cleanup(String inputFile, String outputFile);
 }

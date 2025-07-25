@@ -28,6 +28,7 @@ java:
     ENABLE_AUTOMATED_EDITING: true
     ENABLE_ENHANCED_PROCESSING: true
     ENABLE_NULL_DURATION_UPSERT: true
+    ENABLE_MULTI_FFMPEG_COMMAND: true
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
