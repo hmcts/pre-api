@@ -49,7 +49,7 @@ public final class Constants {
         public static final String TEST_DURATION = "Duration is less than 10 seconds.";
 
         // File validation errors
-        public static final String NOT_PREFERRED = 
+        public static final String NOT_PREFERRED =
             "A more preferred version of this recording exists.";
 
         // Court validation errors
@@ -71,17 +71,6 @@ public final class Constants {
 
         // Pattern match errors
         public static final String PATTERN_MATCH = "Failed to match any recording pattern.";
-    }
-
-    // Validation error messages
-    public static final class Reports {
-        public static final String FILE_MISSING_DATA = "Missing_Data";
-        public static final String FILE_ERROR = "Error";
-        public static final String FILE_INVALID_FORMAT = "Invalid_File_Format";
-        public static final String FILE_NOT_RECENT = "Not_Most_Recent";
-        public static final String FILE_PRE_GO_LIVE = "Pre_Go_Live";
-        public static final String FILE_REGEX = "Regex_Matching_Errors";
-        public static final String FILE_NOT_PREFERRED = "Alternative_Found";
     }
 
     public static final class XmlFields {

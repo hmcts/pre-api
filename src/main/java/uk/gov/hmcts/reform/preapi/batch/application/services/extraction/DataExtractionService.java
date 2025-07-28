@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -14,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 import java.util.regex.Matcher;
 
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
 @Service
 public class DataExtractionService {
@@ -39,7 +39,7 @@ public class DataExtractionService {
             loggingService.logWarning("Missing sanitized name");
         }
 
-        
+
         String archiveName = archiveItem.getArchiveName();
 
         // -- 1. TEST validation (validate for pre-go-live, duration check and test keywords)
@@ -48,13 +48,13 @@ public class DataExtractionService {
         if (!validationResult.isSuccess()) {
             return validationResult;
         }
-        
+
         // -- 2. Pattern matching for legitimate and test scenarios
         String sanitisedName = archiveItem.getSanitizedArchiveName();
         var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
         if (patternMatch.isEmpty()) {
             loggingService.logDebug("Extraction - No pattern matched: archiveName=%s", archiveName);
-            return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
+            return ServiceResultUtil.failure(PATTERN_MATCH, VfFailureReason.VALIDATION_FAILED.toString());
         }
         loggingService.logDebug(
             "Extraction - Matching patterns for archiveName=%s, pattern=%s", archiveName, patternMatch);
@@ -77,7 +77,7 @@ public class DataExtractionService {
         Matcher matcher = patternMatch.get().getValue();
         var extractedData = extractMetaData(matcher, archiveItem);
         String archiveId = archiveItem.getArchiveId();
-        
+
         loggingService.logDebug("Extraction - Metadata extracted: " + extractedData);
 
         // Validate metadata failure
@@ -110,7 +110,7 @@ public class DataExtractionService {
         String versionNumber = getMatcherGroup(matcher, "versionNumber");
         versionType = RecordingUtils.normalizeVersionType(versionType);
 
-        if (Constants.VALID_ORIG_TYPES.contains(versionType != null ? versionType.toUpperCase() : "") 
+        if (Constants.VALID_ORIG_TYPES.contains(versionType != null ? versionType.toUpperCase() : "")
             && (versionNumber == null || versionNumber.isEmpty())) {
             versionNumber = "1";
         }

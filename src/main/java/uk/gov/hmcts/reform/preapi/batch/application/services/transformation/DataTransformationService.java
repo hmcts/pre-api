@@ -2,10 +2,10 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class DataTransformationService {
@@ -48,7 +50,8 @@ public class DataTransformationService {
     public ServiceResult<ProcessedRecording> transformData(ExtractedMetadata extracted) {
         if (extracted == null) {
             loggingService.logError("Extracted item is null");
-            return ServiceResultUtil.failure("Extracted item cannot be null", Constants.Reports.FILE_MISSING_DATA);
+            return ServiceResultUtil.failure("Extracted item cannot be null",
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         try {
@@ -62,7 +65,7 @@ public class DataTransformationService {
             return ServiceResultUtil.success(cleansedData);
         } catch (Exception e) {
             loggingService.logError("Data transformation failed for archive: %s - %s", extracted.getArchiveName(), e);
-            return ServiceResultUtil.failure(e.getMessage(), Constants.Reports.FILE_ERROR);
+            return ServiceResultUtil.failure(e.getMessage(), VfFailureReason.GENERAL_ERROR.toString());
         }
     }
 

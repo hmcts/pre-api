@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = DataValidationService.class)
 public class DataValidationServiceTest {
     @MockitoBean
-    private MigrationRecordService migrationRecordService;  
+    private MigrationRecordService migrationRecordService;
 
     @MockitoBean
     private LoggingService loggingService;
@@ -43,7 +44,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.MISSING_COURT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -64,7 +65,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.NOT_MOST_RECENT_VERSION);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_NOT_RECENT);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.NOT_MOST_RECENT.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -83,7 +84,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -103,7 +104,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -123,7 +124,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -141,7 +142,7 @@ public class DataValidationServiceTest {
             .archiveId("ARCHIVE123")
             .build();
 
-        MigrationRecord currentRecord = new MigrationRecord(); 
+        MigrationRecord currentRecord = new MigrationRecord();
         when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
         when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.empty());
 
@@ -152,7 +153,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.NO_PARENT_FOUND);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
