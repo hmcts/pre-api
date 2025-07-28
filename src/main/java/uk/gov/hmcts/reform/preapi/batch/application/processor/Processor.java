@@ -211,7 +211,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         }
 
         ExtractedMetadata extractedData = (ExtractedMetadata) extractionResult.getData();
-        checkAndCreateNotifyItem(extractedData);
+        
         return extractedData;
     }
 
@@ -221,7 +221,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logError("Failed to transform archive: %s", extractedData.getSanitizedArchiveName());
             return null;
         }
-
+        checkAndCreateNotifyItem(result.getData());
         loggingService.logDebug("Transformed data: %s", result.getData());
         return result.getData();
     }
@@ -330,33 +330,37 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     // Notifications
     // =========================
-    private void checkAndCreateNotifyItem(ExtractedMetadata extractedData) {
-        String defendantLastName = extractedData.getDefendantLastName();
-        String witnessFirstName = extractedData.getWitnessFirstName();
+    private void checkAndCreateNotifyItem(ProcessedRecording recording) {
+        if (!recording.isPreferred()) {
+            return;
+        }
+
+        String defendantLastName = recording.getDefendantLastName();
+        String witnessFirstName = recording.getWitnessFirstName();
 
         // Double-barrelled name checks
         if (defendantLastName != null && defendantLastName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",recording));
         }
 
         if (witnessFirstName != null && witnessFirstName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",recording));
         }
 
-        String urn = extractedData.getUrn();
-        String exhibitRef = extractedData.getExhibitReference();
+        String urn = recording.getUrn();
+        String exhibitRef = recording.getExhibitReference();
 
         // case ref checks
         if (urn == null || urn.isEmpty()) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",recording));
         } else if (urn.length() < 11) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid URN length", extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid URN length", recording));
         }
 
         if (exhibitRef == null || exhibitRef.isEmpty()) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Missing Exhibit Ref", extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Missing Exhibit Ref", recording));
         } else if (exhibitRef.length() < 9) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid Exhibit length", extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid Exhibit length", recording));
         }
     }
 

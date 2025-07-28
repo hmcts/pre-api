@@ -360,7 +360,7 @@ public class MigrationTrackerServiceTest {
     }
 
     private NotifyItem createMockNotifyItem() {
-        ExtractedMetadata metadata = mock(ExtractedMetadata.class);
+        ProcessedRecording metadata = mock(ProcessedRecording.class);
 
         when(metadata.getArchiveName()).thenReturn("Test Archive");
         when(metadata.getCourtReference()).thenReturn("court_one");

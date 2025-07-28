@@ -132,22 +132,28 @@ public class DataTransformationService {
         // === Determine preference ===
         boolean isPreferred = true;
 
+        // Non-mp4 filter
         if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4")) {
-            boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveName());
+            boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveId());
             if (updated) {
+                loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
                 isPreferred = false;
             }
         }
 
+        // Deduplication check
         boolean isPreferredFromDeduplication = migrationRecordService.deduplicatePreferredByArchiveId(
             extracted.getArchiveId());
         if (!isPreferredFromDeduplication) {
+            loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
             isPreferred = false;
         }
 
         if (!isPreferred) {
             loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
         }
+
+        migrationRecordService.updateIsPreferred(extracted.getArchiveId(), isPreferred);
 
         // === Court Resolution ===
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
