@@ -113,7 +113,7 @@ class TestingSupportController {
                              final AuditRepository auditRepository,
                              final EditRequestService editRequestService,
                              final AzureFinalStorageService azureFinalStorageService,
-                             MigrationRecordRepository migrationRecordRepository) {
+                             final MigrationRecordRepository migrationRecordRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
