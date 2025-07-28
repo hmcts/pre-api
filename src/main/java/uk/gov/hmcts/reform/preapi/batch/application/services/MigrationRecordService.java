@@ -475,6 +475,8 @@ public class MigrationRecordService {
                 params.getCreateDateFromTimestamp(),
                 params.getCreateDateToTimestamp(),
                 params.getCourtId(),
+                params.getReasonIn(),
+                params.getReasonNotIn(),
                 pageable)
             .map(VfMigrationRecordDTO::new);
     }

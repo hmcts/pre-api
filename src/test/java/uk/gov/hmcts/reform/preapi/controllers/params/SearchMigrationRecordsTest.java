@@ -2,11 +2,13 @@ package uk.gov.hmcts.reform.preapi.controllers.params;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -66,4 +68,47 @@ public class SearchMigrationRecordsTest {
         assertNull(result);
     }
 
+    @Test
+    @DisplayName("Should transform reasonIn to a list of strings")
+    public void getReasonInShouldReturnListOfStrings() {
+        SearchMigrationRecords searchMigrationRecords = new SearchMigrationRecords();
+        searchMigrationRecords.setReasonIn(List.of(VfFailureReason.GENERAL_ERROR, VfFailureReason.TEST));
+
+        List<String> result = searchMigrationRecords.getReasonIn();
+
+        assertEquals(List.of("General_Error", "Test"), result);
+    }
+
+    @Test
+    @DisplayName("Should return null for reasonIn when it is null")
+    public void getReasonInShouldReturnNull() {
+        SearchMigrationRecords searchMigrationRecords = new SearchMigrationRecords();
+        searchMigrationRecords.setReasonIn(null);
+
+        List<String> result = searchMigrationRecords.getReasonIn();
+
+        assertNull(result);
+    }
+
+    @Test
+    @DisplayName("Should transform reasonNotIn to a list of strings")
+    public void getReasonNotInShouldReturnListOfStrings() {
+        SearchMigrationRecords searchMigrationRecords = new SearchMigrationRecords();
+        searchMigrationRecords.setReasonNotIn(List.of(VfFailureReason.GENERAL_ERROR, VfFailureReason.TEST));
+
+        List<String> result = searchMigrationRecords.getReasonNotIn();
+
+        assertEquals(List.of("General_Error", "Test"), result);
+    }
+
+    @Test
+    @DisplayName("Should return null for reasonNotIn when it is null")
+    public void getReasonNotInShouldReturnNull() {
+        SearchMigrationRecords searchMigrationRecords = new SearchMigrationRecords();
+        searchMigrationRecords.setReasonNotIn(null);
+
+        List<String> result = searchMigrationRecords.getReasonNotIn();
+
+        assertNull(result);
+    }
 }

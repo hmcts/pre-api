@@ -33,6 +33,7 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -54,58 +55,56 @@ public class VfMigrationController extends PreApiController {
     @Parameter(
         name = "caseReference",
         description = "The case reference to search for",
-        schema = @Schema(implementation = String.class)
-    )
+        schema = @Schema(implementation = String.class))
     @Parameter(
         name = "witnessName",
         description = "The witness name to search for",
-        schema = @Schema(implementation = String.class)
-    )
+        schema = @Schema(implementation = String.class))
     @Parameter(
         name = "defendantName",
         description = "The defendant name to search for",
-        schema = @Schema(implementation = String.class)
-    )
+        schema = @Schema(implementation = String.class))
     @Parameter(
         name = "courtId",
         description = "The court id to search for",
-        schema = @Schema(implementation = UUID.class)
-    )
+        schema = @Schema(implementation = UUID.class))
     @Parameter(
         name = "status",
         description = "The status to search for",
-        schema = @Schema(implementation = VfMigrationStatus.class)
-    )
+        schema = @Schema(implementation = VfMigrationStatus.class))
     @Parameter(
         name = "createDateFrom",
         description = "The date the record was created to search from",
         schema = @Schema(implementation = Date.class, format = "date"),
-        example = "2024-04-27"
-    )
+        example = "2024-04-27")
     @Parameter(
         name = "createDateTo",
         description = "The date the record was created to search to",
         schema = @Schema(implementation = Date.class, format = "date"),
-        example = "2024-04-27"
-    )
+        example = "2024-04-27")
+    @Parameter(
+        name = "reasonIn",
+        description = "Search by a list of reasons",
+        schema = @Schema(implementation = List.class))
+    @Parameter(
+        name = "reasonNotIn",
+        description = "Search by a list of reasons that should not be included",
+        schema = @Schema(implementation = List.class))
     @Parameter(
         name = "sort",
         description = "Sort by",
         schema = @Schema(implementation = String.class),
-        example = "archiveName,desc"
-    )
+        example = "archiveName,desc")
     @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
-        example = "0"
-    )
+        example = "0")
     @Parameter(
         name = "size",
         description = "The number of search results to return per page",
         schema = @Schema(implementation = Integer.class),
-        example = "10"
-    )
+        example = "10")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
     public HttpEntity<PagedModel<EntityModel<VfMigrationRecordDTO>>> getVfMigrationRecords(
         @Parameter(hidden = true) @ModelAttribute SearchMigrationRecords params,
