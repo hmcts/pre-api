@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,5 +36,25 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         AND (:#{#params.courtId} IS NULL OR mr.courtId = :#{#params.courtId})
         """)
     Page<MigrationRecord> findAllBy(@Param("params") SearchMigrationRecords params, Pageable pageable);
+
+
+    @Query("""
+        SELECT mr FROM MigrationRecord mr
+        WHERE (:status IS NULL OR mr.status = :status)
+        AND (:witnessName IS NULL OR mr.witnessName ILIKE %:witnessName%)
+        AND (:defendantName IS NULL OR mr.defendantName ILIKE %:defendantName%)
+        AND (:caseReference IS NULL OR mr.exhibitReference ILIKE %:caseReference%)
+        AND (CAST(:createDateFrom as Timestamp) IS NULL OR mr.createTime >= :createDateFrom)
+        AND (CAST(:createDateTo as Timestamp) IS NULL OR mr.createTime <= :createDateTo)
+        AND (:courtId IS NULL OR mr.courtId = :courtId)
+        """)
+    Page<MigrationRecord> findAllBy(@Param("status") VfMigrationStatus status,
+                                    @Param("witnessName") String witnessName,
+                                    @Param("defendantName") String defendantName,
+                                    @Param("caseReference") String caseReference,
+                                    @Param("createDateFrom") Timestamp createDateFrom,
+                                    @Param("createDateTo") Timestamp createDateTo,
+                                    @Param("courtId") UUID courtId,
+                                    Pageable pageable);
 }
 
