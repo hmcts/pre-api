@@ -110,8 +110,8 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(RecordingNotDeletedException.class)
-    ResponseEntity<String> onRecordingNotDeletedException(final RecordingNotDeletedException e)
+    @ExceptionHandler(CaptureSessionNotDeletedException.class)
+    ResponseEntity<String> onCaptureSessionNotDeletedException(final CaptureSessionNotDeletedException e)
         throws JsonProcessingException {
 
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
