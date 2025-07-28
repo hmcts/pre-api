@@ -213,7 +213,7 @@ public class DataTransformationService {
      */
     protected Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         String courtReference = extracted.getCourtReference();
-        if (courtReference == null || courtReference.isEmpty()) {
+        if (courtReference == null || courtReference.isEmpty() || extracted.getCourtId() == null) {
             loggingService.logError("Court reference is null or empty");
         }
 
@@ -222,11 +222,15 @@ public class DataTransformationService {
         return cacheService.getCourt(fullCourtName)
             .map(CourtDTO::getId)
             .flatMap(courtRepository::findById)
-            .orElseGet(() -> {
+            .or(() -> {
+                UUID extractedId = extracted.getCourtId();
+                if (extractedId != null) {
+                    return courtRepository.findById(extractedId);
+                }
                 loggingService.logWarning("Court not found in cache or DB for name: %s", fullCourtName);
-                return null;
-            });
-
+                return Optional.empty();
+            })
+            .orElse(null);
     }
 
     protected List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {
