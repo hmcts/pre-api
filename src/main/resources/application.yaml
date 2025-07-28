@@ -128,7 +128,7 @@ slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
 editing:
-  enable: ${ENABLE_AUTOMATED_EDITING:false}
+  enable: ${ENABLE_AUTOMATED_EDITING:true}
 
 tasks:
   start-live-event:
@@ -141,6 +141,8 @@ tasks:
 
 feature-flags:
   enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+  cleanup-null-duration:
+    upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
 
 #logging:
 #  level:

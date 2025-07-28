@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -36,6 +37,9 @@ import static org.mockito.Mockito.when;
 public class AzureIngestStorageServiceTest {
     @MockitoBean
     private BlobServiceClient ingestStorageClient;
+
+    @MockitoBean
+    private AzureConfiguration azureConfiguration;
 
     @Mock
     private BlobContainerClient blobContainerClient;

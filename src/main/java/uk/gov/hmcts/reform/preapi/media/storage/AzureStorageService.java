@@ -4,22 +4,28 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.UserDelegationKey;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import lombok.extern.slf4j.Slf4j;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
 public abstract class AzureStorageService {
-
     protected final BlobServiceClient client;
+    protected final AzureConfiguration azureConfiguration;
 
-    public AzureStorageService(BlobServiceClient client) {
+    protected AzureStorageService(BlobServiceClient client, AzureConfiguration azureConfiguration) {
         this.client = client;
+        this.azureConfiguration = azureConfiguration;
     }
 
     public boolean doesContainerExist(String containerName) {
@@ -100,6 +106,24 @@ public abstract class AzureStorageService {
     public void createContainerIfNotExists(String containerName) {
         log.info("Creating container: {}", containerName);
         client.createBlobContainerIfNotExists(containerName);
+    }
+
+    protected String getBlobSasToken(String containerName,
+                                     String blobName,
+                                     OffsetDateTime expiryTime,
+                                     BlobSasPermission permission) {
+        if (azureConfiguration.isUsingManagedIdentity()) {
+            UserDelegationKey delegationKey = client.getUserDelegationKey(
+                OffsetDateTime.now(),
+                OffsetDateTime.now().plusHours(2)
+            );
+            return "?" + client.getBlobContainerClient(containerName)
+                .getBlobClient(blobName)
+                .generateUserDelegationSas(new BlobServiceSasSignatureValues(expiryTime, permission), delegationKey);
+        }
+        return "?" + client.getBlobContainerClient(containerName)
+            .getBlobClient(blobName)
+            .generateSas(new BlobServiceSasSignatureValues(expiryTime, permission));
     }
 
     public void tagAllBlobsInContainer(String containerName, String tagKey, String tagValue) {
