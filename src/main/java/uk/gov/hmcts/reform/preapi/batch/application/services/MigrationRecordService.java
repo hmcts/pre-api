@@ -490,7 +490,7 @@ public class MigrationRecordService {
             throw new ResourceInWrongStateException(
                 "MigrationRecord",
                 dto.getId().toString(),
-                dto.getStatus().toString(),
+                entity.getStatus().toString(),
                 "PENDING, FAILED or RESOLVED"
             );
         }
