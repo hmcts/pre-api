@@ -91,3 +91,4 @@ public class AzureVodafoneStorageServiceTest {
         assertNull(azureVodafoneStorageService.fetchSingleXmlBlob("test-container", "testfile.xml"));
     }
 }
+ 
