@@ -2,8 +2,9 @@ package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,23 +13,14 @@ class NotifyItemTest {
 
     @Test
     void testConstructorAndToString() {
-        ExtractedMetadata metadata = new ExtractedMetadata(
-            "CourtRef",
-            UUID.randomUUID(),
-            "urn123",
-            "ex123",
-            "doe",
-            "john",
-            "ORIG",
-            "1",
-            "mp4",
-            LocalDateTime.now(),
-            100,
-            "file.mp4",
-            "10MB",
-            "archId123",
-            "TestFile.mp4"
-        );
+        ProcessedRecording metadata = new ProcessedRecording();
+        metadata.setUrn("URN123");
+        metadata.setExhibitReference("EXH456");
+        metadata.setFileName("test.mp4");
+        metadata.setRecordingTimestamp(Timestamp.from(Instant.now()));
+        metadata.setDuration(Duration.ofSeconds(100));
+        metadata.setPreferred(true);
+
 
         NotifyItem notifyItem = new NotifyItem("Something went wrong", metadata);
 

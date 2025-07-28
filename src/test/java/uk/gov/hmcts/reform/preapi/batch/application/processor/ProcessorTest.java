@@ -31,7 +31,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
@@ -214,12 +216,19 @@ class ProcessorTest {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         testExtractedMetadata = createTestExtractedMetadata();
         testExtractedMetadata.setDefendantLastName("Smith-Jones");
-        
+
+        testProcessedRecording.setDefendantLastName("Smith-Jones");
+        testProcessedRecording.setWitnessFirstName("Jane");
+        testProcessedRecording.setUrn("12345678901");
+        testProcessedRecording.setExhibitReference("EXHIBIT123");
+
         setupSuccessfulProcessingMocks();
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(any(NotifyItem.class));
+        verify(migrationTrackerService).addNotifyItem(argThat(item ->
+            item.getNotification().equals("Double-barrelled name")
+        ));
     }
 
     @Test
@@ -227,12 +236,19 @@ class ProcessorTest {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         testExtractedMetadata = createTestExtractedMetadata();
         testExtractedMetadata.setWitnessFirstName("Mary-Jane");
+
+        testProcessedRecording.setDefendantLastName("Smith");
+        testProcessedRecording.setWitnessFirstName("Mary-Jane");
+        testProcessedRecording.setUrn("12345678901");
+        testProcessedRecording.setExhibitReference("EXHIBIT123");
         
         setupSuccessfulProcessingMocks();
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(any(NotifyItem.class));
+        verify(migrationTrackerService).addNotifyItem(argThat(item ->
+            item.getNotification().equals("Double-barrelled name")
+        ));
     }
 
     @Test
@@ -241,11 +257,18 @@ class ProcessorTest {
         testExtractedMetadata = createTestExtractedMetadata();
         testExtractedMetadata.setUrn(null);
         
+        testProcessedRecording.setDefendantLastName("Smith");
+        testProcessedRecording.setWitnessFirstName("Mary");
+        testProcessedRecording.setUrn("");
+        testProcessedRecording.setExhibitReference("EXHIBIT123");
+
         setupSuccessfulProcessingMocks();
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(any(NotifyItem.class));
+        verify(migrationTrackerService).addNotifyItem(argThat(item ->
+            item.getNotification().equals("Missing URN")
+        ));
     }
 
     @Test
@@ -258,7 +281,7 @@ class ProcessorTest {
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(any(NotifyItem.class));
+        verify(migrationTrackerService, atLeastOnce()).addNotifyItem(any(NotifyItem.class));
     }
 
     @Test
@@ -267,11 +290,17 @@ class ProcessorTest {
         testExtractedMetadata = createTestExtractedMetadata();
         testExtractedMetadata.setExhibitReference("");
         
+        testProcessedRecording.setDefendantLastName("Smith");
+        testProcessedRecording.setWitnessFirstName("Mary");
+        testProcessedRecording.setUrn("12345678901");
+
         setupSuccessfulProcessingMocks();
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(any(NotifyItem.class));
+        verify(migrationTrackerService).addNotifyItem(argThat(item ->
+            item.getNotification().equals("Missing Exhibit Ref")
+        ));
     }
 
     @Test
@@ -284,7 +313,7 @@ class ProcessorTest {
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(any(NotifyItem.class));
+        verify(migrationTrackerService,  atLeastOnce()).addNotifyItem(any(NotifyItem.class));
     }
 
     // =========================
@@ -354,6 +383,7 @@ class ProcessorTest {
 
     private ProcessedRecording createTestProcessedRecording() {
         ProcessedRecording recording = new ProcessedRecording();
+        recording.setPreferred(true);
         return recording;
     }
 

@@ -99,7 +99,7 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     private Boolean isMostRecent;
 
     @Column(name = "is_preferred")
-    private Boolean isPreferred = true;
+    private Boolean isPreferred;
 
     @Column(name = "recording_group_key")
     private String recordingGroupKey;

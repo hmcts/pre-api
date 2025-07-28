@@ -228,7 +228,6 @@ public class MigrationTrackerService {
                     getValueOrEmpty(item.getExtractedMetadata().getDefendantLastName()),
                     getValueOrEmpty(item.getExtractedMetadata().getWitnessFirstName()),
                     getValueOrEmpty(item.getExtractedMetadata().getDuration()),
-                    getValueOrEmpty(item.getExtractedMetadata().getFileSize()),
                     migratedTime
                 )
             );
