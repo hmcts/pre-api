@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 /**
  * Processes various CSV data types and transforms them into MigratedItemGroup for further processing.
@@ -105,6 +106,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (status == VfMigrationStatus.PENDING) {
             try {
                 ExtractedMetadata extractedData = extractData(migrationRecord);
+                if (extractedData == null) {
+                    return null;
+                }
 
                 migrationRecordService.updateMetadataFields(archiveId, extractedData);
 
@@ -287,6 +291,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return null;
     }
 
+    @Nullable
     private ExtractedMetadata convertToExtractedMetadata(MigrationRecord migrationRecord) {
         if (migrationRecord == null) {
             loggingService.logWarning("Migration Record is null. Skipping extraction.");

@@ -62,7 +62,7 @@ public class ExtractedMetadata implements IArchiveData {
         this.recordingVersion = recordingVersion;
         this.recordingVersionNumber = recordingVersionNumber;
         this.fileExtension = fileExtension;
-        this.createTime = createTime;
+        this.createTime = resolveCreateTime(createTime);
         this.duration = duration;
         this.fileName = fileName;
         this.fileSize = fileSize;
@@ -129,13 +129,17 @@ public class ExtractedMetadata implements IArchiveData {
         return this.createTime;
     }
 
-    public boolean isCreateTimeDefaulted() {
-        if (this.createTime == null) {
-            return true;
+    private LocalDateTime resolveCreateTime(LocalDateTime input) {
+        if (input == null) {
+            return LocalDateTime.now();
         }
-        
-        long seconds = this.createTime.toEpochSecond(ZoneOffset.UTC);
-        return seconds == 0 || seconds == 3600;
+
+        long seconds = input.toEpochSecond(ZoneOffset.UTC);
+        if (seconds == 0 || seconds == 3600) {
+            return LocalDateTime.now();
+        }
+
+        return input;
     }
 
     @Override
