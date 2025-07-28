@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
@@ -531,7 +532,7 @@ class TestingSupportController {
         record.setBookingId(UUID.randomUUID());
         record.setStatus(VfMigrationStatus.FAILED);
         record.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-        record.setReason("reason");
+        record.setReason(VfFailureReason.GENERAL_ERROR.toString());
         record.setErrorMessage("error_message");
         record.setIsMostRecent(true);
         record.setIsPreferred(true);
@@ -555,7 +556,7 @@ class TestingSupportController {
         record.setFileSizeMb(String.valueOf((Math.random() * 100) + 1));
         record.setStatus(VfMigrationStatus.FAILED);
         record.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-        record.setReason("reason");
+        record.setReason(VfFailureReason.INCOMPLETE_DATA.toString());
         record.setErrorMessage("error_message");
         record.setIsMostRecent(true);
         record.setIsPreferred(true);
