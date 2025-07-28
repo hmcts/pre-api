@@ -528,6 +528,7 @@ public class MigrationRecordService {
         entity.setRecordingVersionNumber(dto.getRecordingVersionNumber() != null
                                              ? dto.getRecordingVersionNumber().toString()
                                              : null);
+        entity.setCreateTime(dto.getRecordingDate());
         entity.setStatus(dto.getStatus());
         entity.setResolvedAt(dto.getResolvedAt());
         migrationRecordRepository.saveAndFlush(entity);

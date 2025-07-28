@@ -63,4 +63,7 @@ public class CreateVfMigrationRecordDTO {
 
     @Schema(description = "CreateMigrationRecordResolvedAt")
     private Timestamp resolvedAt;
+
+    @Schema(description = "CreateMigrationRecordRecordingDate")
+    private Timestamp recordingDate;
 }
