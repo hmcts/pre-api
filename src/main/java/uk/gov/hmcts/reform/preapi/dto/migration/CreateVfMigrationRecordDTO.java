@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.dto.migration;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -51,6 +52,10 @@ public class CreateVfMigrationRecordDTO {
     @NotNull
     @Schema(description = "CreateMigrationRecordRecordingVersion")
     private VfMigrationRecordingVersion recordingVersion;
+
+    @Min(value = 1)
+    @Schema(description = "CreateMigrationRecordRecordingVersion")
+    private Integer recordingVersionNumber;
 
     @NotNull
     @Schema(description = "CreateMigrationRecordStatus")

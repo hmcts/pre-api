@@ -513,6 +513,30 @@ public class VfMigrationControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 400 when recording version number is less than 1")
+    public void putMigrationRecordVersionNumberZero() throws Exception {
+        UUID mockId = UUID.randomUUID();
+        CreateVfMigrationRecordDTO createDto = new CreateVfMigrationRecordDTO();
+        createDto.setId(mockId);
+        createDto.setUrn("URN1234567");
+        createDto.setExhibitReference("EXHIBIT123");
+        createDto.setDefendantName("defendant-name");
+        createDto.setWitnessName("witness-name");
+        createDto.setCourtId(UUID.randomUUID());
+        createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        createDto.setRecordingVersionNumber(0);
+
+        mockMvc.perform(put("/vf-migration-records/" + mockId)
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(createDto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.recordingVersionNumber").value("must be greater than or equal to 1"));
+    }
+
+
+    @Test
     @DisplayName("Should submit migration records successfully")
     public void shouldSubmitMigrationRecordsSuccessfully() throws Exception {
         mockMvc.perform(post("/vf-migration-records/submit")

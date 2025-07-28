@@ -506,6 +506,7 @@ public class MigrationRecordService {
         entity.setDefendantName(dto.getDefendantName());
         entity.setWitnessName(dto.getWitnessName());
         entity.setRecordingVersion(dto.getRecordingVersion().toString());
+        entity.setRecordingVersionNumber(dto.getRecordingVersionNumber().toString());
         entity.setStatus(dto.getStatus());
         entity.setResolvedAt(dto.getResolvedAt());
         migrationRecordRepository.saveAndFlush(entity);
