@@ -10,12 +10,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -156,7 +158,7 @@ public class CaptureSessionServiceTest {
         captureSessionService.deleteCascade(booking);
 
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
-        verify(recordingService, times(1)).deleteCascade(captureSession);
+        verify(recordingService, times(1)).checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         verify(captureSessionRepository, times(1)).save(captureSession);
     }
 
@@ -254,7 +256,7 @@ public class CaptureSessionServiceTest {
         captureSessionService.deleteById(captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
-        verify(recordingService, times(1)).deleteCascade(captureSession);
+        verify(recordingService, times(1)).checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         verify(captureSessionRepository, times(1)).saveAndFlush(captureSession);
     }
 
@@ -272,7 +274,7 @@ public class CaptureSessionServiceTest {
         assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
-        verify(recordingService, never()).deleteCascade(any());
+        verify(recordingService, never()).checkIfCaptureSessionHasAssociatedRecordings(any());
         verify(captureSessionRepository, never()).deleteById(any());
     }
 
@@ -862,7 +864,8 @@ public class CaptureSessionServiceTest {
             .isEqualTo(
                 "Capture Session ("
                     + captureSession.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is STANDBY");
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
         verify(captureSessionRepository, never()).deleteById(captureSession.getId());
@@ -886,9 +889,46 @@ public class CaptureSessionServiceTest {
             .isEqualTo(
                 "Capture Session ("
                     + captureSession.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is STANDBY");
 
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
         verify(captureSessionRepository, never()).deleteById(captureSession.getId());
+    }
+
+    @Test
+    @DisplayName("Should return dtos for all past incomplete capture sessions")
+    void findAllPastIncompleteCaptureSessions() {
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        Case aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+        CaptureSession captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
+        captureSession.setIngestAddress("ingest address");
+        captureSession.setLiveOutputUrl("live output url");
+        captureSession.setStartedAt(Timestamp.from(Instant.now()));
+        captureSession.setFinishedAt(Timestamp.from(Instant.now()));
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        captureSession.setStartedByUser(user);
+        captureSession.setFinishedByUser(user);
+        captureSession.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionRepository.findAllPastIncompleteCaptureSessions(any()))
+            .thenReturn(List.of(captureSession));
+
+        List<CaptureSessionDTO> result = captureSessionService.findAllPastIncompleteCaptureSessions();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getId()).isEqualTo(captureSession.getId());
+
+        verify(captureSessionRepository, times(1)).findAllPastIncompleteCaptureSessions(any(Timestamp.class));
     }
 }

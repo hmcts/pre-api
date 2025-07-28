@@ -17,8 +17,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: POSTGRES_PASSWORD
         - name: api-POSTGRES-USER
           alias: POSTGRES_USER
-        - name: AppInsightsInstrumentationKey
-          alias: APPINSIGHTS_INSTRUMENTATIONKEY
         - name: apim-sub-smoketest-primary-key
           alias: APIM_SUB_SMOKETEST_PRIMARY_KEY
         - name: apim-sub-smoketest-secondary-key
@@ -70,6 +68,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     ENABLE_NEW_EMAIL_SERVICE: false
     ENABLE_STREAMING_LOCATOR_ON_START: false
     ENABLE_AUTOMATED_EDITING: false
+    ENABLE_ENHANCED_PROCESSING: false
+    ENABLE_NULL_DURATION_UPSERT: false
     TASK_START_LIVE_EVENTS_BATCH_SIZE: 20
     TASK_START_LIVE_EVENTS_POLL_INTERVAL: 2000
     TASK_CLEANUP_LIVE_EVENTS_BATCH_SIZE: 3
