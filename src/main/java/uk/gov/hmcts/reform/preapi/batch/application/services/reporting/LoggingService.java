@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class LoggingService {
     private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
@@ -45,7 +47,7 @@ public class LoggingService {
             writer.println(LocalDateTime.now().format(FORMATTER) + " |  Vodafone ETL Job Started");
             writer.println("=====================================================");
         } catch (IOException e) {
-            System.err.println("Failed to initialize output.log: " + e.getMessage());
+            log.error("Failed to initialize output.log: {}", e.getMessage());
         }
     }
 
@@ -57,22 +59,25 @@ public class LoggingService {
              PrintWriter printWriter = new PrintWriter(fileWriter)) {
             printWriter.println(logMessage);
         } catch (IOException e) {
-            System.err.println("Failed to write to output.log: " + e.getMessage());
+            log.error("Failed to write to output.log: {}", e.getMessage());
         }
     }
 
     public void logInfo(String format, Object... args) {
         String message = String.format(format, args);
+        log.info(message);
         log("INFO", String.format("%s - %s", getCallerInfo(), message));
     }
 
     public void logWarning(String format, Object... args) {
         String message = String.format(format, args);
+        log.warn(message);
         log("WARN", String.format("%s - %s", getCallerInfo(), message));
     }
 
     public void logError(String format, Object... args) {
         String message = String.format(format, args);
+        log.error(message);
         log("ERROR", String.format("%s - %s", getCallerInfo(), message));
     }
 
@@ -169,7 +174,7 @@ public class LoggingService {
              PrintWriter printWriter = new PrintWriter(fileWriter)) {
             printWriter.println(summary);
         } catch (IOException e) {
-            System.err.println("Failed to write summary to output.log: " + e.getMessage());
+            log.error("Failed to write summary to output.log: {}", e.getMessage());
         }
 
     }
