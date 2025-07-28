@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.UUID;
 
@@ -26,4 +27,12 @@ public class SearchMigrationRecords {
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date createDateTo;
+
+    public Timestamp getCreateDateFromTimestamp() {
+        return createDateFrom != null ?  Timestamp.from(createDateFrom.toInstant()) : null;
+    }
+
+    public Timestamp getCreateDateToTimestamp() {
+        return createDateTo != null ?  Timestamp.from(createDateTo.toInstant().plusSeconds(86399)) : null;
+    }
 }

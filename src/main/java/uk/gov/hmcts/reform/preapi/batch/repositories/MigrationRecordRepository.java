@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
-import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -27,20 +26,7 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     @Query("""
         SELECT mr FROM MigrationRecord mr
-        WHERE (:#{#params.status} IS NULL OR mr.status = :#{#params.status})
-        AND (:#{#params.witnessName} IS NULL OR mr.witnessName ILIKE %:#{#params.witnessName}%)
-        AND (:#{#params.defendantName} IS NULL OR mr.defendantName ILIKE %:#{#params.defendantName}%)
-        AND (:#{#params.caseReference} IS NULL OR mr.exhibitReference ILIKE %:#{#params.caseReference}%)
-        AND (CAST(:#{#params.createDateFrom} as Timestamp) IS NULL OR mr.createTime >= :#{#params.createDateFrom})
-        AND (CAST(:#{#params.createDateTo} as Timestamp) IS NULL OR mr.createTime <= :#{#params.createDateTo})
-        AND (:#{#params.courtId} IS NULL OR mr.courtId = :#{#params.courtId})
-        """)
-    Page<MigrationRecord> findAllBy(@Param("params") SearchMigrationRecords params, Pageable pageable);
-
-
-    @Query("""
-        SELECT mr FROM MigrationRecord mr
-        WHERE (:status IS NULL OR mr.status = :status)
+        WHERE (CAST(:status as text)IS NULL OR mr.status = :status)
         AND (:witnessName IS NULL OR mr.witnessName ILIKE %:witnessName%)
         AND (:defendantName IS NULL OR mr.defendantName ILIKE %:defendantName%)
         AND (:caseReference IS NULL OR mr.exhibitReference ILIKE %:caseReference%)

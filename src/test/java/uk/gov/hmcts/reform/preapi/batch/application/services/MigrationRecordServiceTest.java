@@ -144,7 +144,7 @@ public class MigrationRecordServiceTest {
     public void findAllBy() {
         final MigrationRecord migrationRecord = createMigrationRecord();
 
-        when(migrationRecordRepository.findAllBy(any(), any()))
+        when(migrationRecordRepository.findAllBy(any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(migrationRecord)));
 
         Page<VfMigrationRecordDTO> result = migrationRecordService.findAllBy(
@@ -154,7 +154,8 @@ public class MigrationRecordServiceTest {
         assertThat(result.getSize()).isEqualTo(1);
         assertThat(result.getContent().getFirst().getId()).isEqualTo(migrationRecord.getId());
 
-        verify(migrationRecordRepository, times(1)).findAllBy(any(SearchMigrationRecords.class), any(Pageable.class));
+        verify(migrationRecordRepository, times(1))
+            .findAllBy(any(), any(), any(), any(), any(), any(), any(), any(Pageable.class));
     }
 
     @Test

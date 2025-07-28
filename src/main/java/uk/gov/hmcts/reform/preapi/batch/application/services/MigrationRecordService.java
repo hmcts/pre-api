@@ -467,7 +467,15 @@ public class MigrationRecordService {
 
     @Transactional(readOnly = true)
     public Page<VfMigrationRecordDTO> findAllBy(final SearchMigrationRecords params, final Pageable pageable) {
-        return migrationRecordRepository.findAllBy(params, pageable)
+        return migrationRecordRepository.findAllBy(
+                params.getStatus(),
+                params.getWitnessName(),
+                params.getDefendantName(),
+                params.getCaseReference(),
+                params.getCreateDateFromTimestamp(),
+                params.getCreateDateToTimestamp(),
+                params.getCourtId(),
+                pageable)
             .map(VfMigrationRecordDTO::new);
     }
 
