@@ -185,6 +185,28 @@ public class EntityCreationServiceTest {
     }
 
     @Test
+    @DisplayName("Should return null when original capture session ID is missing for COPY")
+    public void createCaptureSessionOrigMissingId() {
+        MigrationRecord copyRecord = new MigrationRecord();
+        when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(new MigrationRecord()));
+
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId("ARCH123")
+            .extractedRecordingVersion("COPY")
+            .recordingTimestamp(Timestamp.from(Instant.now()))
+            .build();
+
+        CreateBookingDTO booking = new CreateBookingDTO();
+        booking.setId(UUID.randomUUID());
+
+        CreateCaptureSessionDTO session = entityCreationService.createCaptureSession(
+            processedRecording, booking, "key");
+        assertThat(session).isNull();
+    }
+
+
+    @Test
     @DisplayName("Should create a recording without parent ID when version is 1")
     public void createRecordingVersionOne() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
@@ -364,6 +386,7 @@ public class EntityCreationServiceTest {
         assertThat(result.getSharedWithUser()).isEqualTo(sharedWith.getId());
         assertThat(result.getSharedByUser()).isEqualTo(sharedBy.getId());
     }
+
 
     @Test
     @DisplayName("Should return user id from cache")

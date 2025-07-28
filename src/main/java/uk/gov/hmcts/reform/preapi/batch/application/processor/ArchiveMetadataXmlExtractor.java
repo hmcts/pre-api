@@ -72,10 +72,22 @@ public class ArchiveMetadataXmlExtractor {
                 loggingService.logDebug("Generating archive metadata report in directory: %s", outputDir);
                 
                 allArchiveMetadata.sort((a, b) -> {
-                    String nameA = a.get(1); 
-                    String nameB = b.get(1);
+                    String nameA = a.get(1).toLowerCase(); 
+                    String nameB = b.get(1).toLowerCase();
 
-                    return nameB.compareToIgnoreCase(nameA); 
+                    String versionA = extractVersion(nameA);
+                    String versionB = extractVersion(nameB);
+
+                    boolean aIsOrig = Constants.VALID_ORIG_TYPES.contains(versionA.toUpperCase());
+                    boolean bIsOrig = Constants.VALID_ORIG_TYPES.contains(versionB.toUpperCase());
+
+                    if (aIsOrig && !bIsOrig) {
+                        return -1;
+                    }
+                    if (!aIsOrig && bIsOrig) {
+                        return 1;
+                    }
+                    return nameA.compareTo(nameB); 
                 });
 
                 int insertCount = 0;
@@ -296,5 +308,14 @@ public class ArchiveMetadataXmlExtractor {
             loggingService.logWarning("Invalid file size: " + fileSizeKb);
             return "0.00";
         }
+    }
+
+    private String extractVersion(String displayName) {
+        String[] parts = displayName.split("-");
+        if (parts.length == 0) {
+            return "";
+        }
+        String versionPart = parts[parts.length - 1]; 
+        return versionPart.split("\\.")[0];
     }
 }

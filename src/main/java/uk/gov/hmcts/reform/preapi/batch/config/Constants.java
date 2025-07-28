@@ -46,31 +46,35 @@ public final class Constants {
     public static final class ErrorMessages {
         // Test related errors
         public static final String TEST_ITEM_NAME = "Test keywords in archive name";
-        public static final String TEST_DURATION = "Duration is less than 10 seconds.";
+        public static final String TEST_DURATION = "Recording is too short — must be longer than 10 seconds.";
 
         // File validation errors
         public static final String NOT_PREFERRED =
-            "A more preferred version of this recording exists.";
+            "This recording has been skipped because a better version is already available.";
 
         // Court validation errors
-        public static final String MISSING_COURT = "No valid court is associated with this recording.";
+        public static final String MISSING_COURT = "No matching court could be found for this recording.";
 
         // Version validation errors
-        public static final String NOT_MOST_RECENT_VERSION = "The recording is not the most recent version.";
-        public static final String NO_PARENT_FOUND = "No parent recording found, but version > 1";
+        public static final String NOT_MOST_RECENT_VERSION =
+            "An updated version of this recording exists — this one is outdated.";
+        public static final String NO_PARENT_FOUND =
+            "No original (parent) recording found, but this file is marked as a later version.";
 
         // Case reference validation errors
-        public static final String CASE_REFERENCE_TOO_LONG = "Case reference exceeds the 24-character limit.";
-        public static final String CASE_REFERENCE_TOO_SHORT = "Case reference is less than 9-characters.";
+        public static final String CASE_REFERENCE_TOO_LONG =
+            "The case reference is too long — must be 24 characters or fewer..";
+        public static final String CASE_REFERENCE_TOO_SHORT =
+            "The case reference is too short — must be at least 9 characters.";
 
         // Date validation errors
-        public static final String PREDATES_GO_LIVE = "Recording date is before the go-live date ("
+        public static final String PREDATES_GO_LIVE = "This recording is from before the supported go-live date ("
             + GO_LIVE_DATE.getDayOfMonth() + "/"
             + GO_LIVE_DATE.getMonthValue() + "/"
             + GO_LIVE_DATE.getYear() + ").";
 
         // Pattern match errors
-        public static final String PATTERN_MATCH = "Failed to match any recording pattern.";
+        public static final String PATTERN_MATCH = "The filename does not match any known or supported format.";
     }
 
     public static final class XmlFields {

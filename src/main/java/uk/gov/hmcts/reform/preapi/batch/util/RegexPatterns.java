@@ -60,6 +60,11 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
+    public static final Pattern VMR_WITH_DATE_PATTERN = Pattern.compile(
+        "^CR#(?<caseId>\\d+)[-_]VMR(?<vmrNumber>\\d+)[-_](?<date>\\d{2}\\.\\d{2}\\.\\d{4})(?:\\.(?<ext>mp4|raw))?$",
+        Pattern.CASE_INSENSITIVE
+    );
+
     public static final Pattern UUID_STYLE_R_PREFIX_PATTERN = Pattern.compile(
         "^R[a-f0-9]{32}$", Pattern.CASE_INSENSITIVE
     );
@@ -83,7 +88,8 @@ public final class RegexPatterns {
         Map.entry("VMR Timestamp Pattern",VMR_TIMESTAMP_PATTERN),
         Map.entry("Postrmx Pattern", POSTRMX_PATTERN),
         Map.entry("VMR Simple Pattern", SIMPLE_VMR_TEST_PATTERN),
-        Map.entry("UUID R Prefix Pattern",UUID_STYLE_R_PREFIX_PATTERN)
+        Map.entry("UUID R Prefix Pattern",UUID_STYLE_R_PREFIX_PATTERN),
+        Map.entry("VMR with date pattern", VMR_WITH_DATE_PATTERN)
     );
 
     private static Pattern buildTestKeywordsPattern() {
@@ -111,7 +117,7 @@ public final class RegexPatterns {
 
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{6,9})";
     private static final String VERSION_PATTERN =
-        "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI|OR|CO)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
+        "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI|OR|CO|COP)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
     private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
 
     private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)"
@@ -327,6 +333,33 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
+    public static final Pattern DOUBLE_DATE_PATTERN = Pattern.compile(
+        "^" 
+        + "(?<court>[A-Za-z]+(?:d|fd)?)" + SEPARATOR_ONE 
+        + "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE 
+        + "(?<court2>[A-Za-z]+(?:d|fd)?)" + SEPARATOR_ONE 
+        +  "(?<date2>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE 
+        + URN_PATTERN + SEPARATOR_ONE 
+        + "(?<defendantLastName>[A-Za-z]+)" + SEPARATOR_ONE 
+        + "(?<witnessFirstName>Witness\\d+)" + SEPARATOR_ONE 
+        + VERSION_PATTERN 
+        + EXTENSION_PATTERN + "$",
+        Pattern.CASE_INSENSITIVE
+    );
+
+    public static final Pattern CENTRL_COMPLEX_PATTERN = Pattern.compile(
+        "^" 
+        + "(?<court>[A-Za-z]+)" + SEPARATOR_ONE 
+        + "(?<date>\\d{6})" + SEPARATOR_ONE 
+        + "(?<urn>[A-Za-z0-9\\s\\-]+)" + SEPARATOR_ONE 
+        + "(?<exhibitRef>[A-Za-z0-9]{2,6})" + SEPARATOR_ONE 
+        + "(?<defendantLastName>[A-Za-z0-9\\-']+)" + SEPARATOR_ONE 
+        + "(?<witnessFirstName>[A-Za-z0-9\\-']+)" + SEPARATOR_ONE 
+        + "(?<versionType>ORIG|COPY)(?:[-_]?(?<versionNumber>\\d+(\\.\\d+)?))?" 
+        + "(?:\\.(?<ext>mp4|raw|mov|avi|mkv))?" 
+        + "$",
+        Pattern.CASE_INSENSITIVE
+    );
    
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
@@ -344,6 +377,8 @@ public final class RegexPatterns {
         Map.entry("PlusInName", RegexPatterns.PLUS_IN_NAME_PATTERN),
         Map.entry("NoUrnPattern", RegexPatterns.NO_URN_PATTERN),
         Map.entry("NoExhibitPattern", RegexPatterns.NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
-        Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN)
+        Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN),
+        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN),
+        Map.entry("Central complexPattern", RegexPatterns.CENTRL_COMPLEX_PATTERN)
     );
 }
