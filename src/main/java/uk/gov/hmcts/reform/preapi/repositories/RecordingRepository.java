@@ -29,6 +29,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         WHERE (:includeDeleted = TRUE OR r.deletedAt IS NULL)
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
         AND (:#{#searchParams.authorisedCourt} IS NULL OR r.captureSession.booking.caseId.court.id = :#{#searchParams.authorisedCourt})
+        AND (:#{#searchParams.version} IS NULL OR r.version = :#{#searchParams.version})
         AND (
             :#{#searchParams.id} IS NULL OR
             CAST(r.id AS text) ILIKE %:#{#searchParams.id}%
@@ -111,14 +112,18 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     int countByParentRecording_Id(UUID id);
 
     @Query("""
-        SELECT cs, r, b, u
-        FROM CaptureSession cs
-        INNER JOIN Recording r ON r.captureSession.id=cs.id
-        INNER JOIN Booking b ON cs.booking.id=b.id
-        LEFT JOIN User u ON u.id=cs.finishedByUser.id
+        SELECT r
+        FROM Recording r
+        INNER JOIN r.captureSession
+        INNER JOIN r.captureSession.booking
+        LEFT JOIN r.captureSession.finishedByUser
         WHERE r.parentRecording IS NULL
-        AND cs.status = 'RECORDING_AVAILABLE'
+        AND r.captureSession.deletedAt IS NULL
+        AND r.captureSession.startedAt IS NOT NULL
+        AND r.captureSession.finishedAt IS NOT NULL
         """
     )
     List<Recording> findAllCompletedCaptureSessionsWithRecordings();
+
+    List<Recording> findAllByDurationIsNullAndDeletedAtIsNull();
 }

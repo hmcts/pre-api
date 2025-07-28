@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -14,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -246,6 +248,47 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(recordings2.getFirst().getId()).isEqualTo(details.recordingId());
         assertThat(recordings2.getLast().getId()).isEqualTo(recording2.getId());
         assertThat(recordings2.getFirst().getCreatedAt()).isBefore(recordings2.getLast().getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Should search recordings by version number")
+    void getRecordingsByVersion() throws JsonProcessingException {
+        CreateRecordingResponse details = createRecording();
+        assertRecordingExists(details.recordingId(), true);
+        assertCaptureSessionExists(details.captureSessionId(), true);
+        assertBookingExists(details.bookingId(), true);
+        assertCaseExists(details.caseId(), true);
+
+        CreateRecordingDTO recording2 = createRecording(details.captureSessionId());
+        recording2.setParentRecordingId(details.recordingId());
+        recording2.setVersion(2);
+        Response putRecording2 = putRecording(recording2);
+        assertResponseCode(putRecording2, 201);
+        assertRecordingExists(recording2.getId(), true);
+
+        // search version 1
+        Response getRecordings1 = doGetRequest(
+            RECORDINGS_ENDPOINT + "?version=1&captureSessionId=" + details.captureSessionId(),
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(getRecordings1, 200);
+        List<RecordingDTO> recordings1 = getRecordings1.jsonPath()
+            .getList("_embedded.recordingDTOList", RecordingDTO.class);
+        assertThat(recordings1.size()).isEqualTo(1);
+        assertThat(recordings1.getFirst().getId()).isEqualTo(details.recordingId());
+        assertThat(recordings1.getFirst().getVersion()).isEqualTo(1);
+
+        // search version 2
+        Response getRecordings2 = doGetRequest(
+            RECORDINGS_ENDPOINT + "?version=2&captureSessionId=" + details.captureSessionId(),
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(getRecordings2, 200);
+        List<RecordingDTO> recordings2 = getRecordings2.jsonPath()
+            .getList("_embedded.recordingDTOList", RecordingDTO.class);
+        assertThat(recordings2.size()).isEqualTo(1);
+        assertThat(recordings2.getFirst().getId()).isEqualTo(recording2.getId());
+        assertThat(recordings2.getFirst().getVersion()).isEqualTo(2);
     }
 
     @Test
