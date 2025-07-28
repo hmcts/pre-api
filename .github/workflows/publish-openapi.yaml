@@ -3,18 +3,17 @@ on:
   push:
     branches:
       - "master"
-      - "S28-4064/verify-email-endpoint"
 
 jobs:
   publish-pre-api:
-    uses: hmcts/workflow-publish-openapi-spec/.github/workflows/publish-openapi.yml@specify-api-name
+    uses: hmcts/workflow-publish-openapi-spec/.github/workflows/publish-openapi.yml@v4
     secrets:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
       test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisherTest'
       java_version: 17
   publish-b2c-api:
-    uses: hmcts/workflow-publish-openapi-spec/.github/workflows/publish-openapi.yml@specify-api-name
+    uses: hmcts/workflow-publish-openapi-spec/.github/workflows/publish-openapi.yml@v4
     secrets:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
