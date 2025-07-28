@@ -524,7 +524,7 @@ public class VfMigrationControllerTest {
         createDto.setWitnessName("witness-name");
         createDto.setCourtId(UUID.randomUUID());
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
-        createDto.setRecordingVersionNumber(0);
+        createDto.setRecordingVersionNumber(0.0d);
 
         mockMvc.perform(put("/vf-migration-records/" + mockId)
                             .with(csrf())

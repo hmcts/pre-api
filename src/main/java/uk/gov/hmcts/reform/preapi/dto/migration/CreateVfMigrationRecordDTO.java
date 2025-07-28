@@ -55,7 +55,7 @@ public class CreateVfMigrationRecordDTO {
 
     @Min(value = 1)
     @Schema(description = "CreateMigrationRecordRecordingVersion")
-    private Integer recordingVersionNumber;
+    private Double recordingVersionNumber;
 
     @NotNull
     @Schema(description = "CreateMigrationRecordStatus")
