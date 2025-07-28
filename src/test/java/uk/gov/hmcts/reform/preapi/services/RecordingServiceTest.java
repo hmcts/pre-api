@@ -22,8 +22,8 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -453,27 +453,27 @@ class RecordingServiceTest {
 
     @DisplayName("Should not throw error when all recordings of a capture session have been marked as deleted")
     @Test
-    void deleteCascadeSuccess() {
+    void checkIfCaptureSessionHasAssociatedRecordingsSuccess() {
         when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
             .thenReturn(false);
 
         assertDoesNotThrow(
-            () -> recordingService.deleteCascade(recordingEntity.getCaptureSession())
+            () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
         );
     }
 
     @DisplayName("Should throw error when all recordings of a capture session have not been marked as deleted")
     @Test
-    void deleteCascadeRecordingsNotDeleted() {
+    void checkIfCaptureSessionHasAssociatedRecordingsRecordingsNotDeleted() {
         when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
             .thenReturn(true);
 
         var message = assertThrows(
-            RecordingNotDeletedException.class,
-            () -> recordingService.deleteCascade(recordingEntity.getCaptureSession())
+            CaptureSessionNotDeletedException.class,
+            () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
         ).getMessage();
 
-        assertThat(message).isEqualTo("Cannot delete because and associated recording has not been deleted.");
+        assertThat(message).isEqualTo("Cannot delete because an associated recording has not been deleted.");
     }
 
     @DisplayName("Should set started at from and until when started at is set")

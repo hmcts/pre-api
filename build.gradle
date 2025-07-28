@@ -281,7 +281,7 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.22.0'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-cache'
-  implementation group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: '3.2.1'
+  implementation group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: '3.2.2'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.20.0'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: reformLoggingVersion
@@ -296,7 +296,7 @@ dependencies {
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '11.6.0'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '11.6.0'
   implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.6'
-  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.10.1'
+  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.10.3'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
@@ -317,7 +317,7 @@ dependencies {
   implementation group: 'com.azure', name: 'azure-core-serializer-json-jackson', version: '1.5.10'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0'
 
-  implementation group: 'org.testcontainers', name: 'postgresql', version: '1.21.2'
+  implementation group: 'org.testcontainers', name: 'postgresql', version: '1.21.3'
 
   implementation group: 'com.auth0', name: 'java-jwt', version: '4.5.0'
 
@@ -337,12 +337,12 @@ dependencies {
 
   integrationTestImplementation sourceSets.main.runtimeClasspath
   integrationTestImplementation sourceSets.test.runtimeClasspath
-  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.2'
+  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.3'
 
   functionalTestImplementation sourceSets.main.runtimeClasspath
   functionalTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
   functionalTestImplementation group: 'io.rest-assured', name: 'rest-assured'
-  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.2'
+  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.3'
 
   smokeTestImplementation sourceSets.main.runtimeClasspath
   smokeTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
