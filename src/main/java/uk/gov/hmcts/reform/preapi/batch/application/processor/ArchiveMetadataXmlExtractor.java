@@ -140,7 +140,7 @@ public class ArchiveMetadataXmlExtractor {
                 List<List<String>> blobMetadata = parseArchiveMetadataFromXml(xmlStream);
                 if (!blobMetadata.isEmpty()) {
                     allArchiveMetadata.addAll(blobMetadata);
-                    loggingService.logDebug("Processing blob: %s - %s", allArchiveMetadata.get(0).get(0), blobName);
+                    loggingService.logDebug("Processing blob: %s", blobName);
                 } else {
                     loggingService.logWarning("Blob contains no metadata: " + blobName);
                 }
