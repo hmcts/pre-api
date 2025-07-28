@@ -11,11 +11,13 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -47,6 +49,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = BookingService.class)
@@ -481,6 +484,26 @@ class BookingServiceTest {
         verify(shareBookingService, times(1)).deleteCascade(booking);
         verify(captureSessionService, times(1)).deleteCascade(booking);
         verify(bookingRepository, times(1)).save(booking);
+    }
+
+    @DisplayName("Should clean any unused capture sessions without marking booking as deleted")
+    @Test
+    void cleanUnusedCaptureSessionsSuccess() {
+        var captureSessionFailedRecording = new CaptureSession();
+        captureSessionFailedRecording.setStatus(RecordingStatus.FAILURE);
+
+        var captureSessionRecordingAvailable = new CaptureSession();
+        captureSessionRecordingAvailable.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaptureSessions(Set.of(captureSessionFailedRecording, captureSessionRecordingAvailable));
+
+        bookingService.cleanUnusedCaptureSessions(booking);
+
+        verify(captureSessionService, times(1)).deleteById(captureSessionFailedRecording.getId());
+        verifyNoMoreInteractions(captureSessionService);
+        verifyNoMoreInteractions(bookingRepository);
     }
 
     @DisplayName("Should undelete a booking successfully when booking is marked as deleted")
