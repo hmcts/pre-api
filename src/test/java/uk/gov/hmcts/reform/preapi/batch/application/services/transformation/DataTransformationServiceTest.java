@@ -230,6 +230,7 @@ public class DataTransformationServiceTest {
     // @DisplayName("Should throw error when court reference is null")
     // void fetchCourtFromDBCourtReferenceNullError() {
     //     ExtractedMetadata data = new ExtractedMetadata();
+    //     data.setCourtReference(null);
 
     //     String message = assertThrows(
     //         IllegalArgumentException.class,
