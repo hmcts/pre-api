@@ -8,6 +8,8 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.scope.context.StepContext;
+import org.springframework.batch.core.step.tasklet.TaskletStep;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.ArchiveMetadataXmlExtractor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
@@ -74,7 +76,6 @@ class FetchDataJobConfigTest {
 
     @Test
     void createXmlFetchStep_shouldHandleCsvSourceType() throws Exception {
-        Step step = config.createXmlFetchStep();
 
         // Create job parameters with CSV source type
         var jobParams = new HashMap<String, Object>();
@@ -92,18 +93,18 @@ class FetchDataJobConfigTest {
         when(stepExecution.getExecutionContext()).thenReturn(new org.springframework.batch.item.ExecutionContext());
 
         // Execute the tasklet by extracting it from the step
-        org.springframework.batch.core.step.tasklet.TaskletStep taskletStep = (org.springframework.batch.core.step.tasklet.TaskletStep) step;
-        org.springframework.batch.core.step.tasklet.Tasklet tasklet = taskletStep.getTasklet();
+        Step step = config.createXmlFetchStep();
+        var taskletStep = (TaskletStep) step;
+        var tasklet = taskletStep.getTasklet();
 
-        org.springframework.batch.repeat.RepeatStatus status = tasklet.execute(null, chunkContext);
+        var status = tasklet.execute(null, chunkContext);
 
-        assertEquals(org.springframework.batch.repeat.RepeatStatus.FINISHED, status);
+        assertEquals(RepeatStatus.FINISHED, status);
         verify(loggingService).logInfo(contains("Skipping XML fetch"), eq("Archive_List_initial"));
     }
 
     @Test
     void createXmlFetchStep_shouldHandleXmlSourceType() throws Exception {
-        Step step = config.createXmlFetchStep();
 
         // Create job parameters with XML source type
         var jobParams = new HashMap<String, Object>();
@@ -116,12 +117,13 @@ class FetchDataJobConfigTest {
         when(stepContext.getJobParameters()).thenReturn(jobParams);
 
         // Execute the tasklet
-        org.springframework.batch.core.step.tasklet.TaskletStep taskletStep = (org.springframework.batch.core.step.tasklet.TaskletStep) step;
-        org.springframework.batch.core.step.tasklet.Tasklet tasklet = taskletStep.getTasklet();
+        Step step = config.createXmlFetchStep();
+        var taskletStep = (TaskletStep) step;
+        var tasklet = taskletStep.getTasklet();
 
-        org.springframework.batch.repeat.RepeatStatus status = tasklet.execute(null, chunkContext);
+        var status = tasklet.execute(null, chunkContext);
 
-        assertEquals(org.springframework.batch.repeat.RepeatStatus.FINISHED, status);
+        assertEquals(RepeatStatus.FINISHED, status);
         verify(xmlProcessingService).extractAndReportArchiveMetadata(
             eq(FetchDataJobConfig.CONTAINER_NAME),
             eq(FetchDataJobConfig.XML_PREFIX),
@@ -144,12 +146,12 @@ class FetchDataJobConfigTest {
         when(stepContext.getJobParameters()).thenReturn(jobParams);
 
         // Execute the tasklet
-        org.springframework.batch.core.step.tasklet.TaskletStep taskletStep = (org.springframework.batch.core.step.tasklet.TaskletStep) step;
-        org.springframework.batch.core.step.tasklet.Tasklet tasklet = taskletStep.getTasklet();
+        var taskletStep = (TaskletStep) step;
+        var tasklet = taskletStep.getTasklet();
 
-        org.springframework.batch.repeat.RepeatStatus status = tasklet.execute(null, chunkContext);
+        var status = tasklet.execute(null, chunkContext);
 
-        assertEquals(org.springframework.batch.repeat.RepeatStatus.FINISHED, status);
+        assertEquals(RepeatStatus.FINISHED, status);
         verify(xmlProcessingService).extractAndReportArchiveMetadata(
             eq(FetchDataJobConfig.CONTAINER_NAME),
             eq(FetchDataJobConfig.XML_PREFIX),
