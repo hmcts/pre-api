@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
@@ -82,7 +83,7 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
 
     @Column(name = "recording_version_number", length = 1)
     private String recordingVersionNumber;
- 
+
     @Column(name = "mp4_file_name", length = 10)
     private String fileName;
 
@@ -114,6 +115,7 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Column(name = "resolved_at")
     private Timestamp resolvedAt;
 
+    @CreationTimestamp
     @Column(name = "created_at")
     private Timestamp createdAt;
 
@@ -121,10 +123,8 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     private Boolean isMostRecent;
 
     @Column(name = "is_preferred")
-    private Boolean isPreferred; 
+    private Boolean isPreferred;
 
     @Column(name = "recording_group_key")
     private String recordingGroupKey;
-
-    
 }

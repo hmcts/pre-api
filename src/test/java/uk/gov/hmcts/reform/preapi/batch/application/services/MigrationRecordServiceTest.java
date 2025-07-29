@@ -15,6 +15,8 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,11 +27,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
-
-@SpringBootTest(classes = {MigrationRecordService.class})
+@SpringBootTest(classes = MigrationRecordService.class)
 public class MigrationRecordServiceTest {
-
     @Autowired
     private MigrationRecordService migrationRecordService;
 
@@ -38,6 +37,299 @@ public class MigrationRecordServiceTest {
 
     @MockitoBean
     private LoggingService loggingService;
+
+    @Test
+    @DisplayName("Should return lowercase combined string from non-null parameters")
+    void generateRecordingGroupKeyShouldReturnLowercaseCombinedString() {
+        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe");
+
+        assertThat(result).isEqualTo("urn123|exhibit1|john|doe");
+    }
+
+    @Test
+    @DisplayName("Should handle null values by replacing with empty strings")
+    void generateRecordingGroupKeyShouldHandleNullValues() {
+        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe");
+
+        assertThat(result).isEqualTo("|exhibit1||doe");
+    }
+
+    @Test
+    @DisplayName("Should trim leading and trailing whitespace")
+    void generateRecordingGroupKeyShouldTrimWhitespace() {
+        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ", " John ", " Doe ");
+
+        assertThat(result).isEqualTo("urn123 | exhibit1 | john | doe");
+    }
+
+    @Test
+    @DisplayName("Should return distinct original version numbers for valid baseGroupKey")
+    void findOrigVersionsByBaseGroupKeyShouldReturnDistinctVersionsForValidGroupKey() {
+        MigrationRecord record1 = new MigrationRecord();
+        record1.setRecordingVersion("ORIG");
+        record1.setRecordingVersionNumber("1.1");
+        record1.setRecordingGroupKey("baseGroupKey");
+
+        MigrationRecord record2 = new MigrationRecord();
+        record2.setRecordingVersion("ORIG");
+        record2.setRecordingVersionNumber("2.3");
+        record2.setRecordingGroupKey("baseGroupKey");
+
+        MigrationRecord record3 = new MigrationRecord();
+        record3.setRecordingVersion("COPY");
+        record3.setRecordingVersionNumber("3.1");
+        record3.setRecordingGroupKey("baseGroupKey");
+
+        when(migrationRecordRepository.findByRecordingGroupKeyStartingWith("baseGroupKey"))
+            .thenReturn(List.of(record1, record2, record3));
+
+        List<String> result = migrationRecordService.findOrigVersionsByBaseGroupKey("baseGroupKey");
+
+        assertThat(result).containsExactlyInAnyOrder("1", "2");
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no records exist for baseGroupKey")
+    void findOrigVersionsByBaseGroupKeyShouldReturnEmptyForNoMatchingRecords() {
+        when(migrationRecordRepository.findByRecordingGroupKeyStartingWith("nonexistentKey"))
+            .thenReturn(List.of());
+
+        List<String> result = migrationRecordService.findOrigVersionsByBaseGroupKey("nonexistentKey");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should filter results to only ORIG versions")
+    void findOrigVersionsByBaseGroupKeyShouldFilterToOrigVersionsOnly() {
+        MigrationRecord record1 = new MigrationRecord();
+        record1.setRecordingVersion("ORIG");
+        record1.setRecordingVersionNumber("4.0");
+        record1.setRecordingGroupKey("baseGroupKey");
+
+        MigrationRecord record2 = new MigrationRecord();
+        record2.setRecordingVersion("COPY");
+        record2.setRecordingVersionNumber("4.1");
+        record2.setRecordingGroupKey("baseGroupKey");
+
+        when(migrationRecordRepository.findByRecordingGroupKeyStartingWith("baseGroupKey"))
+            .thenReturn(List.of(record1, record2));
+
+        List<String> result = migrationRecordService.findOrigVersionsByBaseGroupKey("baseGroupKey");
+
+        assertThat(result).containsExactly("4");
+    }
+
+    @Test
+    @DisplayName("Should mark non-MP4 records as not preferred when MP4 exists")
+    void markNonMp4AsNotPreferredShouldUpdateRecords() {
+        MigrationRecord mp4Record = new MigrationRecord();
+        mp4Record.setArchiveId("mp4Id");
+        mp4Record.setRecordingGroupKey("groupKey");
+        mp4Record.setRecordingVersionNumber("1");
+        mp4Record.setRecordingVersion("ORIG");
+        mp4Record.setFileName("video.mp4");
+        mp4Record.setIsPreferred(false);
+
+        MigrationRecord nonMp4Record = new MigrationRecord();
+        nonMp4Record.setArchiveId("nonMp4Id");
+        nonMp4Record.setRecordingGroupKey("groupKey");
+        nonMp4Record.setRecordingVersionNumber("1");
+        nonMp4Record.setRecordingVersion("ORIG");
+        nonMp4Record.setFileName("video.avi");
+        nonMp4Record.setIsPreferred(true);
+
+        when(migrationRecordRepository.findByArchiveId("mp4Id")).thenReturn(Optional.of(mp4Record));
+        when(migrationRecordRepository.findByRecordingGroupKey("groupKey"))
+            .thenReturn(List.of(mp4Record, nonMp4Record));
+
+        boolean result = migrationRecordService.markNonMp4AsNotPreferred("mp4Id");
+
+        assertThat(result).isTrue();
+        assertThat(mp4Record.getIsPreferred()).isTrue();
+        assertThat(nonMp4Record.getIsPreferred()).isFalse();
+
+        verify(migrationRecordRepository, times(1)).save(mp4Record);
+        verify(migrationRecordRepository, times(1)).save(nonMp4Record);
+    }
+
+    @Test
+    @DisplayName("Should not update records when no MP4 exists for group key and version")
+    void markNonMp4AsNotPreferredShouldDoNothingWhenNoMp4Exists() {
+        MigrationRecord nonMp4Record = new MigrationRecord();
+        nonMp4Record.setArchiveId("nonMp4Id");
+        nonMp4Record.setRecordingGroupKey("groupKey");
+        nonMp4Record.setRecordingVersionNumber("1");
+        nonMp4Record.setRecordingVersion("ORIG");
+        nonMp4Record.setFileName("video.avi");
+        nonMp4Record.setIsPreferred(true);
+
+        when(migrationRecordRepository.findByArchiveId("nonMp4Id")).thenReturn(Optional.of(nonMp4Record));
+        when(migrationRecordRepository.findByRecordingGroupKey("groupKey"))
+            .thenReturn(List.of(nonMp4Record));
+
+        boolean result = migrationRecordService.markNonMp4AsNotPreferred("nonMp4Id");
+
+        assertThat(result).isFalse();
+        assertThat(nonMp4Record.getIsPreferred()).isTrue();
+
+        verify(migrationRecordRepository, never()).save(nonMp4Record);
+    }
+
+    @Test
+    @DisplayName("Should do nothing when archiveId does not exist")
+    void markNonMp4AsNotPreferredShouldDoNothingWhenArchiveIdNotFound() {
+        when(migrationRecordRepository.findByArchiveId("nonExistentId")).thenReturn(Optional.empty());
+
+        boolean result = migrationRecordService.markNonMp4AsNotPreferred("nonExistentId");
+
+        assertThat(result).isFalse();
+
+        verify(migrationRecordRepository, never()).findByRecordingGroupKey(any());
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should do nothing when groupKey or version is null")
+    void markNonMp4AsNotPreferredShouldDoNothingWhenGroupKeyOrVersionIsNull() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("invalidId");
+        record.setRecordingGroupKey(null);
+        record.setRecordingVersionNumber(null);
+
+        when(migrationRecordRepository.findByArchiveId("invalidId")).thenReturn(Optional.of(record));
+
+        boolean result = migrationRecordService.markNonMp4AsNotPreferred("invalidId");
+
+        assertThat(result).isFalse();
+
+        verify(migrationRecordRepository, never()).findByRecordingGroupKey(any());
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should update bookingId for an existing record")
+    void updateBookingIdShouldSetBookingIdForExistingRecord() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("existingId");
+        record.setBookingId(null);
+        UUID newBookingId = UUID.randomUUID();
+
+        when(migrationRecordRepository.findByArchiveId("existingId")).thenReturn(Optional.of(record));
+
+        migrationRecordService.updateBookingId("existingId", newBookingId);
+
+        assertThat(record.getBookingId()).isEqualTo(newBookingId);
+
+        verify(migrationRecordRepository, times(1)).save(record);
+    }
+
+    @Test
+    @DisplayName("Should do nothing if record does not exist for updating booking ID")
+    void updateBookingIdShouldNotUpdateForNonexistentRecord() {
+        UUID newBookingId = UUID.randomUUID();
+
+        when(migrationRecordRepository.findByArchiveId("nonExistentId")).thenReturn(Optional.empty());
+
+        migrationRecordService.updateBookingId("nonExistentId", newBookingId);
+
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should return the most recent version number in the group")
+    void findMostRecentVersionNumberInGroupShouldReturnMostRecentVersion() {
+        MigrationRecord record1 = new MigrationRecord();
+        record1.setRecordingVersionNumber("1.2");
+
+        MigrationRecord record2 = new MigrationRecord();
+        record2.setRecordingVersionNumber("2.0");
+
+        MigrationRecord record3 = new MigrationRecord();
+        record3.setRecordingVersionNumber("1.5");
+
+        when(migrationRecordRepository.findByRecordingGroupKey("groupKey"))
+            .thenReturn(List.of(record1, record2, record3));
+
+        Optional<String> result = migrationRecordService.findMostRecentVersionNumberInGroup("groupKey");
+
+        assertThat(result).isPresent();
+        assertThat(result.get()).isEqualTo("2.0");
+    }
+
+    @Test
+    @DisplayName("Should return empty when no records exist for a given group")
+    void findMostRecentVersionNumberInGroupShouldReturnEmptyWhenGroupIsEmpty() {
+        when(migrationRecordRepository.findByRecordingGroupKey("emptyGroupKey"))
+            .thenReturn(List.of());
+
+        Optional<String> result = migrationRecordService.findMostRecentVersionNumberInGroup("emptyGroupKey");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should ignore records with blank or null version numbers")
+    void findMostRecentVersionNumberInGroupShouldIgnoreBlankOrNullVersions() {
+        MigrationRecord record1 = new MigrationRecord();
+        record1.setRecordingVersionNumber(null);
+
+        MigrationRecord record2 = new MigrationRecord();
+        record2.setRecordingVersionNumber(" ");
+
+        MigrationRecord record3 = new MigrationRecord();
+        record3.setRecordingVersionNumber("1.3");
+
+        when(migrationRecordRepository.findByRecordingGroupKey("groupKeyWithBlanks"))
+            .thenReturn(List.of(record1, record2, record3));
+
+        Optional<String> result = migrationRecordService.findMostRecentVersionNumberInGroup("groupKeyWithBlanks");
+
+        assertThat(result).isPresent();
+        assertThat(result.get()).isEqualTo("1.3");
+    }
+
+    @Test
+    @DisplayName("Should find by archive id")
+    void findByArchiveId() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("123");
+        when(migrationRecordRepository.findByArchiveId("123")).thenReturn(Optional.of(record));
+
+        migrationRecordService.findByArchiveId("123");
+
+        verify(migrationRecordRepository, times(1)).findByArchiveId("123");
+    }
+
+    @Test
+    @DisplayName("Should return the original MigrationRecord when parentTempId is present")
+    void getOrigFromCopyWithParentId() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(UUID.randomUUID());
+        MigrationRecord originalRecord = new MigrationRecord();
+        originalRecord.setId(copy.getParentTempId());
+
+        when(migrationRecordRepository.findById(copy.getParentTempId())).thenReturn(Optional.of(originalRecord));
+
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+
+        assertThat(result).isPresent();
+        assertThat(result.get()).isEqualTo(originalRecord);
+
+        verify(migrationRecordRepository, times(1)).findById(copy.getParentTempId());
+    }
+
+    @Test
+    @DisplayName("Should return empty when parentTempId is not present")
+    void getOrigFromCopyWithoutParentId() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+
+        assertThat(result).isEmpty();
+        verify(migrationRecordRepository, never()).findById(any());
+    }
 
     @Test
     @DisplayName("Should upsert new MigrationRecord and return CREATED")
@@ -67,7 +359,93 @@ public class MigrationRecordServiceTest {
         );
 
         assertThat(result).isEqualTo(UpsertResult.CREATED);
-        verify(migrationRecordRepository, times(1)).save(any(MigrationRecord.class));
+
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should update existing MigrationRecord and return UPDATED")
+    void upsertShouldUpdateExistingRecord() {
+        String archiveId = "existingId";
+        MigrationRecord existingRecord = new MigrationRecord();
+        existingRecord.setArchiveId(archiveId);
+        existingRecord.setArchiveName("Old Archive");
+        when(migrationRecordRepository.findByArchiveId(archiveId)).thenReturn(Optional.of(existingRecord));
+
+        UpsertResult result = migrationRecordService.upsert(
+            archiveId,
+            "Updated Archive Name",
+            Timestamp.from(Instant.now()),
+            200,
+            "UpdatedCourtRef",
+            "URNUpdated",
+            "UpdatedExhibit",
+            "UpdatedDoe",
+            "UpdatedJohn",
+            "COPY",
+            "2",
+            "updated_file.mp4",
+            "15MB",
+            VfMigrationStatus.RESOLVED,
+            "UpdatedReason",
+            "No Error",
+            Timestamp.from(Instant.now()),
+            UUID.randomUUID()
+        );
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(existingRecord.getArchiveName()).isEqualTo("Updated Archive Name");
+        assertThat(existingRecord.getStatus()).isEqualTo(VfMigrationStatus.RESOLVED);
+
+        verify(migrationRecordRepository, times(1)).saveAndFlush(existingRecord);
+    }
+
+    @Test
+    @DisplayName("Should create new MigrationRecord with null and default values")
+    void upsertShouldHandleNullValuesAndDefaults() {
+        String archiveId = "newArchiveId";
+        when(migrationRecordRepository.findByArchiveId(archiveId)).thenReturn(Optional.empty());
+
+        UpsertResult result = migrationRecordService.upsert(
+            archiveId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            VfMigrationStatus.PENDING,
+            null,
+            null,
+            null,
+            null
+        );
+
+        assertThat(result).isEqualTo(UpsertResult.CREATED);
+
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should insert new CSV pending record")
+    void insertPendingShouldInsertNewRecord() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setArchiveId("newId");
+        data.setArchiveName("newName");
+
+        when(migrationRecordRepository.findByArchiveId("newId")).thenReturn(Optional.empty());
+
+        boolean inserted = migrationRecordService.insertPending(data);
+
+        assertThat(inserted).isTrue();
+
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
     }
 
     @Test
@@ -82,6 +460,7 @@ public class MigrationRecordServiceTest {
         boolean inserted = migrationRecordService.insertPending(data);
 
         assertThat(inserted).isFalse();
+
         verify(migrationRecordRepository, never()).save(any());
     }
 
@@ -105,9 +484,10 @@ public class MigrationRecordServiceTest {
 
         migrationRecordService.updateMetadataFields("123", metadata);
 
-        verify(migrationRecordRepository, times(1)).save(record);
         assertThat(record.getCourtReference()).isEqualTo("CourtRef");
         assertThat(record.getRecordingGroupKey()).isEqualTo("urn1|ex1|anna|smith");
+
+        verify(migrationRecordRepository, times(1)).save(record);
     }
 
     @Test
@@ -122,6 +502,333 @@ public class MigrationRecordServiceTest {
         assertThat(record.getStatus()).isEqualTo(VfMigrationStatus.FAILED);
         assertThat(record.getReason()).isEqualTo("Parse_Error");
         assertThat(record.getErrorMessage()).isEqualTo("File unreadable");
+
         verify(migrationRecordRepository).save(record);
+    }
+
+    @Test
+    @DisplayName("Should do nothing for nonexistent archiveId")
+    void deduplicatePreferredByArchiveIdShouldDoNothingForNonexistentArchiveId() {
+        when(migrationRecordRepository.findByArchiveId("nonExistentId")).thenReturn(Optional.empty());
+
+        boolean result = migrationRecordService.deduplicatePreferredByArchiveId("nonExistentId");
+
+        assertThat(result).isFalse();
+
+        verify(migrationRecordRepository, never()).findAllByArchiveName(any());
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should return all pending migration records")
+    void getPendingMigrationRecordsReturnsAllPendingRecords() {
+        MigrationRecord record1 = new MigrationRecord();
+        record1.setArchiveId("pending1");
+        record1.setStatus(VfMigrationStatus.PENDING);
+
+        MigrationRecord record2 = new MigrationRecord();
+        record2.setArchiveId("pending2");
+        record2.setStatus(VfMigrationStatus.PENDING);
+
+        when(migrationRecordRepository.findByStatus(VfMigrationStatus.PENDING))
+            .thenReturn(List.of(record1, record2));
+
+        List<MigrationRecord> result = migrationRecordService.getPendingMigrationRecords();
+
+        assertThat(result).hasSize(2);
+        assertThat(result).containsExactly(record1, record2);
+
+        verify(migrationRecordRepository, times(1)).findByStatus(VfMigrationStatus.PENDING);
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no pending migration records are available")
+    void getPendingMigrationRecordsReturnsEmptyListWhenNoPendingRecords() {
+        when(migrationRecordRepository.findByStatus(VfMigrationStatus.PENDING))
+            .thenReturn(List.of());
+
+        List<MigrationRecord> result = migrationRecordService.getPendingMigrationRecords();
+
+        assertThat(result).isEmpty();
+
+        verify(migrationRecordRepository, times(1)).findByStatus(VfMigrationStatus.PENDING);
+    }
+
+    @Test
+    @DisplayName("Should insert new pending record from XML")
+    void insertPendingFromXmlShouldCreateNewRecord() {
+        String archiveId = "new_id";
+        String archiveName = "new_archive";
+        String createTimeEpoch = "1688000000";
+        String duration = "300";
+        String mp4FileName = "video.mp4";
+        String fileSizeMb = "20MB";
+
+        when(migrationRecordRepository.findByArchiveId(archiveId)).thenReturn(Optional.empty());
+
+        boolean result = migrationRecordService.insertPendingFromXml(
+            archiveId, archiveName, createTimeEpoch, duration, mp4FileName, fileSizeMb);
+
+        assertThat(result).isTrue();
+
+        verify(migrationRecordRepository, times(2)).findByArchiveId(archiveId);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should not insert duplicate record from XML")
+    void insertPendingFromXmlShouldNotCreateDuplicate() {
+        String archiveId = "existing_id";
+        String archiveName = "existing_archive";
+        String createTimeEpoch = "1688000000";
+        String duration = "300";
+        String mp4FileName = "video.mp4";
+        String fileSizeMb = "20MB";
+
+        when(migrationRecordRepository.findByArchiveId(archiveId)).thenReturn(Optional.of(new MigrationRecord()));
+
+        boolean result = migrationRecordService.insertPendingFromXml(
+            archiveId, archiveName, createTimeEpoch, duration, mp4FileName, fileSizeMb);
+
+        assertThat(result).isFalse();
+
+        verify(migrationRecordRepository, times(1)).findByArchiveId(archiveId);
+        verify(loggingService, times(1)).logInfo("Already processed: %s", archiveName);
+    }
+
+    @Test
+    @DisplayName("Should update isPreferred to true for a valid record")
+    void updateIsPreferredShouldUpdateRecord() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("validId");
+        record.setIsPreferred(false);
+        when(migrationRecordRepository.findByArchiveId("validId")).thenReturn(Optional.of(record));
+
+        migrationRecordService.updateIsPreferred("validId", true);
+
+        assertThat(record.getIsPreferred()).isTrue();
+
+        verify(migrationRecordRepository, times(1)).save(record);
+    }
+
+    @Test
+    @DisplayName("Should update isPreferred to false for a valid record")
+    void updateIsPreferredShouldUpdateRecordToNotPreferred() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("validId");
+        record.setIsPreferred(true);
+        when(migrationRecordRepository.findByArchiveId("validId")).thenReturn(Optional.of(record));
+
+        migrationRecordService.updateIsPreferred("validId", false);
+
+        assertThat(record.getIsPreferred()).isFalse();
+
+        verify(migrationRecordRepository, times(1)).save(record);
+    }
+
+    @Test
+    @DisplayName("Should do nothing if record does not exist")
+    void updateIsPreferredShouldDoNothingForNonexistentRecord() {
+        when(migrationRecordRepository.findByArchiveId("nonExistentId")).thenReturn(Optional.empty());
+
+        migrationRecordService.updateIsPreferred("nonExistentId", true);
+
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should update status to SUCCESS and clear reason and errorMessage")
+    void updateToSuccessShouldSetStatusToSuccess() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("successId");
+        record.setStatus(VfMigrationStatus.PENDING);
+        record.setReason("Initial Reason");
+        record.setErrorMessage("Initial Error");
+
+        when(migrationRecordRepository.findByArchiveId("successId")).thenReturn(Optional.of(record));
+
+        migrationRecordService.updateToSuccess("successId");
+
+        assertThat(record.getStatus()).isEqualTo(VfMigrationStatus.SUCCESS);
+        assertThat(record.getReason()).isEmpty();
+        assertThat(record.getErrorMessage()).isEmpty();
+
+        verify(migrationRecordRepository, times(1)).save(record);
+    }
+
+    @Test
+    @DisplayName("Should do nothing if record does not exist when updating to SUCCESS")
+    void updateToSuccessShouldDoNothingForNonexistentRecord() {
+        when(migrationRecordRepository.findByArchiveId("nonexistentId")).thenReturn(Optional.empty());
+
+        migrationRecordService.updateToSuccess("nonexistentId");
+
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should update recordingId for an existing record")
+    void updateRecordingIdShouldUpdateForExistingRecord() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("existingId");
+        record.setRecordingId(null);
+        UUID newRecordingId = UUID.randomUUID();
+
+        when(migrationRecordRepository.findByArchiveId("existingId")).thenReturn(Optional.of(record));
+
+        migrationRecordService.updateRecordingId("existingId", newRecordingId);
+
+        assertThat(record.getRecordingId()).isEqualTo(newRecordingId);
+
+        verify(migrationRecordRepository, times(1)).save(record);
+    }
+
+    @Test
+    @DisplayName("Should do nothing if record does not exist for updating recordingId")
+    void updateRecordingIdShouldDoNothingForNonexistentRecord() {
+        UUID newRecordingId = UUID.randomUUID();
+
+        when(migrationRecordRepository.findByArchiveId("nonExistentId")).thenReturn(Optional.empty());
+
+        migrationRecordService.updateRecordingId("nonExistentId", newRecordingId);
+
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should update CaptureSessionId for an existing record")
+    void updateCaptureSessionIdShouldUpdateForExistingRecord() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("existingId");
+        record.setCaptureSessionId(null);
+        UUID newCaptureSessionId = UUID.randomUUID();
+
+        when(migrationRecordRepository.findByArchiveId("existingId")).thenReturn(Optional.of(record));
+
+        migrationRecordService.updateCaptureSessionId("existingId", newCaptureSessionId);
+
+        assertThat(record.getCaptureSessionId()).isEqualTo(newCaptureSessionId);
+
+        verify(migrationRecordRepository, times(1)).save(record);
+    }
+
+    @Test
+    @DisplayName("Should do nothing if record does not exist for updating CaptureSessionId")
+    void updateCaptureSessionIdShouldDoNothingForNonexistentRecord() {
+        UUID newCaptureSessionId = UUID.randomUUID();
+
+        when(migrationRecordRepository.findByArchiveId("nonExistentId")).thenReturn(Optional.empty());
+
+        migrationRecordService.updateCaptureSessionId("nonExistentId", newCaptureSessionId);
+
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should update parentTempId for a copy record when a matching original exists")
+    void updateParentTempIdIfCopyShouldUpdateParentIdForMatchingOriginal() {
+        MigrationRecord original = new MigrationRecord();
+        original.setId(UUID.randomUUID());
+        original.setRecordingVersion("ORIG");
+        original.setIsPreferred(true);
+        original.setRecordingVersionNumber("123.1");
+        String recordingGroupKey = "groupKey";
+
+        when(migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey))
+            .thenReturn(List.of(original));
+
+        String archiveId = "copyArchiveId";
+        String origVersionStr = "123";
+
+        MigrationRecord copy = new MigrationRecord();
+        copy.setArchiveId(archiveId);
+        when(migrationRecordRepository.findByArchiveId(archiveId))
+            .thenReturn(Optional.of(copy));
+
+        migrationRecordService.updateParentTempIdIfCopy(archiveId, recordingGroupKey, origVersionStr);
+
+        assertThat(copy.getParentTempId()).isEqualTo(original.getId());
+
+        verify(migrationRecordRepository, times(1)).save(copy);
+    }
+
+    @Test
+    @DisplayName("Should do nothing if no matching original exists for the copy")
+    void updateParentTempIdIfCopyShouldDoNothingWhenOriginalDoesNotExist() {
+        String archiveId = "copyArchiveId";
+        String recordingGroupKey = "groupKey";
+        String origVersionStr = "123";
+
+        when(migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey))
+            .thenReturn(List.of());
+
+        migrationRecordService.updateParentTempIdIfCopy(archiveId, recordingGroupKey, origVersionStr);
+
+        verify(migrationRecordRepository, never()).findByArchiveId(archiveId);
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should do nothing if copy record does not exist")
+    void updateParentTempIdIfCopyShouldDoNothingForNonexistentCopyRecord() {
+        MigrationRecord original = new MigrationRecord();
+        original.setId(UUID.randomUUID());
+        original.setRecordingVersion("ORIG");
+        original.setIsPreferred(true);
+        original.setRecordingVersionNumber("123.1");
+
+        String archiveId = "nonExistentId";
+        String recordingGroupKey = "groupKey";
+        String origVersionStr = "123";
+
+        when(migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey))
+            .thenReturn(List.of(original));
+
+        when(migrationRecordRepository.findByArchiveId(archiveId))
+            .thenReturn(Optional.empty());
+
+        migrationRecordService.updateParentTempIdIfCopy(archiveId, recordingGroupKey, origVersionStr);
+
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should return false if no records exist for the provided archiveId")
+    void deduplicateShouldDoNothingForNonexistentArchiveId() {
+        when(migrationRecordRepository.findByArchiveId("nonexistentId")).thenReturn(Optional.empty());
+
+        boolean result = migrationRecordService.deduplicatePreferredByArchiveId("nonexistentId");
+
+        assertThat(result).isFalse();
+
+        verify(migrationRecordRepository, never()).findAllByArchiveName(any());
+        verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should deduplicate and mark most recent record as preferred")
+    void deduplicatePreferredByArchiveIdShouldUpdatePreferredCorrectly() {
+        MigrationRecord record1 = new MigrationRecord();
+        record1.setArchiveId("id1");
+        record1.setArchiveName("archiveA");
+        record1.setCreateTime(Timestamp.from(Instant.parse("2023-01-01T10:00:00Z")));
+
+        MigrationRecord record2 = new MigrationRecord();
+        record2.setArchiveId("id2");
+        record2.setArchiveName("archiveA");
+        record2.setCreateTime(Timestamp.from(Instant.parse("2023-01-02T10:00:00Z")));
+
+        when(migrationRecordRepository.findByArchiveId("id2")).thenReturn(Optional.of(record2));
+        when(migrationRecordRepository.findAllByArchiveName("archiveA"))
+            .thenReturn(new ArrayList<>(List.of(record1, record2)));
+
+        boolean result = migrationRecordService.deduplicatePreferredByArchiveId("id2");
+
+        assertThat(result).isTrue();
+        assertThat(record2.getIsPreferred()).isTrue();
+        assertThat(record1.getIsPreferred()).isFalse();
+
+        verify(migrationRecordRepository, times(1)).save(record1);
+        verify(migrationRecordRepository, times(1)).save(record2);
     }
 }
