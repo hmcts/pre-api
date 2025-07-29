@@ -91,7 +91,8 @@ public class BookingService {
         var until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
-                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS)))
+            .orElse(null);
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
@@ -193,8 +194,9 @@ public class BookingService {
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #booking.id)")
     public void cleanUnusedCaptureSessions(Booking booking) {
         for (CaptureSession captureSession : booking.getCaptureSessions()) {
-            if (captureSession.getStatus() == RecordingStatus.FAILURE
-                || captureSession.getStatus() == RecordingStatus.NO_RECORDING) {
+            if (captureSession.getDeletedAt() == null
+                && (captureSession.getStatus() == RecordingStatus.FAILURE
+                || captureSession.getStatus() == RecordingStatus.NO_RECORDING)) {
                 captureSessionService.deleteById(captureSession.getId());
             }
         }
@@ -236,15 +238,17 @@ public class BookingService {
     @Transactional
     public List<BookingDTO> findAllBookingsForToday() {
         LocalDate currentDate = LocalDate.now();
-        return searchBy(null,
-                        null,
-                        null,
-                        Optional.of(Timestamp.valueOf(currentDate.atStartOfDay())),
-                        null,
-                        null,
-                        null,
-                        null,
-                        Pageable.unpaged())
+        return searchBy(
+            null,
+            null,
+            null,
+            Optional.of(Timestamp.valueOf(currentDate.atStartOfDay())),
+            null,
+            null,
+            null,
+            null,
+            Pageable.unpaged()
+        )
             .toList();
     }
 }
