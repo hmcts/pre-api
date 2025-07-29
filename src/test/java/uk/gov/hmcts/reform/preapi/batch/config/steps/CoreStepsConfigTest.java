@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.batch.application.config.steps;
+package uk.gov.hmcts.reform.preapi.batch.config.steps;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
