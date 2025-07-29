@@ -70,9 +70,9 @@ public class ArchiveMetadataXmlExtractor {
 
             if (!allArchiveMetadata.isEmpty()) {
                 loggingService.logDebug("Generating archive metadata report in directory: %s", outputDir);
-                
+
                 allArchiveMetadata.sort((a, b) -> {
-                    String nameA = a.get(1).toLowerCase(); 
+                    String nameA = a.get(1).toLowerCase();
                     String nameB = b.get(1).toLowerCase();
 
                     String versionA = extractVersion(nameA);
@@ -87,7 +87,7 @@ public class ArchiveMetadataXmlExtractor {
                     if (!aIsOrig && bIsOrig) {
                         return 1;
                     }
-                    return nameA.compareTo(nameB); 
+                    return nameA.compareTo(nameB);
                 });
 
                 int insertCount = 0;
@@ -108,7 +108,7 @@ public class ArchiveMetadataXmlExtractor {
                         loggingService.logError("Failed to insert row into migration records: %s", e.getMessage());
                     }
                 }
-                
+
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
                 loggingService.logInfo(
                     "Successfully generated %s.csv with %d entries",filename, allArchiveMetadata.size());
@@ -210,20 +210,19 @@ public class ArchiveMetadataXmlExtractor {
             }
 
             Element archiveElement = (Element) archiveNode;
-            String archiveId = extractTextContent(archiveElement, "ArchiveID");
             String displayName = extractTextContent(archiveElement, "DisplayName");
             String createTime = extractTextContent(archiveElement, "CreatTime");
             if (createTime == null || createTime.isEmpty() || createTime.equals("0") || createTime.equals("3600000")) {
                 createTime = extractTextContent(archiveElement, "updatetime");
             }
-            String duration = extractTextContent(archiveElement, "Duration");
-
             if (displayName.isEmpty()) {
                 loggingService.logWarning("Missing DisplayName in ArchiveFiles element.");
             }
             if (createTime.isEmpty()) {
                 loggingService.logWarning("Missing CreatTime for archive: " + displayName);
             }
+            String archiveId = extractTextContent(archiveElement, "ArchiveID");
+            String duration = extractTextContent(archiveElement, "Duration");
             metadataRows.addAll(processMP4Files(archiveElement, archiveId, displayName, createTime, duration));
         }
         return metadataRows;
@@ -318,7 +317,7 @@ public class ArchiveMetadataXmlExtractor {
         if (parts.length == 0) {
             return "";
         }
-        String versionPart = parts[parts.length - 1]; 
+        String versionPart = parts[parts.length - 1];
         return versionPart.split("\\.")[0];
     }
 }
