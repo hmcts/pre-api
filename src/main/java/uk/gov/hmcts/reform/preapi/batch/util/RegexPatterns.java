@@ -118,7 +118,7 @@ public final class RegexPatterns {
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{6,9})";
     private static final String VERSION_PATTERN =
         "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI|OR|CO|COP)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
-    private static final String EXTENSION_PATTERN = "(?i)(?:\\.(?<ext>mp4|raw|RAW))?";
+    private static final String EXTENSION_PATTERN = "(?i)(?:\\.(?<ext>mp4|raw))?";
 
     private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)"
                                                 + SEPARATOR_ONE
