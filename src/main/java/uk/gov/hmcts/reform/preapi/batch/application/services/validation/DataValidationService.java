@@ -18,7 +18,8 @@ public class DataValidationService {
     private final LoggingService loggingService;
 
     @Autowired
-    public DataValidationService(MigrationRecordService migrationRecordService, LoggingService loggingService) {
+    public DataValidationService(final MigrationRecordService migrationRecordService,
+                                 final LoggingService loggingService) {
         this.migrationRecordService = migrationRecordService;
         this.loggingService = loggingService;
     }
@@ -36,7 +37,7 @@ public class DataValidationService {
                 Constants.Reports.FILE_MISSING_DATA);
         }
 
-        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion()) 
+        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())
             && !cleansedData.isMostRecentVersion()) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,
                 Constants.Reports.FILE_NOT_RECENT);
@@ -48,7 +49,9 @@ public class DataValidationService {
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
                 Constants.Reports.FILE_MISSING_DATA
             );
-        }  else if (caseReference.length() > 24) {
+        }
+
+        if (caseReference.length() > 24) {
             return ServiceResultUtil.failure(
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
                 Constants.Reports.FILE_MISSING_DATA
@@ -78,40 +81,40 @@ public class DataValidationService {
         return ServiceResultUtil.success(cleansedData);
     }
 
-
     public ServiceResult<ProcessedRecording> validateResolvedRecording(
         ProcessedRecording cleansedData, String archiveName) {
 
         loggingService.logDebug("Processed Recording", cleansedData);
         if (cleansedData.getCourt() == null) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT, 
+            return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
                 Constants.Reports.FILE_MISSING_DATA);
         }
 
         String caseReference = cleansedData.getCaseReference();
         if (caseReference == null || caseReference.length() < 9) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT, 
+            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
                 Constants.Reports.FILE_MISSING_DATA);
         }
+
         if (caseReference.length() > 24) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG, 
+            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
                 Constants.Reports.FILE_MISSING_DATA);
         }
 
         String witness = cleansedData.getWitnessFirstName();
         if (witness == null || witness.trim().isEmpty()) {
-            return ServiceResultUtil.failure("Missing or empty witness first name", 
+            return ServiceResultUtil.failure("Missing or empty witness first name",
                 Constants.Reports.FILE_MISSING_DATA);
         }
 
         String defendant = cleansedData.getDefendantLastName();
         if (defendant == null || defendant.trim().isEmpty()) {
-            return ServiceResultUtil.failure("Missing or empty defendant last name", 
+            return ServiceResultUtil.failure("Missing or empty defendant last name",
                 Constants.Reports.FILE_MISSING_DATA);
         }
 
         if (cleansedData.getRecordingVersionNumber() < 1) {
-            return ServiceResultUtil.failure("Invalid recording version number", 
+            return ServiceResultUtil.failure("Invalid recording version number",
                 Constants.Reports.FILE_MISSING_DATA);
         }
 
