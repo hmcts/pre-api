@@ -506,6 +506,26 @@ class BookingServiceTest {
         verifyNoMoreInteractions(bookingRepository);
     }
 
+    @DisplayName("Should ignore any unused capture sessions that are already deleted")
+    @Test
+    void ignoreDeletedCaptureSessionsSuccess() {
+        var captureSessionFailedRecording = new CaptureSession();
+        captureSessionFailedRecording.setStatus(RecordingStatus.FAILURE);
+        captureSessionFailedRecording.setDeletedAt(Timestamp.from(Instant.now()));
+
+        var captureSessionRecordingAvailable = new CaptureSession();
+        captureSessionRecordingAvailable.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaptureSessions(Set.of(captureSessionFailedRecording, captureSessionRecordingAvailable));
+
+        bookingService.cleanUnusedCaptureSessions(booking);
+
+        verifyNoMoreInteractions(captureSessionService);
+        verifyNoMoreInteractions(bookingRepository);
+    }
+
     @DisplayName("Should undelete a booking successfully when booking is marked as deleted")
     @Test
     void undeleteSuccess() {
