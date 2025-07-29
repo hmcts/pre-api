@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemor
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.validation.DataValidationService;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
@@ -131,6 +132,7 @@ class ProcessorTest {
         verify(loggingService).logError("Processor - Unsupported item type: %s", "java.lang.String");
     }
 
+
     @Test
     void shouldHandleExtractionFailure() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
@@ -157,6 +159,17 @@ class ProcessorTest {
         assertNull(result);
         verify(migrationRecordService).updateToFailed(
             anyString(), eq("ValidationError"), eq("Validation failed"));
+    }
+
+    @Test
+    void shouldProcessCSVChannelDataAndReturnNull() throws Exception {
+        CSVChannelData csvChannelData = new CSVChannelData();
+        when(referenceDataProcessor.process(csvChannelData)).thenReturn(null);
+
+        MigratedItemGroup result = processor.process(csvChannelData);
+
+        assertNull(result);
+        verify(referenceDataProcessor).process(csvChannelData);
     }
 
     @Test
