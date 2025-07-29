@@ -730,6 +730,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord original = new MigrationRecord();
         original.setId(UUID.randomUUID());
         original.setRecordingVersion("ORIG");
+        original.setArchiveName("Archive Name");
         original.setIsPreferred(true);
         original.setRecordingVersionNumber("123.1");
         String recordingGroupKey = "groupKey";
@@ -774,6 +775,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord original = new MigrationRecord();
         original.setId(UUID.randomUUID());
         original.setRecordingVersion("ORIG");
+        original.setArchiveName("Archive Name");
         original.setIsPreferred(true);
         original.setRecordingVersionNumber("123.1");
 

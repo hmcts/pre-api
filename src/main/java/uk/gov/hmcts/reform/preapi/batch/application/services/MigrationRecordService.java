@@ -287,26 +287,6 @@ public class MigrationRecordService {
         });
     }
 
-    // =========================================
-    // ============ HELPERS ====================
-    // =========================================
-    public boolean isPreferredArchive(String archiveId) {
-        return migrationRecordRepository.findByArchiveId(archiveId)
-            .map(MigrationRecord::getIsPreferred)
-            .orElse(false);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<MigrationRecord> findOrigByGroupKey(String groupKey) {
-        return migrationRecordRepository.findByRecordingGroupKey(groupKey).stream()
-            .filter(record -> "ORIG".equalsIgnoreCase(record.getRecordingVersion()))
-            .findFirst();
-    }
-
-    private static String nullToEmpty(String input) {
-        return input == null ? "" : input;
-    }
-
     @Transactional
     public boolean deduplicatePreferredByArchiveId(String archiveId) {
         Optional<MigrationRecord> maybeCurrent = migrationRecordRepository.findByArchiveId(archiveId);
@@ -324,7 +304,7 @@ public class MigrationRecordService {
         }
 
         duplicates.sort(Comparator.comparing(MigrationRecord::getCreateTime).reversed());
-        MigrationRecord preferredRecord = duplicates.get(0);
+        MigrationRecord preferredRecord = duplicates.getFirst();
 
         for (MigrationRecord record : duplicates) {
             record.setIsPreferred(record.getArchiveId().equals(preferredRecord.getArchiveId()));
@@ -438,5 +418,10 @@ public class MigrationRecordService {
         }
 
         migrationRecordRepository.saveAll(groupRecords);
+    }
+
+
+    private static String nullToEmpty(String input) {
+        return input == null ? "" : input;
     }
 }
