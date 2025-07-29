@@ -47,6 +47,7 @@ public class MigrationRecordService {
         if (copy.getParentTempId() == null) {
             return Optional.empty();
         }
+        System.out.print("ORIG::" + migrationRecordRepository.findById(copy.getParentTempId()));
         return migrationRecordRepository.findById(copy.getParentTempId());
     }
     
@@ -301,12 +302,13 @@ public class MigrationRecordService {
         Optional<MigrationRecord> maybeOrig = migrationRecordRepository
             .findByRecordingGroupKey(recordingGroupKey)
             .stream()
+            .filter(r -> !r.getArchiveName().toLowerCase().endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
-            .filter(r -> r.getIsPreferred() != null && r.getIsPreferred()) 
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
                 return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
             })
+            .sorted((a, b) -> Boolean.compare(!a.getIsPreferred(), !b.getIsPreferred()))
             .findFirst();
 
         if (maybeOrig.isEmpty()) {
@@ -319,6 +321,7 @@ public class MigrationRecordService {
         });
     }
 
+    
     // =========================================
     // ============ HELPERS ====================
     // =========================================
