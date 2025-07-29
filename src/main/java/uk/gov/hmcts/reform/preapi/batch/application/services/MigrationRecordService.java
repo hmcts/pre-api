@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class MigrationRecordService {
     private final MigrationRecordRepository migrationRecordRepository;
@@ -37,9 +39,12 @@ public class MigrationRecordService {
 
     @Transactional(readOnly = true)
     public Optional<MigrationRecord> getOrigFromCopy(MigrationRecord copy) {
-        return copy.getParentTempId() != null
-            ? migrationRecordRepository.findById(copy.getParentTempId())
-            : Optional.empty();
+        if (copy.getParentTempId() == null) {
+            return Optional.empty();
+        }
+        Optional<MigrationRecord> result = migrationRecordRepository.findById(copy.getParentTempId());
+        log.info("ORIG::{}", result);
+        return result;
     }
 
     public List<MigrationRecord> getPendingMigrationRecords() {
@@ -263,12 +268,13 @@ public class MigrationRecordService {
         Optional<MigrationRecord> maybeOrig = migrationRecordRepository
             .findByRecordingGroupKey(recordingGroupKey)
             .stream()
+            .filter(r -> !r.getArchiveName().toLowerCase().endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
-            .filter(r -> r.getIsPreferred() != null && r.getIsPreferred())
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
                 return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
             })
+            .sorted((a, b) -> Boolean.compare(!a.getIsPreferred(), !b.getIsPreferred()))
             .findFirst();
 
         if (maybeOrig.isEmpty()) {
@@ -279,6 +285,22 @@ public class MigrationRecordService {
             copy.setParentTempId(maybeOrig.get().getId());
             migrationRecordRepository.save(copy);
         });
+    }
+
+    // =========================================
+    // ============ HELPERS ====================
+    // =========================================
+    public boolean isPreferredArchive(String archiveId) {
+        return migrationRecordRepository.findByArchiveId(archiveId)
+            .map(MigrationRecord::getIsPreferred)
+            .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<MigrationRecord> findOrigByGroupKey(String groupKey) {
+        return migrationRecordRepository.findByRecordingGroupKey(groupKey).stream()
+            .filter(record -> "ORIG".equalsIgnoreCase(record.getRecordingVersion()))
+            .findFirst();
     }
 
     private static String nullToEmpty(String input) {

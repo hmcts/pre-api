@@ -346,21 +346,7 @@ public final class RegexPatterns {
         + EXTENSION_PATTERN + "$",
         Pattern.CASE_INSENSITIVE
     );
-
-    // public static final Pattern CENTRL_COMPLEX_PATTERN = Pattern.compile(
-    //     "^"
-    //     + "(?<court>[A-Za-z]+)" + SEPARATOR_ONE
-    //     + "(?<date>\\d{6})" + SEPARATOR_ONE
-    //     + "(?<urn>[A-Za-z0-9\\s\\-]+)" + SEPARATOR_ONE
-    //     + "(?<exhibitRef>[A-Za-z0-9]{2,6})" + SEPARATOR_ONE
-    //     + "(?<defendantLastName>[A-Za-z0-9\\-']+)" + SEPARATOR_ONE
-    //     + "(?<witnessFirstName>[A-Za-z0-9\\-']+)" + SEPARATOR_ONE
-    //     + "(?<versionType>ORIG|COPY)(?:[-_]?(?<versionNumber>\\d+(\\.\\d+)?))?"
-    //     + "(?:\\.(?<ext>mp4|raw|mov|avi|mkv))?"
-    //     + "$",
-    //     Pattern.CASE_INSENSITIVE
-    // );
-
+   
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
         Map.entry("Standard", RegexPatterns.STANDARD_PATTERN),
@@ -379,6 +365,5 @@ public final class RegexPatterns {
         Map.entry("NoExhibitPattern", RegexPatterns.NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
         Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN),
         Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN)
-    //Map.entry("Central complexPattern", RegexPatterns.CENTRL_COMPLEX_PATTERN)
     );
 }

@@ -37,7 +37,7 @@ public class CommonStepUtils {
         try {
             return CSVReader.createReader(inputFile, fieldNames, targetClass);
         } catch (IOException e) {
-            loggingService.logError("Failed to create reader for file: {}" + inputFile.getFilename() + e);
+            loggingService.logError("Failed to create reader for file: {}", inputFile.getFilename(), e);
             throw new IllegalStateException("Failed to create reader for file: ", e);
         }
     }
