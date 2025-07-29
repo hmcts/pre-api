@@ -213,6 +213,9 @@ public class ArchiveMetadataXmlExtractor {
             String archiveId = extractTextContent(archiveElement, "ArchiveID");
             String displayName = extractTextContent(archiveElement, "DisplayName");
             String createTime = extractTextContent(archiveElement, "CreatTime");
+            if (createTime == null || createTime.isEmpty() || createTime.equals("0") || createTime.equals("3600000")) {
+                createTime = extractTextContent(archiveElement, "updatetime");
+            }
             String duration = extractTextContent(archiveElement, "Duration");
 
             if (displayName.isEmpty()) {
