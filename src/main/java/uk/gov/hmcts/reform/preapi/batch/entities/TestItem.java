@@ -2,8 +2,10 @@ package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
 public class TestItem {
     private MigrationRecord archiveItem;
