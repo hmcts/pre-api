@@ -139,10 +139,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (status == VfMigrationStatus.RESOLVED) {
             ExtractedMetadata extractedData = convertToExtractedMetadata(migrationRecord);
             try {
-                if (extractedData == null) {
-                    return null;
-                }
-
                 ProcessedRecording cleansedData = transformData(extractedData);
                 if (cleansedData == null) {
                     return null;
