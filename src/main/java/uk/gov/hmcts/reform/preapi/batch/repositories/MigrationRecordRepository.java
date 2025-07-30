@@ -29,7 +29,9 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         WHERE (CAST(:status as text)IS NULL OR mr.status = :status)
         AND (:witnessName IS NULL OR mr.witnessName ILIKE %:witnessName%)
         AND (:defendantName IS NULL OR mr.defendantName ILIKE %:defendantName%)
-        AND (:caseReference IS NULL OR mr.exhibitReference ILIKE %:caseReference%)
+        AND (:caseReference IS NULL
+            OR mr.exhibitReference ILIKE %:caseReference%
+            OR mr.urn ILIKE %:caseReference%)
         AND (CAST(:createDateFrom as Timestamp) IS NULL OR mr.createTime >= :createDateFrom)
         AND (CAST(:createDateTo as Timestamp) IS NULL OR mr.createTime <= :createDateTo)
         AND (:courtId IS NULL OR mr.courtId = :courtId)

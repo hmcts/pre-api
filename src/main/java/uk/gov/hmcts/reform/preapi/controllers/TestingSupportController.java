@@ -565,6 +565,20 @@ class TestingSupportController {
         return ResponseEntity.ok(new VfMigrationRecordDTO(record));
     }
 
+    @PostMapping("/update-migration-record-to-invalid-duration/{migrationRecordId}")
+    public ResponseEntity<VfMigrationRecordDTO> updateMigrationRecordToInvalidDuration(
+        @PathVariable UUID migrationRecordId) {
+
+        MigrationRecord record = migrationRecordRepository.findById(migrationRecordId)
+            .orElseThrow(() -> new NotFoundException("MigrationRecord: " + migrationRecordId));
+        record.setDuration(5); // must be more than 10 seconds, so this is invalid
+        record.setReason(VfFailureReason.INVALID_FORMAT.toString());
+        record.setErrorMessage("Duration too short");
+        migrationRecordRepository.saveAndFlush(record);
+
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
+    }
+
     private Court createTestCourt() {
         var court = new Court();
         court.setId(UUID.randomUUID());
