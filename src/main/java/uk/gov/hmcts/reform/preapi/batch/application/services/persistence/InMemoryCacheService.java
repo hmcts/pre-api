@@ -5,8 +5,6 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
-import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -32,7 +30,6 @@ public class InMemoryCacheService {
 
     private final Map<String, CourtDTO> courtCache = new ConcurrentHashMap<>();
     private final Map<String, CaseDTO> caseCache = new ConcurrentHashMap<>();
-    private final Map<String, BookingDTO> bookingCache = new ConcurrentHashMap<>();
     private final Map<String, CreateShareBookingDTO> shareBookingCache = new ConcurrentHashMap<>();
     private final Map<String, UUID> userCache = new ConcurrentHashMap<>();
 
@@ -40,14 +37,10 @@ public class InMemoryCacheService {
     private final Map<String, List<String[]>> channelReferenceCache = new ConcurrentHashMap<>();
 
     @Autowired
-    public InMemoryCacheService(LoggingService loggingService) {
+    public InMemoryCacheService(final LoggingService loggingService) {
         this.loggingService = loggingService;
     }
 
-
-    // -----------------------------
-    // Courts
-    // -----------------------------
     public void saveCourt(String courtName, CourtDTO courtDTO) {
         courtCache.put(courtName, courtDTO);
     }
@@ -56,31 +49,10 @@ public class InMemoryCacheService {
         return Optional.ofNullable(courtCache.get(courtName));
     }
 
-    // -----------------------------
-    // Cases
-    // -----------------------------
     public void saveCase(String caseRef, CaseDTO caseDTO) {
         caseCache.put(caseRef, caseDTO);
     }
 
-    public Optional<CaseDTO> getCase(String caseRef) {
-        return Optional.ofNullable(caseCache.get(caseRef));
-    }
-
-    // -----------------------------
-    // Bookings
-    // -----------------------------
-    public void saveBooking(String bookingId, BookingDTO bookingDTO) {
-        bookingCache.put(bookingId, bookingDTO);
-    }
-
-    public Optional<BookingDTO> getBooking(String bookingId) {
-        return Optional.ofNullable(bookingCache.get(bookingId));
-    }
-
-    // -----------------------------
-    // Share Bookings
-    // -----------------------------
     public void saveShareBooking(String cacheKey, CreateShareBookingDTO dto) {
         shareBookingCache.put(cacheKey, dto);
     }
@@ -89,28 +61,14 @@ public class InMemoryCacheService {
         return Optional.ofNullable(shareBookingCache.get(cacheKey));
     }
 
-    // -----------------------------
-    // Users
-    // -----------------------------
     public void saveUser(String email, UUID userID) {
         String lowerEmail = email.toLowerCase();
         userCache.put(lowerEmail, userID);
         saveHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, userID.toString());
     }
 
-    public Optional<UUID> getUser(String email) {
-        return Optional.ofNullable(userCache.get(email.toLowerCase()));
-    }
-
-    // -----------------------------
-    // Reference Data
-    // -----------------------------
     public void saveSiteReference(String siteRef, String courtName) {
         siteReferenceCache.put(siteRef, courtName);
-    }
-
-    public Optional<String> getSiteReference(String siteRef) {
-        return Optional.ofNullable(siteReferenceCache.get(siteRef));
     }
 
     public Map<String, String> getAllSiteReferences() {
@@ -129,10 +87,6 @@ public class InMemoryCacheService {
         return new HashMap<>(channelReferenceCache);
     }
 
-
-    // -----------------------------
-    // Shared "HashStore" for Flexible Metadata
-    // -----------------------------
     public void saveHashAll(String key, Map<String, Object> data) {
         hashStore.put(key, new ConcurrentHashMap<>(data));
     }
@@ -151,10 +105,6 @@ public class InMemoryCacheService {
         return clazz.isInstance(value) ? (T) value : null;
     }
 
-    public Map<String, Object> getHashAll(String key) {
-        return hashStore.getOrDefault(key, null);
-    }
-
     public void clearNamespaceKeys(String namespacePrefix) {
         Set<String> keys = new HashSet<>(hashStore.keySet());
         for (String key : keys) {
@@ -168,24 +118,6 @@ public class InMemoryCacheService {
         return String.format("vf:%s:%s", entityType, String.join("-", normalizeAll(parts)));
     }
 
-    public String generateBookingCacheKey(String baseKey, String versionStr) {
-        return baseKey + ":version:" + versionStr + ":bookingId";
-    }
-
-    public String generateCaptureSessionCacheKey(String baseKey, String versionStr) {
-        return baseKey + ":version:" + versionStr + ":captureSessionId";
-    }
-
-    public String generateRecordingVersionKey(ExtractedMetadata extracted, String origVersion) {
-        return generateEntityCacheKey(
-            "recording",
-            extracted.createCaseReference(),
-            extracted.getDefendantLastName(),
-            extracted.getWitnessFirstName(),
-            origVersion
-        );
-    }
-
     private static List<String> normalizeAll(String[] parts) {
         return Arrays.stream(parts)
             .filter(Objects::nonNull)
@@ -193,9 +125,6 @@ public class InMemoryCacheService {
             .toList();
     }
 
-    // -----------------------------
-    // Dump to CSV for Debug
-    // -----------------------------
     public void dumpToFile() {
         List<String> headers = List.of("Key", "Field", "Value");
         List<List<String>> rows = new ArrayList<>();
@@ -247,29 +176,5 @@ public class InMemoryCacheService {
         } catch (IOException e) {
             loggingService.logError("Failed to write in-memory cache to file: " + e.getMessage());
         }
-    }
-
-    public String getAsString(String key, String hashKey) {
-        Object value = getHashValue(key, hashKey, Object.class);
-        return (value instanceof String stringVal) ? stringVal : null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<String[]> getAsStringArrayList(String key, String hashKey) {
-        Object value = getHashValue(key, hashKey, Object.class);
-        if (value instanceof List<?>) {
-            try {
-                return (List<String[]>) value;
-            } catch (ClassCastException e) {
-                return new ArrayList<>();
-            }
-        }
-        return new ArrayList<>();
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T getAllAsType(String key, Class<T> clazz) {
-        Object value = getHashAll(key);
-        return clazz.isInstance(value) ? (T) value : null;
     }
 }

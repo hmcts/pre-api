@@ -10,11 +10,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -67,29 +67,6 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
-    void getHashAll() {
-        Map<String, Object> data =  Map.of(
-            hashKey, value,
-            "otherKey", "otherValue"
-        );
-        inMemoryCacheService.saveHashAll(testKey, data);
-        assertThat(data).isEqualTo(inMemoryCacheService.getHashAll(testKey));
-    }
-
-    @Test
-    void clearNamespaceKeys() {
-        inMemoryCacheService.saveHashValue("namespace:test1", hashKey, value);
-        inMemoryCacheService.saveHashValue("namespace:test2", hashKey, value);
-        inMemoryCacheService.saveHashValue("other:test3", hashKey, value);
-
-        inMemoryCacheService.clearNamespaceKeys("namespace:");
-
-        assertThat(inMemoryCacheService.getHashAll("namespace:test1")).isNull();
-        assertThat(inMemoryCacheService.getHashAll("namespace:test2")).isNull();
-        assertThat(inMemoryCacheService.getHashAll("other:test3")).isNotNull();
-    }
-
-    @Test
     void generateCacheKeySuccess() {
         String baseKey = inMemoryCacheService.generateEntityCacheKey("case", "participants", "A", "B");
         assertThat(baseKey).isEqualTo("vf:case:participants-a-b");
@@ -105,35 +82,44 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
-    void getAsStringArrayList() {
-        List<String[]> list = new ArrayList<>();
-        list.add(new String[]{"a", "b"});
+    void getCourtReturnsCourtWhenPresent() {
+        CourtDTO courtDTO = new CourtDTO();
+        courtDTO.setName("Test Court");
+        inMemoryCacheService.saveCourt(courtDTO.getName(), courtDTO);
 
-        inMemoryCacheService.saveHashValue(testKey, hashKey, list);
-        assertThat(inMemoryCacheService.getAsStringArrayList(testKey, hashKey)).isEqualTo(list);
+        Optional<CourtDTO> result = inMemoryCacheService.getCourt("Test Court");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getName()).isEqualTo("Test Court");
     }
 
     @Test
-    void testGetAsStringArrayListWithInvalidData() {
-        inMemoryCacheService.saveHashValue(testKey, hashKey, "not a list");
-        assertThat(inMemoryCacheService.getAsStringArrayList(testKey, hashKey)).isEmpty();
+    void getCourtReturnsEmptyWhenNotPresent() {
+        Optional<CourtDTO> result = inMemoryCacheService.getCourt("Nonexistent Court");
+
+        assertThat(result).isEmpty();
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void getAllAsType() {
-        Map<String, Object> data = Map.of("field1", "value1");
+    void saveCourtStoresCourtSuccessfully() {
+        CourtDTO courtDTO = new CourtDTO();
+        courtDTO.setName("Court A");
 
-        inMemoryCacheService.saveHashAll(testKey, data);
-        assertThat((Map<String, Object>) inMemoryCacheService.getAllAsType(testKey, Map.class)).isEqualTo(data);
+        inMemoryCacheService.saveCourt("Court A", courtDTO);
+
+        assertThat(inMemoryCacheService.getCourt("Court A").get()).isEqualTo(courtDTO);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void getAllAsTypeWithIncorrectType() {
-        Map<String, Object> data = Map.of("field1", "value1");
+    void saveCourtAllowsRetrievalByName() {
+        CourtDTO courtDTO = new CourtDTO();
+        courtDTO.setName("Court B");
 
-        inMemoryCacheService.saveHashAll(testKey, data);
-        assertThat(inMemoryCacheService.getAllAsType(testKey, List.class)).isNull();
+        inMemoryCacheService.saveCourt("Court B", courtDTO);
+
+        Optional<CourtDTO> retrievedCourt = inMemoryCacheService.getCourt("Court B");
+
+        assertThat(retrievedCourt).isPresent();
+        assertThat(retrievedCourt.get().getName()).isEqualTo("Court B");
     }
 }
