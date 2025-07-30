@@ -9,13 +9,14 @@ class CSVExemptionListDataTest {
     @Test
     void testToString() {
         CSVExemptionListData data = new CSVExemptionListData(
-            "archive1", "2023-10-01T10:00:00", 120, "courtRef123", "urn123",
+            "archiveId","archive1", "2023-10-01T10:00:00", 120, "courtRef123", "urn123",
             "exhibitRef123", "defendantName", "witnessName", "v1", 1,
-            "mp4", "fileName.mp4", "100MB", "reason", "addedBy"
+            "mp4", "fileName.mp4", "100", "reason", "addedBy"
         );
 
         String expected = "CSVExemptionListData{"
-            + "archiveName='archive1'"
+            + "archiveId='archiveId'"
+            + ", archiveName='archive1'"
             + ", createTime='2023-10-01T10:00:00'"
             + ", duration=120"
             + ", courtReference='courtRef123'"
@@ -29,7 +30,7 @@ class CSVExemptionListDataTest {
             + ", addedBy='addedBy'"
             + ", fileExtension='mp4'"
             + ", fileName='fileName.mp4'"
-            + ", fileSize='100MB'"
+            + ", fileSize='100'"
             + '}';
 
         assertEquals(expected, data.toString());

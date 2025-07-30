@@ -13,7 +13,6 @@ import org.springframework.batch.core.repository.JobExecutionAlreadyRunningExcep
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -48,14 +47,14 @@ public class ProcessMigrationTest {
         userAuthenticationService = mock(UserAuthenticationService.class);
 
         var accessDto = mock(AccessDTO.class);
-        var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+        BaseAppAccessDTO baseAppAccessDTO = new BaseAppAccessDTO();
+        baseAppAccessDTO.setId(UUID.randomUUID());
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
         when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
 
         var userAuth = mock(UserAuthentication.class);
-        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.of(userAuth));
 
         jobLauncher = mock(JobLauncher.class);
         loggingService = mock(LoggingService.class);
@@ -77,7 +76,6 @@ public class ProcessMigrationTest {
             loggingService,
             false,
             false,
-            MigrationType.FULL.name(),
             importCsvJob
         );
         processMigration.run();
@@ -89,11 +87,6 @@ public class ProcessMigrationTest {
         Assertions.assertEquals(
             String.valueOf(false),
             jobParameters.getValue().getString("debug")
-        );
-
-        Assertions.assertEquals(
-            MigrationType.FULL.name(),
-            jobParameters.getValue().getString("migrationType")
         );
 
         verify(loggingService, times(1)).logInfo("Successfully completed Transform batch job");
@@ -114,7 +107,6 @@ public class ProcessMigrationTest {
             loggingService,
             false,
             false,
-            MigrationType.DELTA.name(),
             importCsvJob
         );
         processMigration.run();
@@ -126,11 +118,6 @@ public class ProcessMigrationTest {
         Assertions.assertEquals(
             String.valueOf(false),
             jobParameters.getValue().getString("debug")
-        );
-
-        Assertions.assertEquals(
-            MigrationType.DELTA.name(),
-            jobParameters.getValue().getString("migrationType")
         );
 
         verify(loggingService, times(1)).logInfo("Successfully completed Transform batch job");
@@ -154,7 +141,6 @@ public class ProcessMigrationTest {
             loggingService,
             false,
             false,
-            MigrationType.FULL.name(),
             importCsvJob
         );
         processMigration.run();

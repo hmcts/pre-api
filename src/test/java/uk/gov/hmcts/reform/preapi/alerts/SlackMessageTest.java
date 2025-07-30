@@ -3,9 +3,13 @@ package uk.gov.hmcts.reform.preapi.alerts;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 class SlackMessageTest {
 
@@ -119,5 +123,55 @@ class SlackMessageTest {
         Assertions.assertNotNull(json);
         Assertions.assertTrue(json.contains(":globe_with_meridians: *Environment:* Test"));
         Assertions.assertFalse(json.contains(":warning:"));
+    }
+
+    static Stream<Arguments> slackMessageJsonOptionsProvider() {
+        return Stream.of(
+            Arguments.of(true, true),
+            Arguments.of(true, false),
+            Arguments.of(false, true),
+            Arguments.of(false, false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("slackMessageJsonOptionsProvider")
+    void testToJsonWithOptions(
+        boolean showEnvironment,
+        boolean showIcons
+    ) {
+        List<String> items = List.of("Alert 1", "Alert 2");
+        SlackMessageSection section = new SlackMessageSection("Important Alerts", items, "No alerts");
+
+        slackMessage = SlackMessage.builder()
+            .environment("Test")
+            .sections(List.of(section))
+            .build();
+
+        SlackMessageJsonOptions options = SlackMessageJsonOptions.builder()
+            .showEnvironment(showEnvironment)
+            .showIcons(showIcons)
+            .build();
+
+        String json = slackMessage.toJson(options);
+
+        String environmentText = ":globe_with_meridians: *Environment:* Test";
+        if (showEnvironment) {
+            Assertions.assertTrue(json.contains(environmentText));
+        } else {
+            Assertions.assertFalse(json.contains(environmentText));
+        }
+
+        String sectionTitleWithIcons = ":warning: *Important Alerts:*";
+        String sectionTitleWithoutIcons = "*Important Alerts:*";
+        if (showIcons) {
+            Assertions.assertTrue(json.contains(sectionTitleWithIcons));
+        } else {
+            Assertions.assertFalse(json.contains(sectionTitleWithIcons));
+            Assertions.assertTrue(json.contains(sectionTitleWithoutIcons));
+        }
+
+        Assertions.assertTrue(json.contains("Alert 1"));
+        Assertions.assertTrue(json.contains("Alert 2"));
     }
 }

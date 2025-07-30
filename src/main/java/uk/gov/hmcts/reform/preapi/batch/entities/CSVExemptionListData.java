@@ -29,6 +29,7 @@ public class CSVExemptionListData implements IArchiveData  {
         "yyyy-MM-dd HH:mm:ss"
     );
     
+    private String archiveId;
     private String archiveName;
     private String createTime;
     private int duration;
@@ -76,7 +77,8 @@ public class CSVExemptionListData implements IArchiveData  {
     @Override
     public String toString() {
         return "CSVExemptionListData{"
-                + "archiveName='" + archiveName + '\''
+                + "archiveId='" + archiveId + '\''
+                + ", archiveName='" + archiveName + '\''
                 + ", createTime='" + createTime + '\''
                 + ", duration=" + duration
                 + ", courtReference='" + courtReference + '\''

@@ -31,6 +31,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
             OR (r.captureSession.origin != 'VODAFONE' AND r.captureSession.booking.caseId.origin != 'VODAFONE'))
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
         AND (:#{#searchParams.authorisedCourt} IS NULL OR r.captureSession.booking.caseId.court.id = :#{#searchParams.authorisedCourt})
+        AND (:#{#searchParams.version} IS NULL OR r.version = :#{#searchParams.version})
         AND (
             :#{#searchParams.id} IS NULL OR
             CAST(r.id AS text) ILIKE %:#{#searchParams.id}%
@@ -112,4 +113,20 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     List<Object[]> countRecordingsPerCase();
 
     int countByParentRecording_Id(UUID id);
+
+    @Query("""
+        SELECT r
+        FROM Recording r
+        INNER JOIN r.captureSession
+        INNER JOIN r.captureSession.booking
+        LEFT JOIN r.captureSession.finishedByUser
+        WHERE r.parentRecording IS NULL
+        AND r.captureSession.deletedAt IS NULL
+        AND r.captureSession.startedAt IS NOT NULL
+        AND r.captureSession.finishedAt IS NOT NULL
+        """
+    )
+    List<Recording> findAllCompletedCaptureSessionsWithRecordings();
+
+    List<Recording> findAllByDurationIsNullAndDeletedAtIsNull();
 }

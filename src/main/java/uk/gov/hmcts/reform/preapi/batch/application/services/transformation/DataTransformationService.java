@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -27,16 +28,17 @@ public class DataTransformationService {
     private static final String UNKNOWN_COURT = "Unknown Court";
 
     private final InMemoryCacheService cacheService;
+    private final MigrationRecordService migrationRecordService;
     private final CourtRepository courtRepository;
     private final LoggingService loggingService;
 
     @Autowired
-    public DataTransformationService(
-        InMemoryCacheService cacheService,
-        CourtRepository courtRepository,
-        LoggingService loggingService
-    ) {
+    public DataTransformationService(final InMemoryCacheService cacheService,
+                                     final MigrationRecordService migrationRecordService,
+                                     final CourtRepository courtRepository,
+                                     final LoggingService loggingService) {
         this.cacheService = cacheService;
+        this.migrationRecordService = migrationRecordService;
         this.courtRepository = courtRepository;
         this.loggingService = loggingService;
     }
@@ -49,13 +51,8 @@ public class DataTransformationService {
 
         try {
             loggingService.logDebug(
-                "Extracted data : %s",
-                extracted
-            );
-
-            loggingService.logDebug(
                 "Starting data transformation for archive: %s",
-                extracted.getSanitizedArchiveName()
+                extracted.getSanitizedArchiveName(), extracted
             );
 
             Map<String, String> sitesDataMap = getSitesData();
@@ -67,54 +64,142 @@ public class DataTransformationService {
         }
     }
 
-    protected ProcessedRecording buildProcessedRecording(
-        ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
+    protected ProcessedRecording buildProcessedRecording(ExtractedMetadata extracted,
+                                                         Map<String, String> sitesDataMap) {
+
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
-        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
+        // Normalize version type and number
+        String rawVersionType = extracted.getRecordingVersion();
+        String rawVersionNumber = extracted.getRecordingVersionNumber();
 
-        String key = cacheService.generateCacheKey(
-                "recording",
-                "version",
+        String versionType = RecordingUtils.normalizeVersionType(rawVersionType);
+        String versionNumber = RecordingUtils.getValidVersionNumber(rawVersionNumber);
+
+        String origVersionStr = "1";
+        String copyVersionStr = null;
+
+        if ("COPY".equals(versionType)) {
+            String baseGroupKey = MigrationRecordService.generateRecordingGroupKey(
                 extracted.getUrn(),
                 extracted.getExhibitReference(),
-                extracted.getDefendantLastName(),
-                extracted.getWitnessFirstName()
+                extracted.getWitnessFirstName(),
+                extracted.getDefendantLastName()
             );
 
-        Map<String, Object> existingData = cacheService.getHashAll(key);
-        RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
-            extracted.getRecordingVersion(),
-            extracted.getRecordingVersionNumber(),
+            String versionPrefix = versionNumber.contains(".")
+                ? versionNumber.split("\\.")[0]
+                : versionNumber;
+
+            List<String> availableOrigVersions = migrationRecordService
+                .findOrigVersionsByBaseGroupKey(baseGroupKey);
+
+            if (availableOrigVersions.contains(versionPrefix)) {
+                origVersionStr = versionPrefix;
+            } else if (!availableOrigVersions.isEmpty()) {
+                origVersionStr = availableOrigVersions.stream().min(RecordingUtils::compareVersionStrings)
+                    .orElse("1");
+            } else {
+                origVersionStr = "1";
+            }
+
+            if (versionNumber.contains(".")) {
+                copyVersionStr = versionNumber.split("\\.")[1];
+            }
+        } else if (versionType.equals("ORIG")) {
+            origVersionStr = versionNumber;
+        }
+
+        String groupKey = MigrationRecordService.generateRecordingGroupKey(
             extracted.getUrn(),
-            extracted.getDefendantLastName(),
+            extracted.getExhibitReference(),
             extracted.getWitnessFirstName(),
-            existingData
+            extracted.getDefendantLastName()
         );
 
+        // Determine if this COPY is the most recent
+        boolean isMostRecent = true;
+        if ("COPY".equalsIgnoreCase(versionType)) {
+            isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
+                .map(mostRecent -> RecordingUtils.compareVersionStrings(versionNumber, mostRecent) >= 0)
+                .orElse(true);
+        }
+
+        // Determine preference
+        boolean isPreferred = true;
+
+        // Non-mp4 filter
+        if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4")) {
+            boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveId());
+            if (updated) {
+                loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
+                isPreferred = false;
+            }
+        }
+
+        // Deduplication check
+        boolean isPreferredFromDeduplication = migrationRecordService.deduplicatePreferredByArchiveId(
+            extracted.getArchiveId());
+        if (!isPreferredFromDeduplication) {
+            loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
+            isPreferred = false;
+        }
+
+        if (!isPreferred) {
+            loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
+        }
+
+        migrationRecordService.updateIsPreferred(extracted.getArchiveId(), isPreferred);
+
+        // Court Resolution
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
         if (court == null) {
             loggingService.logWarning("Court not found for reference: %s", extracted.getCourtReference());
         }
 
+        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
+
+        // Version details holder
+        RecordingUtils.VersionDetails versionDetails = new RecordingUtils.VersionDetails(
+            versionType,
+            versionNumber,
+            origVersionStr,
+            copyVersionStr,
+            RecordingUtils.getStandardizedVersionNumberFromType(versionType),
+            isMostRecent
+        );
+        // Build final recording
         return ProcessedRecording.builder()
+            .archiveId(extracted.getArchiveId())
+            .archiveName(extracted.getArchiveName())
+
+            .courtReference(extracted.getCourtReference())
+            .court(court)
+
+            .state(determineState(shareBookingContacts))
+
+            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTimeAsLocalDateTime()))
+            .duration(Duration.ofSeconds(extracted.getDuration()))
+
             .urn(extracted.getUrn())
             .exhibitReference(extracted.getExhibitReference())
             .caseReference(extracted.createCaseReference())
             .defendantLastName(extracted.getDefendantLastName())
             .witnessFirstName(extracted.getWitnessFirstName())
-            .courtReference(extracted.getCourtReference())
-            .court(court)
-            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
-            .duration(Duration.ofSeconds(extracted.getDuration()))
-            .state(determineState(shareBookingContacts))
-            .shareBookingContacts(shareBookingContacts)
+            .origVersionNumberStr(origVersionStr)
+            .copyVersionNumberStr(copyVersionStr)
+            .extractedRecordingVersion(versionType)
+            .extractedRecordingVersionNumberStr(versionNumber)
+            .recordingVersionNumber(versionDetails.standardisedVersionNumber())
+
+            .isMostRecentVersion(isMostRecent)
+
+            .isPreferred(isPreferred)
             .fileExtension(extracted.getFileExtension())
             .fileName(extracted.getFileName())
-            .recordingVersion(versionDetails.versionType())
-            .recordingVersionNumberStr(versionDetails.versionNumberStr())
-            .recordingVersionNumber(versionDetails.versionNumber())
-            .isMostRecentVersion(versionDetails.isMostRecent())
+
+            .shareBookingContacts(shareBookingContacts)
+
             .build();
     }
 
@@ -129,7 +214,6 @@ public class DataTransformationService {
         String courtReference = extracted.getCourtReference();
         if (courtReference == null || courtReference.isEmpty()) {
             loggingService.logError("Court reference is null or empty");
-            throw new IllegalArgumentException("Court reference cannot be null or empty");
         }
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
@@ -141,7 +225,6 @@ public class DataTransformationService {
                 loggingService.logWarning("Court not found in cache or DB for name: %s", fullCourtName);
                 return null;
             });
-
     }
 
     protected List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {
@@ -180,13 +263,11 @@ public class DataTransformationService {
      * Retrieves sites data from Cache.
      *
      * @return A map of site data
-     * @throws IllegalStateException if sites data is not found in Cache
      */
     protected Map<String, String> getSitesData() {
         Map<String, String> sites = cacheService.getAllSiteReferences();
         if (sites.isEmpty()) {
             loggingService.logError("Sites data not found in Cache");
-            throw new IllegalStateException("Sites data not found in Cache");
         }
         return sites;
     }

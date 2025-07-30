@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
-@Transactional(propagation = Propagation.REQUIRED)
+@Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final LoggingService loggingService;
     private final CaseService caseService;
@@ -38,14 +38,12 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final AtomicInteger failureCount = new AtomicInteger(0);
 
     @Autowired
-    public MigrationWriter(
-        LoggingService loggingService,
-        CaseService caseService,
-        BookingService bookingService,
-        RecordingService recordingService,
-        CaptureSessionService captureSessionService,
-        MigrationTrackerService migrationTrackerService
-    ) {
+    public MigrationWriter(final LoggingService loggingService,
+                           final CaseService caseService,
+                           final BookingService bookingService,
+                           final RecordingService recordingService,
+                           final CaptureSessionService captureSessionService,
+                           final MigrationTrackerService migrationTrackerService) {
         this.loggingService = loggingService;
         this.caseService = caseService;
         this.bookingService = bookingService;
@@ -64,12 +62,8 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
             return;
         }
 
-        try {
-            saveMigratedItems(migratedItems);
-            logBatchStatistics();
-        } catch (Exception e) {
-            loggingService.logError("Error while processing chunk: %s", e.getMessage());
-        }
+        saveMigratedItems(migratedItems);
+        logBatchStatistics();
     }
 
     private List<MigratedItemGroup> filterValidItems(Chunk<? extends MigratedItemGroup> items) {
@@ -87,9 +81,13 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
             try {
                 loggingService.logDebug("Processing case: %s", item.getCase().getReference());
 
-                processItem(item);
-                migrationTrackerService.addMigratedItem(item.getPassItem());
-                successCount.incrementAndGet();
+                boolean isSuccess = processItem(item);
+                if (isSuccess) {
+                    migrationTrackerService.addMigratedItem(item.getPassItem());
+                    successCount.incrementAndGet();
+                } else {
+                    failureCount.incrementAndGet();
+                }
             } catch (Exception e) {
                 failureCount.incrementAndGet();
                 loggingService.logError(
@@ -100,54 +98,68 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         }
     }
 
-    private void processItem(MigratedItemGroup item) {
-        processCaseData(item.getCase());
-        processBookingData(item.getBooking());
-        processCaptureSessionData(item.getCaptureSession());
-        processRecordingData(item.getRecording());
+    private boolean processItem(MigratedItemGroup item) {
+        boolean caseOk = processCaseData(item.getCase());
+        boolean bookingOk = processBookingData(item.getBooking());
+        boolean captureOk = processCaptureSessionData(item.getCaptureSession());
+        boolean recordingOk = processRecordingData(item.getRecording());
+
+        return caseOk && bookingOk && captureOk && recordingOk;
     }
 
-    private void processCaseData(CreateCaseDTO caseData) {
+    private boolean processCaseData(CreateCaseDTO caseData) {
         if (caseData != null) {
             try {
                 caseService.upsert(caseData);
+                return true;
             } catch (Exception e) {
                 loggingService.logError("Failed to upsert case. Case id: %s | %s", caseData.getId(), e);
+                return false;
             }
         }
+        return true;
     }
 
-    private void processBookingData(CreateBookingDTO bookingData) {
+    private boolean processBookingData(CreateBookingDTO bookingData) {
         if (bookingData != null) {
             try {
                 bookingService.upsert(bookingData);
+                return true;
             } catch (Exception e) {
                 loggingService.logError("Failed to upsert booking. Booking id: %s | %s", bookingData.getId(), e);
+                return false;
             }
         }
+        return true;
     }
 
-    private void processCaptureSessionData(CreateCaptureSessionDTO captureSessionData) {
+    private boolean processCaptureSessionData(CreateCaptureSessionDTO captureSessionData) {
         if (captureSessionData != null) {
             try {
                 captureSessionService.upsert(captureSessionData);
+                return true;
             } catch (Exception e) {
                 loggingService.logError(
                     "Failed to upsert capture session. Capture Session id: %s | %s",
                     captureSessionData.getId(), e);
+                return false;
             }
         }
+        return true;
     }
 
-    private void processRecordingData(CreateRecordingDTO recordingData) {
+    private boolean processRecordingData(CreateRecordingDTO recordingData) {
         if (recordingData != null) {
             try {
                 recordingService.upsert(recordingData);
+                return true;
             } catch (Exception e) {
                 loggingService.logError("Failed to upsert recording. Recording id: %s | %s",
                     recordingData.getId(), e);
+                return false;
             }
         }
+        return true;
     }
 
     private void logBatchStatistics() {

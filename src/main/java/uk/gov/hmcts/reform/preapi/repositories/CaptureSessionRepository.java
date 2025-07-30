@@ -21,8 +21,6 @@ import java.util.UUID;
 public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
 
-    int countAllByBooking_CaseId_IdAndStatus(UUID caseId, RecordingStatus status);
-
     List<CaptureSession> findAllByStatus(RecordingStatus status);
 
     List<CaptureSession> findAllByStartedAtIsBetweenAndDeletedAtIsNull(Timestamp fromTime,
@@ -69,6 +67,8 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
 
     @Query("""
         SELECT cs FROM CaptureSession cs
+        INNER JOIN FETCH cs.booking b
+        INNER JOIN FETCH b.caseId c
         WHERE cs.deletedAt IS NULL
         AND cs.startedAt IS NOT NULL
         """

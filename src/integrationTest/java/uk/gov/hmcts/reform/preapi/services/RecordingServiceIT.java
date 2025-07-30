@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -18,15 +27,20 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -134,7 +148,7 @@ public class RecordingServiceIT extends IntegrationTestBase {
         Assertions.assertEquals(recordings1.size(), 1);
         Assertions.assertEquals(recordings1.getFirst().getId(), recording1.getId());
 
-        var message = Assertions.assertThrows(
+        var message = assertThrows(
             AccessDeniedException.class,
             () -> recordingService.findAll(new SearchRecordings(), true, Pageable.unpaged()).toList()
         ).getMessage();
@@ -185,6 +199,106 @@ public class RecordingServiceIT extends IntegrationTestBase {
         entityManager.persist(recording2);
         var nextVersion2 = recordingService.getNextVersionNumber(recording1.getId());
         assertThat(nextVersion2).isEqualTo(3);
+    }
+
+    @Test
+    @Transactional
+    void findAllDurationNullReturnsOnlyRecordingsWithNullDuration() {
+        mockAdminUser();
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        Case caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        Booking booking = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking);
+
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        Recording recordingWithNullDuration = HelperFactory.createRecording(
+            captureSession, null, 1, "nullDurationFile", null);
+        entityManager.persist(recordingWithNullDuration);
+
+        Recording recordingWithDuration = HelperFactory.createRecording(
+            captureSession,
+            null,
+            2,
+            "withDurationFile",
+            Timestamp.from(Instant.now())
+        );
+        entityManager.persist(recordingWithDuration);
+
+        Recording deletedRecording = HelperFactory.createRecording(captureSession, null, 3, "deletedFile", null);
+        deletedRecording.setDeletedAt(Timestamp.from(Instant.now()));
+        entityManager.persist(deletedRecording);
+
+        List<RecordingDTO> results = recordingService.findAllDurationNull();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().getId()).isEqualTo(recordingWithNullDuration.getId());
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Should force upsert recording even if case in uneditable state")
+    void forceUpsert() {
+        mockAdminUser();
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        Case caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        caseEntity.setState(CaseState.PENDING_CLOSURE);
+        entityManager.persist(caseEntity);
+
+        Booking booking = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking);
+
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        Recording recordingWithNullDuration = HelperFactory.createRecording(
+            captureSession, null, 1, "nullDurationFile", null);
+        entityManager.persist(recordingWithNullDuration);
+        entityManager.flush();
+
+        CreateRecordingDTO updateDto = new CreateRecordingDTO();
+        updateDto.setId(recordingWithNullDuration.getId());
+        updateDto.setCaptureSessionId(captureSession.getId());
+        updateDto.setVersion(1);
+        updateDto.setFilename("updatedFilename");
+        updateDto.setDuration(Duration.ofMinutes(3));
+
+        assertThrows(
+            ResourceInWrongStateException.class,
+            () -> recordingService.upsert(updateDto)
+        );
+        assertThat(recordingService.forceUpsert(updateDto)).isEqualTo(UpsertResult.UPDATED);
     }
 
     @Test

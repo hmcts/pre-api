@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -52,6 +53,9 @@ public class MigrationGroupBuilderServiceTest {
 
     @MockitoBean
     private MigrationTrackerService migrationTrackerService;
+
+    @MockitoBean
+    private MigrationRecordService migrationRecordService;
 
     @MockitoBean
     private CaseRepository caseRepository;
@@ -185,7 +189,7 @@ public class MigrationGroupBuilderServiceTest {
         verify(inMemoryCacheService, times(1)).checkHashKeyExists(BASE_KEY, CAPTURE_SESSION_FIELD);
         verify(inMemoryCacheService, times(1))
             .getHashValue(BASE_KEY, CAPTURE_SESSION_FIELD, CreateCaptureSessionDTO.class);
-        verify(entityCreationService, times(0)).createCaptureSession(any(), any(), any());
+        verify(entityCreationService, times(0)).createCaptureSession(any(), any());
     }
 
     @Test
@@ -194,7 +198,7 @@ public class MigrationGroupBuilderServiceTest {
         CreateBookingDTO booking = new CreateBookingDTO();
         CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
         when(inMemoryCacheService.checkHashKeyExists(BASE_KEY, CAPTURE_SESSION_FIELD)).thenReturn(false);
-        when(entityCreationService.createCaptureSession(cleansedData, booking, BASE_KEY)).thenReturn(captureSession);
+        when(entityCreationService.createCaptureSession(cleansedData, booking)).thenReturn(captureSession);
 
         CreateCaptureSessionDTO result = migrationGroupBuilderService.processCaptureSession(
             BASE_KEY,
@@ -206,7 +210,7 @@ public class MigrationGroupBuilderServiceTest {
         assertThat(result).isEqualTo(captureSession);
 
         verify(inMemoryCacheService, times(1)).checkHashKeyExists(BASE_KEY, CAPTURE_SESSION_FIELD);
-        verify(entityCreationService, times(1)).createCaptureSession(cleansedData, booking, BASE_KEY);
+        verify(entityCreationService, times(1)).createCaptureSession(cleansedData, booking);
     }
 
     @Test
@@ -227,7 +231,7 @@ public class MigrationGroupBuilderServiceTest {
 
         verify(inMemoryCacheService, times(1)).checkHashKeyExists(BASE_KEY, RECORDING_FIELD);
         verify(inMemoryCacheService, times(1)).getHashValue(BASE_KEY, RECORDING_FIELD, CreateRecordingDTO.class);
-        verify(entityCreationService, times(0)).createRecording(any(), any(), any());
+        verify(entityCreationService, never()).createRecording(any(), any());
     }
 
     @Test
@@ -235,7 +239,7 @@ public class MigrationGroupBuilderServiceTest {
         ProcessedRecording cleansedData = ProcessedRecording.builder().build();
         CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
         when(inMemoryCacheService.checkHashKeyExists(BASE_KEY, RECORDING_FIELD)).thenReturn(false);
-        when(entityCreationService.createRecording(BASE_KEY, cleansedData, captureSession))
+        when(entityCreationService.createRecording(cleansedData, captureSession))
             .thenReturn(new CreateRecordingDTO());
 
         CreateRecordingDTO result = migrationGroupBuilderService.processRecording(
@@ -247,7 +251,7 @@ public class MigrationGroupBuilderServiceTest {
         assertThat(result).isNotNull();
 
         verify(inMemoryCacheService, times(1)).checkHashKeyExists(BASE_KEY, RECORDING_FIELD);
-        verify(entityCreationService, times(1)).createRecording(BASE_KEY, cleansedData, captureSession);
+        verify(entityCreationService, times(1)).createRecording(cleansedData, captureSession);
     }
 
     @Test
@@ -262,19 +266,30 @@ public class MigrationGroupBuilderServiceTest {
     @Test
     @DisplayName("Should create MigratedItemGroup successfully when all dependencies are satisfied")
     void createMigratedItemGroupHappyPath() {
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
+        caseDTO.setReference(CASE_REFERENCE);
+
         ProcessedRecording cleansedData = ProcessedRecording.builder()
             .caseReference(CASE_REFERENCE)
             .witnessFirstName("Example")
             .defendantLastName("Example")
+            .extractedRecordingVersion("ORIG")
+            .origVersionNumberStr("1")
+            .recordingVersionNumber(1)
+            .extractedRecordingVersionNumberStr("1")
             .build();
-
-        CreateCaseDTO caseDTO = new CreateCaseDTO();
 
         when(caseRepository.findAll()).thenReturn(List.of());
         applicationContext.publishEvent(new ContextRefreshedEvent(applicationContext));
 
         when(entityCreationService.createCase(cleansedData)).thenReturn(caseDTO);
-        when(inMemoryCacheService.generateCacheKey(eq("booking"), eq("metadata"), any(), any())).thenReturn(BASE_KEY);
+        when(inMemoryCacheService.generateEntityCacheKey(
+            eq("booking"),
+            eq(CASE_REFERENCE),
+            eq("Example"),
+            eq("Example"),
+            eq("1")
+        )).thenReturn(BASE_KEY);
 
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();
@@ -285,11 +300,11 @@ public class MigrationGroupBuilderServiceTest {
         when(entityCreationService.createBooking(cleansedData, caseDTO, BASE_KEY)).thenReturn(bookingDTO);
 
         when(inMemoryCacheService.checkHashKeyExists(BASE_KEY, CAPTURE_SESSION_FIELD)).thenReturn(false);
-        when(entityCreationService.createCaptureSession(cleansedData, bookingDTO, BASE_KEY))
+        when(entityCreationService.createCaptureSession(cleansedData, bookingDTO))
             .thenReturn(captureSessionDTO);
 
         when(inMemoryCacheService.checkHashKeyExists(BASE_KEY, RECORDING_FIELD)).thenReturn(false);
-        when(entityCreationService.createRecording(BASE_KEY, cleansedData, captureSessionDTO)).thenReturn(recordingDTO);
+        when(entityCreationService.createRecording(cleansedData, captureSessionDTO)).thenReturn(recordingDTO);
 
         when(entityCreationService.createParticipants(cleansedData)).thenReturn(participants);
         ExtractedMetadata metadata = new ExtractedMetadata();
@@ -302,7 +317,7 @@ public class MigrationGroupBuilderServiceTest {
         assertThat(result.getCaptureSession()).isEqualTo(captureSessionDTO);
         assertThat(result.getRecording()).isEqualTo(recordingDTO);
         assertThat(result.getParticipants()).isEqualTo(participants);
-        
+
     }
 
     private Case createCase() {

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -35,6 +36,9 @@ public class AzureVodafoneStorageServiceTest {
 
     @Mock
     private BlobClient blobClient;
+
+    @MockitoBean
+    private AzureConfiguration azureConfiguration;
 
     @Autowired
     private AzureVodafoneStorageService azureVodafoneStorageService;
@@ -87,3 +91,4 @@ public class AzureVodafoneStorageServiceTest {
         assertNull(azureVodafoneStorageService.fetchSingleXmlBlob("test-container", "testfile.xml"));
     }
 }
+ 

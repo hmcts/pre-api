@@ -7,5 +7,7 @@ public interface IArchiveData {
 
     LocalDateTime getCreateTimeAsLocalDateTime();
 
+    String getArchiveId();
+
     String getArchiveName();
 }

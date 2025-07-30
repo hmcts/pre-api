@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -87,8 +86,8 @@ public class StartLiveEventsTest {
         when(booking1.getCaptureSessions()).thenReturn(List.of());
         when(booking2.getCaptureSessions()).thenReturn(List.of());
 
-        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
+        when(bookingService.findAllBookingsForToday())
+            .thenReturn(List.of(booking1, booking2));
 
         var mockMediaService = mock(IMediaService.class);
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mockMediaService);

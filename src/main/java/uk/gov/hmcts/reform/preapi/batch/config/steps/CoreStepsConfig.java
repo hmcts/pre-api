@@ -19,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
@@ -30,20 +29,17 @@ import java.util.Optional;
 
 @Configuration
 public class CoreStepsConfig {
-
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final Processor itemProcessor;
     private final MigrationWriter itemWriter;
     private final LoggingService loggingService;
 
-    public CoreStepsConfig(
-        JobRepository jobRepository,
-        PlatformTransactionManager transactionManager,
-        Processor itemProcessor,
-        MigrationWriter itemWriter,
-        LoggingService loggingService
-    ) {
+    public CoreStepsConfig(final JobRepository jobRepository,
+                           final PlatformTransactionManager transactionManager,
+                           final Processor itemProcessor,
+                           final MigrationWriter itemWriter,
+                           final LoggingService loggingService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.itemProcessor = itemProcessor;
@@ -82,33 +78,26 @@ public class CoreStepsConfig {
             .tasklet(
                 (contribution, chunkContext) -> {
                     String debugParam = (String) chunkContext.getStepContext()
-                                                             .getJobParameters()
-                                                             .get("debug");
-
-                    var migrationType = MigrationType.fromString((String) chunkContext.getStepContext()
-                                                                                      .getJobParameters()
-                                                                                      .get("migrationType"));
+                        .getJobParameters()
+                        .get("debug");
 
                     boolean debug = Boolean.parseBoolean(debugParam);
 
                     loggingService.setDebugEnabled(debug);
-                    loggingService.initializeLogFile(migrationType);
+                    loggingService.initializeLogFile();
                     loggingService.logInfo("Job started with debug mode: " + debug);
 
                     return RepeatStatus.FINISHED;
-                }, transactionManager
-            )
+                }, transactionManager)
             .build();
     }
 
-    public <T> Step createReadStep(
-        String stepName,
-        Resource filePath,
-        String[] fieldNames,
-        Class<T> targetClass,
-        boolean writeToCsv,
-        boolean dryRun
-    ) {
+    public <T> Step createReadStep(String stepName,
+                                   Resource filePath,
+                                   String[] fieldNames,
+                                   Class<T> targetClass,
+                                   boolean writeToCsv,
+                                   boolean dryRun) {
         FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
         ItemWriter<MigratedItemGroup> writer = dryRun ? noOpWriter() : (writeToCsv ? itemWriter : noOpWriter());
 
@@ -123,11 +112,7 @@ public class CoreStepsConfig {
             .build();
     }
 
-    public <T> FlatFileItemReader<T> createCsvReader(
-        Resource inputFile,
-        String[] fieldNames,
-        Class<T> targetClass
-    ) {
+    public <T> FlatFileItemReader<T> createCsvReader(Resource inputFile, String[] fieldNames, Class<T> targetClass) {
         try {
             return CSVReader.createReader(inputFile, fieldNames, targetClass);
         } catch (IOException e) {
@@ -155,20 +140,7 @@ public class CoreStepsConfig {
         return createReadStep(
             "archiveListDataStep",
             new ClassPathResource(BatchConfiguration.ARCHIVE_LIST_INITAL),
-            new String[]{"archive_name", "create_time", "duration", "file_name", "file_size"},
-            CSVArchiveListData.class,
-            true,
-            getDryRunFlag()
-        );
-    }
-
-    @Bean
-    @JobScope
-    public Step createDeltaListStep() {
-        return createReadStep(
-            "deltaDataStep",
-            new ClassPathResource(BatchConfiguration.DELTA_RECORDS_CSV),
-            new String[]{"archive_name", "create_time", "duration", "file_name", "file_size"},
+            new String[]{"archive_id", "archive_name", "create_time", "duration", "file_name", "file_size"},
             CSVArchiveListData.class,
             true,
             getDryRunFlag()

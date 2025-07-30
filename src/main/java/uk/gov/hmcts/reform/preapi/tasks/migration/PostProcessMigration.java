@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -29,6 +28,6 @@ public class PostProcessMigration extends BaseTask {
 
     @Override
     public void run() throws RuntimeException {
-        startJob(postMigrationJob, "Post Migration", MigrationType.FULL);
+        startJob(postMigrationJob, "Post Migration");
     }
 }

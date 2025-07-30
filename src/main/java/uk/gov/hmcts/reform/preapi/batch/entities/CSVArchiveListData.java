@@ -4,7 +4,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -27,6 +29,7 @@ public class CSVArchiveListData implements IArchiveData  {
         "yyyy-MM-dd HH:mm:ss"
     );
 
+    private String archiveId = "";
     private String archiveName = "";
     private String sanitizedArchiveName = "";
     private String createTime = "";
@@ -34,8 +37,13 @@ public class CSVArchiveListData implements IArchiveData  {
     private String fileName = "";
     private String fileSize = "";
 
-    public CSVArchiveListData(String archiveName, String createTime, Integer duration,
-        String fileName, String fileSize) {
+    public CSVArchiveListData(String archiveId,
+                              String archiveName,
+                              String createTime,
+                              Integer duration,
+                              String fileName,
+                              String fileSize) {
+        this.archiveId = archiveId;
         this.archiveName = archiveName;
         this.createTime = createTime;
         this.duration = (duration != null) ? duration : 0;
@@ -57,16 +65,15 @@ public class CSVArchiveListData implements IArchiveData  {
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
-            .replaceAll("\\s*&\\s*", " & ")     
-            .replaceAll("(?<!&)\\s+(?!&)", "") 
+            .replaceAll("\\s*&\\s*", " & ")
+            .replaceAll("(?<!&)\\s+(?!&)", "")
             .replaceAll("CP_", "")
             .replaceAll("CP-", "")
-            // .replaceAll("-NA-", "")
             .replaceAll("CP ", "")
             .replaceAll("CP Case", "")
-            .replaceAll("(?i)As Urn[-_\\s]*", "") 
-            .replaceAll("(?i)See Urn[-_\\s]*", "") 
-            .replaceAll("(?i)As-Urn[-_\\s]*", "") 
+            .replaceAll("(?i)As Urn[-_\\s]*", "")
+            .replaceAll("(?i)See Urn[-_\\s]*", "")
+            .replaceAll("(?i)As-Urn[-_\\s]*", "")
             .replaceAll("[\\.]+[-_\\s]*[\\.]+", "-")
             .trim();
     }
@@ -85,23 +92,29 @@ public class CSVArchiveListData implements IArchiveData  {
     }
 
     public LocalDateTime getCreateTimeAsLocalDateTime() {
-        if (createTime == null || createTime.isEmpty()) {
+        return getParsedCreateTime();
+    }
+
+    public LocalDateTime getParsedCreateTime() {
+        if (createTime == null || createTime.isBlank()) {
             return null;
         }
 
         try {
             long timestamp = Long.parseLong(createTime.trim());
-            return LocalDateTime.ofInstant(
-                java.time.Instant.ofEpochMilli(timestamp),
-                java.time.ZoneId.systemDefault()
-            );
+            if (timestamp == 0L || timestamp == 3600000L) {
+                return null;
+            }
 
+            return LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(timestamp),
+                ZoneId.systemDefault()
+            );
         } catch (NumberFormatException e) {
             return DATE_PATTERNS.stream()
                 .map(pattern -> {
                     try {
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.UK);
-                        return LocalDateTime.parse(createTime.trim(), formatter);
+                        return LocalDateTime.parse(createTime.trim(), DateTimeFormatter.ofPattern(pattern, Locale.UK));
                     } catch (DateTimeParseException ex) {
                         return null;
                     }
@@ -115,7 +128,8 @@ public class CSVArchiveListData implements IArchiveData  {
     @Override
     public String toString() {
         return "CSVArchiveListData{"
-               + "archiveName='" + archiveName + '\''
+               + "archiveId='" + archiveId + '\''
+               + ", archiveName='" + archiveName + '\''
                + ", sanitizedName='" + sanitizedArchiveName + '\''
                + ", createTime='" + createTime + '\''
                + ", duration=" + duration

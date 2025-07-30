@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 public class NotifyItem {
     private String notification;
-    private ExtractedMetadata extractedMetadata;
+    private ProcessedRecording extractedMetadata;
 
     @Override
     public String toString() {
@@ -19,5 +19,4 @@ public class NotifyItem {
                 + "extractedMetadata=" + extractedMetadata
                 + '}';
     }
-
 }

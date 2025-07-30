@@ -18,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.migration.Migration
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.PostMigrationWriter;
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 
 @Configuration
 public class PostMigrationJobConfig {
-
     public final PlatformTransactionManager transactionManager;
     private final JobRepository jobRepository;
     private final CoreStepsConfig coreSteps;
@@ -55,18 +53,15 @@ public class PostMigrationJobConfig {
     private final CaseService caseService;
     private final BookingService bookingService;
 
-    public PostMigrationJobConfig(
-        JobRepository jobRepository,
-        PlatformTransactionManager transactionManager,
-        CoreStepsConfig coreSteps,
-        BatchConfiguration batchConfig,
-        LoggingService loggingService,
-        InMemoryCacheService cacheService,
-        EntityCreationService entityCreationService,
-        MigrationTrackerService migrationTrackerService,
-        CaseService caseService,
-        BookingService bookingService
-    ) {
+    public PostMigrationJobConfig(final JobRepository jobRepository,
+                                  final PlatformTransactionManager transactionManager,
+                                  final CoreStepsConfig coreSteps,
+                                  final LoggingService loggingService,
+                                  final InMemoryCacheService cacheService,
+                                  final EntityCreationService entityCreationService,
+                                  final MigrationTrackerService migrationTrackerService,
+                                  final CaseService caseService,
+                                  final BookingService bookingService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.coreSteps = coreSteps;
@@ -79,14 +74,12 @@ public class PostMigrationJobConfig {
     }
 
     @Bean
-    public Job postMigrationJob(
-        @Qualifier("createRobotUserSignInStep") Step createRobotUserSignInStep,
-        @Qualifier("createChannelUserStep") Step createChannelUserStep,
-        @Qualifier("createMarkCasesClosedStep") Step createMarkCasesClosedStep,
-        @Qualifier("createPreProcessStep") Step createPreProcessStep,
-        @Qualifier("createShareBookingsStep") Step createShareBookingsStep,
-        @Qualifier("createWriteToCSVStep") Step createWriteToCSVStep
-    ) {
+    public Job postMigrationJob(@Qualifier("createRobotUserSignInStep") Step createRobotUserSignInStep,
+                                @Qualifier("createChannelUserStep") Step createChannelUserStep,
+                                @Qualifier("createMarkCasesClosedStep") Step createMarkCasesClosedStep,
+                                @Qualifier("createPreProcessStep") Step createPreProcessStep,
+                                @Qualifier("createShareBookingsStep") Step createShareBookingsStep,
+                                @Qualifier("createWriteToCSVStep") Step createWriteToCSVStep) {
         return new JobBuilder("postMigrationJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(coreSteps.startLogging())
@@ -143,7 +136,7 @@ public class PostMigrationJobConfig {
                         .orElse("false")
                 );
 
-                List<CaseDTO> vodafoneCases = fetchVodafoneCases(); 
+                List<CaseDTO> vodafoneCases = fetchVodafoneCases();
                 Map<String, List<String[]>> channelUsersMap = cacheService.getAllChannelReferences();
 
                 List<PostMigratedItemGroup> migratedItems = new ArrayList<>();
@@ -168,10 +161,10 @@ public class PostMigrationJobConfig {
                         .getContent();
 
                     if (bookings.isEmpty()) {
-                        loggingService.logWarning("No bookings found for case %s (%s)", 
+                        loggingService.logWarning("No bookings found for case %s (%s)",
                             caseDTO.getReference(), caseDTO.getId());
                     } else {
-                        loggingService.logInfo("Successfully fetched %d bookings for case %s", bookings.size(), 
+                        loggingService.logInfo("Successfully fetched %d bookings for case %s", bookings.size(),
                             caseDTO.getReference(), caseDTO.getParticipants());
                     }
 
@@ -184,11 +177,11 @@ public class PostMigrationJobConfig {
                         for (String[] user : matchedUsers) {
                             loggingService.logDebug("user:: %s", Arrays.toString(user));
                             String email = user[1];
-                            
+
                             String fullName = user[0];
                             String[] nameParts = fullName.split("\\.");
                             String firstName = nameParts.length > 0 ? nameParts[0] : "Unknown";
-                            String lastName = nameParts.length > 1 ? nameParts[1] : "Unknown";                  
+                            String lastName = nameParts.length > 1 ? nameParts[1] : "Unknown";
 
                             if (dryRun) {
                                 loggingService.logInfo("[DRY RUN] Would invite and share booking with %s", email);
@@ -221,8 +214,6 @@ public class PostMigrationJobConfig {
             }, transactionManager)
             .build();
     }
-
-    
 
     private List<CaseDTO> fetchVodafoneCases() {
         List<CaseDTO> cases = caseService.getCasesByOrigin(RecordingOrigin.VODAFONE);

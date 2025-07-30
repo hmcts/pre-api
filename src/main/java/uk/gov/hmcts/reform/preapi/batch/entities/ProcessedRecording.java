@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
@@ -15,27 +16,46 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProcessedRecording {
-    private String courtReference;
-    private String courtName;
-    private Court court;
-    private CaseState state;
-    private Timestamp recordingTimestamp;
-    private String urn;
-    private String exhibitReference;
-    private String caseReference;
+    private String archiveId;
+    private String archiveName;
+
+    // Identifiers and court metadata
+    private String courtReference;          // reference for the court
+    private String courtName;               // Human-readable court name
+    private Court court;                    // Linked Court entity
+
+    private CaseState state;                // Current state of the case (e.g. OPEN, CLOSED)
+
+    // Recording metadata
+    private Timestamp recordingTimestamp;   // When the recording began
+    private Duration duration;              // How long the recording lasted
+
+    // Case and participant data
+    private String urn;                     // Unique reference number for the case
+    private String exhibitReference;        // Another reference related to court
+    private String caseReference;           // Derived case reference for migration
     private String defendantLastName;
     private String witnessFirstName;
-    private String recordingVersion;
-    private String recordingVersionNumberStr;
-    private int recordingVersionNumber;
-    private Duration duration;
-    private boolean isMostRecentVersion;
-    private String fileExtension;
-    private String fileName;
+
+    // Extracted versioning info (from filename, e.g. ORIG2)
+    private String extractedRecordingVersion;               // Raw extracted version label (e.g. "ORIG", "COPY")
+    private String extractedRecordingVersionNumberStr;      // Raw version number string from filename (e.g. "2")
+    private String origVersionNumberStr; // e.g. "2" if ORIG2, null otherwise
+    private String copyVersionNumberStr; // e.g. "1.2" if COPY1.2, null otherwise
+    private int recordingVersionNumber;                     // Parsed version number (1 = ORIG, 2 = COPY)
+
+    private boolean isMostRecentVersion; // (used to skip older recordings)
+    private boolean isPreferred;
+
+    private String fileExtension;                           // e.g. ".mp4", ".raw"
+    private String fileName;                                // Full filename of the recording
+
+    // List of channel share booking contacts linked to this recording
     private List<Map<String, String>> shareBookingContacts;
 
     public String getFullCourtName() {
@@ -62,9 +82,10 @@ public class ProcessedRecording {
             .add("exhibitReference='" + exhibitReference + "'")
             .add("defendantLastName='" + defendantLastName + "'")
             .add("witnessFirstName='" + witnessFirstName + "'")
-            .add("recordingVersion='" + recordingVersion + "'")
-            .add("caseReference='" + caseReference + "'")
-            .add("recordingVersionNumberStr=" + recordingVersionNumberStr)
+            .add("extractedRecordingVersion='" + extractedRecordingVersion + "'")
+            .add("extractedRecordingVersionNumberStr=" + extractedRecordingVersionNumberStr)
+            .add("origVersionNumberStr=" + origVersionNumberStr)
+            .add("copyVersionNumberStr=" + copyVersionNumberStr)
             .add("recordingVersionNumber=" + recordingVersionNumber)
             .add("duration=" + duration)
             .add("isMostRecentVersion=" + isMostRecentVersion)

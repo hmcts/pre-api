@@ -14,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
-import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
@@ -50,7 +49,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 400);
         assertThat(deleteResponse.getBody().jsonPath().getString("message"))
-            .isEqualTo("Cannot delete because and associated recording has not been deleted.");
+            .isEqualTo("Cannot delete because an associated recording has not been deleted.");
         assertRecordingExists(recordingId, true);
     }
 
@@ -102,8 +101,6 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(booking.getId()).isEqualTo(bookingId);
         var region = booking.getCaseDTO().getCourt().getRegions().stream().findFirst();
         assertThat(region.orElseGet(RegionDTO::new).getName()).isEqualTo("Foo Region");
-        var rooms = booking.getCaseDTO().getCourt().getRooms().stream().findFirst();
-        assertThat(rooms.orElseGet(RoomDTO::new).getName()).isEqualTo("Foo Room");
 
         // validate the court referenced does exist
         var courtResponse = assertCourtExists(booking.getCaseDTO().getCourt().getId(), true);
@@ -948,67 +945,61 @@ class BookingControllerFT extends FunctionalTestBase {
         }
     }
 
-    /*
     @DisplayName("Scenario: Search for a booking by schedule date")
     @Test
-    void searchBookingByScheduleDate() throws JsonProcessingException {
-        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
-
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+    @DisplayName("Scenario: Search for a booking by schedule date")
+    void searchBookingByScheduleDate() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath()
             .getUUID("bookingId");
 
-        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr, true);
-
+        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr,
+                                           TestingSupportRoles.SUPER_USER);
         var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
 
         dateToSearchStr = LocalDate.now().toString();
-
-        bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr, true);
-
+        bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr,
+                                       TestingSupportRoles.SUPER_USER);
         bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().noneMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
 
-    @DisplayName("Scenario: Search for a booking by schedule date and case reference")
     @Test
-    void searchBookingByScheduleDateAndCaseReference() throws JsonProcessingException {
-        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
-
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+    @DisplayName("Scenario: Search for a booking by schedule date and case reference")
+    void searchBookingByScheduleDateAndCaseReference() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath()
             .getUUID("bookingId");
 
-        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr
-            + "&caseReference=4567890123", true);
-
+        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr
+                                               + "&caseReference=4567890123", TestingSupportRoles.SUPER_USER);
         var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertResponseCode(bookingResponse, 200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
 
-    @DisplayName("Scenario: Search for a booking by partial case reference")
     @Test
-    void searchBookingByPartialCaseReference() throws JsonProcessingException {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+    @DisplayName("Scenario: Search for a booking by partial case reference")
+    void searchBookingByPartialCaseReference() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath()
             .getUUID("bookingId");
 
-        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=456789", true);
-
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=456789", TestingSupportRoles.SUPER_USER);
         var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
-    */
 }

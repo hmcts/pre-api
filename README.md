@@ -488,6 +488,9 @@ TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
 #### Application Fails to Start after Gradle BootRun
 If the application fails to start after running `./gradlew bootRun`, check the following:
 
+
+TASK_NAME=[task] java -jar pre-api.jar run
+
 - **Check your environment variables:**
   Ensure all required variables are set and have the correct values.
 
@@ -500,6 +503,15 @@ configurations. If running from the terminal, confirm you have loaded your `.env
 
 #### Cloning or Pushing Issues (Git)
 
+## Migration Tasks
+
+This can be run in the same way as cron jobs.For example:
+
+```bash
+MIGRATION_DEBUG=true MIGRATION_TYPE=SECOND TASK_NAME=FetchData ./gradlew bootRun
+```
+
+## License
 If you encounter authentication errors when cloning or pushing to the repository,
 it may be due to your SSH key not being configured for GitHub SSO.
 
@@ -533,14 +545,6 @@ A connection string is used to connect to App Insights. This is configured to re
 
 Connecting to App Insights locally is possible, although a bit fiddly. The easiest way is to get the connection string from Azure, set it as an environment variable (`APPLICATIONINSIGHTS_CONNECTION_STRING`), and add the Java agent as a VM argument. You'll also need to remove or comment out the connection string line in the config file.
 
-
-## Migration Tasks
-
-This can be run in the same way as cron jobs.For example:
-
-```bash
-MIGRATION_DEBUG=true MIGRATION_TYPE=SECOND TASK_NAME=FetchXML ./gradlew bootRun
-```
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

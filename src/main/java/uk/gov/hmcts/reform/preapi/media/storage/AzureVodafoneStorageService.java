@@ -4,10 +4,12 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 import java.util.List;
 
@@ -15,8 +17,8 @@ import java.util.List;
 @Slf4j
 public class AzureVodafoneStorageService extends AzureStorageService {
     @Autowired
-    public AzureVodafoneStorageService(BlobServiceClient vodafoneStorageClient) {
-        super(vodafoneStorageClient);
+    public AzureVodafoneStorageService(BlobServiceClient vodafoneStorageClient, AzureConfiguration azureConfiguration) {
+        super(vodafoneStorageClient, azureConfiguration);
     }
 
     public List<String> fetchBlobNames(String containerName) {
@@ -26,6 +28,16 @@ public class AzureVodafoneStorageService extends AzureStorageService {
                               .map(BlobItem::getName)
                               .filter(name -> name.endsWith(".xml"))
                               .toList();
+    }
+
+    public List<String> fetchBlobNamesWithPrefix(String containerName, String prefix) {
+        var containerClient = client.getBlobContainerClient(containerName);
+
+        return containerClient.listBlobs(new ListBlobsOptions().setPrefix(prefix), null)
+            .stream()
+            .map(BlobItem::getName)
+            .filter(name -> name.endsWith(".xml"))
+            .toList();
     }
 
     public InputStreamResource fetchSingleXmlBlob(String containerName, String blobName) {

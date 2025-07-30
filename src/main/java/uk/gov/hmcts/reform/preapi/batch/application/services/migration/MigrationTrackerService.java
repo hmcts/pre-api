@@ -3,10 +3,9 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
@@ -85,8 +84,8 @@ public class MigrationTrackerService {
             .add(item);
 
         loggingService.logInfo(
-            "Adding failed item: Category = %s | Filename = %s",
-            item.getFailureCategory(), item.getFileName()
+            "Adding failed item: Category = %s | ArchiveName = %s | Filename = %s",
+            item.getFailureCategory(), item.getItem().getArchiveName(), item.getFileName()
         );
     }
 
@@ -173,6 +172,10 @@ public class MigrationTrackerService {
 
         loggingService.setTotalMigrated(migratedItems.size());
         loggingService.setTotalFailed(categorizedFailures, testFailures);
+
+        int totalRecords = migratedItems.size() + testFailures.size()
+            + categorizedFailures.values().stream().mapToInt(List::size).sum();
+        loggingService.setTotalRecords(totalRecords);
         loggingService.logSummary();
     }
 
@@ -184,12 +187,9 @@ public class MigrationTrackerService {
         writeInvitedUsersToCsv("Invited_users", outputDir);
     }
 
-   
-
     // ==================================
     // Helpers
     // ==================================
-
     private List<List<String>> buildMigratedItemsRows() {
         List<List<String>> rows = new ArrayList<>();
         for (PassItem item : migratedItems) {
@@ -225,7 +225,6 @@ public class MigrationTrackerService {
                     getValueOrEmpty(item.getExtractedMetadata().getDefendantLastName()),
                     getValueOrEmpty(item.getExtractedMetadata().getWitnessFirstName()),
                     getValueOrEmpty(item.getExtractedMetadata().getDuration()),
-                    getValueOrEmpty(item.getExtractedMetadata().getFileSize()),
                     migratedTime
                 )
             );
@@ -236,14 +235,14 @@ public class MigrationTrackerService {
     private List<List<String>> buildTestFailureRows() {
         List<List<String>> rows = new ArrayList<>();
         for (TestItem item : testFailures) {
-            CSVArchiveListData archiveItem = item.getArchiveItem();
+            MigrationRecord archiveItem = item.getArchiveItem();
             String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
 
             rows.add(List.of(
                 getValueOrEmpty(archiveItem.getArchiveName()),
                 getValueOrEmpty(archiveItem.getCreateTime()),
                 getValueOrEmpty(archiveItem.getFileName()),
-                getValueOrEmpty(archiveItem.getFileSize()) + " MB",
+                getValueOrEmpty(archiveItem.getFileSizeMb()),
                 failureTime,
                 String.valueOf(item.isDurationCheck()),
                 String.valueOf(item.getDurationInSeconds()),
@@ -262,16 +261,7 @@ public class MigrationTrackerService {
             Object itemData = item.getItem();
             String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
 
-            if (itemData instanceof CSVArchiveListData archiveItem) {
-                rows.add(List.of(
-                    getValueOrEmpty(item.getReason()),
-                    getValueOrEmpty(archiveItem.getArchiveName()),
-                    getValueOrEmpty(archiveItem.getCreateTime()),
-                    getValueOrEmpty(archiveItem.getFileName()),
-                    getValueOrEmpty(archiveItem.getFileSize()),
-                    failureTime
-                ));
-            } else if (itemData instanceof ExtractedMetadata metadata) {
+            if (itemData instanceof ExtractedMetadata metadata) {
                 rows.add(List.of(
                     getValueOrEmpty(item.getReason()),
                     getValueOrEmpty(metadata.getArchiveName()),
@@ -280,13 +270,13 @@ public class MigrationTrackerService {
                     getValueOrEmpty(metadata.getFileSize()),
                     failureTime
                 ));
-            } else if (itemData instanceof CSVExemptionListData exemptionItem) {
+            } else if (itemData instanceof MigrationRecord migrationRecord) {
                 rows.add(List.of(
                     getValueOrEmpty(item.getReason()),
-                    getValueOrEmpty(exemptionItem.getArchiveName()),
-                    getValueOrEmpty(exemptionItem.getCreateTime()),
-                    getValueOrEmpty(exemptionItem.getFileName()),
-                    getValueOrEmpty(exemptionItem.getFileSize()),
+                    getValueOrEmpty(migrationRecord.getArchiveName()),
+                    getValueOrEmpty(migrationRecord.getCreateTime()),
+                    getValueOrEmpty(migrationRecord.getFileName()),
+                    getValueOrEmpty(migrationRecord.getFileSizeMb()),
                     failureTime
                 ));
             } else {

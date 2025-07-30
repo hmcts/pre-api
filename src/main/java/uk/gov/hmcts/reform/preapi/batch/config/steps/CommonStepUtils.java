@@ -20,37 +20,30 @@ import static uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration.SKIP_LI
 
 @Component
 public class CommonStepUtils {
-
     private final LoggingService loggingService;
     private final Processor processor;
 
-    public CommonStepUtils(LoggingService loggingService, Processor processor) {
+    public CommonStepUtils(final LoggingService loggingService, final Processor processor) {
         this.loggingService = loggingService;
         this.processor = processor;
     }
 
-    public <T> FlatFileItemReader<T> createCsvReader(
-        Resource inputFile,
-        String[] fieldNames,
-        Class<T> targetClass
-    ) {
+    public <T> FlatFileItemReader<T> createCsvReader(Resource inputFile, String[] fieldNames, Class<T> targetClass) {
         try {
             return CSVReader.createReader(inputFile, fieldNames, targetClass);
         } catch (IOException e) {
-            loggingService.logError("Failed to create reader for file: {}" + inputFile.getFilename() + e);
+            loggingService.logError("Failed to create reader for file: {}", inputFile.getFilename(), e);
             throw new IllegalStateException("Failed to create reader for file: ", e);
         }
     }
 
-    public <T> Step buildChunkStep(
-        String stepName,
-        Resource inputFile,
-        String[] fieldNames,
-        Class<T> inputType,
-        ItemWriter<MigratedItemGroup> writer,
-        JobRepository jobRepository,
-        PlatformTransactionManager transactionManager
-    ) {
+    public <T> Step buildChunkStep(String stepName,
+                                   Resource inputFile,
+                                   String[] fieldNames,
+                                   Class<T> inputType,
+                                   ItemWriter<MigratedItemGroup> writer,
+                                   JobRepository jobRepository,
+                                   PlatformTransactionManager transactionManager) {
         FlatFileItemReader<T> reader = createCsvReader(inputFile, fieldNames, inputType);
 
         return new StepBuilder(stepName, jobRepository)

@@ -2,11 +2,13 @@ package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
 public class TestItem {
-    private CSVArchiveListData archiveItem;
+    private MigrationRecord archiveItem;
     private String reason;
     private boolean durationCheck;
     private int durationInSeconds;

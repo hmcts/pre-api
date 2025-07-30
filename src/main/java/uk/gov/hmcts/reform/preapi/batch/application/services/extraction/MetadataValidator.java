@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.NOT_PREFERRED;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PREDATES_GO_LIVE;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_DURATION;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_ITEM_NAME;
@@ -32,7 +32,7 @@ public class MetadataValidator {
         this.loggingService = loggingService;
     }
 
-    public ServiceResult<?> validateTest(CSVArchiveListData archiveItem) {
+    public ServiceResult<?> validateTest(MigrationRecord archiveItem) {
         loggingService.logDebug("Validating %s for test", archiveItem.getSanitizedArchiveName());
 
         if (!isDateAfterGoLive(archiveItem)) {
@@ -51,7 +51,7 @@ public class MetadataValidator {
 
     public ServiceResult<?> validateExtension(String extension) {
         return !isValidExtension(extension)
-            ? ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT)
+            ? ServiceResultUtil.failure(NOT_PREFERRED, FILE_INVALID_FORMAT)
             : ServiceResultUtil.success(extension);
     }
 
@@ -69,7 +69,7 @@ public class MetadataValidator {
     }
 
     // checks for test (duration and keywords)
-    private TestItem isTestRecording(CSVArchiveListData archiveItem) {
+    private TestItem isTestRecording(MigrationRecord archiveItem) {
         boolean keywordCheck = !hasTestKeywords(archiveItem);
         boolean durationCheck = !isValidDuration(archiveItem);
         StringBuilder failureReasons = new StringBuilder();
@@ -103,7 +103,7 @@ public class MetadataValidator {
         return testItem;
     }
 
-    private boolean hasTestKeywords(CSVArchiveListData archiveItem) {
+    private boolean hasTestKeywords(MigrationRecord archiveItem) {
         String lowerName = archiveItem.getSanitizedArchiveName().toLowerCase();
         for (String keyword : Constants.TEST_KEYWORDS) {
             if (lowerName.contains(keyword)) {
@@ -128,7 +128,7 @@ public class MetadataValidator {
         return foundKeywords.isEmpty() ? "N/A" : foundKeywords.toString();
     }
 
-    public boolean isValidDuration(CSVArchiveListData archiveItem) {
+    public boolean isValidDuration(MigrationRecord archiveItem) {
         int duration = archiveItem.getDuration();
 
         if (duration < Constants.MIN_RECORDING_DURATION) {
@@ -139,14 +139,15 @@ public class MetadataValidator {
         return true;
     }
 
-    // Check if the creation time pre-dates the go-live date
-    public boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
+    public boolean isDateAfterGoLive(MigrationRecord archiveItem) {
         LocalDateTime recordingTimestamp = archiveItem.getCreateTimeAsLocalDateTime();
+
         if (recordingTimestamp == null) {
             loggingService.logError("Failed to extract date for file: %s | Raw createTime: %s",
                 archiveItem.getArchiveName(), archiveItem.getCreateTime());
             return false;
         }
+
 
         boolean isAfterGoLive = !recordingTimestamp.toLocalDate().isBefore(Constants.GO_LIVE_DATE);
         if (!isAfterGoLive) {
@@ -195,9 +196,6 @@ public class MetadataValidator {
         }
         if (isEmpty(metadata.getRecordingVersion())) {
             missingFields.add("Recording Version");
-        }
-        if (isEmpty(metadata.getFileExtension())) {
-            missingFields.add("File Extension");
         }
 
         return missingFields;

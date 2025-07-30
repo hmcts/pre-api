@@ -7,6 +7,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -28,14 +29,16 @@ import javax.xml.parsers.ParserConfigurationException;
  */
 @Service
 public class ArchiveMetadataXmlExtractor {
-
     private final AzureVodafoneStorageService azureVodafoneStorageService;
+    private final MigrationRecordService migrationRecordService;
     private final LoggingService loggingService;
 
     @Autowired
-    public ArchiveMetadataXmlExtractor(AzureVodafoneStorageService azureVodafoneStorageService,
-                                       LoggingService loggingService) {
+    public ArchiveMetadataXmlExtractor(final AzureVodafoneStorageService azureVodafoneStorageService,
+                                       final MigrationRecordService migrationRecordService,
+                                       final LoggingService loggingService) {
         this.azureVodafoneStorageService = azureVodafoneStorageService;
+        this.migrationRecordService = migrationRecordService;
         this.loggingService = loggingService;
     }
 
@@ -45,15 +48,17 @@ public class ArchiveMetadataXmlExtractor {
      * @param containerName The Azure Blob container name.
      * @param outputDir     The directory where the CSV files will be written.
      */
-    public void extractAndReportArchiveMetadata(String containerName, String outputDir, String filename) {
+    public void extractAndReportArchiveMetadata(
+        String containerName, String folderPrefix, String outputDir, String filename) {
         try {
             loggingService.logInfo("Starting extraction for container: %s", containerName);
 
-            List<String> blobNames = azureVodafoneStorageService.fetchBlobNames(containerName);
-            loggingService.logDebug("Found %d blobs in container: %s", blobNames.size(), containerName);
+            List<String> blobNames = azureVodafoneStorageService.fetchBlobNamesWithPrefix(containerName, folderPrefix);
+            loggingService.logDebug(
+                "Found %d blobs in container: %s with prefix: %s", blobNames.size(), containerName, folderPrefix);
 
             if (blobNames.isEmpty()) {
-                loggingService.logWarning("No XML blobs found in container: " + containerName);
+                loggingService.logWarning("No XML blobs found in container: %s" + containerName);
                 return;
             }
 
@@ -61,22 +66,52 @@ public class ArchiveMetadataXmlExtractor {
             loggingService.logDebug("Extracted metadata for %d recordings", allArchiveMetadata.size());
 
             if (!allArchiveMetadata.isEmpty()) {
-                loggingService.logDebug("Generating archive metadata report in %s", outputDir);
-                
+                loggingService.logDebug("Generating archive metadata report in directory: %s", outputDir);
+
                 allArchiveMetadata.sort((a, b) -> {
-                    try {
-                        long t1 = Long.parseLong(a.get(1)); 
-                        long t2 = Long.parseLong(b.get(1));
-                        return Long.compare(t1, t2);
-                    } catch (NumberFormatException e) {
-                        return 0; 
+                    String nameA = a.get(1).toLowerCase();
+                    String nameB = b.get(1).toLowerCase();
+
+                    String versionA = extractVersion(nameA);
+                    String versionB = extractVersion(nameB);
+
+                    boolean aIsOrig = Constants.VALID_ORIG_TYPES.contains(versionA.toUpperCase());
+                    boolean bIsOrig = Constants.VALID_ORIG_TYPES.contains(versionB.toUpperCase());
+
+                    if (aIsOrig && !bIsOrig) {
+                        return -1;
                     }
+                    if (!aIsOrig && bIsOrig) {
+                        return 1;
+                    }
+                    return nameA.compareTo(nameB);
                 });
+
+                int insertCount = 0;
+                for (List<String> row : allArchiveMetadata) {
+                    try {
+                        boolean inserted = migrationRecordService.insertPendingFromXml(
+                            row.get(0), // archiveId
+                            row.get(1), // displayName
+                            row.get(2), // createTime
+                            row.get(3), // duration
+                            row.get(4), // fileName
+                            row.get(5)  // fileSizeMb
+                        );
+                        if (inserted) {
+                            insertCount++;
+                        }
+                    } catch (Exception e) {
+                        loggingService.logError("Failed to insert row into migration records: %s", e.getMessage());
+                    }
+                }
 
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
                 loggingService.logInfo(
-                    "Successfully generated " + filename + " with " + allArchiveMetadata.size() + " entries"
-                );
+                    "Successfully generated %s.csv with %d entries",filename, allArchiveMetadata.size());
+                loggingService.logInfo(
+                    "ArchiveMetadataXmlExtractor - Inserted %d records into migration table", insertCount);
+
             } else {
                 loggingService.logWarning("No archive metadata found to generate report");
             }
@@ -102,7 +137,7 @@ public class ArchiveMetadataXmlExtractor {
                 List<List<String>> blobMetadata = parseArchiveMetadataFromXml(xmlStream);
                 if (!blobMetadata.isEmpty()) {
                     allArchiveMetadata.addAll(blobMetadata);
-                    loggingService.logDebug("Processing blob: %s - %s", allArchiveMetadata.get(0).get(0), blobName);
+                    loggingService.logDebug("Processing blob: %s", blobName);
                 } else {
                     loggingService.logWarning("Blob contains no metadata: " + blobName);
                 }
@@ -119,6 +154,7 @@ public class ArchiveMetadataXmlExtractor {
                                                String filename) throws IOException {
 
         List<String> headers = List.of(
+            "archive_id",
             "archive_name",
             "create_time",
             "duration",
@@ -146,6 +182,7 @@ public class ArchiveMetadataXmlExtractor {
         throws IOException, SAXException, ParserConfigurationException {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         dbFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        dbFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
         Document doc = dBuilder.parse(inputStream);
         doc.getDocumentElement().normalize();
@@ -172,6 +209,9 @@ public class ArchiveMetadataXmlExtractor {
             Element archiveElement = (Element) archiveNode;
             String displayName = extractTextContent(archiveElement, "DisplayName");
             String createTime = extractTextContent(archiveElement, "CreatTime");
+            if (createTime == null || createTime.isEmpty() || createTime.equals("0") || createTime.equals("3600000")) {
+                createTime = extractTextContent(archiveElement, "updatetime");
+            }
             String duration = extractTextContent(archiveElement, "Duration");
 
             if (displayName.isEmpty()) {
@@ -180,7 +220,8 @@ public class ArchiveMetadataXmlExtractor {
             if (createTime.isEmpty()) {
                 loggingService.logWarning("Missing CreatTime for archive: " + displayName);
             }
-            metadataRows.addAll(processMP4Files(archiveElement, displayName, createTime, duration));
+            String archiveId = extractTextContent(archiveElement, "ArchiveID");
+            metadataRows.addAll(processMP4Files(archiveElement, archiveId, displayName, createTime, duration));
         }
         return metadataRows;
     }
@@ -196,6 +237,7 @@ public class ArchiveMetadataXmlExtractor {
      */
     private List<List<String>> processMP4Files(
         Element archiveElement,
+        String archiveId,
         String displayName,
         String createTime,
         String duration
@@ -207,9 +249,9 @@ public class ArchiveMetadataXmlExtractor {
             Element mp4Group = (Element) mp4FileGroups.item(j);
             NodeList mp4Files = mp4Group.getElementsByTagName("MP4File");
 
-            for (int k = 0; k < mp4Files.getLength(); k++) {
-                Element fileElement = (Element) mp4Files.item(k);
+            Element fileElement = selectPreferredMp4File(mp4Files);
 
+            if (fileElement != null) {
                 String fileName = extractTextContent(fileElement, "Name");
                 String fileSizeKb = extractTextContent(fileElement, "Size");
 
@@ -221,11 +263,39 @@ public class ArchiveMetadataXmlExtractor {
                 }
                 if (isValidMP4File(fileName)) {
                     String formattedFileSize = formatFileSize(fileSizeKb);
-                    fileRows.add(List.of(displayName, createTime, duration, fileName, formattedFileSize));
+                    fileRows.add(List.of(archiveId, displayName, createTime, duration, fileName, formattedFileSize));
                 }
             }
         }
         return fileRows;
+    }
+
+    private Element selectPreferredMp4File(NodeList mp4Files) {
+        Element fallback = null;
+
+        for (int i = 0; i < mp4Files.getLength(); i++) {
+            Node node = mp4Files.item(i);
+            if (node.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element fileElement = (Element) node;
+            String fileName = extractTextContent(fileElement, "Name");
+
+            if (fileName.startsWith("0x1e")) {
+                return fileElement;
+            }
+
+            if (i == 1) {
+                fallback = fileElement;
+            }
+
+            if (mp4Files.getLength() == 1) {
+                fallback = fileElement;
+            }
+        }
+
+        return fallback;
     }
 
     /**
@@ -235,7 +305,8 @@ public class ArchiveMetadataXmlExtractor {
      * @return true if valid, false otherwise
      */
     private boolean isValidMP4File(String fileName) {
-        return fileName.endsWith(".mp4") && fileName.startsWith("0x1e");
+        // return fileName.endsWith(".mp4") && fileName.startsWith("0x1e");
+        return fileName.endsWith(".mp4");
     }
 
     /**
@@ -247,8 +318,8 @@ public class ArchiveMetadataXmlExtractor {
      */
     private String extractTextContent(Element element, String tagName) {
         return Optional.ofNullable(element.getElementsByTagName(tagName).item(0))
-                       .map(Node::getTextContent)
-                       .orElse("");
+            .map(Node::getTextContent)
+            .orElse("");
     }
 
     /**
@@ -261,10 +332,19 @@ public class ArchiveMetadataXmlExtractor {
         try {
             double sizeInKb = Double.parseDouble(fileSizeKb);
             double sizeInMb = sizeInKb / 1024.0;
-            return Constants.FILE_SIZE_FORMAT.format(sizeInMb) + " MB";
+            return Constants.FILE_SIZE_FORMAT.format(sizeInMb);
         } catch (NumberFormatException e) {
             loggingService.logWarning("Invalid file size: " + fileSizeKb);
-            return "0.00 MB";
+            return "0.00";
         }
+    }
+
+    private String extractVersion(String displayName) {
+        String[] parts = displayName.split("-");
+        if (parts.length == 0) {
+            return "";
+        }
+        String versionPart = parts[parts.length - 1];
+        return versionPart.split("\\.")[0];
     }
 }

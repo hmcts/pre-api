@@ -3,9 +3,11 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -26,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,15 +36,13 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
-    protected static final String BOOKING_FIELD = "bookingField";
-    protected static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    private final LoggingService loggingService;
+    private final InMemoryCacheService cacheService;
+    private final MigrationRecordService migrationRecordService;
+    private final UserService userService;
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
-
-    private final LoggingService loggingService;
-    private final InMemoryCacheService cacheService;
-    private final UserService userService;
 
     // =========================
     // Entity Creation Methods
@@ -67,63 +68,108 @@ public class EntityCreationService {
     }
 
     public CreateBookingDTO createBooking(ProcessedRecording cleansedData, CreateCaseDTO aCase, String key) {
-        var bookingDTO = new CreateBookingDTO();
-        bookingDTO.setId(UUID.randomUUID());
+        UUID bookingId;
+
+        Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
+        String version = cleansedData.getExtractedRecordingVersion();
+
+        if (version != null && version.equalsIgnoreCase("COPY") && currentRecord.isPresent()) {
+            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecord.get());
+            if (maybeOrig.isPresent() && maybeOrig.get().getBookingId() != null) {
+                bookingId = maybeOrig.get().getBookingId();
+            } else {
+                return null;
+            }
+        } else {
+            bookingId = UUID.randomUUID();
+        }
+
+        CreateBookingDTO bookingDTO = new CreateBookingDTO();
+        bookingDTO.setId(bookingId);
         bookingDTO.setCaseId(aCase.getId());
         bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
-        bookingDTO.setParticipants(aCase.getParticipants());
+        Set<CreateParticipantDTO> filteredParticipants = aCase.getParticipants().stream()
+            .filter(p ->
+                (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName()))
+                || (p.getLastName() != null && p.getLastName().equalsIgnoreCase(cleansedData.getDefendantLastName()))
+            )
+            .collect(Collectors.toSet());
 
-        cacheService.saveHashValue(key, BOOKING_FIELD, bookingDTO);
+        bookingDTO.setParticipants(filteredParticipants);
+        migrationRecordService.updateBookingId(cleansedData.getArchiveId(), bookingId);
+
         return bookingDTO;
     }
 
-    public CreateCaptureSessionDTO createCaptureSession(
-        ProcessedRecording cleansedData,
-        CreateBookingDTO booking,
-        String key
-    ) {
-        var vodafoneUser = getUserByEmail(vodafoneUserEmail);
+    public CreateCaptureSessionDTO createCaptureSession(ProcessedRecording cleansedData, CreateBookingDTO booking) {
+        UUID captureSessionId;
+
+        Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
+        String version = cleansedData.getExtractedRecordingVersion();
+
+        if (version != null && version.equalsIgnoreCase("COPY") && currentRecord.isPresent()) {
+            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecord.get());
+            if (maybeOrig.isPresent() && maybeOrig.get().getCaptureSessionId() != null) {
+                captureSessionId = maybeOrig.get().getCaptureSessionId();
+            } else {
+                return null;
+            }
+        } else {
+            captureSessionId = UUID.randomUUID();
+        }
 
         var captureSessionDTO = new CreateCaptureSessionDTO();
-        captureSessionDTO.setId(UUID.randomUUID());
+        captureSessionDTO.setId(captureSessionId);
         captureSessionDTO.setBookingId(booking.getId());
         captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+
+        var vodafoneUser = getUserByEmail(vodafoneUserEmail);
         captureSessionDTO.setStartedByUserId(vodafoneUser);
         captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
         captureSessionDTO.setFinishedByUserId(vodafoneUser);
         captureSessionDTO.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
-        cacheService.saveHashValue(key, CAPTURE_SESSION_FIELD, captureSessionDTO);
+        migrationRecordService.updateCaptureSessionId(cleansedData.getArchiveId(), captureSessionId);
+
         return captureSessionDTO;
     }
 
-    public CreateRecordingDTO createRecording(
-        String key,
-        ProcessedRecording cleansedData,
-        CreateCaptureSessionDTO captureSession
-    ) {
+    public CreateRecordingDTO createRecording(ProcessedRecording cleansedData, CreateCaptureSessionDTO captureSession) {
         var recordingDTO = new CreateRecordingDTO();
-        recordingDTO.setId(UUID.randomUUID());
+        UUID recordingId = UUID.randomUUID();
+        recordingDTO.setId(recordingId);
         recordingDTO.setCaptureSessionId(captureSession.getId());
         recordingDTO.setDuration(cleansedData.getDuration());
-        recordingDTO.setFilename(cleansedData.getFileName());
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
 
-        String existingMetadata = cacheService.getHashValue(key, "recordingMetadata", String.class);
-        UUID parentRecordingId = null;
-        if (existingMetadata != null) {
-            String[] parts = existingMetadata.split(":");
-            parentRecordingId = UUID.fromString(parts[0]);
+        String version = cleansedData.getExtractedRecordingVersion();
+        boolean isCopy = "COPY".equalsIgnoreCase(version);
+
+        Optional<MigrationRecord> currentRecordOpt = migrationRecordService.findByArchiveId(
+            cleansedData.getArchiveId());
+
+        if (isCopy && currentRecordOpt.isPresent()) {
+            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecordOpt.get());
+
+            maybeOrig.ifPresent(orig -> {
+                UUID parentRecordingId = orig.getRecordingId();
+                if (parentRecordingId != null) {
+                    recordingDTO.setParentRecordingId(parentRecordingId);
+                } else {
+                    loggingService.logWarning(
+                        "Parent ORIG found but has no recording ID (archiveId: %s)", orig.getArchiveId());
+                }
+            });
+
+            if (maybeOrig.isEmpty()) {
+                loggingService.logWarning("No ORIG found for COPY archiveId: %s", cleansedData.getArchiveId());
+            }
         }
 
-        if (recordingDTO.getVersion() > 1 && parentRecordingId != null) {
-            recordingDTO.setParentRecordingId(parentRecordingId);
-        }
-
-        String recordingMetadata = recordingDTO.getId().toString() + ":" + recordingDTO.getVersion();
-        cacheService.saveHashValue(key, "recordingMetadata", recordingMetadata);
+        recordingDTO.setFilename(cleansedData.getFileName());
+        migrationRecordService.updateRecordingId(cleansedData.getArchiveId(), recordingId);
 
         return recordingDTO;
     }
@@ -165,15 +211,6 @@ public class EntityCreationService {
         return shareBookingDTO;
     }
 
-    public String getUserIdFromCache(String email) {
-        return cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, email, String.class);
-    }
-
-    public CreateUserDTO getUserById(String userId) {
-        var user = userService.findById(UUID.fromString(userId));
-        return createUser(user.getFirstName(), user.getLastName(), user.getEmail(), user.getId());
-    }
-
     public UUID getUserByEmail(String email) {
         try {
             return userService.findByEmail(email).getUser().getId();
@@ -209,14 +246,14 @@ public class EntityCreationService {
         return createInviteDTO;
     }
 
-    public PostMigratedItemGroup createShareBookingAndInviteIfNotExists(
-        BookingDTO booking, String email, String firstName, String lastName
-    ) {
+    public PostMigratedItemGroup createShareBookingAndInviteIfNotExists(BookingDTO booking,
+                                                                        String email,
+                                                                        String firstName,
+                                                                        String lastName) {
         loggingService.logInfo("Creating share booking and user for %s %s %s", email, firstName, lastName);
         String lowerEmail = email.toLowerCase();
 
         List<CreateInviteDTO> invites = new ArrayList<>();
-        
 
         String existingUserId = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, String.class);
         CreateUserDTO sharedWith;
@@ -229,11 +266,12 @@ public class EntityCreationService {
             CreateInviteDTO invite = createInvite(sharedWith);
             invites.add(invite);
             cacheService.saveUser(lowerEmail, sharedWith.getId());
-            loggingService.logDebug("✅ Created new user and invite: %s (%s)", lowerEmail, sharedWith.getId());
+            loggingService.logDebug("Created new user and invite: %s (%s)", lowerEmail, sharedWith.getId());
         }
 
-        String shareKey = cacheService.generateCacheKey(
-            "migration", "share-booking", booking.getId().toString(), sharedWith.getId().toString()
+        String shareKey = cacheService.generateEntityCacheKey(
+            "share-booking",
+            booking.getId().toString(), sharedWith.getId().toString()
         );
 
         loggingService.logDebug("shareKey %s", shareKey);
@@ -241,8 +279,9 @@ public class EntityCreationService {
             return null;
         }
 
-        String vodafoneID = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, 
-            vodafoneUserEmail.toLowerCase(), String.class);
+        String vodafoneID = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX,
+                                                      vodafoneUserEmail.toLowerCase(),
+                                                      String.class);
         CreateUserDTO sharedBy;
 
         if (vodafoneID != null) {
@@ -281,5 +320,4 @@ public class EntityCreationService {
         result.setShareBookings(shareBookings);
         return result;
     }
-
 }

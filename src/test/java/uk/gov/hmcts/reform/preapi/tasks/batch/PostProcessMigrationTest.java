@@ -13,7 +13,6 @@ import org.springframework.batch.core.repository.JobExecutionAlreadyRunningExcep
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -23,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.tasks.migration.PostProcessMigration;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -42,24 +40,23 @@ public class PostProcessMigrationTest {
 
     private static final String CRON_USER_EMAIL = "test@test.com";
 
+
     @BeforeEach
-    void beforeEach() {
+    void beforeEach() throws Exception {
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
+        jobLauncher = mock(JobLauncher.class);
+        loggingService = mock(LoggingService.class);
+        postMigrationJob = mock(Job.class);
 
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
         when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
 
         var userAuth = mock(UserAuthentication.class);
-        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
-
-        jobLauncher = mock(JobLauncher.class);
-        loggingService = mock(LoggingService.class);
-        postMigrationJob = mock(Job.class);
+        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.of(userAuth));
     }
 
     @DisplayName("Test Migrating Exclusions")
@@ -88,11 +85,6 @@ public class PostProcessMigrationTest {
         Assertions.assertEquals(
             String.valueOf(false),
             jobParameters.getValue().getString("debug")
-        );
-
-        Assertions.assertEquals(
-            MigrationType.FULL.name(),
-            jobParameters.getValue().getString("migrationType")
         );
 
         verify(loggingService, times(1)).logInfo("Successfully completed Post Migration batch job");

@@ -2,14 +2,11 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -20,28 +17,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class LoggingService {
-    private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
     @Getter
     private boolean debugEnabled = false;
+
     @Setter
     private int totalMigrated = 0;
+
     @Setter
     private int totalInvited = 0;
 
+    @Setter
     private int totalRecords;
+
+    @Getter
     private int processedRecords = 0;
+
+    @Getter
     private int totalFailed = 0;
 
-    private final Map<String, Integer> failedCategoryCounts = new HashMap<>();
+    protected LocalDateTime startTime;
+    protected final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
-    private LocalDateTime startTime;
+    private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public void initializeLogFile(MigrationType migrationType) {
-        setTotalRecordsFromFile(migrationType);
+    public void initializeLogFile() {
         startTime = LocalDateTime.now();
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE_PATH, false))) {
@@ -61,7 +64,7 @@ public class LoggingService {
              PrintWriter printWriter = new PrintWriter(fileWriter)) {
             printWriter.println(logMessage);
         } catch (IOException e) {
-            System.err.println("Failed to write to output.log: " + e.getMessage());
+            log.error("Failed to initialize output.log: {}", e.getMessage());
         }
     }
 
@@ -160,45 +163,20 @@ public class LoggingService {
                 | %-25s | %10d\s
                 | %-25s | %10d\s
                 | %-25s | %10d\s
-                | %-25s | %10d\s
                 | %-25s | %10s sec\s
                 =====================================================
                 """,
             "Total Records Processed", totalRecords,
             "Total Migrated Items", totalMigrated,
             "Total Failed Items", totalFailed,
-            "Total Unaccounted Items", totalRecords - totalMigrated - totalFailed,
-            "Total Execution Time", String.format("%10d", seconds)
+            "Total Execution Time", seconds
         );
 
         try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
              PrintWriter printWriter = new PrintWriter(fileWriter)) {
             printWriter.println(summary);
         } catch (IOException e) {
-            System.err.println("Failed to write summary to output.log: " + e.getMessage());
-        }
-
-    }
-
-    // ==============================
-    // SETTING RECORDS FROM FILE
-    // ==============================
-    public void setTotalRecordsFromFile(MigrationType migrationType) {
-        String filePath = migrationType.equals(MigrationType.DELTA)
-            ? "src/main/resources/batch/Archive_List_delta.csv"
-            : "src/main/resources/batch/Archive_List_initial.csv";
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)))) {
-            int lineCount = (int) reader.lines()
-                .skip(1)
-                .filter(line -> !line.trim().isEmpty())
-                .count();
-
-            totalRecords = Math.max(lineCount, 1);
-            logInfo("Total records set from file '%s': %d", filePath, totalRecords);
-        } catch (IOException e) {
-            logError("Failed to count lines in file: %s | %s", filePath, e.getMessage());
-            totalRecords = 1;
+            log.error("Failed to write summary to output.log: {}", e.getMessage());
         }
     }
 }

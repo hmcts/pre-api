@@ -41,7 +41,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCaptureSessionResponse, 400);
         assertThat(deleteCaptureSessionResponse.getBody().jsonPath().getString("message"))
-            .isEqualTo("Cannot delete because and associated recording has not been deleted.");
+            .isEqualTo("Cannot delete because an associated recording has not been deleted.");
 
         assertCaptureSessionExists(captureSessionId, true);
     }
@@ -267,7 +267,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertThat(deleteCaptureSessionRecording.getBody().jsonPath().getString("message"))
             .isEqualTo(
                 "Capture Session (" + dto1.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is RECORDING"
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is RECORDING"
             );
 
         // capture session state: STANDBY
@@ -283,7 +284,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertThat(deleteCaptureSessionStandby.getBody().jsonPath().getString("message"))
             .isEqualTo(
                 "Capture Session (" + dto2.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY"
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted."
+                    + " Current state is STANDBY"
             );
 
         // capture session state: INITIALISING
@@ -299,7 +301,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertThat(deleteCaptureSessionInit.getBody().jsonPath().getString("message"))
             .isEqualTo(
                 "Capture Session (" + dto3.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. "
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
                     + "Current state is INITIALISING"
             );
 
@@ -316,7 +318,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertThat(deleteCaptureSessionProcessing.getBody().jsonPath().getString("message"))
             .isEqualTo(
                 "Capture Session (" + dto4.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. "
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
                     + "Current state is PROCESSING"
             );
     }

@@ -846,6 +846,30 @@ class CaseServiceTest {
     }
 
     @Test
+    @DisplayName("Should not delete booking if it has an associated capture session"
+        + " with RECORDING_AVAILABLE status")
+    void onCaseClosedDeleteOnlyFailedCaptureSession() {
+        var captureSessionFailedRecording = new CaptureSession();
+        captureSessionFailedRecording.setStatus(RecordingStatus.FAILURE);
+
+        var captureSessionRecordingAvailable = new CaptureSession();
+        captureSessionRecordingAvailable.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaptureSessions(Set.of(captureSessionFailedRecording, captureSessionRecordingAvailable));
+
+        var aCase = new Case();
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)).thenReturn(List.of(booking));
+
+        caseService.onCaseClosed(aCase);
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
+        verify(bookingService, times(0)).markAsDeleted(booking.getId());
+    }
+
+    @Test
     @DisplayName("Should not delete bookings on closed if associated capture session's status is RECORDING_AVAILABLE")
     void onCaseClosedDeleteBookingsRecordingAvailable() {
         var bookingRecordingAvailable = new Booking();
