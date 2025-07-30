@@ -44,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -635,14 +636,8 @@ class BookingServiceTest {
             any(),
             any(),
             any(),
-            any()
-        ))
-            .thenReturn(new PageImpl<>(new ArrayList<>() {
-                {
-                    add(booking1);
-                    add(booking2);
-                }
-            }));
+            anyBoolean(),
+            any())).thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
         var bookings = bookingService.findAllBookingsForToday();
 
@@ -660,6 +655,7 @@ class BookingServiceTest {
                 any(),
                 any(),
                 any(),
+                anyBoolean(),
                 any());
     }
 

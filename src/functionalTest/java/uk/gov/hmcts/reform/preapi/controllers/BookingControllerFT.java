@@ -945,7 +945,6 @@ class BookingControllerFT extends FunctionalTestBase {
         }
     }
 
-    @DisplayName("Scenario: Search for a booking by schedule date")
     @Test
     @DisplayName("Scenario: Search for a booking by schedule date")
     void searchBookingByScheduleDate() {

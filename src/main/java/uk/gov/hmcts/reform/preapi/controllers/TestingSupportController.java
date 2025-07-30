@@ -205,11 +205,6 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var room = new Room();
-        room.setName("Room " + RandomStringUtils.secure().nextAlphabetic(5));
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
-
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference(RandomStringUtils.secure().nextAlphabetic(5));
