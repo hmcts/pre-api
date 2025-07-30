@@ -43,16 +43,16 @@ class ExtractedMetadataTest {
     @DisplayName("Should create case reference from URN and exhibit")
     void testCreateCaseReference() {
         ExtractedMetadata meta = new ExtractedMetadata();
-        meta.setUrn("URN123");
-        meta.setExhibitReference("EX456");
-        assertThat(meta.createCaseReference()).isEqualTo("URN123-EX456");
+        meta.setUrn("URN1234567");
+        meta.setExhibitReference("EX456789012");
+        assertThat(meta.createCaseReference()).isEqualTo("URN1234567");
 
         meta.setUrn(null);
-        assertThat(meta.createCaseReference()).isEqualTo("EX456");
+        assertThat(meta.createCaseReference()).isEqualTo("EX456789012");
 
-        meta.setUrn("URN123");
+        meta.setUrn("URN1234567");
         meta.setExhibitReference(null);
-        assertThat(meta.createCaseReference()).isEqualTo("URN123");
+        assertThat(meta.createCaseReference()).isEqualTo("URN1234567");
 
         meta.setUrn("");
         meta.setExhibitReference("");

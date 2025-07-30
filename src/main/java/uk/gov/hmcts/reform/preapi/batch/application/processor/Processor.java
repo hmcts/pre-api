@@ -329,21 +329,19 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",recording));
         }
 
-        String urn = recording.getUrn();
-        String exhibitRef = recording.getExhibitReference();
-
         // case ref checks
-        if (urn == null || urn.isEmpty()) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",recording));
-        } else if (urn.length() < 11) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid URN length", recording));
+        String exhibitRef = recording.getExhibitReference();
+        String caseRef = recording.getCaseReference();
+
+        if (caseRef.length() < 9 || caseRef.length() < 20) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference length",recording));
         }
 
-        if (exhibitRef == null || exhibitRef.isEmpty()) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Missing Exhibit Ref", recording));
-        } else if (exhibitRef.length() < 9) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid Exhibit length", recording));
+        if (caseRef == exhibitRef) {
+            migrationTrackerService.addNotifyItem(new NotifyItem(
+                    "Used Xhibit reference as URN did not meet requirements",recording));
         }
+
     }
 
 }
