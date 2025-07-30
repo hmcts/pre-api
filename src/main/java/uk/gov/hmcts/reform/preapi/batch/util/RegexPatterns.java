@@ -18,7 +18,7 @@ public final class RegexPatterns {
     public static final Pattern DIGIT_ONLY_EXT_PATTERN = Pattern.compile("^\\d+(?>_\\d+)*\\.mp4$");
 
     public static final Pattern DIGIT_ONLY_NO_EXT_PATTERN =
-        Pattern.compile("^\\d+(?:_\\d+)+$", Pattern.CASE_INSENSITIVE);
+        Pattern.compile("^\\d+(?:_\\d+)*_\\d+$", Pattern.CASE_INSENSITIVE);
 
     public static final Pattern S28_PATTERN = Pattern.compile(
         "^S?28.*?(VMR\\d+)?[_\\s-]*\\d{9,20}.*\\.(mp4|raw|mov|avi|mkv)$",
@@ -346,7 +346,7 @@ public final class RegexPatterns {
         + EXTENSION_PATTERN + "$",
         Pattern.CASE_INSENSITIVE
     );
-   
+
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
         Map.entry("Standard", RegexPatterns.STANDARD_PATTERN),

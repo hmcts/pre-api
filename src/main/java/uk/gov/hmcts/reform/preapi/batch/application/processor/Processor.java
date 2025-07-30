@@ -25,7 +25,6 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 /**
  * Processes various CSV data types and transforms them into MigratedItemGroup for further processing.
@@ -81,7 +80,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (item instanceof MigrationRecord migrationRecord) {
                 return processRecording(migrationRecord);
             }
- 
+
             if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
                 referenceDataProcessor.process(item);
                 return null;
@@ -93,7 +92,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logError("Processor - Error: %s", e.getMessage(), e);
             return null;
         }
-            
+
     }
 
     private MigratedItemGroup processRecording(MigrationRecord migrationRecord) {
@@ -127,8 +126,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 if (!isValidated(cleansedData, migrationRecord)) {
                     return null;
                 }
-                
-                loggingService.incrementProgress();           
+
+                loggingService.incrementProgress();
                 cacheService.dumpToFile();
 
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
@@ -157,9 +156,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                loggingService.incrementProgress();           
+                loggingService.incrementProgress();
                 cacheService.dumpToFile();
-                
+
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
             } catch (Exception e) {
@@ -178,14 +177,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationRecord.getArchiveId(), status);
         return null;
     }
-    
+
 
     // =========================
     // Extraction, Transformation and Validation
     // =========================
     private ExtractedMetadata extractData(MigrationRecord migrationRecord) {
         ServiceResult<?> extractionResult = extractionService.process(migrationRecord);
-        
+
         // Handle test items
         if (extractionResult.isTest()) {
             TestItem testItem = extractionResult.getTestItem();
@@ -211,7 +210,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         }
 
         ExtractedMetadata extractedData = (ExtractedMetadata) extractionResult.getData();
-        
+
         return extractedData;
     }
 
@@ -247,12 +246,12 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (checkForError(result, migrationRecord)) {
             return false;
         }
-    
+
         loggingService.logDebug("All validation rules passed");
         return true;
     }
 
-  
+
     private boolean isMigrated(ProcessedRecording cleansedData, MigrationRecord archiveItem) {
         Optional<MigrationRecord> maybeExisting = migrationRecordService.findByArchiveId(archiveItem.getArchiveId());
 
@@ -264,11 +263,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
         return false;
     }
-    
+
     //======================
     // Helper Methods
     //======================
-    
+
     private <T> boolean checkForError(ServiceResult<T> result, IArchiveData item) {
         String errorMessage = result.getErrorMessage();
         String category = result.getCategory();
@@ -291,12 +290,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return null;
     }
 
-    @Nullable
     private ExtractedMetadata convertToExtractedMetadata(MigrationRecord migrationRecord) {
-        if (migrationRecord == null) {
-            loggingService.logWarning("Migration Record is null. Skipping extraction.");
-            return null;
-        }
 
         loggingService.logInfo("Converting MigrationRecord to ExtractedMetadata: " + migrationRecord);
 
