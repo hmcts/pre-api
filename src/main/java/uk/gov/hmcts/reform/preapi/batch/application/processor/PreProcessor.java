@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 @Component
 public class PreProcessor {
     private final LoggingService loggingService;
-
     private final InMemoryCacheService cacheService;
     private final CourtRepository courtRepository;
     private final CaseRepository caseRepository;
@@ -37,13 +36,11 @@ public class PreProcessor {
     private String vodafoneUserEmail;
 
     @Autowired
-    public PreProcessor(
-        final LoggingService loggingService,
-        final InMemoryCacheService cacheService,
-        final CourtRepository courtRepository,
-        final CaseRepository caseRepository,
-        final UserRepository userRepository
-    ) {
+    public PreProcessor(final LoggingService loggingService,
+                        final InMemoryCacheService cacheService,
+                        final CourtRepository courtRepository,
+                        final CaseRepository caseRepository,
+                        final UserRepository userRepository) {
         this.loggingService = loggingService;
         this.cacheService = cacheService;
         this.courtRepository = courtRepository;
@@ -75,11 +72,10 @@ public class PreProcessor {
     // ==============================
     // Data Loading Logic & Helpers
     // ==============================
-
     protected void cacheRequiredEntities() {
         List<Court> courts = courtRepository.findAll();
         courts.forEach(court -> cacheService.saveCourt(court.getName(), new CourtDTO(court)));
-        loggingService.logInfo("Cached %d court records.", courts.size());        
+        loggingService.logInfo("Cached %d court records.", courts.size());
 
         List<Case> cases = caseRepository.findAll();
         cases.forEach(acase -> cacheService.saveCase(acase.getReference(), new CaseDTO(acase)));
@@ -93,20 +89,18 @@ public class PreProcessor {
         );
     }
 
-    private <T> void cacheEntity(
-        String prefix,
-        List<T> items,
-        Function<T, String> keyFn,
-        Function<T, String> valFn,
-        String entityName
-    ) {
+    private <T> void cacheEntity(String prefix,
+                                 List<T> items,
+                                 Function<T, String> keyFn,
+                                 Function<T, String> valFn,
+                                 String entityName) {
         if (items.isEmpty()) {
             loggingService.logWarning("No %s found to cache.", entityName);
             return;
         }
 
         Map<String, Object> map = items.stream()
-                                       .collect(Collectors.toMap(keyFn, valFn, (existing, replacement) -> existing));
+            .collect(Collectors.toMap(keyFn, valFn, (existing, replacement) -> existing));
 
         cacheService.saveHashAll(prefix, map);
         loggingService.logInfo("Cached %d %s records.", items.size(), entityName);

@@ -20,11 +20,9 @@ public class CSVReader {
      * @return A configured FlatFileItemReader.
      * @throws IOException If an error occurs while creating the reader.
      */
-    public static <T> FlatFileItemReader<T> createReader(
-        Resource resource,
-        String[] fieldNames,
-        Class<T> targetClass
-    ) throws IOException {
+    public static <T> FlatFileItemReader<T> createReader(Resource resource,
+                                                         String[] fieldNames,
+                                                         Class<T> targetClass) throws IOException {
         if (resource == null || !resource.exists()) {
             throw new IllegalArgumentException("Resource must not be null and must exist.");
         }
@@ -34,6 +32,7 @@ public class CSVReader {
         if (targetClass == null) {
             throw new IllegalArgumentException("Target class must not be null.");
         }
+
         try {
             BeanWrapperFieldSetMapper<T> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
             fieldSetMapper.setTargetType(targetClass);

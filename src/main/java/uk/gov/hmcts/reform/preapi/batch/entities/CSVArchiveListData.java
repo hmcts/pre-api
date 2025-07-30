@@ -4,7 +4,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -35,8 +37,12 @@ public class CSVArchiveListData implements IArchiveData  {
     private String fileName = "";
     private String fileSize = "";
 
-    public CSVArchiveListData(String archiveId, String archiveName, String createTime, Integer duration,
-        String fileName, String fileSize) {
+    public CSVArchiveListData(String archiveId,
+                              String archiveName,
+                              String createTime,
+                              Integer duration,
+                              String fileName,
+                              String fileSize) {
         this.archiveId = archiveId;
         this.archiveName = archiveName;
         this.createTime = createTime;
@@ -59,15 +65,15 @@ public class CSVArchiveListData implements IArchiveData  {
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
-            .replaceAll("\\s*&\\s*", " & ")     
-            .replaceAll("(?<!&)\\s+(?!&)", "") 
+            .replaceAll("\\s*&\\s*", " & ")
+            .replaceAll("(?<!&)\\s+(?!&)", "")
             .replaceAll("CP_", "")
             .replaceAll("CP-", "")
             .replaceAll("CP ", "")
             .replaceAll("CP Case", "")
-            .replaceAll("(?i)As Urn[-_\\s]*", "") 
-            .replaceAll("(?i)See Urn[-_\\s]*", "") 
-            .replaceAll("(?i)As-Urn[-_\\s]*", "") 
+            .replaceAll("(?i)As Urn[-_\\s]*", "")
+            .replaceAll("(?i)See Urn[-_\\s]*", "")
+            .replaceAll("(?i)As-Urn[-_\\s]*", "")
             .replaceAll("[\\.]+[-_\\s]*[\\.]+", "-")
             .trim();
     }
@@ -89,12 +95,6 @@ public class CSVArchiveListData implements IArchiveData  {
         return getParsedCreateTime();
     }
 
-    public LocalDateTime getCreateTimeForLogic() {
-        LocalDateTime time = getParsedCreateTime();
-        return (time == null) ? LocalDateTime.now() : time;
-    }
-
-   
     public LocalDateTime getParsedCreateTime() {
         if (createTime == null || createTime.isBlank()) {
             return null;
@@ -107,8 +107,8 @@ public class CSVArchiveListData implements IArchiveData  {
             }
 
             return LocalDateTime.ofInstant(
-                java.time.Instant.ofEpochMilli(timestamp),
-                java.time.ZoneId.systemDefault()
+                Instant.ofEpochMilli(timestamp),
+                ZoneId.systemDefault()
             );
         } catch (NumberFormatException e) {
             return DATE_PATTERNS.stream()

@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
@@ -23,19 +22,14 @@ public class RecordingMetadataProcessor {
     private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
     private final MigrationRecordService migrationRecordService;
-    private final LoggingService loggingService;
 
     @Autowired
-    public RecordingMetadataProcessor(
-        final DataExtractionService extractionService,
-        final DataTransformationService transformationService,
-        final MigrationRecordService migrationRecordService,
-        final LoggingService loggingService
-    ) {
+    public RecordingMetadataProcessor(final DataExtractionService extractionService,
+                                      final DataTransformationService transformationService,
+                                      final MigrationRecordService migrationRecordService) {
         this.extractionService = extractionService;
         this.transformationService = transformationService;
         this.migrationRecordService = migrationRecordService;
-        this.loggingService = loggingService;
     }
 
     /**
@@ -43,7 +37,6 @@ public class RecordingMetadataProcessor {
      *
      * @param archiveItem List of CSVArchiveListData to process.
      */
-   
     public void processRecording(MigrationRecord archiveItem) {
         try {
 
@@ -67,13 +60,13 @@ public class RecordingMetadataProcessor {
                 ServiceResultUtil.failure("Data not transformed successfully", "Missing data");
                 return;
             }
-            
+
             ProcessedRecording cleansedData = result.getData();
             // migrationRecordService.updateIsPreferred(
             //     cleansedData.getArchiveId(),
             //     cleansedData.isPreferred()
             // );
-        
+
             String origVersionStr = cleansedData.getOrigVersionNumberStr();
 
             String groupKey = MigrationRecordService.generateRecordingGroupKey(
@@ -85,7 +78,7 @@ public class RecordingMetadataProcessor {
 
             if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {
                 migrationRecordService.updateParentTempIdIfCopy(
-                    archiveItem.getArchiveId(), 
+                    archiveItem.getArchiveId(),
                     groupKey,
                     origVersionStr
                 );

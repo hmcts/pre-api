@@ -20,8 +20,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.migration.Migration
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.PostMigrationWriter;
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
-import uk.gov.hmcts.reform.preapi.batch.config.jobs.PostMigrationJobConfig;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -62,8 +60,6 @@ public class PostMigrationJobConfigTest {
     @Mock
     private CoreStepsConfig coreSteps;
     @Mock
-    private BatchConfiguration batchConfig;
-    @Mock
     private LoggingService loggingService;
     @Mock
     private InMemoryCacheService cacheService;
@@ -95,7 +91,6 @@ public class PostMigrationJobConfigTest {
             jobRepository,
             transactionManager,
             coreSteps,
-            batchConfig,
             loggingService,
             cacheService,
             entityCreationService,

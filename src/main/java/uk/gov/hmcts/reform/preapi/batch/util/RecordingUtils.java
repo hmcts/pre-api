@@ -6,10 +6,8 @@ import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import java.util.HashSet;
 import java.util.Set;
 
-
 @UtilityClass
-public final class RecordingUtils {
-
+public class RecordingUtils {
     public static final Set<String> VALID_VERSION_TYPES = new HashSet<>();
 
     static {
@@ -29,9 +27,8 @@ public final class RecordingUtils {
         if (Constants.VALID_COPY_TYPES.contains(upper)) {
             return "COPY";
         }
-        return "ORIG"; 
+        return "ORIG";
     }
-
 
     public int getStandardizedVersionNumberFromType(String recordingVersion) {
         return Constants.VALID_ORIG_TYPES.contains(recordingVersion.toUpperCase()) ? 1 : 2;
@@ -59,7 +56,7 @@ public final class RecordingUtils {
             if (v1Part < v2Part) {
                 return -1;
             }
-            
+
             if (v1Part > v2Part) {
                 return 1;
             }
@@ -71,19 +68,15 @@ public final class RecordingUtils {
         try {
             return Integer.parseInt(part.replaceAll("[^0-9]", ""));
         } catch (NumberFormatException e) {
-            return 0; 
+            return 0;
         }
     }
 
-    public record VersionDetails(
-        String extractedVersionType,             // "ORIG" or "COPY"
-        String extractedVersionNumberStr,        // e.g. "1.2"
-        String origVersionNumberStr,             // always set
-        String copyVersionNumberStr,             // only for COPY recordings
-        int standardisedVersionNumber,           // 1 for ORIG, 2 for COPY
-        boolean isMostRecent
-    ) {
+    public record VersionDetails(String extractedVersionType,             // "ORIG" or "COPY"
+                                 String extractedVersionNumberStr,        // e.g. "1.2"
+                                 String origVersionNumberStr,             // always set
+                                 String copyVersionNumberStr,             // only for COPY recordings
+                                 int standardisedVersionNumber,           // 1 for ORIG, 2 for COPY
+                                 boolean isMostRecent) {
     }
-
-    
 }

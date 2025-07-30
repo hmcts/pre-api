@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 @UtilityClass
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 public final class RegexPatterns {
-
     public static final Pattern NO_DIGIT_PATTERN = Pattern.compile("^[^\\d]+\\.(mp4)$",
         Pattern.CASE_INSENSITIVE);
 
@@ -181,7 +180,6 @@ public final class RegexPatterns {
         + EXTENSION_PATTERN + "$"
     );
 
-
     /**
      * Pattern for cases with two URNs.
      * Format: Court Date URN1 URN2 Defendant Witness Version [.ext]
@@ -346,7 +344,6 @@ public final class RegexPatterns {
         + EXTENSION_PATTERN + "$",
         Pattern.CASE_INSENSITIVE
     );
-   
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
         Map.entry("Standard", RegexPatterns.STANDARD_PATTERN),

@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -15,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.batch.util.ArchiveNameSanitizer;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -22,32 +24,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "vf_migration_records")
 public class MigrationRecord extends BaseEntity implements IArchiveData {
-
-    @Override
-    public String getFileName() {
-        return this.fileName;
-    }
-
-    @Override
-    public java.time.LocalDateTime getCreateTimeAsLocalDateTime() {
-        return this.createTime != null ? this.createTime.toLocalDateTime() : null;
-    }
-
-    @Override
-    public String getArchiveId() {
-        return this.archiveId;
-    }
-
-    @Override
-    public String getArchiveName() {
-        return this.archiveName;
-    }
-
-    @jakarta.persistence.Transient
-    public String getSanitizedArchiveName() {
-        return ArchiveNameSanitizer.sanitize(this.archiveName);
-    }
-
     @Column(name = "archive_id", nullable = false)
     private String archiveId;
 
@@ -57,11 +33,11 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Column(name = "create_time")
     private Timestamp createTime;
 
+    @Column
     private Integer duration;
 
     @Column(name = "court_reference", length = 25)
     private String courtReference;
-
 
     @Column(name = "court_id")
     private UUID courtId;
@@ -107,6 +83,7 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Column(nullable = false)
     private VfMigrationStatus status = VfMigrationStatus.PENDING;
 
+    @Column
     private String reason;
 
     @Column(name = "error_message")
@@ -115,9 +92,6 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Column(name = "resolved_at")
     private Timestamp resolvedAt;
 
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private Timestamp createdAt;
 
     @Column(name = "is_most_recent")
     private Boolean isMostRecent;
@@ -127,4 +101,18 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
 
     @Column(name = "recording_group_key")
     private String recordingGroupKey;
+
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private Timestamp createdAt;
+
+    @Override
+    public LocalDateTime getCreateTimeAsLocalDateTime() {
+        return createTime != null ? createTime.toLocalDateTime() : null;
+    }
+
+    @Transient
+    public String getSanitizedArchiveName() {
+        return ArchiveNameSanitizer.sanitize(this.archiveName);
+    }
 }

@@ -43,17 +43,15 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final LoggingService loggingService;
 
     @Autowired
-    public Processor(
-        final InMemoryCacheService cacheService,
-        final DataExtractionService extractionService,
-        final DataTransformationService transformationService,
-        final DataValidationService validationService,
-        final ReferenceDataProcessor referenceDataProcessor,
-        final MigrationGroupBuilderService migrationService,
-        final MigrationTrackerService migrationTrackerService,
-        final MigrationRecordService migrationRecordService,
-        final LoggingService loggingService
-    ) {
+    public Processor(final InMemoryCacheService cacheService,
+                     final DataExtractionService extractionService,
+                     final DataTransformationService transformationService,
+                     final DataValidationService validationService,
+                     final ReferenceDataProcessor referenceDataProcessor,
+                     final MigrationGroupBuilderService migrationService,
+                     final MigrationTrackerService migrationTrackerService,
+                     final MigrationRecordService migrationRecordService,
+                     final LoggingService loggingService) {
         this.cacheService = cacheService;
         this.extractionService = extractionService;
         this.transformationService = transformationService;
@@ -81,7 +79,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (item instanceof MigrationRecord migrationRecord) {
                 return processRecording(migrationRecord);
             }
- 
+
             if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
                 referenceDataProcessor.process(item);
                 return null;
@@ -93,7 +91,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logError("Processor - Error: %s", e.getMessage(), e);
             return null;
         }
-            
     }
 
     private MigratedItemGroup processRecording(MigrationRecord migrationRecord) {
@@ -127,8 +124,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 if (!isValidated(cleansedData, migrationRecord)) {
                     return null;
                 }
-                
-                loggingService.incrementProgress();           
+
+                loggingService.incrementProgress();
                 cacheService.dumpToFile();
 
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
@@ -138,7 +135,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 handleError(migrationRecord, "Failed to create migrated item group: " + e.getMessage(), "Error");
                 return null;
             }
-
         }
 
         if (status == VfMigrationStatus.RESOLVED) {
@@ -157,9 +153,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                loggingService.incrementProgress();           
+                loggingService.incrementProgress();
                 cacheService.dumpToFile();
-                
+
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
             } catch (Exception e) {
@@ -178,14 +174,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationRecord.getArchiveId(), status);
         return null;
     }
-    
+
 
     // =========================
     // Extraction, Transformation and Validation
     // =========================
     private ExtractedMetadata extractData(MigrationRecord migrationRecord) {
         ServiceResult<?> extractionResult = extractionService.process(migrationRecord);
-        
+
         // Handle test items
         if (extractionResult.isTest()) {
             TestItem testItem = extractionResult.getTestItem();
@@ -211,7 +207,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         }
 
         ExtractedMetadata extractedData = (ExtractedMetadata) extractionResult.getData();
-        
+
         return extractedData;
     }
 
@@ -247,12 +243,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (checkForError(result, migrationRecord)) {
             return false;
         }
-    
+
         loggingService.logDebug("All validation rules passed");
         return true;
     }
 
-  
     private boolean isMigrated(ProcessedRecording cleansedData, MigrationRecord archiveItem) {
         Optional<MigrationRecord> maybeExisting = migrationRecordService.findByArchiveId(archiveItem.getArchiveId());
 
@@ -264,11 +259,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
         return false;
     }
-    
+
     //======================
     // Helper Methods
     //======================
-    
     private <T> boolean checkForError(ServiceResult<T> result, IArchiveData item) {
         String errorMessage = result.getErrorMessage();
         String category = result.getCategory();
@@ -281,14 +275,12 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return false;
     }
 
-    private MigratedItemGroup handleError(IArchiveData item, String message, String category) {
+    private void handleError(IArchiveData item, String message, String category) {
         migrationTrackerService.addFailedItem(new FailedItem(item, message, category));
-        return null;
     }
 
-    private MigratedItemGroup handleTest(TestItem testItem) {
+    private void handleTest(TestItem testItem) {
         migrationTrackerService.addTestItem(testItem);
-        return null;
     }
 
     @Nullable

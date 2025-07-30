@@ -33,12 +33,10 @@ import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 public class BatchConfiguration implements StepExecutionListener {
     public static final int CHUNK_SIZE = 100;
     public static final int SKIP_LIMIT = 10;
-    public static final String FULL_PATH = "src/main/resources/batch";
     public static final String BASE_PATH = "/batch/";
     public static final String SITES_CSV = BASE_PATH + "reference_data/Sites.csv";
     public static final String CHANNEL_USER_CSV = BASE_PATH + "reference_data/Channel_User_Report.csv";
     public static final String ARCHIVE_LIST_INITAL = BASE_PATH + "Archive_List_initial.csv";
-    public static final String EXCEMPTIONS_LIST_CSV = BASE_PATH + "Excemption_List.csv";
 
     public final JobRepository jobRepository;
     public final PlatformTransactionManager transactionManager;
@@ -55,21 +53,19 @@ public class BatchConfiguration implements StepExecutionListener {
     public LoggingService loggingService;
 
     @Autowired
-    public BatchConfiguration(
-        JobRepository jobRepository,
-        PlatformTransactionManager transactionManager,
-        PreProcessor preProcessor,
-        RecordingMetadataProcessor recordingPreProcessor,
-        Processor itemProcessor,
-        CaseService caseService,
-        InMemoryCacheService cacheService,
-        MigrationWriter itemWriter,
-        MigrationTrackerService migrationTrackerService,
-        MigrationRecordService migrationRecordService,
-        BatchRobotUserTask robotUserTask,
-        ArchiveMetadataXmlExtractor xmlProcessingService,
-        LoggingService loggingService
-    ) {
+    public BatchConfiguration(final JobRepository jobRepository,
+                              final PlatformTransactionManager transactionManager,
+                              final PreProcessor preProcessor,
+                              final RecordingMetadataProcessor recordingPreProcessor,
+                              final Processor itemProcessor,
+                              final CaseService caseService,
+                              final InMemoryCacheService cacheService,
+                              final MigrationWriter itemWriter,
+                              final MigrationTrackerService migrationTrackerService,
+                              final MigrationRecordService migrationRecordService,
+                              final BatchRobotUserTask robotUserTask,
+                              final ArchiveMetadataXmlExtractor xmlProcessingService,
+                              final LoggingService loggingService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.preProcessor = preProcessor;
@@ -139,11 +135,9 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-
     // =========================
     // Utility and Helper Functions
     // =========================
-
     public JobExecutionDecider fileAvailabilityDecider() {
         return (jobExecution, stepExecution) -> {
             Resource sites = new ClassPathResource(SITES_CSV);
@@ -155,5 +149,4 @@ public class BatchConfiguration implements StepExecutionListener {
                 : new FlowExecutionStatus("FAILED");
         };
     }
-
 }

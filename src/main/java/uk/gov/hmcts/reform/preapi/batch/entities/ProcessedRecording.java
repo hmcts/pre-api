@@ -23,11 +23,11 @@ import java.util.StringJoiner;
 public class ProcessedRecording {
     private String archiveId;
     private String archiveName;
-    
+
     // Identifiers and court metadata
     private String courtReference;          // reference for the court
     private String courtName;               // Human-readable court name
-    private Court court;                    // Linked Court entity 
+    private Court court;                    // Linked Court entity
 
     private CaseState state;                // Current state of the case (e.g. OPEN, CLOSED)
 
@@ -48,10 +48,10 @@ public class ProcessedRecording {
     private String origVersionNumberStr; // e.g. "2" if ORIG2, null otherwise
     private String copyVersionNumberStr; // e.g. "1.2" if COPY1.2, null otherwise
     private int recordingVersionNumber;                     // Parsed version number (1 = ORIG, 2 = COPY)
-    
+
     private boolean isMostRecentVersion; // (used to skip older recordings)
     private boolean isPreferred;
-    
+
     private String fileExtension;                           // e.g. ".mp4", ".raw"
     private String fileName;                                // Full filename of the recording
 
@@ -68,12 +68,6 @@ public class ProcessedRecording {
         }
         Instant finishedAt = recordingTimestamp.toInstant().plus(duration);
         return Timestamp.from(finishedAt);
-    }
-
-    public String getFullVersionString() {
-        return recordingVersionNumber == 1
-            ? origVersionNumberStr
-            : origVersionNumberStr + "." + copyVersionNumberStr;
     }
 
     @Override

@@ -187,12 +187,9 @@ public class MigrationTrackerService {
         writeInvitedUsersToCsv("Invited_users", outputDir);
     }
 
-   
-
     // ==================================
     // Helpers
     // ==================================
-
     private List<List<String>> buildMigratedItemsRows() {
         List<List<String>> rows = new ArrayList<>();
         for (PassItem item : migratedItems) {

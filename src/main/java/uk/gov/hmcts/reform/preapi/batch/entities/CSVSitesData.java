@@ -14,5 +14,4 @@ public class CSVSitesData {
     private String siteName;
     private String location;
     private String courtName;
-
 }
