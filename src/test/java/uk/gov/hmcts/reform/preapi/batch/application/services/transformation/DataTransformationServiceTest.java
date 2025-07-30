@@ -18,11 +18,10 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
-// import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
-// import java.time.Duration;
-// import java.time.LocalDateTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,13 +32,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-// import static org.junit.jupiter.api.Assertions.assertThrows;
-// import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
-// import static org.mockito.Mockito.never;
-// import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = DataTransformationService.class)
@@ -53,7 +52,7 @@ public class DataTransformationServiceTest {
     @MockitoBean
     private LoggingService loggingService;
 
-    @MockitoBean 
+    @MockitoBean
     private MigrationRecordService migrationRecordService;
 
     @Autowired
@@ -101,48 +100,50 @@ public class DataTransformationServiceTest {
         verify(loggingService).logError("Extracted item is null");
     }
 
-    // @Test
-    // @DisplayName("Should return failure when cannot find sites data")
-    // void transformDataSitesDataNotFound() {
-    //     when(cacheService.getAllSiteReferences())
-    //         .thenReturn(Map.of());
-    //     var data = new ExtractedMetadata();
-    //     data.setArchiveName(ARCHIVE_NAME);
-
-    //     ServiceResult<ProcessedRecording> result = dataTransformationService.transformData(data);
-
-    //     assertThat(result.isSuccess()).isFalse();
-    //     assertThat(result.getErrorMessage()).isEqualTo("Sites data not found in Cache");
-
-    //     verify(cacheService).getAllSiteReferences();
-    //     verify(loggingService).logError(eq("Data transformation failed for archive: %s - %s"),
-    //                                     eq(ARCHIVE_NAME),
-    //                                     any(IllegalStateException.class));
-    // }
-
     @Test
     @DisplayName("Should successfully get site data")
     void getSitesDataSuccess() {
         assertThat(dataTransformationService.getSitesData()).isNotNull();
+
+        verify(cacheService, times(1)).getAllSiteReferences();
+        verifyNoInteractions(loggingService);
     }
 
-    // @Test
-    // @DisplayName("Should throw error when attempting to get site data but not found")
-    // void getSitesDataFailure() {
-    //     when(cacheService.getAllSiteReferences()).thenReturn(Map.of());
-    //     String message1 = assertThrows(
-    //         IllegalStateException.class,
-    //         () -> dataTransformationService.getSitesData()
-    //     ).getMessage();
-    //     assertThat(message1).isEqualTo("Sites data not found in Cache");
-    // }
+    @Test
+    @DisplayName("Should return log error when site data is empty")
+    void getSitesDataEmpty() {
+        when(cacheService.getAllSiteReferences()).thenReturn(Map.of());
+
+        Map<String, String> result = dataTransformationService.getSitesData();
+
+        assertThat(result).isEmpty();
+
+        verify(cacheService, times(1)).getAllSiteReferences();
+        verify(loggingService, times(1)).logError("Sites data not found in Cache");
+    }
+
+    @Test
+    @DisplayName("Should determine case is CLOSED when no contacts found")
+    void determineStateClosed() {
+        List<Map<String, String>> contacts = List.of();
+
+        assertThat(dataTransformationService.determineState(contacts)).isEqualTo(CaseState.CLOSED);
+    }
+
+    @Test
+    @DisplayName("Should determine case is OPEN when contacts found")
+    void determineStateOpen() {
+        List<Map<String, String>> contacts = List.of(Map.of("a", "b"));
+
+        assertThat(dataTransformationService.determineState(contacts)).isEqualTo(CaseState.OPEN);
+    }
 
     @Test
     @DisplayName("Should return list of emails when key found")
     void getUsersAndEmailsUserDataFoundInCacheForKey() {
         String key = "some-key";
         List<String[]> userEmails = new ArrayList<>();
-        userEmails.add(new String[]{"example@example.com"});
+        userEmails.add(new String[] {"example@example.com"});
         when(cacheService.getChannelReference(key)).thenReturn(Optional.of(userEmails));
 
         List<String[]> result = dataTransformationService.getUsersAndEmails(key);
@@ -226,35 +227,6 @@ public class DataTransformationServiceTest {
         assertThat(secondContact.get("email")).isEqualTo("example.two@example.com");
     }
 
-    // @Test
-    // @DisplayName("Should throw error when court reference is null")
-    // void fetchCourtFromDBCourtReferenceNullError() {
-    //     ExtractedMetadata data = new ExtractedMetadata();
-
-    //     String message = assertThrows(
-    //         IllegalArgumentException.class,
-    //         () -> dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP)
-    //     ).getMessage();
-    //     assertThat(message).isEqualTo("Court reference cannot be null or empty");
-
-    //     verify(loggingService).logError(eq("Court reference is null or empty"));
-    // }
-
-    // @Test
-    // @DisplayName("Should throw error when court reference is empty")
-    // void fetchCourtFromDBCourtReferenceEmptyError() {
-    //     ExtractedMetadata data = new ExtractedMetadata();
-    //     data.setCourtReference("");
-
-    //     String message = assertThrows(
-    //         IllegalArgumentException.class,
-    //         () -> dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP)
-    //     ).getMessage();
-    //     assertThat(message).isEqualTo("Court reference cannot be null or empty");
-
-    //     verify(loggingService).logError(eq("Court reference is null or empty"));
-    // }
-
     @Test
     @DisplayName("Should throw error when court data is empty")
     void fetchCourtFromDBCourtDataEmptyError() {
@@ -322,108 +294,188 @@ public class DataTransformationServiceTest {
         verify(courtRepository).findById(courtId);
     }
 
-    // @Test
-    // @DisplayName("Should successfully build processed recording when court is not found (with warning)")
-    // void buildProcessedRecordingNoCourtSuccess() {
-    //     mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
-    //         .thenReturn(new RecordingUtils.VersionDetails("ORIG", "1","1",null, 1, true));
+    @Test
+    @DisplayName("Should successfully build processed recording with COPY version")
+    void buildProcessedRecordingWithCopyVersionSuccess() {
+        mockedRecordingUtils.when(() -> RecordingUtils.normalizeVersionType(any())).thenReturn("COPY");
+        mockedRecordingUtils.when(() -> RecordingUtils.getValidVersionNumber(any())).thenReturn("2.1");
 
-    //     ExtractedMetadata data = new ExtractedMetadata(
-    //         "court_one",
-    //         "urn123",
-    //         "exhibitReference",
-    //         "defendantLastName",
-    //         "witnessFirstName",
-    //         "ORIG",
-    //         "1",
-    //         ".mp4",
-    //         LocalDateTime.now(),
-    //         3000,
-    //         "filename.mp4",
-    //         "12345",
-    //         ARCHIVE_ID,
-    //         ARCHIVE_NAME
-    //     );
+        ExtractedMetadata data = new ExtractedMetadata(
+            "court_reference",
+            UUID.randomUUID(),
+            "URN123",
+            "exhibitRef",
+            "defendantName",
+            "witnessName",
+            "COPY",
+            "2.1",
+            ".mp4",
+            LocalDateTime.now(),
+            600,
+            "recording.mp4",
+            "12345",
+            "ARCHIVE_ID",
+            "ARCHIVE_NAME"
+        );
 
-    //     Map<String, String> courtData = new HashMap<>();
-    //     courtData.put("Court One", null);
-    //     when(cacheService.getAllSiteReferences()).thenReturn(courtData);
-    //     when(migrationRecordService.isMostRecentVersion(data.getArchiveId())).thenReturn(true);
+        Map<String, String> sitesDataMap = Map.of("court_reference", "Court Name");
+        when(migrationRecordService.findOrigVersionsByBaseGroupKey(anyString()))
+            .thenReturn(List.of("1", "2"));
+        when(migrationRecordService.deduplicatePreferredByArchiveId(anyString())).thenReturn(true);
+
+        ProcessedRecording recording = dataTransformationService.buildProcessedRecording(data, sitesDataMap);
+
+        assertThat(recording).isNotNull();
+        assertThat(recording.getExtractedRecordingVersion()).isEqualTo("COPY");
+        assertThat(recording.getOrigVersionNumberStr()).isEqualTo("2");
+        assertThat(recording.getCopyVersionNumberStr()).isEqualTo("1");
+        verify(migrationRecordService, times(1)).updateIsPreferred(data.getArchiveId(), true);
+    }
+
+    @Test
+    @DisplayName("Should successfully build processed recording with ORIG version")
+    void buildProcessedRecordingWithOrigVersionSuccess() {
+        mockedRecordingUtils.when(() -> RecordingUtils.normalizeVersionType(any())).thenReturn("ORIG");
+        mockedRecordingUtils.when(() -> RecordingUtils.getValidVersionNumber(any())).thenReturn("1");
+
+        ExtractedMetadata data = new ExtractedMetadata(
+            "court_reference",
+            UUID.randomUUID(),
+            "URN123",
+            "exhibitRef",
+            "defendantName",
+            "witnessName",
+            "ORIG",
+            "1",
+            ".mp4",
+            LocalDateTime.now(),
+            600,
+            "recording.mp4",
+            "12345",
+            "ARCHIVE_ID",
+            "ARCHIVE_NAME"
+        );
+
+        Map<String, String> sitesDataMap = Map.of("court_reference", "Court Name");
+
+        ProcessedRecording recording = dataTransformationService.buildProcessedRecording(data, sitesDataMap);
+
+        assertThat(recording).isNotNull();
+        assertThat(recording.getExtractedRecordingVersion()).isEqualTo("ORIG");
+        assertThat(recording.getOrigVersionNumberStr()).isEqualTo("1");
+        assertThat(recording.getCopyVersionNumberStr()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should handle unknown court while building processed recording")
+    void buildProcessedRecordingWithUnknownCourtSuccess() {
+        ExtractedMetadata data = new ExtractedMetadata(
+            "unknown_court",
+            UUID.randomUUID(),
+            "URN123",
+            "exhibitRef",
+            "defendantName",
+            "witnessName",
+            "ORIG",
+            "1",
+            ".mp4",
+            LocalDateTime.now(),
+            600,
+            "recording.mp4",
+            "12345",
+            "ARCHIVE_ID",
+            "ARCHIVE_NAME"
+        );
+
+        Map<String, String> sitesDataMap = Map.of();
+
+        ProcessedRecording recording = dataTransformationService.buildProcessedRecording(data, sitesDataMap);
+
+        assertThat(recording).isNotNull();
+        assertThat(recording.getFullCourtName()).isNull();
+        verify(loggingService, times(1))
+            .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
+    }
+
+    @Test
+    @DisplayName("Should validate version normalization during buildProcessedRecording")
+    void buildProcessedRecordingWithVersionNormalization() {
+        mockedRecordingUtils.when(() -> RecordingUtils.normalizeVersionType(any())).thenReturn("COPY");
+        mockedRecordingUtils.when(() -> RecordingUtils.getValidVersionNumber(any())).thenReturn("2");
+
+        ExtractedMetadata data = new ExtractedMetadata(
+            "court_reference",
+            UUID.randomUUID(),
+            "URN123",
+            "exhibitRef",
+            "defendantName",
+            "witnessName",
+            "COPY",
+            "unknown-version",
+            ".mp4",
+            LocalDateTime.now(),
+            600,
+            "recording.mp4",
+            "12345",
+            "ARCHIVE_ID",
+            "ARCHIVE_NAME"
+        );
+
+        Map<String, String> sitesDataMap = Map.of("court_reference", "Court Name");
+        when(migrationRecordService.findOrigVersionsByBaseGroupKey(anyString())).thenReturn(List.of());
+        when(migrationRecordService.deduplicatePreferredByArchiveId(anyString())).thenReturn(true);
+        when(RecordingUtils.getValidVersionNumber("unknown-version")).thenReturn("1");
+
+        ProcessedRecording recording = dataTransformationService.buildProcessedRecording(data, sitesDataMap);
+
+        assertThat(recording).isNotNull();
+        assertThat(recording.getExtractedRecordingVersionNumberStr()).isEqualTo("1");
+        verify(migrationRecordService, times(1)).updateIsPreferred(data.getArchiveId(), true);
+    }
 
 
-    //     ProcessedRecording result = dataTransformationService.buildProcessedRecording(data, SITES_DATA_MAP);
-    //     assertThat(result.getUrn()).isEqualTo(data.getUrn());
-    //     assertThat(result.getExhibitReference()).isEqualTo(data.getExhibitReference());
-    //     assertThat(result.getDefendantLastName()).isEqualTo(data.getDefendantLastName());
-    //     assertThat(result.getWitnessFirstName()).isEqualTo(data.getWitnessFirstName());
-    //     assertThat(result.getCourtReference()).isEqualTo(data.getCourtReference());
-    //     assertThat(result.getCourt()).isNull();
-    //     assertThat(result.getRecordingTimestamp()).isNotNull();
-    //     assertThat(result.getDuration()).isEqualTo(Duration.ofSeconds(data.getDuration()));
-    //     assertThat(result.getState()).isEqualTo(CaseState.CLOSED);
-    //     assertThat(result.getShareBookingContacts()).isEmpty();
-    //     assertThat(result.getFileExtension()).isEqualTo(data.getFileExtension());
-    //     assertThat(result.getFileName()).isEqualTo(data.getFileName());
-    //     assertThat(result.getExtractedRecordingVersion()).isEqualTo("ORIG");
-    //     assertThat(result.getExtractedRecordingVersionNumberStr()).isEqualTo("1");
-    //     assertThat(result.getOrigVersionNumberStr()).isEqualTo("1");
-    //     assertThat(result.getCopyVersionNumberStr()).isEqualTo(null);
-    //     assertThat(result.getRecordingVersionNumber()).isEqualTo(1);
-    //     assertThat(result.isMostRecentVersion()).isTrue();
+    @Test
+    @DisplayName("Should successfully transform extracted data into processed recording")
+    void transformDataSuccess() {
+        ExtractedMetadata extractedMetadata = new ExtractedMetadata(
+            "courtReference",
+            UUID.randomUUID(),
+            "URN123",
+            "exhibitRef123",
+            "defendantName",
+            "witnessName",
+            "ORIG",
+            "1.0",
+            ".mp4",
+            LocalDateTime.now(),
+            600,
+            "recording.mp4",
+            "123456",
+            "ARCHIVE_ID",
+            "ARCHIVE_NAME"
+        );
 
-    //     verify(loggingService, times(1))
-    //         .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
-    // }
+        when(cacheService.getAllSiteReferences()).thenReturn(SITES_DATA_MAP);
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId(extractedMetadata.getArchiveId())
+            .archiveName(extractedMetadata.getArchiveName())
+            .build();
 
-    // @Test
-    // @DisplayName("Should successfully transform data")
-    // void transformDataSuccess() {
-    //     ExtractedMetadata data = new ExtractedMetadata(
-    //         "court_one",
-    //         "urn123",
-    //         "exhibitReference",
-    //         "defendantLastName",
-    //         "witnessFirstName",
-    //         "1",
-    //         "1",
-    //         ".mp4",
-    //         LocalDateTime.now(),
-    //         3000,
-    //         "filename.mp4",
-    //         "12345",
-    //         ARCHIVE_ID,
-    //         ARCHIVE_NAME
-    //     );
+        ServiceResult<ProcessedRecording> result = dataTransformationService.transformData(extractedMetadata);
 
-    //     when(cacheService.getAllSiteReferences())
-    //         .thenReturn(SITES_DATA_MAP);
-    //     String key = "vf:pre-process:urn123-defendantLastName-witnessFirstName";
-    //     when(cacheService.getHashAll(key))
-    //         .thenReturn(Map.of());
-    //     mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
-    //         .thenReturn(new RecordingUtils.VersionDetails("versionType", "1", "1", null, 1, true));
-    //     when(cacheService.getHashAll(key))
-    //         .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isNotNull();
+    }
 
-    //     UUID courtId = UUID.randomUUID();
-    //     Map<String, String> courtData = new HashMap<>();
-    //     courtData.put("court_one", "Court One");
-    //     when(cacheService.getAllSiteReferences())
-    //         .thenReturn(courtData);
-    //     CourtDTO court = new CourtDTO();
-    //     court.setId(courtId);
-    //     when(cacheService.getCourt("Court One")).thenReturn(Optional.of(court));
-    //     when(courtRepository.findById(courtId)).thenReturn(Optional.of(new Court()));
+    @Test
+    @DisplayName("Should return failure when exception occurs during transformation")
+    void transformDataWhenExceptionOccurs() {
+        ExtractedMetadata extractedMetadata = new ExtractedMetadata();
 
+        when(cacheService.getAllSiteReferences()).thenThrow(new RuntimeException("Transformation error"));
+        ServiceResult<ProcessedRecording> result = dataTransformationService.transformData(extractedMetadata);
 
-    //     ServiceResult<ProcessedRecording> result = dataTransformationService.transformData(data);
-    //     assertThat(result).isNotNull();
-    //     assertThat(result.isSuccess()).isTrue();
-    //     assertThat(result.getData()).isNotNull();
-    //     assertThat(result.getData().getCourt()).isNotNull();
-
-    //     verify(cacheService, times(1)).getAllSiteReferences();
-    //     verify(loggingService, never())
-    //         .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
-    // }
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getErrorMessage()).isEqualTo("Transformation error");
+    }
 }

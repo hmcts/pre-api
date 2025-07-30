@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemor
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.validation.DataValidationService;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
@@ -88,6 +89,7 @@ class ProcessorTest {
     // =========================
     // Main Process Method Tests
     // =========================
+
     @Test
     void shouldReturnNullWhenItemIsNull() throws Exception {
         MigratedItemGroup result = processor.process(null);
@@ -130,9 +132,65 @@ class ProcessorTest {
         verify(loggingService).logError("Processor - Unsupported item type: %s", "java.lang.String");
     }
 
+
+    @Test
+    void shouldHandleExtractionFailure() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        when(extractionService.process(any(MigrationRecord.class)))
+            .thenReturn(ServiceResult.error("Extraction failed", "ExtractionError"));
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNull(result);
+        verify(migrationRecordService).updateToFailed(
+            anyString(), eq("ExtractionError"), eq("Extraction failed"));
+        verify(migrationTrackerService).addFailedItem(any());
+    }
+
+    @Test
+    void shouldHandleValidationFailure() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        setupSuccessfulProcessingMocks();
+        when(validationService.validateProcessedRecording(any()))
+            .thenReturn(ServiceResult.error("Validation failed", "ValidationError"));
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNull(result);
+        verify(migrationRecordService).updateToFailed(
+            anyString(), eq("ValidationError"), eq("Validation failed"));
+    }
+
+    @Test
+    void shouldProcessCSVChannelDataAndReturnNull() throws Exception {
+        CSVChannelData csvChannelData = new CSVChannelData();
+        when(referenceDataProcessor.process(csvChannelData)).thenReturn(null);
+
+        MigratedItemGroup result = processor.process(csvChannelData);
+
+        assertNull(result);
+        verify(referenceDataProcessor).process(csvChannelData);
+    }
+
+    @Test
+    void shouldReturnNullIfAlreadyMigrated() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        setupSuccessfulProcessingMocks();
+
+        MigrationRecord existing = createTestMigrationRecord();
+        existing.setStatus(VfMigrationStatus.SUCCESS);
+        when(migrationRecordService.findByArchiveId(anyString())).thenReturn(Optional.of(existing));
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNull(result);
+        verify(migrationRecordService).findByArchiveId(testMigrationRecord.getArchiveId());
+        verify(migrationTrackerService).addFailedItem(any());
+    }
     // =========================
     // Pending Status Processing Tests
     // =========================
+
     @Test
     void shouldProcessPendingRecordingSuccessfully() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
@@ -151,6 +209,7 @@ class ProcessorTest {
     // =========================
     // Resolved Status Processing Tests
     // =========================
+
     @Test
     void shouldProcessResolvedRecordingSuccessfully() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.RESOLVED);
@@ -340,7 +399,6 @@ class ProcessorTest {
         doNothing().when(loggingService).incrementProgress();
         doNothing().when(cacheService).dumpToFile();
     }
-
 
     private MigrationRecord createTestMigrationRecord() {
         MigrationRecord record = new MigrationRecord();

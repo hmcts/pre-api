@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,33 +23,27 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class MigrationRecordService {
-
     private final MigrationRecordRepository migrationRecordRepository;
     private final LoggingService loggingService;
     private final CourtRepository courtRepository;
 
     @Autowired
-    public MigrationRecordService(
-        final MigrationRecordRepository migrationRecordRepository,
-        final CourtRepository courtRepository,
-        final LoggingService loggingService
-    ) {
+    public MigrationRecordService(final MigrationRecordRepository migrationRecordRepository,
+                                  final CourtRepository courtRepository,
+        final LoggingService loggingService) {
         this.migrationRecordRepository = migrationRecordRepository;
         this.courtRepository = courtRepository;
         this.loggingService = loggingService;
     }
 
-    // =========================================
-    // ============ FIND =======================
-    // =========================================
     @Transactional(readOnly = true)
     public Optional<MigrationRecord> findByArchiveId(String archiveId) {
         return migrationRecordRepository.findByArchiveId(archiveId);
@@ -59,57 +54,37 @@ public class MigrationRecordService {
         if (copy.getParentTempId() == null) {
             return Optional.empty();
         }
-        return migrationRecordRepository.findById(copy.getParentTempId());
+        Optional<MigrationRecord> result = migrationRecordRepository.findById(copy.getParentTempId());
+        log.info("ORIG::{}", result);
+        return result;
     }
 
     public List<MigrationRecord> getPendingMigrationRecords() {
         return migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING);
     }
 
-    @Transactional(readOnly = true)
-    public boolean isMostRecentVersion(String archiveId) {
-        return migrationRecordRepository.findByArchiveId(archiveId)
-            .map(MigrationRecord::getIsMostRecent)
-            .orElse(false);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<MigrationRecord> getMostRecentCopyWithParentInfo(String recordingGroupKey) {
-        List<MigrationRecord> group = migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey);
-
-        return group.stream()
-            .filter(r -> "COPY".equalsIgnoreCase(r.getRecordingVersion()))
-            .filter(MigrationRecord::getIsMostRecent)
-            .findFirst();
-    }
-
-    // =========================================
-    // ============== UPSERT ===================
-    // =========================================
     @Transactional
-    public UpsertResult upsert(
-        String archiveId,
-        String archiveName,
-        Timestamp createTime,
-        Integer duration,
-        String courtReference,
-        String urn,
-        String exhibitReference,
-        String defendantName,
-        String witnessName,
-        String recordingVersion,
-        String recordingVersionNumber,
-        String mp4FileName,
-        String fileSizeMb,
-        VfMigrationStatus status,
-        String reason,
-        String errorMessage,
-        Timestamp resolvedAt,
-        UUID recordingId
-    ) {
-        var existing = migrationRecordRepository.findByArchiveId(archiveId);
+    public UpsertResult upsert(String archiveId,
+                               String archiveName,
+                               Timestamp createTime,
+                               Integer duration,
+                               String courtReference,
+                               String urn,
+                               String exhibitReference,
+                               String defendantName,
+                               String witnessName,
+                               String recordingVersion,
+                               String recordingVersionNumber,
+                               String mp4FileName,
+                               String fileSizeMb,
+                               VfMigrationStatus status,
+                               String reason,
+                               String errorMessage,
+                               Timestamp resolvedAt,
+                               UUID recordingId) {
+        Optional<MigrationRecord> existing = migrationRecordRepository.findByArchiveId(archiveId);
 
-        var recording = existing.orElse(new MigrationRecord());
+        MigrationRecord recording = existing.orElse(new MigrationRecord());
 
         recording.setArchiveId(archiveId);
         recording.setArchiveName(archiveName);
@@ -130,27 +105,23 @@ public class MigrationRecordService {
         recording.setResolvedAt(resolvedAt);
         recording.setRecordingId(recordingId);
 
-        var isUpdate = existing.isPresent();
+        boolean isUpdate = existing.isPresent();
 
         if (!isUpdate) {
             recording.setId(UUID.randomUUID());
-            recording.setCreatedAt(Timestamp.from(Instant.now()));
         }
 
-        migrationRecordRepository.save(recording);
+        migrationRecordRepository.saveAndFlush(recording);
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
-
     @Transactional
-    public boolean insertPendingFromXml(
-        String archiveId,
-        String archiveName,
-        String createTimeEpoch,
-        String duration,
-        String mp4FileName,
-        String fileSizeMb
-    ) {
+    public boolean insertPendingFromXml(String archiveId,
+                                        String archiveName,
+                                        String createTimeEpoch,
+                                        String duration,
+                                        String mp4FileName,
+                                        String fileSizeMb) {
         if (migrationRecordRepository.findByArchiveId(archiveId).isPresent()) {
             loggingService.logInfo("Already processed: %s", archiveName);
             return false;
@@ -165,9 +136,8 @@ public class MigrationRecordService {
             createTime = new Timestamp(epoch);
         }
 
-        Integer parsedDuration = null;
+        Integer parsedDuration;
         parsedDuration = duration != null ? Integer.valueOf(duration) : null;
-
 
         upsert(
             archiveId,
@@ -226,9 +196,6 @@ public class MigrationRecordService {
         return true;
     }
 
-    // =========================================
-    // ============== UPDATE ===================
-    // =========================================
     @Transactional
     public void updateMetadataFields(String archiveId, ExtractedMetadata extracted) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
@@ -313,12 +280,13 @@ public class MigrationRecordService {
         Optional<MigrationRecord> maybeOrig = migrationRecordRepository
             .findByRecordingGroupKey(recordingGroupKey)
             .stream()
+            .filter(r -> !r.getArchiveName().toLowerCase().endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
-            .filter(r -> r.getIsPreferred() != null && r.getIsPreferred())
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
                 return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
             })
+            .sorted((a, b) -> Boolean.compare(!a.getIsPreferred(), !b.getIsPreferred()))
             .findFirst();
 
         if (maybeOrig.isEmpty()) {
@@ -329,26 +297,6 @@ public class MigrationRecordService {
             copy.setParentTempId(maybeOrig.get().getId());
             migrationRecordRepository.save(copy);
         });
-    }
-
-    // =========================================
-    // ============ HELPERS ====================
-    // =========================================
-    public boolean isPreferredArchive(String archiveId) {
-        return migrationRecordRepository.findByArchiveId(archiveId)
-            .map(MigrationRecord::getIsPreferred)
-            .orElse(false);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<MigrationRecord> findOrigByGroupKey(String groupKey) {
-        return migrationRecordRepository.findByRecordingGroupKey(groupKey).stream()
-            .filter(record -> "ORIG".equalsIgnoreCase(record.getRecordingVersion()))
-            .findFirst();
-    }
-
-    private static String nullToEmpty(String input) {
-        return input == null ? "" : input;
     }
 
     @Transactional
@@ -434,9 +382,8 @@ public class MigrationRecordService {
     }
 
     public Optional<String> findMostRecentVersionNumberInGroup(String groupKey) {
-        List<MigrationRecord> groupRecords = migrationRecordRepository.findByRecordingGroupKey(groupKey);
-
-        return groupRecords.stream()
+        return migrationRecordRepository.findByRecordingGroupKey(groupKey)
+            .stream()
             .map(MigrationRecord::getRecordingVersionNumber)
             .filter(version -> version != null && !version.isBlank())
             .max(RecordingUtils::compareVersionStrings);
@@ -446,11 +393,12 @@ public class MigrationRecordService {
         String urn, String exhibitRef, String witnessName, String defendantName) {
 
         return String.join("|",
-            nullToEmpty(urn),
-            nullToEmpty(exhibitRef),
-            nullToEmpty(witnessName),
-            nullToEmpty(defendantName)
-        ).toLowerCase().trim();
+                           nullToEmpty(urn),
+                           nullToEmpty(exhibitRef),
+                           nullToEmpty(witnessName),
+                           nullToEmpty(defendantName))
+            .toLowerCase()
+            .trim();
     }
 
     private void setMostRecentFlag(String groupKey) {
@@ -464,7 +412,7 @@ public class MigrationRecordService {
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
             .forEach(r -> r.setIsMostRecent(true));
 
-        var copyRecords = groupRecords.stream()
+        List<MigrationRecord> copyRecords = groupRecords.stream()
             .filter(r -> "COPY".equalsIgnoreCase(r.getRecordingVersion()))
             .filter(r -> r.getRecordingVersionNumber() != null && r.getRecordingVersionNumber().matches("\\d+"))
             .toList();
@@ -534,5 +482,9 @@ public class MigrationRecordService {
         migrationRecordRepository.saveAndFlush(entity);
 
         return UpsertResult.UPDATED;
+    }
+
+    private static String nullToEmpty(String input) {
+        return input == null ? "" : input;
     }
 }

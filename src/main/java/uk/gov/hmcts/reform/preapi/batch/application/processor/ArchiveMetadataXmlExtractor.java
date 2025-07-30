@@ -70,9 +70,9 @@ public class ArchiveMetadataXmlExtractor {
 
             if (!allArchiveMetadata.isEmpty()) {
                 loggingService.logDebug("Generating archive metadata report in directory: %s", outputDir);
-                
+
                 allArchiveMetadata.sort((a, b) -> {
-                    String nameA = a.get(1).toLowerCase(); 
+                    String nameA = a.get(1).toLowerCase();
                     String nameB = b.get(1).toLowerCase();
 
                     String versionA = extractVersion(nameA);
@@ -87,7 +87,7 @@ public class ArchiveMetadataXmlExtractor {
                     if (!aIsOrig && bIsOrig) {
                         return 1;
                     }
-                    return nameA.compareTo(nameB); 
+                    return nameA.compareTo(nameB);
                 });
 
                 int insertCount = 0;
@@ -108,7 +108,7 @@ public class ArchiveMetadataXmlExtractor {
                         loggingService.logError("Failed to insert row into migration records: %s", e.getMessage());
                     }
                 }
-                
+
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
                 loggingService.logInfo(
                     "Successfully generated %s.csv with %d entries",filename, allArchiveMetadata.size());
@@ -140,7 +140,7 @@ public class ArchiveMetadataXmlExtractor {
                 List<List<String>> blobMetadata = parseArchiveMetadataFromXml(xmlStream);
                 if (!blobMetadata.isEmpty()) {
                     allArchiveMetadata.addAll(blobMetadata);
-                    loggingService.logDebug("Processing blob: %s - %s", allArchiveMetadata.get(0).get(0), blobName);
+                    loggingService.logDebug("Processing blob: %s", blobName);
                 } else {
                     loggingService.logWarning("Blob contains no metadata: " + blobName);
                 }
@@ -210,17 +210,20 @@ public class ArchiveMetadataXmlExtractor {
             }
 
             Element archiveElement = (Element) archiveNode;
-            String archiveId = extractTextContent(archiveElement, "ArchiveID");
             String displayName = extractTextContent(archiveElement, "DisplayName");
             String createTime = extractTextContent(archiveElement, "CreatTime");
+            if (createTime == null || createTime.isEmpty() || createTime.equals("0") || createTime.equals("3600000")) {
+                createTime = extractTextContent(archiveElement, "updatetime");
+            }
             String duration = extractTextContent(archiveElement, "Duration");
-
+            
             if (displayName.isEmpty()) {
                 loggingService.logWarning("Missing DisplayName in ArchiveFiles element.");
             }
             if (createTime.isEmpty()) {
                 loggingService.logWarning("Missing CreatTime for archive: " + displayName);
             }
+            String archiveId = extractTextContent(archiveElement, "ArchiveID");
             metadataRows.addAll(processMP4Files(archiveElement, archiveId, displayName, createTime, duration));
         }
         return metadataRows;
@@ -249,9 +252,9 @@ public class ArchiveMetadataXmlExtractor {
             Element mp4Group = (Element) mp4FileGroups.item(j);
             NodeList mp4Files = mp4Group.getElementsByTagName("MP4File");
 
-            for (int k = 0; k < mp4Files.getLength(); k++) {
-                Element fileElement = (Element) mp4Files.item(k);
+            Element fileElement = selectPreferredMp4File(mp4Files);
 
+            if (fileElement != null) {
                 String fileName = extractTextContent(fileElement, "Name");
                 String fileSizeKb = extractTextContent(fileElement, "Size");
 
@@ -270,6 +273,34 @@ public class ArchiveMetadataXmlExtractor {
         return fileRows;
     }
 
+    private Element selectPreferredMp4File(NodeList mp4Files) {
+        Element fallback = null;
+
+        for (int i = 0; i < mp4Files.getLength(); i++) {
+            Node node = mp4Files.item(i);
+            if (node.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element fileElement = (Element) node;
+            String fileName = extractTextContent(fileElement, "Name");
+
+            if (fileName != null && fileName.startsWith("0x1e")) {
+                return fileElement; 
+            }
+
+            if (i == 1) {
+                fallback = fileElement; 
+            }
+
+            if (mp4Files.getLength() == 1) {
+                fallback = fileElement; 
+            }
+        }
+
+        return fallback;
+    }
+
     /**
      * Checks if the file is a valid MP4 file.
      *
@@ -277,7 +308,8 @@ public class ArchiveMetadataXmlExtractor {
      * @return true if valid, false otherwise
      */
     private boolean isValidMP4File(String fileName) {
-        return fileName.endsWith(".mp4") && fileName.startsWith("0x1e");
+        // return fileName.endsWith(".mp4") && fileName.startsWith("0x1e");
+        return fileName.endsWith(".mp4");
     }
 
     /**
@@ -315,7 +347,7 @@ public class ArchiveMetadataXmlExtractor {
         if (parts.length == 0) {
             return "";
         }
-        String versionPart = parts[parts.length - 1]; 
+        String versionPart = parts[parts.length - 1];
         return versionPart.split("\\.")[0];
     }
 }

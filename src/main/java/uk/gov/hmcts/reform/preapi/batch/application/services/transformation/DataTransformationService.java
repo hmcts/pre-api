@@ -35,12 +35,10 @@ public class DataTransformationService {
     private final LoggingService loggingService;
 
     @Autowired
-    public DataTransformationService(
-        InMemoryCacheService cacheService,
-        MigrationRecordService migrationRecordService,
-        CourtRepository courtRepository,
-        LoggingService loggingService
-    ) {
+    public DataTransformationService(final InMemoryCacheService cacheService,
+                                     final MigrationRecordService migrationRecordService,
+                                     final CourtRepository courtRepository,
+                                     final LoggingService loggingService) {
         this.cacheService = cacheService;
         this.migrationRecordService = migrationRecordService;
         this.courtRepository = courtRepository;
@@ -69,12 +67,12 @@ public class DataTransformationService {
         }
     }
 
-    protected ProcessedRecording buildProcessedRecording(
-        ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
+    protected ProcessedRecording buildProcessedRecording(ExtractedMetadata extracted,
+                                                         Map<String, String> sitesDataMap) {
 
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
-        // === Normalize version type and number ===
+        // Normalize version type and number
         String rawVersionType = extracted.getRecordingVersion();
         String rawVersionNumber = extracted.getRecordingVersionNumber();
 
@@ -102,9 +100,7 @@ public class DataTransformationService {
             if (availableOrigVersions.contains(versionPrefix)) {
                 origVersionStr = versionPrefix;
             } else if (!availableOrigVersions.isEmpty()) {
-                origVersionStr = availableOrigVersions.stream()
-                    .sorted(RecordingUtils::compareVersionStrings)
-                    .findFirst()
+                origVersionStr = availableOrigVersions.stream().min(RecordingUtils::compareVersionStrings)
                     .orElse("1");
             } else {
                 origVersionStr = "1";
@@ -124,7 +120,7 @@ public class DataTransformationService {
             extracted.getDefendantLastName()
         );
 
-        // === Determine if this COPY is the most recent ===
+        // Determine if this COPY is the most recent
         boolean isMostRecent = true;
         if ("COPY".equalsIgnoreCase(versionType)) {
             isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
@@ -132,7 +128,7 @@ public class DataTransformationService {
                 .orElse(true);
         }
 
-        // === Determine preference ===
+        // Determine preference
         boolean isPreferred = true;
 
         // Non-mp4 filter
@@ -158,7 +154,7 @@ public class DataTransformationService {
 
         migrationRecordService.updateIsPreferred(extracted.getArchiveId(), isPreferred);
 
-        // === Court Resolution ===
+        // Court Resolution
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
         if (court == null) {
             loggingService.logWarning("Court not found for reference: %s", extracted.getCourtReference());
@@ -166,7 +162,7 @@ public class DataTransformationService {
 
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
 
-        // === Version details holder ===
+        // Version details holder
         RecordingUtils.VersionDetails versionDetails = new RecordingUtils.VersionDetails(
             versionType,
             versionNumber,
@@ -175,7 +171,7 @@ public class DataTransformationService {
             RecordingUtils.getStandardizedVersionNumberFromType(versionType),
             isMostRecent
         );
-        // === Build final recording ===
+        // Build final recording
         return ProcessedRecording.builder()
             .archiveId(extracted.getArchiveId())
             .archiveName(extracted.getArchiveName())
@@ -275,13 +271,11 @@ public class DataTransformationService {
      * Retrieves sites data from Cache.
      *
      * @return A map of site data
-     * @throws IllegalStateException if sites data is not found in Cache
      */
     protected Map<String, String> getSitesData() {
         Map<String, String> sites = cacheService.getAllSiteReferences();
         if (sites.isEmpty()) {
             loggingService.logError("Sites data not found in Cache");
-            return new HashMap<>();
         }
         return sites;
     }

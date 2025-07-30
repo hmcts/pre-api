@@ -49,7 +49,7 @@ public final class RegexPatterns {
         "^vmr\\.[a-z]+_\\d{18}(?:\\.(mp4|raw|mov|avi|mkv))?$",
         Pattern.CASE_INSENSITIVE
     );
-    
+
     public static final Pattern SIMPLE_BATCH_PATTERN = Pattern.compile(
         "^\\s*batch\\s*\\d+_\\d{17,20}\\s*$",
         Pattern.CASE_INSENSITIVE
@@ -118,7 +118,7 @@ public final class RegexPatterns {
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{6,9})";
     private static final String VERSION_PATTERN =
         "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI|OR|CO|COP)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
-    private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
+    private static final String EXTENSION_PATTERN = "(?i)(?:\\.(?<ext>mp4|raw))?";
 
     private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)"
                                                 + SEPARATOR_ONE
@@ -276,13 +276,13 @@ public final class RegexPatterns {
     );
 
     public static final Pattern DOTS_IN_NAME_PATTERN = Pattern.compile(
-        "^(?<court>[A-Za-z]+)" + SEPARATOR_ONE 
-        + "(?<date>\\d{6})" + SEPARATOR_ONE 
-        + "(?<urn>[A-Za-z0-9]+)" + SEPARATOR_ONE 
-        + "(?<exhibitRef>[A-Za-z]\\d{6,9})" + SEPARATOR_ONE 
-        + "(?<defendantLastName>[A-Za-z'\\.\\-\\s]+)" + SEPARATOR_ONE 
-        + "(?<witnessFirstName>[A-Za-z'\\.\\-\\s]+)" + SEPARATOR_ONE 
-        + VERSION_PATTERN 
+        "^(?<court>[A-Za-z]+)" + SEPARATOR_ONE
+        + "(?<date>\\d{6})" + SEPARATOR_ONE
+        + "(?<urn>[A-Za-z0-9]+)" + SEPARATOR_ONE
+        + "(?<exhibitRef>[A-Za-z]\\d{6,9})" + SEPARATOR_ONE
+        + "(?<defendantLastName>[A-Za-z'\\.\\-\\s]+)" + SEPARATOR_ONE
+        + "(?<witnessFirstName>[A-Za-z'\\.\\-\\s]+)" + SEPARATOR_ONE
+        + VERSION_PATTERN
         + EXTENSION_PATTERN + "$",
         Pattern.CASE_INSENSITIVE
     );
@@ -325,7 +325,7 @@ public final class RegexPatterns {
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ONE
         + URN_PATTERN + SEPARATOR_ONE
-        + "(?:S?28|NEW|QC)" + SEPARATOR_ONE  
+        + "(?:S?28|NEW|QC)" + SEPARATOR_ONE
         + "(?<defendantLastName>[A-Za-z'\\-\\s]+)" + SEPARATOR_ONE
         + "(?<witnessFirstName>[A-Za-z'\\-\\s]+)" + SEPARATOR_ONE
         + VERSION_PATTERN
@@ -334,30 +334,16 @@ public final class RegexPatterns {
     );
 
     public static final Pattern DOUBLE_DATE_PATTERN = Pattern.compile(
-        "^" 
-        + "(?<court>[A-Za-z]+(?:d|fd)?)" + SEPARATOR_ONE 
-        + "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE 
-        + "(?<court2>[A-Za-z]+(?:d|fd)?)" + SEPARATOR_ONE 
-        +  "(?<date2>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE 
-        + URN_PATTERN + SEPARATOR_ONE 
-        + "(?<defendantLastName>[A-Za-z]+)" + SEPARATOR_ONE 
-        + "(?<witnessFirstName>Witness\\d+)" + SEPARATOR_ONE 
-        + VERSION_PATTERN 
+        "^"
+        + "(?<court>[A-Za-z]+(?:d|fd)?)" + SEPARATOR_ONE
+        + "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE
+        + "(?<court2>[A-Za-z]+(?:d|fd)?)" + SEPARATOR_ONE
+        +  "(?<date2>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?<defendantLastName>[A-Za-z]+)" + SEPARATOR_ONE
+        + "(?<witnessFirstName>Witness\\d+)" + SEPARATOR_ONE
+        + VERSION_PATTERN
         + EXTENSION_PATTERN + "$",
-        Pattern.CASE_INSENSITIVE
-    );
-
-    public static final Pattern CENTRL_COMPLEX_PATTERN = Pattern.compile(
-        "^" 
-        + "(?<court>[A-Za-z]+)" + SEPARATOR_ONE 
-        + "(?<date>\\d{6})" + SEPARATOR_ONE 
-        + "(?<urn>[A-Za-z0-9\\s\\-]+)" + SEPARATOR_ONE 
-        + "(?<exhibitRef>[A-Za-z0-9]{2,6})" + SEPARATOR_ONE 
-        + "(?<defendantLastName>[A-Za-z0-9\\-']+)" + SEPARATOR_ONE 
-        + "(?<witnessFirstName>[A-Za-z0-9\\-']+)" + SEPARATOR_ONE 
-        + "(?<versionType>ORIG|COPY)(?:[-_]?(?<versionNumber>\\d+(\\.\\d+)?))?" 
-        + "(?:\\.(?<ext>mp4|raw|mov|avi|mkv))?" 
-        + "$",
         Pattern.CASE_INSENSITIVE
     );
    
@@ -378,7 +364,6 @@ public final class RegexPatterns {
         Map.entry("NoUrnPattern", RegexPatterns.NO_URN_PATTERN),
         Map.entry("NoExhibitPattern", RegexPatterns.NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
         Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN),
-        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN),
-        Map.entry("Central complexPattern", RegexPatterns.CENTRL_COMPLEX_PATTERN)
+        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN)
     );
 }

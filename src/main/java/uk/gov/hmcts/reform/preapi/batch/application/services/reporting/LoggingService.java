@@ -20,24 +20,29 @@ import java.util.Map;
 @Slf4j
 @Service
 public class LoggingService {
-    private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
     @Getter
     private boolean debugEnabled = false;
+
     @Setter
     private int totalMigrated = 0;
+
     @Setter
     private int totalInvited = 0;
+
     @Setter
     private int totalRecords;
 
+    @Getter
     private int processedRecords = 0;
+
+    @Getter
     private int totalFailed = 0;
 
-    private final Map<String, Integer> failedCategoryCounts = new HashMap<>();
+    protected LocalDateTime startTime;
+    protected final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
-    private LocalDateTime startTime;
+    private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void initializeLogFile() {
         startTime = LocalDateTime.now();
@@ -59,7 +64,7 @@ public class LoggingService {
              PrintWriter printWriter = new PrintWriter(fileWriter)) {
             printWriter.println(logMessage);
         } catch (IOException e) {
-            log.error("Failed to write to output.log: {}", e.getMessage());
+            log.error("Failed to initialize output.log: {}", e.getMessage());
         }
     }
 
@@ -176,7 +181,5 @@ public class LoggingService {
         } catch (IOException e) {
             log.error("Failed to write summary to output.log: {}", e.getMessage());
         }
-
     }
-
 }

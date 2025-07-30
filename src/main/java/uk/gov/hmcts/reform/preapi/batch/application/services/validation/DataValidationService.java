@@ -19,7 +19,8 @@ public class DataValidationService {
     private final LoggingService loggingService;
 
     @Autowired
-    public DataValidationService(MigrationRecordService migrationRecordService, LoggingService loggingService) {
+    public DataValidationService(final MigrationRecordService migrationRecordService,
+                                 final LoggingService loggingService) {
         this.migrationRecordService = migrationRecordService;
         this.loggingService = loggingService;
     }
@@ -49,7 +50,9 @@ public class DataValidationService {
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
                 VfFailureReason.INCOMPLETE_DATA.toString()
             );
-        }  else if (caseReference.length() > 24) {
+        }
+
+        if (caseReference.length() > 24) {
             return ServiceResultUtil.failure(
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
                 VfFailureReason.INCOMPLETE_DATA.toString()
@@ -79,7 +82,6 @@ public class DataValidationService {
         return ServiceResultUtil.success(cleansedData);
     }
 
-
     public ServiceResult<ProcessedRecording> validateResolvedRecording(
         ProcessedRecording cleansedData, String archiveName) {
 
@@ -94,6 +96,7 @@ public class DataValidationService {
             return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
                                              VfFailureReason.INCOMPLETE_DATA.toString());
         }
+
         if (caseReference.length() > 24) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
                                              VfFailureReason.INCOMPLETE_DATA.toString());

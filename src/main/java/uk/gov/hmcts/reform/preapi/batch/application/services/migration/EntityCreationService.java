@@ -91,8 +91,14 @@ public class EntityCreationService {
         bookingDTO.setId(bookingId);
         bookingDTO.setCaseId(aCase.getId());
         bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
-        bookingDTO.setParticipants(aCase.getParticipants());
+        Set<CreateParticipantDTO> filteredParticipants = aCase.getParticipants().stream()
+            .filter(p ->
+                (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName())) 
+                || (p.getLastName() != null && p.getLastName().equalsIgnoreCase(cleansedData.getDefendantLastName()))
+            )
+            .collect(Collectors.toSet());
 
+        bookingDTO.setParticipants(filteredParticipants);
         migrationRecordService.updateBookingId(cleansedData.getArchiveId(), bookingId);
 
         return bookingDTO;

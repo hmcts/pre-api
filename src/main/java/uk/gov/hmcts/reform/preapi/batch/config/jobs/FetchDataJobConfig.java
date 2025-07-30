@@ -23,7 +23,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 public class FetchDataJobConfig {
 
     // public static final String CONTAINER_NAME = "pre-vodafone-spike";
-    // public static final String CONTAINER_NAME = "piotr";
+    // public static final String CONTAINER_NAME = "poc";
     // public static final String XML_PREFIX = "MS06"; 
     public static final String XML_PREFIX = ""; 
     public static final String CONTAINER_NAME = "prod-migration-1";

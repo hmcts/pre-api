@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
@@ -92,6 +93,7 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Column(name = "resolved_at")
     private Timestamp resolvedAt;
 
+    @CreationTimestamp
     @Column(name = "created_at")
     private Timestamp createdAt;
 
