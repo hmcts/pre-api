@@ -337,7 +337,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference length",recording));
         }
 
-        if (caseRef.equalsIgnoreCase(exhibitRef) ) {
+        if (caseRef.equalsIgnoreCase(exhibitRef)) {
             migrationTrackerService.addNotifyItem(new NotifyItem(
                     "Used Xhibit reference as URN did not meet requirements",recording));
         }
