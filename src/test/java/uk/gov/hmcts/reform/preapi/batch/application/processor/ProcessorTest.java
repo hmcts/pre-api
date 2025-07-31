@@ -212,7 +212,7 @@ class ProcessorTest {
 
     @Test
     void shouldProcessResolvedRecordingSuccessfully() throws Exception {
-        testMigrationRecord.setStatus(VfMigrationStatus.RESOLVED);
+        testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
         ServiceResult<ProcessedRecording> validationResult = ServiceResult.success(testProcessedRecording);
         
@@ -233,7 +233,7 @@ class ProcessorTest {
 
     @Test
     void shouldHandleResolvedValidationFailure() throws Exception {
-        testMigrationRecord.setStatus(VfMigrationStatus.RESOLVED);
+        testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
         ServiceResult<ProcessedRecording> validationResult = ServiceResult.error(
             "Resolved validation failed", "ResolvedValidationError");

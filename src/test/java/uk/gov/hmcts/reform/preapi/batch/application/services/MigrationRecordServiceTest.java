@@ -388,7 +388,7 @@ public class MigrationRecordServiceTest {
             "2",
             "updated_file.mp4",
             "15MB",
-            VfMigrationStatus.RESOLVED,
+            VfMigrationStatus.SUBMITTED,
             "UpdatedReason",
             "No Error",
             Timestamp.from(Instant.now()),
@@ -397,7 +397,7 @@ public class MigrationRecordServiceTest {
 
         assertThat(result).isEqualTo(UpsertResult.UPDATED);
         assertThat(existingRecord.getArchiveName()).isEqualTo("Updated Archive Name");
-        assertThat(existingRecord.getStatus()).isEqualTo(VfMigrationStatus.RESOLVED);
+        assertThat(existingRecord.getStatus()).isEqualTo(VfMigrationStatus.SUBMITTED);
 
         verify(migrationRecordRepository, times(1)).saveAndFlush(existingRecord);
     }
