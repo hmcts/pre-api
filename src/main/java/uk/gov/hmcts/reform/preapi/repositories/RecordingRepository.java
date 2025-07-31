@@ -29,6 +29,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         WHERE (:includeDeleted = TRUE OR r.deletedAt IS NULL)
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
         AND (:#{#searchParams.authorisedCourt} IS NULL OR r.captureSession.booking.caseId.court.id = :#{#searchParams.authorisedCourt})
+        AND (:#{#searchParams.version} IS NULL OR r.version = :#{#searchParams.version})
         AND (
             :#{#searchParams.id} IS NULL OR
             CAST(r.id AS text) ILIKE %:#{#searchParams.id}%
@@ -123,4 +124,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Recording> findAllCompletedCaptureSessionsWithRecordings();
+
+    List<Recording> findAllByDurationIsNullAndDeletedAtIsNull();
 }

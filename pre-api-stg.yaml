@@ -1029,6 +1029,38 @@ definitions:
         format: int32
         type: integer
     type: object
+  EditRequestDTO:
+    properties:
+      created_at:
+        format: date-time
+        type: string
+      created_by_id:
+        format: uuid
+        type: string
+      edit_instruction:
+        type: string
+      finished_at:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      modified_at:
+        format: date-time
+        type: string
+      source_recording:
+        $ref: '#/definitions/RecordingDTO'
+      started_at:
+        format: date-time
+        type: string
+      status:
+        enum:
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+    type: object
   EntityModelBookingDTO:
     properties:
       _links:
@@ -1234,6 +1266,40 @@ definitions:
         items:
           $ref: '#/definitions/RoomDTO'
         type: array
+    type: object
+  EntityModelEditRequestDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      created_at:
+        format: date-time
+        type: string
+      created_by_id:
+        format: uuid
+        type: string
+      edit_instruction:
+        type: string
+      finished_at:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      modified_at:
+        format: date-time
+        type: string
+      source_recording:
+        $ref: '#/definitions/RecordingDTO'
+      started_at:
+        format: date-time
+        type: string
+      status:
+        enum:
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
     type: object
   EntityModelInviteDTO:
     properties:
@@ -1579,6 +1645,20 @@ definitions:
           courtDTOList:
             items:
               $ref: '#/definitions/EntityModelCourtDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelEditRequestDTO:
+    properties:
+      _embedded:
+        properties:
+          editRequestDTOList:
+            items:
+              $ref: '#/definitions/EntityModelEditRequestDTO'
             type: array
         type: object
       _links:
@@ -3055,6 +3135,113 @@ paths:
       summary: Create or Update a Court
       tags:
         - court-controller
+  /edits:
+    get:
+      operationId: searchRecordings
+      parameters:
+        - description: The source recording's id to search by
+          format: uuid
+          in: query
+          name: sourceRecordingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The date of last modification to search after
+          format: date
+          in: query
+          name: lastModifiedAfter
+          type: string
+          x-example: '2024-04-27'
+        - description: The date of last modification to search before
+          format: date
+          in: query
+          name: lastModifiedBefore
+          type: string
+          x-example: '2024-04-27'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelEditRequestDTO'
+      tags:
+        - edit-controller
+  '/edits/from-csv/{sourceRecordingId}':
+    post:
+      consumes:
+        - multipart/form-data
+      operationId: createEditFromCsv
+      parameters:
+        - format: uuid
+          in: path
+          name: sourceRecordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - format: binary
+          in: formData
+          name: file
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
+  '/edits/{id}':
+    get:
+      operationId: getEditRequestById
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
   /health:
     get:
       operationId: health
@@ -3619,6 +3806,11 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: The version number to search by
+          format: int32
+          in: query
+          name: version
+          type: integer
         - description: Sort by
           in: query
           name: sort
