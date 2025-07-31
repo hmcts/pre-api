@@ -971,7 +971,7 @@ public class MigrationRecordServiceTest {
         dto.setWitnessName("witnessName");
         dto.setDefendantName("defendantName");
         dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
-        dto.setStatus(VfMigrationStatus.RESOLVED);
+        dto.setStatus(VfMigrationStatus.READY);
         dto.setResolvedAt(Timestamp.from(Instant.now()));
 
         final Court court = new Court();
@@ -998,6 +998,44 @@ public class MigrationRecordServiceTest {
         verify(courtRepository, times(1)).findById(dto.getCourtId());
         verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
     }
+
+    @Test
+    @DisplayName("Should update READY status to SUBMITTED and return true")
+    void markReadyAsSubmittedShouldUpdateReadyToSubmitted() {
+        MigrationRecord readyRecord1 = new MigrationRecord();
+        readyRecord1.setArchiveId("readyId1");
+        readyRecord1.setStatus(VfMigrationStatus.READY);
+
+        MigrationRecord readyRecord2 = new MigrationRecord();
+        readyRecord2.setArchiveId("readyId2");
+        readyRecord2.setStatus(VfMigrationStatus.READY);
+
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY))
+            .thenReturn(List.of(readyRecord1, readyRecord2));
+
+        boolean result = migrationRecordService.markReadyAsSubmitted();
+
+        assertThat(result).isTrue();
+        assertThat(readyRecord1.getStatus()).isEqualTo(VfMigrationStatus.SUBMITTED);
+        assertThat(readyRecord2.getStatus()).isEqualTo(VfMigrationStatus.SUBMITTED);
+
+        verify(migrationRecordRepository, times(1)).saveAllAndFlush(List.of(readyRecord1, readyRecord2));
+    }
+
+    @Test
+    @DisplayName("Should return false when no READY records exist")
+    void markReadyAsSubmittedShouldReturnFalseIfNoReadyRecordsExist() {
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY))
+            .thenReturn(List.of());
+
+        boolean result = migrationRecordService.markReadyAsSubmitted();
+
+        assertThat(result).isFalse();
+
+        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.READY);
+        verify(migrationRecordRepository, never()).saveAllAndFlush(any());
+    }
+
 
     private MigrationRecord createMigrationRecord() {
         final MigrationRecord migrationRecord = new MigrationRecord();

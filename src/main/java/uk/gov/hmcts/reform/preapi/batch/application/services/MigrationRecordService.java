@@ -480,6 +480,20 @@ public class MigrationRecordService {
         return UpsertResult.UPDATED;
     }
 
+    @Transactional
+    public boolean markReadyAsSubmitted() {
+        List<MigrationRecord> readyRecords = migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY);
+
+        if (readyRecords.isEmpty()) {
+            return false;
+        }
+
+        readyRecords.forEach(r -> r.setStatus(VfMigrationStatus.SUBMITTED));
+        migrationRecordRepository.saveAllAndFlush(readyRecords);
+
+        return true;
+    }
+
     private static String nullToEmpty(String input) {
         return input == null ? "" : input;
     }

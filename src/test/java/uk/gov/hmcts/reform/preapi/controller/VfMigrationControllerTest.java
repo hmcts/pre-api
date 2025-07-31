@@ -36,6 +36,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -537,13 +538,30 @@ public class VfMigrationControllerTest {
 
 
     @Test
-    @DisplayName("Should submit migration records successfully")
-    public void shouldSubmitMigrationRecordsSuccessfully() throws Exception {
+    @DisplayName("Should submit migration records successfully when markReadyAsSubmitted is true")
+    public void shouldSubmitMigrationRecordsWhenMarkReadyAsSubmittedIsTrue() throws Exception {
+        when(migrationRecordService.markReadyAsSubmitted()).thenReturn(true);
+
         mockMvc.perform(post("/vf-migration-records/submit")
-                            .with(csrf())
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent());
 
+        verify(migrationRecordService, times(1)).markReadyAsSubmitted();
         verify(migrateResolved, times(1)).asyncMigrateResolved();
+    }
+
+    @Test
+    @DisplayName("Should not submit migration records when markReadyAsSubmitted is false")
+    public void shouldNotSubmitMigrationRecordsWhenMarkReadyAsSubmittedIsFalse() throws Exception {
+        when(migrationRecordService.markReadyAsSubmitted()).thenReturn(false);
+
+        mockMvc.perform(post("/vf-migration-records/submit")
+                .with(csrf())
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent());
+
+        verify(migrationRecordService, times(1)).markReadyAsSubmitted();
+        verifyNoInteractions(migrateResolved);
     }
 }
