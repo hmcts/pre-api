@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -34,27 +35,27 @@ public class DataValidationService {
 
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
-                Constants.Reports.FILE_MISSING_DATA);
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())
             && !cleansedData.isMostRecentVersion()) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,
-                Constants.Reports.FILE_NOT_RECENT);
+                VfFailureReason.NOT_MOST_RECENT.toString());
         }
 
         String caseReference = cleansedData.getCaseReference();
         if (caseReference == null || caseReference.length() < 9) {
             return ServiceResultUtil.failure(
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
-                Constants.Reports.FILE_MISSING_DATA
+                VfFailureReason.INCOMPLETE_DATA.toString()
             );
         }
 
         if (caseReference.length() > 24) {
             return ServiceResultUtil.failure(
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
-                Constants.Reports.FILE_MISSING_DATA
+                VfFailureReason.INCOMPLETE_DATA.toString()
             );
         }
 
@@ -65,7 +66,7 @@ public class DataValidationService {
             if (currentRecord.isPresent() && !isParentMigrated(currentRecord.get())) {
                 return ServiceResultUtil.failure(
                     Constants.ErrorMessages.NO_PARENT_FOUND,
-                    Constants.Reports.FILE_MISSING_DATA
+                    VfFailureReason.INCOMPLETE_DATA.toString()
                 );
             }
 
@@ -74,7 +75,7 @@ public class DataValidationService {
         if (!cleansedData.isPreferred()) {
             return ServiceResultUtil.failure(
                 Constants.ErrorMessages.NOT_PREFERRED,
-                Constants.Reports.FILE_NOT_PREFERRED
+                VfFailureReason.ALTERNATIVE_AVAILABLE.toString()
             );
         }
 
@@ -87,39 +88,39 @@ public class DataValidationService {
         loggingService.logDebug("Processed Recording", cleansedData);
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
-                Constants.Reports.FILE_MISSING_DATA);
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         String caseReference = cleansedData.getCaseReference();
         if (caseReference == null || caseReference.length() < 9) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
-                Constants.Reports.FILE_MISSING_DATA);
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         if (caseReference.length() > 24) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
-                Constants.Reports.FILE_MISSING_DATA);
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         String witness = cleansedData.getWitnessFirstName();
         if (witness == null || witness.trim().isEmpty()) {
             return ServiceResultUtil.failure("Missing or empty witness first name",
-                Constants.Reports.FILE_MISSING_DATA);
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         String defendant = cleansedData.getDefendantLastName();
         if (defendant == null || defendant.trim().isEmpty()) {
             return ServiceResultUtil.failure("Missing or empty defendant last name",
-                Constants.Reports.FILE_MISSING_DATA);
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         if (cleansedData.getRecordingVersionNumber() < 1) {
             return ServiceResultUtil.failure("Invalid recording version number",
-                Constants.Reports.FILE_MISSING_DATA);
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         if (cleansedData.getFileName() == null || cleansedData.getFileName().isBlank()) {
-            return ServiceResultUtil.failure("Missing file name", Constants.Reports.FILE_MISSING_DATA);
+            return ServiceResultUtil.failure("Missing file name", VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         return ServiceResultUtil.success(cleansedData);

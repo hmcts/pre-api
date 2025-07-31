@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -14,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 import java.util.regex.Matcher;
 
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
 @Service
 public class DataExtractionService {
@@ -56,7 +56,7 @@ public class DataExtractionService {
         var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
         if (patternMatch.isEmpty()) {
             loggingService.logDebug("Extraction - No pattern matched: archiveName=%s", archiveName);
-            return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
+            return ServiceResultUtil.failure(PATTERN_MATCH, VfFailureReason.VALIDATION_FAILED.toString());
         }
         loggingService.logDebug(
             "Extraction - Matching patterns for archiveName=%s, pattern=%s", archiveName, patternMatch);

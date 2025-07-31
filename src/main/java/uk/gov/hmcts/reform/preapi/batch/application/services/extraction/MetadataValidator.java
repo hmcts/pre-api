@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -19,10 +20,6 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.NO
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PREDATES_GO_LIVE;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_DURATION;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_ITEM_NAME;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_MISSING_DATA;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_PRE_EXISTING;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_PRE_GO_LIVE;
 
 @Service
 public class MetadataValidator {
@@ -36,7 +33,7 @@ public class MetadataValidator {
     public ServiceResult<?> validatePreExisting(MigrationRecord archiveItem) {
         String name = archiveItem.getArchiveName().toUpperCase();
         if (name.contains("-PRE-")) {
-            return ServiceResultUtil.failure("Keyword 'PRE' found", FILE_PRE_EXISTING);
+            return ServiceResultUtil.failure("Keyword 'PRE' found", VfFailureReason.PRE_EXISTING.toString());
         }
         return ServiceResultUtil.success(archiveItem);
     }
@@ -46,7 +43,7 @@ public class MetadataValidator {
 
         if (!isDateAfterGoLive(archiveItem)) {
             loggingService.logError(PREDATES_GO_LIVE, archiveItem.getArchiveName());
-            return ServiceResultUtil.failure(PREDATES_GO_LIVE, FILE_PRE_GO_LIVE);
+            return ServiceResultUtil.failure(PREDATES_GO_LIVE, VfFailureReason.PRE_GO_LIVE.toString());
         }
 
         TestItem test = isTestRecording(archiveItem);
@@ -60,7 +57,7 @@ public class MetadataValidator {
 
     public ServiceResult<?> validateExtension(String extension) {
         return !isValidExtension(extension)
-            ? ServiceResultUtil.failure(NOT_PREFERRED, FILE_INVALID_FORMAT)
+            ? ServiceResultUtil.failure(NOT_PREFERRED, VfFailureReason.INVALID_FORMAT.toString())
             : ServiceResultUtil.success(extension);
     }
 
@@ -70,7 +67,7 @@ public class MetadataValidator {
             loggingService.logError("Missing required metadata fields: %s", String.join(", ", missingFields));
             return ServiceResultUtil.failure(
                 "Missing required metadata fields: " + String.join(", ", missingFields),
-                FILE_MISSING_DATA
+                VfFailureReason.INCOMPLETE_DATA.toString()
             );
         }
 

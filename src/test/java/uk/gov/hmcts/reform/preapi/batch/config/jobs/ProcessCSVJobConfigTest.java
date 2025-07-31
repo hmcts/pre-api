@@ -176,7 +176,7 @@ public class ProcessCSVJobConfigTest {
     void shouldCreatePendingMigrationRecordReaderWithRecords() {
         // Given
         List<MigrationRecord> pendingRecords = Arrays.asList(migrationRecord1, migrationRecord2);
-        when(migrationRecordRepository.findByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
             .thenReturn(pendingRecords);
 
         // When
@@ -187,7 +187,7 @@ public class ProcessCSVJobConfigTest {
 
         // Then
         assertThat(result).isNotNull();
-        verify(migrationRecordRepository).findByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
         verify(loggingService).logInfo("Found %d pending migration records.", 2);
     }
 
@@ -195,7 +195,7 @@ public class ProcessCSVJobConfigTest {
     void shouldCreatePendingMigrationRecordReaderWithEmptyList() {
         // Given
         List<MigrationRecord> emptyList = Collections.emptyList();
-        when(migrationRecordRepository.findByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
             .thenReturn(emptyList);
 
         // When
@@ -206,7 +206,7 @@ public class ProcessCSVJobConfigTest {
 
         // Then
         assertThat(result).isNotNull();
-        verify(migrationRecordRepository).findByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
         verify(loggingService).logInfo("No pending migration records found.");
     }
 

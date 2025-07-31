@@ -157,6 +157,7 @@ tasks:
 
 feature-flags:
   enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+  enable-migration-admin-endpoints: ${ENABLE_MIGRATION_ADMIN_ENDPOINTS:false}
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
 
