@@ -42,7 +42,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = { EntityCreationService.class })
+@SpringBootTest(classes = {EntityCreationService.class})
 public class EntityCreationServiceTest {
     @MockitoBean
     private LoggingService loggingService;
@@ -439,5 +439,53 @@ public class EntityCreationServiceTest {
         assertThat(invite.getEmail()).isEqualTo(user.getEmail());
         assertThat(invite.getFirstName()).isEqualTo(user.getFirstName());
         assertThat(invite.getLastName()).isEqualTo(user.getLastName());
+    }
+
+    @Test
+    @DisplayName("Should create booking with new booking ID for non-COPY recording")
+    void createBookingShouldCreateNewBookingForNonCopyRecording() {
+        ProcessedRecording recording = new ProcessedRecording();
+        recording.setArchiveId("archive123");
+        recording.setExtractedRecordingVersion("ORIG");
+        recording.setRecordingTimestamp(Timestamp.from(Instant.now()));
+
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+        caseDTO.setParticipants(Set.of());
+
+        when(migrationRecordService.findByArchiveId("archive123")).thenReturn(Optional.empty());
+
+        CreateBookingDTO result = entityCreationService.createBooking(recording, caseDTO, "key");
+
+        assertThat(result.getId()).isNotNull();
+        assertThat(result.getCaseId()).isEqualTo(caseDTO.getId());
+        assertThat(result.getScheduledFor()).isEqualTo(recording.getRecordingTimestamp());
+        verify(migrationRecordService).updateBookingId("archive123", result.getId());
+    }
+
+    @Test
+    @DisplayName("Should create user with generated UUID")
+    void createUserShouldCreateUserWithGeneratedId() {
+        CreateUserDTO result = entityCreationService.createUser("John", "Doe", "john.doe@example.com");
+
+        assertThat(result.getId()).isNotNull();
+        assertThat(result.getFirstName()).isEqualTo("John");
+        assertThat(result.getLastName()).isEqualTo("Doe");
+        assertThat(result.getEmail()).isEqualTo("john.doe@example.com");
+        assertThat(result.getPortalAccess()).isEmpty();
+        assertThat(result.getAppAccess()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should create user with specified UUID")
+    void createUserShouldCreateUserWithSpecifiedId() {
+        UUID specificId = UUID.randomUUID();
+
+        CreateUserDTO result = entityCreationService.createUser("Jane", "Smith", "jane.smith@example.com", specificId);
+
+        assertThat(result.getId()).isEqualTo(specificId);
+        assertThat(result.getFirstName()).isEqualTo("Jane");
+        assertThat(result.getLastName()).isEqualTo("Smith");
+        assertThat(result.getEmail()).isEqualTo("jane.smith@example.com");
     }
 }
