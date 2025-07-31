@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,8 +22,8 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -454,27 +453,27 @@ class RecordingServiceTest {
 
     @DisplayName("Should not throw error when all recordings of a capture session have been marked as deleted")
     @Test
-    void deleteCascadeSuccess() {
+    void checkIfCaptureSessionHasAssociatedRecordingsSuccess() {
         when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
             .thenReturn(false);
 
         assertDoesNotThrow(
-            () -> recordingService.deleteCascade(recordingEntity.getCaptureSession())
+            () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
         );
     }
 
     @DisplayName("Should throw error when all recordings of a capture session have not been marked as deleted")
     @Test
-    void deleteCascadeRecordingsNotDeleted() {
+    void checkIfCaptureSessionHasAssociatedRecordingsRecordingsNotDeleted() {
         when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
             .thenReturn(true);
 
         var message = assertThrows(
-            RecordingNotDeletedException.class,
-            () -> recordingService.deleteCascade(recordingEntity.getCaptureSession())
+            CaptureSessionNotDeletedException.class,
+            () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
         ).getMessage();
 
-        assertThat(message).isEqualTo("Cannot delete because and associated recording has not been deleted.");
+        assertThat(message).isEqualTo("Cannot delete because an associated recording has not been deleted.");
     }
 
     @DisplayName("Should set started at from and until when started at is set")
@@ -666,5 +665,87 @@ class RecordingServiceTest {
         assertThat(results.getFirst().getId()).isEqualTo(recordingEntity.getId());
 
         verify(recordingRepository, times(1)).findAllByDurationIsNullAndDeletedAtIsNull();
+    }
+
+    @Test
+    @DisplayName("ForceUpsert - Create a recording when it does not exist")
+    void forceUpsertCreateSuccess() {
+        var captureSession1 = new CaptureSession();
+        captureSession1.setId(UUID.randomUUID());
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(captureSession1.getId());
+        recordingModel.setVersion(1);
+        recordingModel.setFilename("test-creation.mp4");
+
+        when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession1.getId()))
+            .thenReturn(Optional.of(captureSession1));
+        when(recordingRepository.save(any(Recording.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(recordingService.forceUpsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
+        verify(recordingRepository, times(1)).save(any(Recording.class));
+    }
+
+    @Test
+    @DisplayName("ForceUpsert - Update a recording when it already exists")
+    void forceUpsertUpdateSuccess() {
+        var captureSession1 = new CaptureSession();
+        captureSession1.setId(UUID.randomUUID());
+        var existingRecording = new Recording();
+        existingRecording.setId(UUID.randomUUID());
+        existingRecording.setVersion(1);
+
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(existingRecording.getId());
+        recordingModel.setCaptureSessionId(captureSession1.getId());
+        recordingModel.setVersion(2);
+        recordingModel.setFilename("test-update.mp4");
+
+        when(recordingRepository.findById(recordingModel.getId()))
+            .thenReturn(Optional.of(existingRecording));
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession1.getId()))
+            .thenReturn(Optional.of(captureSession1));
+        when(recordingRepository.save(any(Recording.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(recordingService.forceUpsert(recordingModel)).isEqualTo(UpsertResult.UPDATED);
+        verify(recordingRepository, times(1)).save(any(Recording.class));
+    }
+
+    @Test
+    @DisplayName("ForceUpsert - Fail when parent recording is not found")
+    void forceUpsertParentRecordingNotFound() {
+        var captureSession1 = new CaptureSession();
+        captureSession1.setId(UUID.randomUUID());
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(captureSession1.getId());
+        recordingModel.setParentRecordingId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+
+        when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession1.getId()))
+            .thenReturn(Optional.of(captureSession1));
+        when(recordingRepository.findById(recordingModel.getParentRecordingId()))
+            .thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> recordingService.forceUpsert(recordingModel));
+        verify(recordingRepository, never()).save(any(Recording.class));
+    }
+
+    @Test
+    @DisplayName("ForceUpsert - Fail when capture session is not found")
+    void forceUpsertCaptureSessionNotFound() {
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
+
+        when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(recordingModel.getCaptureSessionId()))
+            .thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> recordingService.forceUpsert(recordingModel));
+        verify(recordingRepository, never()).save(any(Recording.class));
     }
 }
