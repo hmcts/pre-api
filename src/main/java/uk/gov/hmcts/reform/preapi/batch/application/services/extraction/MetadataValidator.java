@@ -30,6 +30,14 @@ public class MetadataValidator {
         this.loggingService = loggingService;
     }
 
+    public ServiceResult<?> validatePreExisting(MigrationRecord archiveItem) {
+        String name = archiveItem.getArchiveName().toUpperCase();
+        if (name.contains("-PRE-")) {
+            return ServiceResultUtil.failure("Keyword 'PRE' found", FILE_PRE_EXISTING);
+        }
+        return ServiceResultUtil.success(archiveItem);
+    }
+
     public ServiceResult<?> validateTest(MigrationRecord archiveItem) {
         loggingService.logDebug("Validating %s for test", archiveItem.getSanitizedArchiveName());
 

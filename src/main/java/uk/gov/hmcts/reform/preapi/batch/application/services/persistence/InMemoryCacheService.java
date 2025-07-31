@@ -147,14 +147,14 @@ public class InMemoryCacheService {
             rows.add(List.of("db:cases", entry.getKey(), entry.getValue().toString()));
         }
 
-        // caseCache
+        // userCache
         for (Map.Entry<String, UUID> entry : userCache.entrySet()) {
             rows.add(List.of("db:users", entry.getKey(), entry.getValue().toString()));
         }
 
         // shareBookingCache
         for (Map.Entry<String, CreateShareBookingDTO> entry : shareBookingCache.entrySet()) {
-            rows.add(List.of(entry.getKey(), entry.getValue().toString()));
+            rows.add(List.of("db:sharebookings", entry.getKey(), entry.getValue().toString()));
         }
 
         // //  siteReferenceCache

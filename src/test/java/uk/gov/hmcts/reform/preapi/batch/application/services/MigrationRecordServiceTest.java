@@ -853,6 +853,107 @@ public class MigrationRecordServiceTest {
     }
 
     @Test
+    @DisplayName("Should set isMostRecent true for single ORIG record in group")
+    void updateMetadataFieldsShouldSetIsMostRecentForOrig() {
+        MigrationRecord record = new MigrationRecord();
+        record.setArchiveId("id1");
+        record.setRecordingVersion("ORIG");
+        record.setRecordingGroupKey("urn|ex|wit|def"); // Set the groupKey that will be generated
+        record.setRecordingVersionNumber("1");
+        record.setIsMostRecent(false); // Initialize to false
+
+        when(migrationRecordRepository.findByArchiveId("id1")).thenReturn(Optional.of(record));
+        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(record));
+
+        ExtractedMetadata metadata = new ExtractedMetadata();
+        metadata.setCourtReference("Court");
+        metadata.setUrn("urn");
+        metadata.setExhibitReference("ex");
+        metadata.setDefendantLastName("def");
+        metadata.setWitnessFirstName("wit");
+        metadata.setRecordingVersion("ORIG");
+        metadata.setRecordingVersionNumber("1");
+        metadata.setFileName("file.mp4");
+        metadata.setFileSize("10MB");
+
+        migrationRecordService.updateMetadataFields("id1", metadata);
+
+        assertThat(record.getIsMostRecent()).isTrue();
+        verify(migrationRecordRepository).save(record);
+        verify(migrationRecordRepository).saveAll(List.of(record));
+    }
+
+    @Test
+    @DisplayName("Should set isMostRecent true for only copy record in group")
+    void updateMetadataFieldsShouldSetIsMostRecentForSingleCopy() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setArchiveId("id2");
+        copy.setRecordingVersion("COPY");
+        copy.setRecordingGroupKey("urn|ex|wit|def"); // Set the groupKey that will be generated
+        copy.setRecordingVersionNumber("2");
+        copy.setIsMostRecent(false); // Initialize to false
+
+        when(migrationRecordRepository.findByArchiveId("id2")).thenReturn(Optional.of(copy));
+        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(copy));
+
+        ExtractedMetadata metadata = new ExtractedMetadata();
+        metadata.setCourtReference("Court");
+        metadata.setUrn("urn");
+        metadata.setExhibitReference("ex");
+        metadata.setDefendantLastName("def");
+        metadata.setWitnessFirstName("wit");
+        metadata.setRecordingVersion("COPY");
+        metadata.setRecordingVersionNumber("2");
+        metadata.setFileName("file.mp4");
+        metadata.setFileSize("10MB");
+
+        migrationRecordService.updateMetadataFields("id2", metadata);
+
+        assertThat(copy.getIsMostRecent()).isTrue();
+        verify(migrationRecordRepository).save(copy);
+        verify(migrationRecordRepository).saveAll(List.of(copy));
+    }
+
+    @Test
+    @DisplayName("Should set isMostRecent true only for most recent copy in group")
+    void updateMetadataFieldsShouldSetIsMostRecentForMostRecentCopy() {
+        MigrationRecord copy1 = new MigrationRecord();
+        copy1.setArchiveId("id3");
+        copy1.setRecordingVersion("COPY");
+        copy1.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
+        copy1.setRecordingVersionNumber("1");
+        copy1.setIsMostRecent(false);
+
+        MigrationRecord copy2 = new MigrationRecord();
+        copy2.setArchiveId("id4");
+        copy2.setRecordingVersion("COPY");
+        copy2.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
+        copy2.setRecordingVersionNumber("2");
+        copy2.setIsMostRecent(false);
+
+        when(migrationRecordRepository.findByArchiveId("id4")).thenReturn(Optional.of(copy2));
+        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(copy1, copy2));
+
+        ExtractedMetadata metadata = new ExtractedMetadata();
+        metadata.setCourtReference("Court");
+        metadata.setUrn("urn");
+        metadata.setExhibitReference("ex");
+        metadata.setDefendantLastName("def");
+        metadata.setWitnessFirstName("wit");
+        metadata.setRecordingVersion("COPY");
+        metadata.setRecordingVersionNumber("2");
+        metadata.setFileName("file.mp4");
+        metadata.setFileSize("10MB");
+
+        migrationRecordService.updateMetadataFields("id4", metadata);
+
+        assertThat(copy1.getIsMostRecent()).isFalse();
+        assertThat(copy2.getIsMostRecent()).isTrue();
+        verify(migrationRecordRepository).save(copy2);
+        verify(migrationRecordRepository).saveAll(List.of(copy1, copy2));
+    }
+
+    @Test
     @DisplayName("Returns a page of VfMigrationRecordDTO")
     public void findAllBy() {
         final MigrationRecord migrationRecord = createMigrationRecord();

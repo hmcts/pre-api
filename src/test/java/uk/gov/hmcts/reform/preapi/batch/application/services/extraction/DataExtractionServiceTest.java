@@ -17,7 +17,9 @@ import java.util.regex.Matcher;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
 
@@ -38,12 +40,14 @@ public class DataExtractionServiceTest {
     @Test
     void processTestValidationFailure() {
         MigrationRecord data = new MigrationRecord();
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
         when(metadataValidator.validateTest(data)).thenReturn(ServiceResultUtil.failure("", ""));
-
         ServiceResult<?> result = dataExtractionService.process(data);
 
         assertThat(result.isSuccess()).isFalse();
     }
+
 
     // @Test
     // @SuppressWarnings("unchecked")
@@ -68,6 +72,8 @@ public class DataExtractionServiceTest {
         MigrationRecord data = new MigrationRecord();
         data.setArchiveName("sanitizedArchiveName.mp4");
         var testResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
@@ -87,6 +93,8 @@ public class DataExtractionServiceTest {
         data.setArchiveName("sanitizedArchiveName.mp4");
         data.setDuration(10);
         var testResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
@@ -114,11 +122,15 @@ public class DataExtractionServiceTest {
         data.setDuration(10);
 
         var testResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
 
         var extensionResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
         when(extensionResult.isSuccess()).thenReturn(false);
         when(metadataValidator.validateExtension("exe")).thenReturn(extensionResult);
 
@@ -145,6 +157,8 @@ public class DataExtractionServiceTest {
         data.setArchiveName("sanitizedArchiveName.mp4");
         data.setDuration(10);
         var testResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
@@ -177,6 +191,8 @@ public class DataExtractionServiceTest {
         data.setArchiveName("sanitizedArchiveName.mp4");
         data.setDuration(10);
         var testResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
@@ -200,5 +216,20 @@ public class DataExtractionServiceTest {
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.getData()).isNotNull();
+    }
+
+    @Test
+    void processPreExistingValidationFailure() {
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("some-file-PRE-existing.mp4");
+
+        when(metadataValidator.validatePreExisting(any(MigrationRecord.class)))
+            .thenReturn(ServiceResultUtil.failure("Keyword 'PRE' found", FILE_PRE_EXISTING));
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getErrorMessage()).isEqualTo("Keyword 'PRE' found");
+        verify(metadataValidator).validatePreExisting(data);
     }
 }

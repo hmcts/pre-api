@@ -282,9 +282,18 @@ public class MigrationRecordService {
             .stream()
             .filter(r -> !r.getArchiveName().toLowerCase().endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+            .filter(MigrationRecord::getIsPreferred)
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
                 return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
+            })
+            .sorted((a, b) -> {
+                boolean aIsMp4 = a.getArchiveName().toLowerCase().endsWith(".mp4");
+                boolean bIsMp4 = b.getArchiveName().toLowerCase().endsWith(".mp4");
+                if (aIsMp4 != bIsMp4) {
+                    return bIsMp4 ? 1 : -1;
+                }
+                return Boolean.compare(b.getIsPreferred(), a.getIsPreferred());
             })
             .findFirst();
 
@@ -297,6 +306,7 @@ public class MigrationRecordService {
             migrationRecordRepository.save(copy);
         });
     }
+
 
     @Transactional
     public boolean deduplicatePreferredByArchiveId(String archiveId) {
