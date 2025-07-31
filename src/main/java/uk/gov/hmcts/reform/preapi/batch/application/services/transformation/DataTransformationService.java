@@ -132,14 +132,13 @@ public class DataTransformationService {
         boolean isPreferred = true;
 
         // Non-mp4 filter
-        if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4")) {
+        if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4") && !"COPY".equalsIgnoreCase(versionType)) {
             boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveId());
             if (updated) {
                 loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
                 isPreferred = false;
             }
         }
-
         // Deduplication check
         boolean isPreferredFromDeduplication = migrationRecordService.deduplicatePreferredByArchiveId(
             extracted.getArchiveId());
@@ -147,7 +146,6 @@ public class DataTransformationService {
             loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
             isPreferred = false;
         }
-
         if (!isPreferred) {
             loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
         }

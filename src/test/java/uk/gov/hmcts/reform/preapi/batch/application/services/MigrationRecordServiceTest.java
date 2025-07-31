@@ -141,14 +141,16 @@ public class MigrationRecordServiceTest {
     void markNonMp4AsNotPreferredShouldUpdateRecords() {
         MigrationRecord mp4Record = new MigrationRecord();
         mp4Record.setArchiveId("mp4Id");
+        mp4Record.setArchiveName("mp4Name.mp4");
         mp4Record.setRecordingGroupKey("groupKey");
         mp4Record.setRecordingVersionNumber("1");
-        mp4Record.setRecordingVersion("ORIG");
         mp4Record.setFileName("video.mp4");
+        mp4Record.setRecordingVersion("ORIG");
         mp4Record.setIsPreferred(false);
 
         MigrationRecord nonMp4Record = new MigrationRecord();
         nonMp4Record.setArchiveId("nonMp4Id");
+        nonMp4Record.setArchiveName("mp4Name");
         nonMp4Record.setRecordingGroupKey("groupKey");
         nonMp4Record.setRecordingVersionNumber("1");
         nonMp4Record.setRecordingVersion("ORIG");
@@ -402,7 +404,7 @@ public class MigrationRecordServiceTest {
             "2",
             "updated_file.mp4",
             "15MB",
-            VfMigrationStatus.RESOLVED,
+            VfMigrationStatus.SUBMITTED,
             "UpdatedReason",
             "No Error",
             Timestamp.from(Instant.now()),
@@ -411,7 +413,7 @@ public class MigrationRecordServiceTest {
 
         assertThat(result).isEqualTo(UpsertResult.UPDATED);
         assertThat(existingRecord.getArchiveName()).isEqualTo("Updated Archive Name");
-        assertThat(existingRecord.getStatus()).isEqualTo(VfMigrationStatus.RESOLVED);
+        assertThat(existingRecord.getStatus()).isEqualTo(VfMigrationStatus.SUBMITTED);
 
         verify(migrationRecordRepository, times(1)).saveAndFlush(existingRecord);
     }

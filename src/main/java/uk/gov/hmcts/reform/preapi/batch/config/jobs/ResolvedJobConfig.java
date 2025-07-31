@@ -27,16 +27,13 @@ import java.util.List;
 
 @Configuration
 public class ResolvedJobConfig {
-
     private final JobRepository jobRepository;
     public final PlatformTransactionManager transactionManager;
     private final CoreStepsConfig coreSteps;
 
-    public ResolvedJobConfig(
-        JobRepository jobRepository,
-        CoreStepsConfig coreSteps,
-        PlatformTransactionManager transactionManager
-    ) {
+    public ResolvedJobConfig(final JobRepository jobRepository,
+                             final CoreStepsConfig coreSteps,
+                             final PlatformTransactionManager transactionManager) {
         this.jobRepository = jobRepository;
         this.coreSteps = coreSteps;
         this.transactionManager = transactionManager;
@@ -44,11 +41,9 @@ public class ResolvedJobConfig {
 
     @Bean
     @StepScope
-    public ListItemReader<MigrationRecord> resolvedMigrationRecordReader(
-        MigrationRecordRepository repository,
-        LoggingService loggingService
-    ) {
-        List<MigrationRecord> resolved = repository.findAllByStatus(VfMigrationStatus.RESOLVED);
+    public ListItemReader<MigrationRecord> resolvedMigrationRecordReader(MigrationRecordRepository repository,
+                                                                         LoggingService loggingService) {
+        List<MigrationRecord> resolved = repository.findAllByStatus(VfMigrationStatus.SUBMITTED);
         if (resolved.isEmpty()) {
             loggingService.logInfo("No resolved migration records found.");
         } else {
@@ -60,11 +55,9 @@ public class ResolvedJobConfig {
 
     @Bean
     @JobScope
-    public Step resolvedMigrationRecordStep(
-        ListItemReader<MigrationRecord> resolvedMigrationRecordReader,
-        ItemProcessor<Object, MigratedItemGroup> processor,
-        ItemWriter<MigratedItemGroup> writer
-    ) {
+    public Step resolvedMigrationRecordStep(ListItemReader<MigrationRecord> resolvedMigrationRecordReader,
+                                            ItemProcessor<Object, MigratedItemGroup> processor,
+                                            ItemWriter<MigratedItemGroup> writer) {
         return new StepBuilder("resolvedMigrationRecordStep", jobRepository)
             .<MigrationRecord, MigratedItemGroup>chunk(BatchConfiguration.CHUNK_SIZE, transactionManager)
             .reader(resolvedMigrationRecordReader)
@@ -77,15 +70,12 @@ public class ResolvedJobConfig {
     }
 
     @Bean(name = "resolvedMigrationRecordJob")
-    public Job resolvedMigrationRecordJob(
-        @Qualifier("createSitesDataStep") Step createSitesDataStep,
-        @Qualifier("createChannelUserStep") Step createChannelUserStep,
-        @Qualifier("createPreProcessStep") Step createPreProcessStep,
-        @Qualifier("createRobotUserSignInStep") Step createRobotUserSignInStep,
-        @Qualifier("resolvedMigrationRecordStep") Step resolvedMigrationRecordStep,
-        @Qualifier("createWriteToCSVStep") Step createWriteToCSVStep
-
-    ) {
+    public Job resolvedMigrationRecordJob(@Qualifier("createSitesDataStep") Step createSitesDataStep,
+                                          @Qualifier("createChannelUserStep") Step createChannelUserStep,
+                                          @Qualifier("createPreProcessStep") Step createPreProcessStep,
+                                          @Qualifier("createRobotUserSignInStep") Step createRobotUserSignInStep,
+                                          @Qualifier("resolvedMigrationRecordStep") Step resolvedMigrationRecordStep,
+                                          @Qualifier("createWriteToCSVStep") Step createWriteToCSVStep) {
         return new JobBuilder("resolvedMigrationRecordJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(coreSteps.startLogging())

@@ -51,7 +51,7 @@ public class EntityCreationServiceTest {
     private InMemoryCacheService cacheService;
 
     @MockitoBean
-    private MigrationRecordService migrationRecordService;  
+    private MigrationRecordService migrationRecordService;
 
     @MockitoBean
     private UserService userService;
@@ -168,7 +168,7 @@ public class EntityCreationServiceTest {
             .extractedRecordingVersion("null")
             .build();
 
-        CreateCaptureSessionDTO result = entityCreationService.createCaptureSession(processedRecording, booking, "key");
+        CreateCaptureSessionDTO result = entityCreationService.createCaptureSession(processedRecording, booking);
         assertThat(result).isNotNull();
         assertThat(result.getId()).isNotNull();
         assertThat(result.getBookingId()).isEqualTo(booking.getId());
@@ -200,8 +200,7 @@ public class EntityCreationServiceTest {
         CreateBookingDTO booking = new CreateBookingDTO();
         booking.setId(UUID.randomUUID());
 
-        CreateCaptureSessionDTO session = entityCreationService.createCaptureSession(
-            processedRecording, booking, "key");
+        CreateCaptureSessionDTO session = entityCreationService.createCaptureSession(processedRecording, booking);
         assertThat(session).isNull();
     }
 
@@ -222,7 +221,7 @@ public class EntityCreationServiceTest {
         CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
 
-        CreateRecordingDTO result = entityCreationService.createRecording("key", processedRecording, captureSession);
+        CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
 
         assertThat(result).isNotNull();
         assertThat(result.getId()).isNotNull();
@@ -250,7 +249,7 @@ public class EntityCreationServiceTest {
         //     processedRecording.getExtractedRecordingVersionNumberStr()
         // );
 
-        // String expectedField = "parentLookup:null"; 
+        // String expectedField = "parentLookup:null";
 
         // assertThat(keyCaptor.getValue()).isEqualTo(expectedKey);
         // assertThat(fieldCaptor.getValue()).isEqualTo(expectedField);
@@ -286,7 +285,7 @@ public class EntityCreationServiceTest {
         when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(currentRecord));
         when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.of(origRecord));
 
-        CreateRecordingDTO result = entityCreationService.createRecording("key", processedRecording, captureSession);
+        CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
 
         assertThat(result).isNotNull();
         assertThat(result.getVersion()).isEqualTo(2);
@@ -307,7 +306,7 @@ public class EntityCreationServiceTest {
 
         when(cacheService.getHashValue("key", "recordingMetadata", String.class)).thenReturn(null);
 
-        CreateRecordingDTO result = entityCreationService.createRecording("key", processedRecording, captureSession);
+        CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
 
         assertThat(result.getVersion()).isEqualTo(2);
         assertThat(result.getParentRecordingId()).isNull();
@@ -418,11 +417,11 @@ public class EntityCreationServiceTest {
         accessDTO.setUser(user);
 
         when(userService.findByEmail(email)).thenReturn(accessDTO);
-        
+
         UUID result = entityCreationService.getUserByEmail(email);
 
         assertThat(result).isNotNull();
-        assertThat(result).isEqualTo(userId);        
+        assertThat(result).isEqualTo(userId);
     }
 
     @Test

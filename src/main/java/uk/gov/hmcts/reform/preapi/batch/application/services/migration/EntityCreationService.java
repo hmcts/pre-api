@@ -36,16 +36,13 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
-    protected static final String BOOKING_FIELD = "booking";
-    protected static final String CAPTURE_SESSION_FIELD = "captureSession";
-
-    @Value("${vodafone-user-email}")
-    private String vodafoneUserEmail;
-
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
+
+    @Value("${vodafone-user-email}")
+    private String vodafoneUserEmail;
 
     // =========================
     // Entity Creation Methods
@@ -93,7 +90,7 @@ public class EntityCreationService {
         bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
         Set<CreateParticipantDTO> filteredParticipants = aCase.getParticipants().stream()
             .filter(p ->
-                (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName())) 
+                (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName()))
                 || (p.getLastName() != null && p.getLastName().equalsIgnoreCase(cleansedData.getDefendantLastName()))
             )
             .collect(Collectors.toSet());
@@ -104,11 +101,7 @@ public class EntityCreationService {
         return bookingDTO;
     }
 
-    public CreateCaptureSessionDTO createCaptureSession(
-        ProcessedRecording cleansedData,
-        CreateBookingDTO booking,
-        String key
-    ) {
+    public CreateCaptureSessionDTO createCaptureSession(ProcessedRecording cleansedData, CreateBookingDTO booking) {
         UUID captureSessionId;
 
         Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
@@ -138,15 +131,11 @@ public class EntityCreationService {
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
         migrationRecordService.updateCaptureSessionId(cleansedData.getArchiveId(), captureSessionId);
-        
+
         return captureSessionDTO;
     }
 
-    public CreateRecordingDTO createRecording(
-        String key,
-        ProcessedRecording cleansedData,
-        CreateCaptureSessionDTO captureSession
-    ) {
+    public CreateRecordingDTO createRecording(ProcessedRecording cleansedData, CreateCaptureSessionDTO captureSession) {
         var recordingDTO = new CreateRecordingDTO();
         UUID recordingId = UUID.randomUUID();
         recordingDTO.setId(recordingId);
@@ -181,10 +170,10 @@ public class EntityCreationService {
 
         recordingDTO.setFilename(cleansedData.getFileName());
         migrationRecordService.updateRecordingId(cleansedData.getArchiveId(), recordingId);
-  
+
         return recordingDTO;
     }
-    
+
     public Set<CreateParticipantDTO> createParticipants(ProcessedRecording cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
 
@@ -257,14 +246,15 @@ public class EntityCreationService {
         return createInviteDTO;
     }
 
-    public PostMigratedItemGroup createShareBookingAndInviteIfNotExists(
-        BookingDTO booking, String email, String firstName, String lastName
-    ) {
+    public PostMigratedItemGroup createShareBookingAndInviteIfNotExists(BookingDTO booking,
+                                                                        String email,
+                                                                        String firstName,
+                                                                        String lastName) {
         loggingService.logInfo("Creating share booking and user for %s %s %s", email, firstName, lastName);
         String lowerEmail = email.toLowerCase();
 
         List<CreateInviteDTO> invites = new ArrayList<>();
-        
+
         String existingUserId = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, String.class);
         CreateUserDTO sharedWith;
         if (existingUserId != null) {
@@ -289,8 +279,9 @@ public class EntityCreationService {
             return null;
         }
 
-        String vodafoneID = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, 
-            vodafoneUserEmail.toLowerCase(), String.class);
+        String vodafoneID = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX,
+                                                      vodafoneUserEmail.toLowerCase(),
+                                                      String.class);
         CreateUserDTO sharedBy;
 
         if (vodafoneID != null) {
@@ -329,5 +320,4 @@ public class EntityCreationService {
         result.setShareBookings(shareBookings);
         return result;
     }
-
 }

@@ -38,14 +38,12 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final AtomicInteger failureCount = new AtomicInteger(0);
 
     @Autowired
-    public MigrationWriter(
-        LoggingService loggingService,
-        CaseService caseService,
-        BookingService bookingService,
-        RecordingService recordingService,
-        CaptureSessionService captureSessionService,
-        MigrationTrackerService migrationTrackerService
-    ) {
+    public MigrationWriter(final LoggingService loggingService,
+                           final CaseService caseService,
+                           final BookingService bookingService,
+                           final RecordingService recordingService,
+                           final CaptureSessionService captureSessionService,
+                           final MigrationTrackerService migrationTrackerService) {
         this.loggingService = loggingService;
         this.caseService = caseService;
         this.bookingService = bookingService;

@@ -21,14 +21,6 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 
 @Configuration
 public class FetchDataJobConfig {
-
-    // public static final String CONTAINER_NAME = "pre-vodafone-spike";
-    // public static final String CONTAINER_NAME = "poc";
-    // public static final String XML_PREFIX = "MS06"; 
-    public static final String XML_PREFIX = ""; 
-    public static final String CONTAINER_NAME = "prod-migration-1";
-    public static final String FULL_PATH = "src/main/resources/batch";
-
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final ArchiveMetadataXmlExtractor xmlProcessingService;
@@ -36,15 +28,19 @@ public class FetchDataJobConfig {
     private final CoreStepsConfig coreSteps;
     private final LoggingService loggingService;
 
-
-    public FetchDataJobConfig(
-        JobRepository jobRepository,
-        PlatformTransactionManager transactionManager,
-        CoreStepsConfig coreSteps,
-        ArchiveMetadataXmlExtractor xmlProcessingService,
-        MigrationRecordService migrationRecordService,
-        LoggingService loggingService
-    ) {
+    // public static final String CONTAINER_NAME = "pre-vodafone-spike";
+    // public static final String CONTAINER_NAME = "poc";
+    // public static final String XML_PREFIX = "MS06";
+    public static final String XML_PREFIX = "";
+    public static final String CONTAINER_NAME = "prod-migration-1";
+    public static final String FULL_PATH = "src/main/resources/batch";
+    
+    public FetchDataJobConfig(final JobRepository jobRepository,
+                              final PlatformTransactionManager transactionManager,
+                              final CoreStepsConfig coreSteps,
+                              final ArchiveMetadataXmlExtractor xmlProcessingService,
+                              final MigrationRecordService migrationRecordService,
+                              final LoggingService loggingService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.coreSteps = coreSteps;
@@ -93,7 +89,7 @@ public class FetchDataJobConfig {
                     reader.close();
                     loggingService.logInfo("FetchDataJob - Inserted %d pending records from CSV.", count);
                 } else {
-                    loggingService.logInfo("FetchDataJob - Fetching XMLs from Azure container '%s' with prefix '%s'%n", 
+                    loggingService.logInfo("FetchDataJob - Fetching XMLs from Azure container '%s' with prefix '%s'%n",
                         CONTAINER_NAME, XML_PREFIX);
                     xmlProcessingService.extractAndReportArchiveMetadata(
                         CONTAINER_NAME, XML_PREFIX, FULL_PATH, outputFileName);

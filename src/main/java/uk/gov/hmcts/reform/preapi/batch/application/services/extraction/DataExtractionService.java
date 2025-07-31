@@ -22,11 +22,9 @@ public class DataExtractionService {
     private final MetadataValidator validator;
     private final PatternMatcherService patternMatcher;
 
-    public DataExtractionService(
-        LoggingService loggingService,
-        MetadataValidator validator,
-        PatternMatcherService patternMatcher
-    ) {
+    public DataExtractionService(final LoggingService loggingService,
+                                 final MetadataValidator validator,
+                                 final PatternMatcherService patternMatcher) {
         this.loggingService = loggingService;
         this.validator = validator;
         this.patternMatcher = patternMatcher;
@@ -38,7 +36,6 @@ public class DataExtractionService {
         if (archiveItem.getSanitizedArchiveName().isEmpty()) {
             loggingService.logWarning("Missing sanitized name");
         }
-
 
         String archiveName = archiveItem.getArchiveName();
 
@@ -96,7 +93,6 @@ public class DataExtractionService {
     // =========================
     // Metadata Extraction
     // =========================
-
     private String getMatcherGroup(Matcher matcher, String groupName) {
         try {
             return matcher.group(groupName);
@@ -110,7 +106,7 @@ public class DataExtractionService {
         String versionNumber = getMatcherGroup(matcher, "versionNumber");
         versionType = RecordingUtils.normalizeVersionType(versionType);
 
-        if (Constants.VALID_ORIG_TYPES.contains(versionType != null ? versionType.toUpperCase() : "")
+        if (Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())
             && (versionNumber == null || versionNumber.isEmpty())) {
             versionNumber = "1";
         }

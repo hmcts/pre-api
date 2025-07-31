@@ -29,17 +29,14 @@ import javax.xml.parsers.ParserConfigurationException;
  */
 @Service
 public class ArchiveMetadataXmlExtractor {
-
     private final AzureVodafoneStorageService azureVodafoneStorageService;
     private final MigrationRecordService migrationRecordService;
     private final LoggingService loggingService;
 
     @Autowired
-    public ArchiveMetadataXmlExtractor(
-        AzureVodafoneStorageService azureVodafoneStorageService,
-        MigrationRecordService migrationRecordService,
-        LoggingService loggingService
-    ) {
+    public ArchiveMetadataXmlExtractor(final AzureVodafoneStorageService azureVodafoneStorageService,
+                                       final MigrationRecordService migrationRecordService,
+                                       final LoggingService loggingService) {
         this.azureVodafoneStorageService = azureVodafoneStorageService;
         this.migrationRecordService = migrationRecordService;
         this.loggingService = loggingService;
@@ -216,7 +213,7 @@ public class ArchiveMetadataXmlExtractor {
                 createTime = extractTextContent(archiveElement, "updatetime");
             }
             String duration = extractTextContent(archiveElement, "Duration");
-            
+
             if (displayName.isEmpty()) {
                 loggingService.logWarning("Missing DisplayName in ArchiveFiles element.");
             }
@@ -285,16 +282,16 @@ public class ArchiveMetadataXmlExtractor {
             Element fileElement = (Element) node;
             String fileName = extractTextContent(fileElement, "Name");
 
-            if (fileName != null && fileName.startsWith("0x1e")) {
-                return fileElement; 
+            if (fileName.startsWith("0x1e")) {
+                return fileElement;
             }
 
             if (i == 1) {
-                fallback = fileElement; 
+                fallback = fileElement;
             }
 
             if (mp4Files.getLength() == 1) {
-                fallback = fileElement; 
+                fallback = fileElement;
             }
         }
 
@@ -321,8 +318,8 @@ public class ArchiveMetadataXmlExtractor {
      */
     private String extractTextContent(Element element, String tagName) {
         return Optional.ofNullable(element.getElementsByTagName(tagName).item(0))
-                       .map(Node::getTextContent)
-                       .orElse("");
+            .map(Node::getTextContent)
+            .orElse("");
     }
 
     /**

@@ -27,19 +27,15 @@ import java.util.List;
 
 @Configuration
 public class ProcessCSVJobConfig {
-
     private final JobRepository jobRepository;
     public final PlatformTransactionManager transactionManager;
     private final BatchConfiguration batchConfiguration;
     private final CoreStepsConfig coreSteps;
 
-
-    public ProcessCSVJobConfig(
-        JobRepository jobRepository,
-        PlatformTransactionManager transactionManager,
-        BatchConfiguration batchConfiguration,
-        CoreStepsConfig coreSteps
-    ) {
+    public ProcessCSVJobConfig(final JobRepository jobRepository,
+                               final PlatformTransactionManager transactionManager,
+                               final BatchConfiguration batchConfiguration,
+                               final CoreStepsConfig coreSteps) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.batchConfiguration = batchConfiguration;
@@ -76,11 +72,9 @@ public class ProcessCSVJobConfig {
 
     @Bean
     @JobScope
-    public Step pendingMigrationRecordStep(
-        ListItemReader<MigrationRecord> pendingMigrationRecordReader,
-        ItemProcessor<Object, MigratedItemGroup> processor,
-        ItemWriter<MigratedItemGroup> writer
-    ) {
+    public Step pendingMigrationRecordStep(ListItemReader<MigrationRecord> pendingMigrationRecordReader,
+                                           ItemProcessor<Object, MigratedItemGroup> processor,
+                                           ItemWriter<MigratedItemGroup> writer) {
         return new StepBuilder("pendingMigrationRecordStep", jobRepository)
             .<MigrationRecord, MigratedItemGroup>chunk(BatchConfiguration.CHUNK_SIZE, transactionManager)
             .reader(pendingMigrationRecordReader)
@@ -94,10 +88,8 @@ public class ProcessCSVJobConfig {
 
     @Bean
     @StepScope
-    public ListItemReader<MigrationRecord> pendingMigrationRecordReader(
-        MigrationRecordRepository repository,
-        LoggingService loggingService
-    ) {
+    public ListItemReader<MigrationRecord> pendingMigrationRecordReader(MigrationRecordRepository repository,
+                                                                        LoggingService loggingService) {
         List<MigrationRecord> pending = repository.findAllByStatus(VfMigrationStatus.PENDING);
         if (pending.isEmpty()) {
             loggingService.logInfo("No pending migration records found.");

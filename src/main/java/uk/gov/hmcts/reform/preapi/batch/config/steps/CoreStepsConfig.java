@@ -29,20 +29,17 @@ import java.util.Optional;
 
 @Configuration
 public class CoreStepsConfig {
-
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final Processor itemProcessor;
     private final MigrationWriter itemWriter;
     private final LoggingService loggingService;
 
-    public CoreStepsConfig(
-        JobRepository jobRepository,
-        PlatformTransactionManager transactionManager,
-        Processor itemProcessor,
-        MigrationWriter itemWriter,
-        LoggingService loggingService
-    ) {
+    public CoreStepsConfig(final JobRepository jobRepository,
+                           final PlatformTransactionManager transactionManager,
+                           final Processor itemProcessor,
+                           final MigrationWriter itemWriter,
+                           final LoggingService loggingService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.itemProcessor = itemProcessor;
@@ -81,8 +78,8 @@ public class CoreStepsConfig {
             .tasklet(
                 (contribution, chunkContext) -> {
                     String debugParam = (String) chunkContext.getStepContext()
-                                                             .getJobParameters()
-                                                             .get("debug");
+                        .getJobParameters()
+                        .get("debug");
 
                     boolean debug = Boolean.parseBoolean(debugParam);
 
@@ -91,19 +88,16 @@ public class CoreStepsConfig {
                     loggingService.logInfo("Job started with debug mode: " + debug);
 
                     return RepeatStatus.FINISHED;
-                }, transactionManager
-            )
+                }, transactionManager)
             .build();
     }
 
-    public <T> Step createReadStep(
-        String stepName,
-        Resource filePath,
-        String[] fieldNames,
-        Class<T> targetClass,
-        boolean writeToCsv,
-        boolean dryRun
-    ) {
+    public <T> Step createReadStep(String stepName,
+                                   Resource filePath,
+                                   String[] fieldNames,
+                                   Class<T> targetClass,
+                                   boolean writeToCsv,
+                                   boolean dryRun) {
         FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
         ItemWriter<MigratedItemGroup> writer = dryRun ? noOpWriter() : (writeToCsv ? itemWriter : noOpWriter());
 
@@ -118,11 +112,7 @@ public class CoreStepsConfig {
             .build();
     }
 
-    public <T> FlatFileItemReader<T> createCsvReader(
-        Resource inputFile,
-        String[] fieldNames,
-        Class<T> targetClass
-    ) {
+    public <T> FlatFileItemReader<T> createCsvReader(Resource inputFile, String[] fieldNames, Class<T> targetClass) {
         try {
             return CSVReader.createReader(inputFile, fieldNames, targetClass);
         } catch (IOException e) {

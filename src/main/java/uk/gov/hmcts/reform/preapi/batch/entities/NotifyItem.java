@@ -19,5 +19,4 @@ public class NotifyItem {
                 + "extractedMetadata=" + extractedMetadata
                 + '}';
     }
-
 }

@@ -1,18 +1,18 @@
 package uk.gov.hmcts.reform.preapi.batch.util;
 
-public final class ArchiveNameSanitizer {
+import lombok.experimental.UtilityClass;
 
-    private ArchiveNameSanitizer() {
-    } 
-
-    public static String sanitize(String archiveName) {
+@UtilityClass
+@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
+public class ArchiveNameSanitizer {
+    public String sanitize(String archiveName) {
         if (archiveName == null || archiveName.isEmpty()) {
             return "";
         }
 
         return archiveName
-            .replaceFirst("^(?i)OLD[-_\\s]+", "") 
-            .replaceFirst("^(?i)NEW[-_\\s]+", "") 
+            .replaceFirst("^(?i)OLD[-_\\s]+", "")
+            .replaceFirst("^(?i)NEW[-_\\s]+", "")
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")

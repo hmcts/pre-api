@@ -28,11 +28,9 @@ public class PatternMatcherService {
         return findMatch(archiveName, RegexPatterns.LEGITAMITE_PATTERNS, "VALID");
     }
 
-    private Optional<Map.Entry<String, Matcher>> findMatch(
-            String archiveName,
-            Map<String, Pattern> patternMap,
-            String patternType
-    ) {
+    private Optional<Map.Entry<String, Matcher>> findMatch(String archiveName,
+                                                           Map<String, Pattern> patternMap,
+                                                           String patternType) {
         for (Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
             Matcher matcher = entry.getValue().matcher(archiveName);
             if (matcher.matches()) {

@@ -89,7 +89,7 @@ class ResolvedJobConfigTest {
             new MigrationRecord(),
             new MigrationRecord()
         );
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.RESOLVED)).thenReturn(resolvedRecords);
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.SUBMITTED)).thenReturn(resolvedRecords);
 
         // When
         ListItemReader<MigrationRecord> reader = resolvedJobConfig.resolvedMigrationRecordReader(
@@ -98,14 +98,14 @@ class ResolvedJobConfigTest {
 
         // Then
         assertThat(reader).isNotNull();
-        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.RESOLVED);
+        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.SUBMITTED);
         verify(loggingService).logInfo("Found %d resolved migration records.", 2);
     }
 
     @Test
     void shouldCreateResolvedMigrationRecordReaderWithEmptyList() {
         // Given
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.RESOLVED)).thenReturn(Collections.emptyList());
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.SUBMITTED)).thenReturn(Collections.emptyList());
 
         // When
         ListItemReader<MigrationRecord> reader = resolvedJobConfig.resolvedMigrationRecordReader(
@@ -114,7 +114,7 @@ class ResolvedJobConfigTest {
 
         // Then
         assertThat(reader).isNotNull();
-        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.RESOLVED);
+        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.SUBMITTED);
         verify(loggingService).logInfo("No resolved migration records found.");
     }
 

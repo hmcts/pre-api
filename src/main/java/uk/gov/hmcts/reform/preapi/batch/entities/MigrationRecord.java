@@ -93,10 +93,6 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     @Column(name = "resolved_at")
     private Timestamp resolvedAt;
 
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private Timestamp createdAt;
-
     @Column(name = "is_most_recent")
     private Boolean isMostRecent;
 
@@ -105,6 +101,10 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
 
     @Column(name = "recording_group_key")
     private String recordingGroupKey;
+
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private Timestamp createdAt;
 
     @Transient
     public String getSanitizedArchiveName() {

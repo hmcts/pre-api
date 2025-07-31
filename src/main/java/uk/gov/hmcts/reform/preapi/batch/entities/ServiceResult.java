@@ -50,5 +50,4 @@ public class ServiceResult<T> {
     public static ServiceResult<TestItem> test(TestItem testItem) {
         return new ServiceResult<>(testItem, true);
     }
-
 }
