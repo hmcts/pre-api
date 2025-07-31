@@ -105,7 +105,8 @@ class ResolvedJobConfigTest {
     @Test
     void shouldCreateResolvedMigrationRecordReaderWithEmptyList() {
         // Given
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.SUBMITTED)).thenReturn(Collections.emptyList());
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.SUBMITTED))
+            .thenReturn(Collections.emptyList());
 
         // When
         ListItemReader<MigrationRecord> reader = resolvedJobConfig.resolvedMigrationRecordReader(
