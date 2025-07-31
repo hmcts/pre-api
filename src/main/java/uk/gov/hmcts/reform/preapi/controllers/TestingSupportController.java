@@ -87,7 +87,6 @@ class TestingSupportController {
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final AuditRepository auditRepository;
     private final ScheduledTaskRunner scheduledTaskRunner;
-    private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
@@ -121,7 +120,6 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.auditRepository = auditRepository;
         this.scheduledTaskRunner = scheduledTaskRunner;
-        this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
     }
 
