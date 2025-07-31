@@ -498,10 +498,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should create share booking and invite when user does not exist")
     void createShareBookingAndInviteIfNotExistsShouldCreateNewUserAndInvite() {
-        // Setup booking with case and participants
-        BookingDTO booking = createTestBooking();
 
-        // Create vodafone user
         UserDTO vodafoneUser = new UserDTO();
         vodafoneUser.setId(UUID.randomUUID());
         vodafoneUser.setEmail("vodafone@test.com");
@@ -517,6 +514,8 @@ public class EntityCreationServiceTest {
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "vodafone@test.com", String.class))
             .thenReturn(vodafoneUser.getId().toString());
         when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
+
+        BookingDTO booking = createTestBooking();
         when(cacheService.generateEntityCacheKey(eq("share-booking"), eq(booking.getId().toString()), anyString()))
             .thenReturn("share-key");
 
@@ -549,7 +548,11 @@ public class EntityCreationServiceTest {
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "vodafone@test.com", String.class))
             .thenReturn(vodafoneUserId.toString());
         when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
-        when(cacheService.generateEntityCacheKey("share-booking", booking.getId().toString(), existingUserId.toString()))
+        when(cacheService.generateEntityCacheKey(
+            "share-booking",
+            booking.getId().toString(),
+            existingUserId.toString()
+        ))
             .thenReturn("share-key");
 
         var result = entityCreationService.createShareBookingAndInviteIfNotExists(
@@ -575,7 +578,11 @@ public class EntityCreationServiceTest {
 
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "test@example.com", String.class))
             .thenReturn(existingUserId.toString());
-        when(cacheService.generateEntityCacheKey("share-booking", booking.getId().toString(), existingUserId.toString()))
+        when(cacheService.generateEntityCacheKey(
+            "share-booking",
+            booking.getId().toString(),
+            existingUserId.toString()
+        ))
             .thenReturn("share-key");
         when(cacheService.getShareBooking("share-key")).thenReturn(Optional.of(new CreateShareBookingDTO()));
 
@@ -633,7 +640,10 @@ public class EntityCreationServiceTest {
         );
 
         assertThat(result).isNotNull();
-        verify(cacheService, times(2)).saveUser(eq("test@example.com"), any(UUID.class)); // Should be normalized to lowercase
+        verify(cacheService, times(2)).saveUser(
+            eq("test@example.com"),
+            any(UUID.class)
+        ); // Should be normalized to lowercase
     }
 
     private BookingDTO createTestBooking() {
