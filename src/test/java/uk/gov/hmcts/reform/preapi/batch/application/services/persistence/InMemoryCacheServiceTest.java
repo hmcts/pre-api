@@ -87,7 +87,7 @@ public class InMemoryCacheServiceTest {
     @Test
     void dumpToFileIOException() {
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), any(), any(), anyBoolean()))
-                .thenThrow(IOException.class);
+            .thenThrow(IOException.class);
         inMemoryCacheService.dumpToFile();
         verify(loggingService, times(1))
             .logError(contains("Failed to write in-memory cache to file"));
@@ -174,7 +174,11 @@ public class InMemoryCacheServiceTest {
         inMemoryCacheService.saveUser(email, userId);
 
         // Verify user is stored in hash with lowercase email
-        String storedUserId = inMemoryCacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, email.toLowerCase(), String.class);
+        String storedUserId = inMemoryCacheService.getHashValue(
+            Constants.CacheKeys.USERS_PREFIX,
+            email.toLowerCase(),
+            String.class
+        );
         assertThat(storedUserId).isEqualTo(userId.toString());
     }
 
@@ -217,12 +221,16 @@ public class InMemoryCacheServiceTest {
     void getAllChannelReferencesReturnsAllChannels() {
         String channel1 = "Channel1";
         String channel2 = "Channel2";
-        List<String[]> users1 = new ArrayList<>() {{
-            add(new String[]{"User1", "user1@example.com"});
-        }};
-        List<String[]> users2 = new ArrayList<>() {{
-            add(new String[]{"User2", "user2@example.com"});
-        }};
+        List<String[]> users1 = new ArrayList<>() {
+            {
+                add(new String[]{"User1", "user1@example.com"});
+            }
+        };
+        List<String[]> users2 = new ArrayList<>() {
+            {
+                add(new String[]{"User2", "user2@example.com"});
+            }
+        };
 
         inMemoryCacheService.saveChannelReference(channel1, users1);
         inMemoryCacheService.saveChannelReference(channel2, users2);
@@ -295,9 +303,13 @@ public class InMemoryCacheServiceTest {
 
         inMemoryCacheService.saveUser("user@example.com", UUID.randomUUID());
         inMemoryCacheService.saveSiteReference("SITE1", "Court1");
-        inMemoryCacheService.saveChannelReference("Channel1", new ArrayList<>() {{
-            add(new String[]{"User", "email"});
-        }});
+        inMemoryCacheService.saveChannelReference(
+            "Channel1", new ArrayList<>() {
+                {
+                    add(new String[]{"User", "email"});
+                }
+            }
+        );
         inMemoryCacheService.saveHashValue("test:key", "field", "value");
 
         inMemoryCacheService.dumpToFile();
