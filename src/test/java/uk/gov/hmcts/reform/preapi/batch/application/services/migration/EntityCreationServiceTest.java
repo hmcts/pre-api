@@ -12,6 +12,8 @@ import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -32,12 +34,16 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -487,5 +493,160 @@ public class EntityCreationServiceTest {
         assertThat(result.getFirstName()).isEqualTo("Jane");
         assertThat(result.getLastName()).isEqualTo("Smith");
         assertThat(result.getEmail()).isEqualTo("jane.smith@example.com");
+    }
+
+    @Test
+    @DisplayName("Should create share booking and invite when user does not exist")
+    void createShareBookingAndInviteIfNotExistsShouldCreateNewUserAndInvite() {
+        // Setup booking with case and participants
+        BookingDTO booking = createTestBooking();
+
+        // Create vodafone user
+        UserDTO vodafoneUser = new UserDTO();
+        vodafoneUser.setId(UUID.randomUUID());
+        vodafoneUser.setEmail("vodafone@test.com");
+
+        AccessDTO accessDTO = new AccessDTO();
+        accessDTO.setUser(vodafoneUser);
+
+        when(userService.findByEmail("vodafone@test.com")).thenReturn(accessDTO);
+
+        // Mock cache service - ensure vodafone user ID is found in cache
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "test@example.com", String.class))
+            .thenReturn(null);
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "vodafone@test.com", String.class))
+            .thenReturn(vodafoneUser.getId().toString());
+        when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
+        when(cacheService.generateEntityCacheKey(eq("share-booking"), eq(booking.getId().toString()), anyString()))
+            .thenReturn("share-key");
+
+        var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "test@example.com",
+            "Test",
+            "User"
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.getInvites()).hasSize(1);
+        assertThat(result.getShareBookings()).hasSize(1);
+        assertThat(result.getInvites().get(0).getEmail()).isEqualTo("test@example.com");
+
+        verify(cacheService, times(2)).saveUser(eq("test@example.com"), any(UUID.class));
+        verify(cacheService).saveShareBooking(anyString(), any(CreateShareBookingDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should create share booking without invite when user already exists")
+    void createShareBookingAndInviteIfNotExistsShouldCreateShareBookingForExistingUser() {
+        BookingDTO booking = createTestBooking();
+        UUID existingUserId = UUID.randomUUID();
+        UUID vodafoneUserId = UUID.randomUUID();
+
+        // Mock existing user in cache
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "existing@example.com", String.class))
+            .thenReturn(existingUserId.toString());
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "vodafone@test.com", String.class))
+            .thenReturn(vodafoneUserId.toString());
+        when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
+        when(cacheService.generateEntityCacheKey("share-booking", booking.getId().toString(), existingUserId.toString()))
+            .thenReturn("share-key");
+
+        var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "existing@example.com",
+            "Existing",
+            "User"
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.getInvites()).isEmpty();
+        assertThat(result.getShareBookings()).hasSize(1);
+        assertThat(result.getShareBookings().get(0).getSharedWithUser()).isEqualTo(existingUserId);
+
+        verify(cacheService).saveShareBooking(anyString(), any(CreateShareBookingDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should return null when share booking already exists")
+    void createShareBookingAndInviteIfNotExistsShouldReturnNullWhenShareBookingExists() {
+        var booking = createTestBooking();
+        var existingUserId = UUID.randomUUID();
+
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "test@example.com", String.class))
+            .thenReturn(existingUserId.toString());
+        when(cacheService.generateEntityCacheKey("share-booking", booking.getId().toString(), existingUserId.toString()))
+            .thenReturn("share-key");
+        when(cacheService.getShareBooking("share-key")).thenReturn(Optional.of(new CreateShareBookingDTO()));
+
+        var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "test@example.com",
+            "Test",
+            "User"
+        );
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    @DisplayName("Should return null when vodafone user not found in cache")
+    void createShareBookingAndInviteIfNotExistsShouldReturnNullWhenVodafoneUserNotFound() {
+        var booking = createTestBooking();
+
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "test@example.com", String.class))
+            .thenReturn(null);
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "vodafone@test.com", String.class))
+            .thenReturn(null);
+        when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
+
+        var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "test@example.com",
+            "Test",
+            "User"
+        );
+
+        assertThat(result).isNull();
+        verify(loggingService).logWarning("Vodafone user ID not found in cache for email: %s", "vodafone@test.com");
+    }
+
+    @Test
+    @DisplayName("Should handle email case normalization")
+    void createShareBookingAndInviteIfNotExistsShouldNormalizeEmailCase() {
+        var booking = createTestBooking();
+        var vodafoneUserId = UUID.randomUUID();
+
+        when(cacheService.getHashValue(eq(Constants.CacheKeys.USERS_PREFIX), eq("test@example.com"), eq(String.class)))
+            .thenReturn(null);
+        when(cacheService.getHashValue(eq(Constants.CacheKeys.USERS_PREFIX), eq("vodafone@test.com"), eq(String.class)))
+            .thenReturn(vodafoneUserId.toString());
+        when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
+        when(cacheService.generateEntityCacheKey(eq("share-booking"), eq(booking.getId().toString()), anyString()))
+            .thenReturn("share-key");
+
+        var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "TEST@EXAMPLE.COM", // Upper case email
+            "Test",
+            "User"
+        );
+
+        assertThat(result).isNotNull();
+        verify(cacheService, times(2)).saveUser(eq("test@example.com"), any(UUID.class)); // Should be normalized to lowercase
+    }
+
+    private BookingDTO createTestBooking() {
+        BookingDTO booking = new BookingDTO();
+        booking.setId(UUID.randomUUID());
+
+        CaseDTO caseDTO = new CaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+        caseDTO.setParticipants(Collections.emptyList());
+
+        booking.setCaseDTO(caseDTO);
+        booking.setScheduledFor(Timestamp.from(Instant.now()));
+
+        return booking;
     }
 }
