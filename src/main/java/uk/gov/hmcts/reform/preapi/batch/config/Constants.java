@@ -86,6 +86,7 @@ public final class Constants {
         public static final String FILE_PRE_GO_LIVE = "Pre_Go-Live";
         public static final String FILE_REGEX = "Validation_Failed";
         public static final String FILE_NOT_PREFERRED = "Alternative_Available";
+        public static final String FILE_PRE_EXISTING = "Pre-Existing";
     }
 
     public static final class XmlFields {
