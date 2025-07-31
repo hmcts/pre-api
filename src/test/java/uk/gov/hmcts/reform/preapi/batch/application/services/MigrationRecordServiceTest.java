@@ -876,9 +876,10 @@ public class MigrationRecordServiceTest {
     public void updateThrowsResourceInWrongStateException() {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
-        dto.setStatus(VfMigrationStatus.RESOLVED);
+        dto.setStatus(VfMigrationStatus.READY);
 
         final MigrationRecord migrationRecord = new MigrationRecord();
+        migrationRecord.setId(dto.getId());
         migrationRecord.setStatus(VfMigrationStatus.SUCCESS);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
@@ -888,7 +889,32 @@ public class MigrationRecordServiceTest {
             () -> migrationRecordService.update(dto)
         ).getMessage();
         assertThat(message).contains("MigrationRecord")
-            .contains(dto.getId().toString())
+            .contains(migrationRecord.getId().toString())
+            .contains(dto.getStatus().toString());
+
+        verify(migrationRecordRepository, times(1)).findById(dto.getId());
+        verifyNoMoreInteractions(migrationRecordRepository);
+    }
+
+    @Test
+    @DisplayName("Update should throw ResourceInWrongStateException when record status is SUBMITTED")
+    public void updateThrowsResourceInWrongStateExceptionSubmitted() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(VfMigrationStatus.READY);
+
+        final MigrationRecord migrationRecord = new MigrationRecord();
+        migrationRecord.setId(dto.getId());
+        migrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        final String message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> migrationRecordService.update(dto)
+        ).getMessage();
+        assertThat(message).contains("MigrationRecord")
+            .contains(migrationRecord.getId().toString())
             .contains(dto.getStatus().toString());
 
         verify(migrationRecordRepository, times(1)).findById(dto.getId());

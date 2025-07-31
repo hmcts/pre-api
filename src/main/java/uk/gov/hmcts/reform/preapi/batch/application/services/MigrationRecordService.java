@@ -448,12 +448,13 @@ public class MigrationRecordService {
         MigrationRecord entity = migrationRecordRepository.findById(dto.getId())
             .orElseThrow(() -> new NotFoundException("Migration Record: " + dto.getId()));
 
-        if (entity.getStatus() == VfMigrationStatus.SUCCESS) {
+        if (entity.getStatus() == VfMigrationStatus.SUCCESS
+            || entity.getStatus() == VfMigrationStatus.SUBMITTED) {
             throw new ResourceInWrongStateException(
                 "MigrationRecord",
                 dto.getId().toString(),
                 entity.getStatus().toString(),
-                "PENDING, FAILED or RESOLVED"
+                "PENDING, FAILED or READY"
             );
         }
 
