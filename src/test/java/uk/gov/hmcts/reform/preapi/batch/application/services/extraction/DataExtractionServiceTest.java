@@ -224,7 +224,7 @@ public class DataExtractionServiceTest {
         data.setArchiveName("some-file-PRE-existing.mp4");
 
         when(metadataValidator.validatePreExisting(any(MigrationRecord.class)))
-            .thenReturn(ServiceResultUtil.failure("Keyword 'PRE' found", FILE_PRE_EXISTING));
+            .thenReturn(ServiceResultUtil.failure("Keyword 'PRE' found", VfFailureReason.PRE_EXISTING.toString()));
 
         ServiceResult<?> result = dataExtractionService.process(data);
 

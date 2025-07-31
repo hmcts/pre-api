@@ -33,7 +33,7 @@ public class MetadataValidator {
     public ServiceResult<?> validatePreExisting(MigrationRecord archiveItem) {
         String name = archiveItem.getArchiveName().toUpperCase();
         if (name.contains("-PRE-")) {
-            return ServiceResultUtil.failure("Keyword 'PRE' found", FILE_PRE_EXISTING);
+            return ServiceResultUtil.failure("Keyword 'PRE' found", VfFailureReason.PRE_EXISTING.toString());
         }
         return ServiceResultUtil.success(archiveItem);
     }
