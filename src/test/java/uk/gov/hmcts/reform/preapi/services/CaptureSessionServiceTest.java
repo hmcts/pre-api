@@ -166,7 +166,7 @@ public class CaptureSessionServiceTest {
     @Test
     void searchCaptureSessionsSuccess() {
         when(captureSessionRepository.searchCaptureSessionsBy(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -185,7 +185,7 @@ public class CaptureSessionServiceTest {
     void searchCaptureSessionsSuccessNonAdmin() {
         var courtId = UUID.randomUUID();
         when(captureSessionRepository.searchCaptureSessionsBy(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(false);
@@ -211,6 +211,7 @@ public class CaptureSessionServiceTest {
                 null,
                 null,
                 courtId,
+                false,
                 null
             );
     }
@@ -237,6 +238,7 @@ public class CaptureSessionServiceTest {
                      eq(until),
                      isNull(),
                      isNull(),
+                     eq(false),
                      isNull())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
 
@@ -662,7 +664,8 @@ public class CaptureSessionServiceTest {
                                                                 userRepository,
                                                                 bookingService,
                                                                 azureFinalStorageService,
-                                                                auditService);
+                                                                auditService,
+                                                                true);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),

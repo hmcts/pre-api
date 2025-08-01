@@ -11,6 +11,8 @@ import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
+import java.util.UUID;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +32,8 @@ public abstract class IntegrationTestBase {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.getCourtId()).thenReturn(UUID.randomUUID());
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
         return mockAuth;
     }

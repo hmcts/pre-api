@@ -44,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -152,6 +153,7 @@ class BookingServiceTest {
             null,
             null,
             null,
+            false,
             null
         ))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
@@ -182,7 +184,7 @@ class BookingServiceTest {
         var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(null, false, null))
+        when(recordingRepository.searchAllBy(null, false, false,null))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }
@@ -634,14 +636,8 @@ class BookingServiceTest {
             any(),
             any(),
             any(),
-            any()
-        ))
-            .thenReturn(new PageImpl<>(new ArrayList<>() {
-                {
-                    add(booking1);
-                    add(booking2);
-                }
-            }));
+            anyBoolean(),
+            any())).thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
         var bookings = bookingService.findAllBookingsForToday();
 
@@ -659,6 +655,7 @@ class BookingServiceTest {
                 any(),
                 any(),
                 any(),
+                anyBoolean(),
                 any());
     }
 

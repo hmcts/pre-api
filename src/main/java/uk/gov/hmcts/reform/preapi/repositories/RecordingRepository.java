@@ -27,6 +27,8 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
         SELECT r FROM Recording r
         WHERE (:includeDeleted = TRUE OR r.deletedAt IS NULL)
+        AND (:includeVodafone = TRUE
+            OR (r.captureSession.origin != 'VODAFONE' AND r.captureSession.booking.caseId.origin != 'VODAFONE'))
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
         AND (:#{#searchParams.authorisedCourt} IS NULL OR r.captureSession.booking.caseId.court.id = :#{#searchParams.authorisedCourt})
         AND (:#{#searchParams.version} IS NULL OR r.version = :#{#searchParams.version})
@@ -84,6 +86,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     Page<Recording> searchAllBy(
         @Param("searchParams") SearchRecordings searchParams,
         @Param("includeDeleted") boolean includeDeleted,
+        @Param("includeVodafone") boolean includeVodafone,
         Pageable pageable
     );
 
