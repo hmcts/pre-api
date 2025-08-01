@@ -1,16 +1,57 @@
-# pre-api
-
-# Pre-Recorded Evidence API
+# Pre-Recorded Evidence API (pre-api)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api)
 
-## Purpose
+## Table of Contents
 
-This code repository contains the source code for the Pre-Recorded Evidence API.
+* [Introduction](#introduction)
+  * [Intro to Pre-Recorded Evidence](#intro-to-pre-recorded-evidence-system)
+  * [Purpose of pre-api](#purpose-of-pre-api-in-the-system)
+  * [Documentation](#documentation)
+  * [PRE System Diagram](#pre-system-diagram-needs-to-be-updated)
+  * [Other PRE Repositories](#other-pre-repositories)
+  * [What's inside](#whats-inside)
+  * [Plugins](#plugins)
+* [Building, Deploying and Running the Application Locally](#building-deploying-and-running-the-application-locally)
+  * [Prerequisites](#prerequisites)
+  * [Building the application](#building-the-application)
+  * [Running the database locally with Docker](#running-the-database-locally-with-docker)
+* [Running the Tests Locally](#running-the-tests-locally)
+  * [Running the Unit Tests](#running-the-unit-tests)
+  * [Running the Integration Tests](#running-the-integration-tests)
+  * [Running the Functional Tests](#running-the-functional-tests)
+  * [Running the Smoke Tests](#running-the-smoke-tests)
+* [Developing for the Pre-Recorded Evidence API](#developing-for-the-pre-recorded-evidence-api)
+  * [Loading the Local Database with Test Data](#loading-the-local-database-with-test-data)
+  * [Run Code Checks and All Non-Functional Tests](#run-code-checks-and-all-non-functional-tests)
+  * [How to generate a Power Platform Custom Connector](#how-to-generate-a-power-platform-custom-connector)
+  * [Running the Crons](#running-the-crons)
+* [Troubleshooting](#troubleshooting)
+  * [Common Issues](#common-issues)
+* [License](#license)
 
-The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/)
+## Introduction
 
-This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live).
+### Intro to Pre-Recorded Evidence System
+
+The Pre-Recorded Evidence (PRE) system is a new service that allows the capturing of a video recorded hearing or testimony,
+and allows this recording to be securely shared to advocates, or played back in court. You can learn more about the service
+[here](https://tools.hmcts.net/confluence/display/S28/Pre-Recorded+Evidence).
+
+### Purpose of pre-api in the System
+
+This code repository contains the source code for the Pre-Recorded Evidence API (pre-api).
+
+pre-api is a Java Spring Boot application that serves as a backend API for both the PRE PowerApps app and the PRE Portal.
+
+### Documentation
+
+The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/).
+If running PRE API locally, you can access the Swagger UI at [http://localhost:4550/swagger-ui/index.html](http://localhost:4550/swagger-ui/index.html).
+
+### PRE System Diagram (Needs to be updated)
+
+This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live)
 ```mermaid
     C4Context
       title System Context diagram for Pre-Recorded Evidence
@@ -66,30 +107,27 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
       UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 ```
 
-## Related Repositories
+### Other PRE Repositories
  * [PRE Power Platform Frontend](https://github.com/hmcts/pre-power-platform)
  * [PRE Shared Infrastructure](https://github.com/hmcts/pre-shared-infrastructure)
- * [PRE Function Apps](https://github.com/hmcts/pre-functions)
  * [PRE Portal](https://github.com/hmcts/pre-portal)
 
-## What's inside
+### What's inside
 
-The template is a working application with a minimal setup. It contains:
+The repository is a working application. It contains:
  * application code
- * setup script to prepare project
  * common plugins and libraries
  * docker setup
  * automatically publishes API documentation to [hmcts/cnp-api-docs](https://github.com/hmcts/cnp-api-docs)
  * code quality tools already set up
  * MIT license and contribution information
- * Helm chart using chart-java.
+ * Helm chart using [chart-java](https://github.com/hmcts/chart-java).
 
-The application exposes health endpoint (http://localhost:4550/health) and metrics endpoint
-(http://localhost:4550/metrics).
+The application exposes health endpoint (http://localhost:4550/health).
 
 ## Plugins
 
-The template contains the following plugins:
+The repository contains the following plugins:
 
   * checkstyle
 
@@ -140,25 +178,43 @@ The template contains the following plugins:
       ./gradlew dependencyUpdates -Drevision=release
     ```
 
-## Setup
+## Building, Deploying and Running the Application Locally
 
-Located in `./bin/init.sh`. Simply run and follow the explanation how to execute it.
+### Prerequisites
 
-## Building and deploying the application
+#### Setting Environment Variables
+
+> **Note** ℹ️
+> pre-api requires many environment variables to be set in order to run. You can get an idea of what they are by looking at the
+> `.env.local` file in the root of the project.
+---
+To run the application locally, you need to set several environment variables. Follow these steps:
+
+1. **Create a `.env` file.**
+   In the root of the project, create a file named `.env`.
+   > **Note** ℹ️
+   > You could copy the `.env.local` file to `.env` with the command: `cp [.env.local](https://github.com/hmcts/pre-api/blob/master/.env.local) .env`
+
+2. **Get the variable values.**
+   Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for the required environment variable values and add them to your `.env` file.
+
+3. **Load the variables.**
+   Run the following command in your terminal to load the variables from your `.env` file into your current shell session:
+
+   ```bash
+   export $(grep -v '^#' .env | xargs -0)
+   ```
+
+> **Note** ℹ️
+> This command loads all the environment variables defined in your `.env` file (ignoring any lines that start with `#`, which are comments)
+and exports them into your current session. This makes the variables available to the application when you run it.
+Without the command, the application won't have the values it needs to function correctly.
 
 ### Building the application
 
-The project uses [Gradle](https://gradle.org) as a build tool. It already contains
+> **Note** ℹ️
+> The project uses [Gradle](https://gradle.org) as a build tool. It already contains
 `./gradlew` wrapper script, so there's no need to install gradle.
-
-In order for integration tests to run, a docker image is needed for the
-postgres testcontainers.
-
-For this to pull from hmcts ACR you must login to the ACR first:
-```bash
-az login # if not logged in already
-az acr login --name hmctspublic
-```
 
 To build the project execute the following command:
 
@@ -166,90 +222,318 @@ To build the project execute the following command:
   ./gradlew build
 ```
 
-### Running the application
+### Running the database locally with Docker
 
-Create the image of the application by executing the following command:
+1. **Build the Docker image for database:**
+
+   ```bash
+   docker-compose build
+   ```
+
+    This command will build the Docker image for the database using the `docker-compose.yml` in the root of the project.
+
+2. **Start the database the application needs:**
+
+   ```bash
+   docker-compose up --detach
+   ```
+
+   This will start the database container (in the background, hence the --detach). As well as the adminer container
+which is a web interface for managing the database and can be used or ignored.
+
+### Start the application
+
+Once the database is up and running you can start the application.
+
+3. **Start the application with Gradle:**
+
+   ```bash
+   ./gradlew bootRun
+   ```
+
+   This will start the application directly from the source code (no need for JAR or image). Gradle may show the task as
+83% EXECUTING—this is normal and just means the application is running and waiting for you to stop it.
+
+   **Or Start the application with IntelliJ:**
+    > **Note** ℹ️
+    > Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for
+    > a `.env` file to put at the route of your project
+
+    Intellij will not have the environment variables in its context so you will need to set them up in the run configuration.
+
+    - Right click on the `Application` class (the one with the `@SpringBootApplication` annotation) and hover over "More Run/Debug"
+    - Select "Modify Run Configuration"
+    - In the "Run/Debug Configurations" window, select more options and make sure the "Environment Variables" field is ticked.
+    - Click on the little folder next to the "Environment Variables" field
+    - Navigate to your `.env` file and select it.
+
+    Now you can run the application from IntelliJ:
+    Right click the Application class (the one with the `@SpringBootApplication` annotation) and select "Run 'Application'".
+    This will start the application in IntelliJ.
+
+   **Or Start the application with JAR:**
+   ```bash
+   ./gradlew bootJar
+   ```
+
+   This will create a JAR file in the `build/libs` directory. You can run it with:
+
+   ```bash
+   java -jar build/libs/pre-api.jar
+   ```
+
+   **Or Start the application with a debugger:**
+    To run with a debugger attached, you can run natively in an IDE, or attach:
+
+    ```bash
+    ./gradlew clean build bootRun --debug-jvm
+    ```
+
+    Let it run until it hangs with a listening message. Then in IntelliJ, select the Java process from Run > Attach to Process.
+
+4. **No matter which method chosen to start up the application, check if the application is running:**
+
+   Call the health endpoint:
+
+   ```bash
+   curl http://localhost:4550/health
+   ```
+
+   You should see a response similar to:
+
+   ```
+   {"status":"UP","diskSpace":{"status":"UP","total":249644974080,"free":137188298752,"threshold":10485760}}
+   ```
+    This indicates that the application is running healthily.
+
+## Running the Tests Locally
+
+### Running the Unit Tests
+
+#### With the Command Line
+
+To run the unit tests with the command line, execute the following command:
 
 ```bash
-  ./gradlew assemble
+  ./gradlew test
 ```
 
-Create docker image:
+This will run all the unit tests in the project and generate a report in `build/reports/tests/test/index.html`.
+You can open this file in your browser to see the test results.
+
+#### With IntelliJ
+
+Right-click on the `src/test` directory in IntelliJ and select "Run 'Tests in 'pre-api.test'". This will run all the unit tests in the project.
+You can also run individual test classes or methods by right-clicking on them and selecting "Run".
+
+### Running the Integration Tests
+
+To run integration tests, a docker image is needed for the
+postgres testcontainers database (temp database for testing). This will be done during the
+running of the tests.
+
+#### Pre-requisites
+Testcontainers (test helper library) needs the HMCTS postgres image for the test database it sets up. For this to pull
+from HMCTS Azure Container Registry (ACR) you must login to the ACR first:
 
 ```bash
-  docker-compose build
+az login # if not logged in already
+az acr login --name hmctspublic
 ```
 
-Run the distribution (created in `build/install/pre-api` directory)
-by executing the following command:
+#### With the Command Line
+To run the integration tests with the command line, execute the following command:
 
 ```bash
-  docker-compose up
+  ./gradlew integration
 ```
 
-This will start the API container exposing the application's port
-(set to `4550` in this template app).
+This will run all the integration tests in the project and generate a report in `build/reports/tests/integration/index.html`.
 
-In order to test if the application is up, you can call its health endpoint:
+#### With IntelliJ
+
+Right-click on the `src/integrationTest` directory in IntelliJ and select "Run 'Tests in pre-api.IntegrationTest'". This will run all the integration tests in the project.
+
+### Running the Functional Tests
+
+#### Prerequisites
+
+To run the functional tests, you need to have the application running locally. Follow the steps in the
+[Building, Deploying and Running the Application Locally](#building-deploying-and-running-the-application-locally) section to start the application.
+
+The functional tests need access to these four environment variables:
+
+MEDIA_KIND_SUBSCRIPTION
+MEDIA_KIND_TOKEN
+GOV_NOTIFY_API_KEY=
+GOV_NOTIFY_API_KEY_TEST
+
+How to provide them to the tests will depend on which method you are using to run the tests. Detailed below:
+
+#### With the Command Line
+
+Export the variables above or alternatively set up all environment variables (including the four above) by following the
+[Setting Environment Variables](#setting-environment-variables) section.
+
+To run the functional tests, execute the following command:
 
 ```bash
-  curl http://localhost:4550/health
+  ./gradlew functional
 ```
+#### With IntelliJ
 
-You should get a response similar to this:
+Make sure your run configuration includes the necessary environment variables in the run configurations.
+You can do this by right clicking the functionalTest folder, selecting `More Run/Debug` and then selecting "Edit Configurations".
+In the run configuration window, select the "Environment Variables" field and add the required variables.
 
-```
-  {"status":"UP","diskSpace":{"status":"UP","total":249644974080,"free":137188298752,"threshold":10485760}}
-```
+Right-click on the `src/functionalTest` directory in IntelliJ and select "Run 'Tests in pre-api.functionalTest'". This will run all the
+functional tests in the project.
 
-### Alternative script to run application
+The test results will be displayed in the IntelliJ console. You can also view the test reports in the `build/reports/tests/functional/index.html` file.
 
-To skip all the setting up and building, just execute the following command:
+### Running the Smoke Tests
 
+#### With the Command Line
+
+The smoke tests run the command:
 ```bash
-./bin/run-in-docker.sh
+  ./gradlew smoke
 ```
 
-For more information:
+This will run all the smoke tests in the project and generate a report in `build/reports/tests/smoke/index.html`.
 
-```bash
-./bin/run-in-docker.sh -h
-```
+#### With IntelliJ
 
-Script includes bare minimum environment variables necessary to start api instance. Whenever any variable is changed or any other script regarding docker image/container build, the suggested way to ensure all is cleaned up properly is by this command:
+Right-click on the `src/smokeTest` directory in IntelliJ and select "Run 'Tests in pre-api.smokeTest'".
+This will run all the smoke tests in the project.
+
+## Developing for the Pre-Recorded Evidence API
+
+You will need to have your laptop ready for DTS development. This includes:
+- Setting up your laptop with DTS basics, see the Confluence page here
+  [Mac Developers](https://tools.hmcts.net/confluence/display/DATS/EUC+Advice+for+%28NonAdmin%29Macbook+Developers)
+- You will need SSH key in GitHub that is authorised for SSO access to HMCTS repos. See the
+  [GitHub Docs: Authorizing an SSH key for use with SAML single sign-on](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/authorizing-an-ssh-key-for-use-with-saml-single-sign-on)
+  for more information.
+- You will need to be a contributor to PRE or get help from one of the PRE developers(https://github.com/orgs/hmcts/teams/pre-rec-evidence)
+
+### Loading the Local Database with Test Data
+
+To load schemas and test data into your local postgresql database:
+
+1. **Start the database container**
+   ```bash
+   docker-compose up --detach
+   ```
+
+2. **Run the data load script**
+   ```bash
+   bash docker/database/local/load_data_into_local_db.sh
+   ```
+   > **Note** ℹ️
+   > You may need to make the script executable first with `chmod +x ./docker/database/local/load_data_into_local_db.sh`
+
+This will:
+- Apply all SQL migration scripts to the `pre-api-db` database container.
+- Clean up temporary files.
+
+Your local database will now be ready for you to play around with.
+
+If it all goes wrong, simply clean up Docker and start again:
 
 ```bash
 docker-compose rm
 ```
 
-It clears stopped containers correctly. Might consider removing clutter of images too, especially the ones fiddled with:
+This clears stopped containers correctly.
+
+### Run Code Checks and All Non-Functional Tests
+
+To run code style/quality checks and all non-functional tests, execute the following command:
 
 ```bash
-docker images
-
-docker image rm <image-id>
+  ./gradlew check
 ```
 
-There is no need to remove postgres and java or similar core images.
+### How to generate a Power Platform Custom Connector
+Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into
+the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
 
-## How to generate a Power Platform Custom Connector
-Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
 
-## Crons
+### Running the Crons
 
 You can manually run a cron task from the cli:
 
+1. You will need to make sure your environment variables are set up. You can do this by following the instruction in the
+[Setting Environment Variables](#setting-environment-variables) section.
+2. The database must be running (as it needs the cron user info stored there). You can do this by following the instruction in the
+   [Running the database locally with Docker](#running-the-database-locally-with-docker) section.
+3. Run the task you are interested in by JAR:
+```bash
+  ./gradlew bootJar
 ```
-TASK_NAME=[task] java -jar pre-api.jar run
+TASK_NAME=[task] java -jar build/libs/pre-api.jar run
+E.g.
+TASK_NAME=CleanupLiveEvents java -jar build/libs/pre-api.jar run
 
-# E.g.
-TASK_NAME=CleanupLiveEvents java -jar pre-api.jar
-
-# or
-TASK_NAME=CleanupLiveEvents ./gradlew bootRun
+or by source code:
 ```
+TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Application Fails to Start after Gradle BootRun
+If the application fails to start after running `./gradlew bootRun`, check the following:
+
+- **Check your environment variables:**
+  Ensure all required variables are set and have the correct values.
+
+- **How to set them:**
+  Refer to the [Setting Environment Variables](#setting-environment-variables) section for detailed instructions on how to configure your environment.
+
+- **Tip:**
+  If you are using IntelliJ, make sure your run configuration includes the necessary environment variables in the run
+configurations. If running from the terminal, confirm you have loaded your `.env` file as described.
+
+#### Cloning or Pushing Issues (Git)
+
+If you encounter authentication errors when cloning or pushing to the repository,
+it may be due to your SSH key not being configured for GitHub SSO.
+
+- **Check your SSH key:**
+  Ensure your SSH key is added to your GitHub account.
+
+- **Enable SSO for your SSH key:**
+  HMCTS uses SSO SAML, you must authorize your SSH key for SSO access.
+  Go to [GitHub SSH keys settings](https://github.com/settings/keys), find your key, and click **"Configure SSO"**
+dropdown and authorise for HMCTS
+
+- **More info:**
+  See [GitHub Docs: Authorizing an SSH key for use with SAML single sign-on](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/authorizing-an-ssh-key-for-use-with-saml-single-sign-on).
+
+Once SSO is enabled for your SSH key, retry your Git operations.
+
+
+## Monitoring and Logging
+
+We use Azure Application Insights for storing our logs. Ask a teammate for the specific Azure resource to access them. Locally, we use Log4j.
+
+This service is also monitored in production and staging environments by Dynatrace. Ask a team member for the URL of our specific Dynatrace instance.
+
+### Application Insights
+
+Application Insights is configured via the `lib/applicationinsights.json` file. The Dockerfile is configured to copy this file and download the App Insights client.
+
+At runtime, the client is attached as a Java agent, enabling it to send logs to App Insights.
+
+A connection string is used to connect to App Insights. This is configured to read from the Key Vault Secret mounted inside the pod.
+
+Connecting to App Insights locally is possible, although a bit fiddly. The easiest way is to get the connection string from Azure, set it as an environment variable (`APPLICATIONINSIGHTS_CONNECTION_STRING`), and add the Java agent as a VM argument. You'll also need to remove or comment out the connection string line in the config file.
+
 
 ## License
-
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 

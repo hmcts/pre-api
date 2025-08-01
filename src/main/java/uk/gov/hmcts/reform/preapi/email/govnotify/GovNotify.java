@@ -68,7 +68,8 @@ public class GovNotify implements IEmailService {
         var template = new PortalInvite(to.getEmail(), to.getFirstName(), to.getLastName(), portalUrl,
                                         portalUrl + "/assets/files/user-guide.pdf",
                                         portalUrl + "/assets/files/process-guide.pdf",
-                                        portalUrl + "/assets/files/faqs.pdf");
+                                        portalUrl + "/assets/files/faqs.pdf",
+                                        portalUrl + "/assets/files/pre-editing-request-form.xlsx");
         try {
             log.info("Portal invite email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));

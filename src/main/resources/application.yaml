@@ -17,12 +17,18 @@ springdoc:
   paths-to-exclude:
     - /info
     - /health/*
+  api-docs:
+    version: openapi_3_0
 
 spring:
   config:
     import: "optional:configtree:/mnt/secrets/pre-hmctskv/"
   application:
     name: Spring Boot Template
+  cache:
+    cache-names: users
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=10m
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:api}${DB_OPTIONS:}
@@ -32,17 +38,20 @@ spring:
       charSet: UTF-8
     hikari:
       minimumIdle: 2
-      maximumPoolSize: 10
+      maximumPoolSize: ${HIKARI_POOL_SIZE:10}
       idleTimeout: 10000
       poolName: PreHikariCP
       maxLifetime: 7200000
       connectionTimeout: 30000
     jpa:
+
+      show-sql: true
       hibernate:
         ddl-auto: none
       database-platform: org.hibernate.dialect.PostgreSQLDialect
       properties:
         hibernate:
+          format_sql: true
           default_schema: ${spring.datasource.schema}
           dialect: org.hibernate.dialect.PostgreSQLDialect
           globally_quoted_identifiers: true
@@ -53,8 +62,6 @@ spring:
       open-in-view: true # https://www.baeldung.com/spring-open-session-in-view may want to disable
 
 azure:
-  application-insights:
-    instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:00000000-0000-0000-0000-000000000000}
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
@@ -106,6 +113,8 @@ flow:
       enabled: true
   key: ${FLOW_KEY:123}
 
+nroUsersFilePath: src/integrationTest/resources/Test_NRO_User_Import.csv
+
 email:
   service: ${EMAIL_SERVICE:GovNotify}
   govNotify:
@@ -115,10 +124,27 @@ email:
 portal:
   url: ${PORTAL_URL:https://pre-portal.staging.platform.hmcts.net/}
 
-#logging:
-#  level:
-#    org.springframework.orm.jpa: DEBUG
-#    org.springframework.transaction: DEBUG
+slack:
+  webhook: ${SLACK_WEBHOOK_URL:}
+
+editing:
+  enable: ${ENABLE_AUTOMATED_EDITING:true}
+
+tasks:
+  start-live-event:
+    batch-size: ${TASK_START_LIVE_EVENTS_BATCH_SIZE:20}
+    poll-interval: ${TASK_START_LIVE_EVENTS_POLL_INTERVAL:2000}
+  cleanup-live-events:
+    batch-size: ${TASK_CLEANUP_LIVE_EVENTS_BATCH_SIZE:3}
+    cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
+    job-poll-interval: 10000 # 10 seconds
+
+feature-flags:
+  enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+  cleanup-null-duration:
+    upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
+  ffmpeg-multi-command: ${ENABLE_MULTI_FFMPEG_COMMAND:false}
+
 #logging:
 #  level:
 #    uk:
@@ -128,6 +154,9 @@ portal:
 #            preapi:
 #              actuator:
 #                PreApiHealthIndicator: DEBUG
+#              component:
+#                util:
+#                  CommandRunner: DEBUG
 #              email:
 #                StopLiveEventNotifierFlowClient: DEBUG
 #                CaseStateChangeNotifierFlowClient: DEBUG

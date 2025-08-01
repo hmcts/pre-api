@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -15,6 +17,7 @@ import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -37,6 +40,11 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
 
     @Column(name = "test")
     private boolean test;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "origin", nullable = false, columnDefinition = "recording_origin")
+    private RecordingOrigin origin;
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
@@ -74,6 +82,7 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
                                      .filter(participant -> participant.getDeletedAt() == null)
                                      .map(Participant::getDetailsForAudit))
                     .collect(Collectors.toSet()));
+        details.put("origin", origin);
         details.put("test", test);
         details.put("state", state);
         details.put("closedAt", closedAt);

@@ -16,7 +16,8 @@ public interface IMediaService {
 
     String playLiveEvent(UUID liveEventId) throws InterruptedException;
 
-    GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException;
+    GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO, boolean sourceIsFinalStorage)
+        throws InterruptedException;
 
     AssetDTO getAsset(String assetId);
 
@@ -28,9 +29,22 @@ public interface IMediaService {
 
     void startLiveEvent(CaptureSessionDTO captureSession);
 
-    RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) throws InterruptedException;
+    void stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) throws InterruptedException;
+
+    void stopLiveEvent(String liveEventId);
+
+    RecordingStatus stopLiveEventAndProcess(CaptureSessionDTO captureSession, UUID recordingId)
+        throws InterruptedException;
 
     void cleanupStoppedLiveEvent(String liveEventId);
 
     void deleteAllStreamingLocatorsAndContentKeyPolicies();
+
+    String triggerProcessingStep1(CaptureSessionDTO captureSession, String captureSessionNoHyphen, UUID recordingId);
+
+    String triggerProcessingStep2(UUID recordingId);
+
+    RecordingStatus verifyFinalAssetExists(UUID recordingId);
+
+    RecordingStatus hasJobCompleted(String transformName, String jobName);
 }

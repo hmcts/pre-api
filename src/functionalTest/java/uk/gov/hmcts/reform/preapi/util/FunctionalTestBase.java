@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.io.File;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -58,7 +59,8 @@ public class FunctionalTestBase {
     protected static final String USERS_ENDPOINT = "/users";
     protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
-    protected static final String REPORTS_ENDPOINT = "/reports";
+    protected static final String LEGACY_REPORTS_ENDPOINT = "/reports";
+    protected static final String REPORTS_ENDPOINT = "/reports-v2";
 
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -174,6 +176,19 @@ public class FunctionalTestBase {
             .thenReturn();
     }
 
+    protected Response doPostRequestWithMultipart(final String path,
+                                             final Map<String, String> additionalHeaders,
+                                             final String filePath,
+                                             final TestingSupportRoles authenticatedAs) {
+        return given()
+            .relaxedHTTPSValidation()
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
+            .multiPart("file", new File(filePath), "text/csv")
+            .when()
+            .post(path)
+            .thenReturn();
+    }
+
     protected Response doDeleteRequest(final String path, final TestingSupportRoles authenticatedAs) {
         return doDeleteRequest(path, null, authenticatedAs);
     }
@@ -219,8 +234,6 @@ public class FunctionalTestBase {
     }
 
     protected CreateCourtDTO createCourt() {
-        var roomId = doPostRequest("/testing-support/create-room", null)
-            .body().jsonPath().getUUID("roomId");
         var regionId = doPostRequest("/testing-support/create-region", null)
             .body().jsonPath().getUUID("regionId");
 
@@ -228,7 +241,7 @@ public class FunctionalTestBase {
         dto.setId(UUID.randomUUID());
         dto.setName("Example Court");
         dto.setCourtType(CourtType.CROWN);
-        dto.setRooms(List.of(roomId));
+        dto.setRooms(List.of(UUID.randomUUID()));
         dto.setRegions(List.of(regionId));
         dto.setLocationCode("123456789");
         return dto;
@@ -406,17 +419,6 @@ public class FunctionalTestBase {
         return dto;
     }
 
-    protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
-    }
-
-    protected record AuthUserDetails(UUID accessId, UUID courtId) {
-    }
-
     protected CreateRecordingDTO createRecording(UUID captureSessionId) {
         var dto = new CreateRecordingDTO();
         dto.setId(UUID.randomUUID());
@@ -428,11 +430,31 @@ public class FunctionalTestBase {
         return dto;
     }
 
+    protected CreateRecordingResponse createRecording() {
+        var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
+        assertResponseCode(response, 200);
+        return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
+    }
+
+    protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
     protected Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
         return doPutRequest(
             RECORDINGS_ENDPOINT + "/" + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
         );
+    }
+
+    protected record AuthUserDetails(UUID accessId, UUID courtId) {
+    }
+
+    protected record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
     }
 }

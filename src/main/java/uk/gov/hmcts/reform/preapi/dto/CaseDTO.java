@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 
 import java.sql.Timestamp;
 import java.util.Comparator;
@@ -33,6 +34,9 @@ public class CaseDTO {
 
     @Schema(description = "CaseParticipants")
     private List<ParticipantDTO> participants;
+
+    @Schema(description = "CaseOrigin")
+    private RecordingOrigin origin;
 
     @Schema(description = "CaseIsTest")
     private boolean test;
@@ -64,6 +68,7 @@ public class CaseDTO {
                              .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
+        origin = caseEntity.getOrigin();
         test = caseEntity.isTest();
         state = caseEntity.getState();
         closedAt = caseEntity.getClosedAt();

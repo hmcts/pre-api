@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,9 +21,10 @@ import java.util.UUID;
 public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
 
-    int countAllByBooking_CaseId_IdAndStatus(UUID caseId, RecordingStatus status);
-
     List<CaptureSession> findAllByStatus(RecordingStatus status);
+
+    List<CaptureSession> findAllByStartedAtIsBetweenAndDeletedAtIsNull(Timestamp fromTime,
+                                                                       Timestamp toTime);
 
     List<CaptureSession> findAllByBookingAndDeletedAtIsNull(Booking booking);
 
@@ -62,9 +62,20 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
 
     @Query("""
         SELECT cs FROM CaptureSession cs
+        INNER JOIN FETCH cs.booking b
+        INNER JOIN FETCH b.caseId c
         WHERE cs.deletedAt IS NULL
         AND cs.startedAt IS NOT NULL
         """
     )
     List<CaptureSession> reportConcurrentCaptureSessions();
+
+    @Query("""
+        SELECT cs FROM CaptureSession cs
+        WHERE cs.deletedAt IS NULL
+        AND cs.status NOT IN ('RECORDING_AVAILABLE', 'NO_RECORDING', 'FAILURE')
+        AND cs.booking.scheduledFor < :scheduledBefore
+        """
+    )
+    List<CaptureSession> findAllPastIncompleteCaptureSessions(@Param("scheduledBefore") Timestamp scheduledBefore);
 }
