@@ -218,4 +218,27 @@ public class GovNotifyFT {
             Kind regards,
             Pre-Recorded Evidence Team""", response);
     }
+
+    @DisplayName("Should send verify email email")
+    @Test
+    @SuppressWarnings("LineLength")
+    void verifyEmail() {
+
+        var verificationCode = "123456";
+
+        var response = client.emailVerification(toEmailAddress, userFirstName, userLastName, verificationCode);
+        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(
+            "[Do Not Reply] Pre-recorded Evidence: Account Email Verification Code",
+            response.getSubject()
+        );
+        compareBody(
+            """
+            Dear John Doe,
+
+            Your code is: 123456
+
+            Kind regards,
+            Pre-Recorded Evidence Team""", response);
+    }
 }

@@ -18,4 +18,7 @@ public interface IEmailService {
     EmailResponse caseClosed(User to, Case forCase) throws EmailFailedToSendException;
 
     EmailResponse caseClosureCancelled(User to, Case forCase) throws EmailFailedToSendException;
+
+    EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode)
+        throws EmailFailedToSendException;
 }
