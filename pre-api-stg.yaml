@@ -997,53 +997,6 @@ definitions:
         format: int32
         type: integer
     type: object
-  EntityModelAuditDTO:
-    properties:
-      _links:
-        $ref: '#/definitions/Links'
-      activity:
-        description: AuditActivity
-        type: string
-      audit_details:
-        $ref: '#/definitions/JsonNode'
-      category:
-        description: AuditCategory
-        type: string
-      created_at:
-        description: AuditCreatedAt
-        format: date-time
-        type: string
-      created_by:
-        description: AuditCreatedBy
-        format: uuid
-        type: string
-      functional_area:
-        description: AuditFunctionalArea
-        type: string
-      id:
-        description: AuditId
-        format: uuid
-        type: string
-      source:
-        description: AuditLogSource
-        enum:
-          - APPLICATION
-          - PORTAL
-          - ADMIN
-          - AUTO
-        type: string
-      table_name:
-        description: AuditTableName
-        type: string
-      table_record_id:
-        description: AuditTableNameRecordId
-        format: uuid
-        type: string
-    required:
-      - created_at
-      - created_by
-      - id
-      - source
   EditReportDTOV2:
     description: EditReportDTOV2
     properties:
@@ -1107,6 +1060,54 @@ definitions:
           - COMPLETE
           - ERROR
         type: string
+    type: object
+  EntityModelAuditDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      created_at:
+        description: AuditCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        description: AuditCreatedBy
+        format: uuid
+        type: string
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - created_at
+      - created_by
+      - id
+      - source
     type: object
   EntityModelBookingDTO:
     properties:
