@@ -14,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -24,14 +23,11 @@ import java.util.stream.Collectors;
 public class CourtService {
     private final CourtRepository courtRepository;
     private final RegionRepository regionRepository;
-    private final RoomRepository roomRepository;
 
     @Autowired
-    public CourtService(CourtRepository courtRepository, RegionRepository regionRepository,
-                        RoomRepository roomRepository) {
+    public CourtService(CourtRepository courtRepository, RegionRepository regionRepository) {
         this.courtRepository = courtRepository;
         this.regionRepository = regionRepository;
-        this.roomRepository = roomRepository;
     }
 
     @Transactional
@@ -65,22 +61,9 @@ public class CourtService {
             }
         });
 
-        createCourtDTO.getRooms().forEach(r -> {
-            if (!roomRepository.existsById(r)) {
-                throw new NotFoundException("Room: " + r);
-            }
-        });
-
         var regions = createCourtDTO.getRegions()
             .stream()
             .map(regionRepository::findById)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(Collectors.toSet());
-
-        var rooms = createCourtDTO.getRooms()
-            .stream()
-            .map(roomRepository::findById)
             .filter(Optional::isPresent)
             .map(Optional::get)
             .collect(Collectors.toSet());
@@ -91,8 +74,9 @@ public class CourtService {
         courtEntity.setName(createCourtDTO.getName());
         courtEntity.setCourtType(createCourtDTO.getCourtType());
         courtEntity.setLocationCode(createCourtDTO.getLocationCode());
+        courtEntity.setCounty(createCourtDTO.getCounty());
+        courtEntity.setPostcode(createCourtDTO.getPostcode());
         courtEntity.setRegions(regions);
-        courtEntity.setRooms(rooms);
 
         var isUpdate = court.isPresent();
         courtRepository.save(courtEntity);

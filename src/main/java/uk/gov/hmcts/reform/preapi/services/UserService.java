@@ -2,6 +2,10 @@ package uk.gov.hmcts.reform.preapi.services;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,9 +38,11 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class UserService {
@@ -49,6 +55,7 @@ public class UserService {
     private final AppAccessService appAccessService;
     private final PortalAccessService portalAccessService;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
+    private final CacheManager cacheManager;
 
     @Autowired
     public UserService(AppAccessRepository appAccessRepository,
@@ -58,7 +65,8 @@ public class UserService {
                        PortalAccessRepository portalAccessRepository,
                        AppAccessService appAccessService,
                        PortalAccessService portalAccessService,
-                       TermsAndConditionsRepository termsAndConditionsRepository) {
+                       TermsAndConditionsRepository termsAndConditionsRepository,
+                       CacheManager cacheManager) {
         this.appAccessRepository = appAccessRepository;
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
@@ -67,9 +75,11 @@ public class UserService {
         this.appAccessService = appAccessService;
         this.portalAccessService = portalAccessService;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
+        this.cacheManager = cacheManager;
     }
 
     @Transactional()
+    @Cacheable(value = "users", key = "#userId")
     public UserDTO findById(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
             .map(user ->
@@ -81,6 +91,7 @@ public class UserService {
     }
 
     @Transactional
+    @Cacheable(value = "users", key = "#email.toLowerCase()")
     public AccessDTO findByEmail(String email) {
         return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
             .map(access ->
@@ -130,6 +141,10 @@ public class UserService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "users", key = "#createUserDTO.id"),
+        @CacheEvict(value = "users", key = "#createUserDTO.email.toLowerCase()")
+    })
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
         var user = userRepository.findById(createUserDTO.getId());
@@ -159,18 +174,16 @@ public class UserService {
         userRepository.saveAndFlush(entity);
 
         if (isUpdate) {
-            entity
-                .getAppAccess()
-                .stream()
+            Stream.ofNullable(entity.getAppAccess())
+                .flatMap(Collection::stream)
                 .filter(appAccess -> appAccess.getDeletedAt() == null)
                 .map(AppAccess::getId)
                 .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId.equals(id)))
                 .forEach(appAccessService::deleteById);
 
-            entity
-                .getPortalAccess()
-                .stream()
+            Stream.ofNullable(entity.getPortalAccess())
+                .flatMap(Collection::stream)
                 .map(PortalAccess::getId)
                 .filter(id -> createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId.equals(id)))
@@ -185,6 +198,10 @@ public class UserService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "users", key = "#createInviteDTO.getUserId()"),
+        @CacheEvict(value = "users", key = "#createInviteDTO.email.toLowerCase()")
+    })
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
         var user = userRepository.findById(createInviteDTO.getUserId());
@@ -219,6 +236,9 @@ public class UserService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "users", key = "#userId"),
+    })
     public void deleteById(UUID userId) {
         if (!userRepository.existsByIdAndDeletedAtIsNull(userId)) {
             throw new NotFoundException("User: " + userId);
@@ -229,8 +249,10 @@ public class UserService {
             .ifPresent(portalAccess -> portalAccessService.deleteById(portalAccess.getId()));
 
         appAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getId()));
+            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+            .stream()
+            .map(AppAccess::getId)
+            .forEach(appAccessService::deleteById);
 
         userRepository
             .findById(userId)
@@ -238,6 +260,12 @@ public class UserService {
                 user.setDeleteOperation(true);
                 user.setDeletedAt(Timestamp.from(Instant.now()));
                 userRepository.saveAndFlush(user);
+
+                var cache = cacheManager.getCache("users");
+                if (cache != null) {
+                    cache.evict(userId);
+                    cache.evict(user.getEmail());
+                }
             });
     }
 

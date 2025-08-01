@@ -110,8 +110,8 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(RecordingNotDeletedException.class)
-    ResponseEntity<String> onRecordingNotDeletedException(final RecordingNotDeletedException e)
+    @ExceptionHandler(CaptureSessionNotDeletedException.class)
+    ResponseEntity<String> onCaptureSessionNotDeletedException(final CaptureSessionNotDeletedException e)
         throws JsonProcessingException {
 
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -157,12 +157,6 @@ public class GlobalControllerExceptionHandler {
         );
     }
 
-    @ExceptionHandler(AMSLiveEventNotFoundException.class)
-    ResponseEntity<String> amsLiveEventNotFoundException(final AMSLiveEventNotFoundException e)
-        throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
-
     @ExceptionHandler(ResourceInWrongStateException.class)
     ResponseEntity<String> resourceInWrongStateException(final ResourceInWrongStateException e)
         throws JsonProcessingException {
@@ -198,6 +192,18 @@ public class GlobalControllerExceptionHandler {
                                      .replace("' of '", "' for '")
                                      .trim(),
                                  HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    ResponseEntity<String> badRequestExceptionHandler(final BadRequestException e)
+        throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UnsupportedMediaTypeException.class)
+    ResponseEntity<String> unsupportedMediaTypeException(final UnsupportedMediaTypeException e)
+        throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)

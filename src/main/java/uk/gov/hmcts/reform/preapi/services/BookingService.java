@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -27,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -68,11 +70,13 @@ public class BookingService {
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
     }
 
+    @Transactional
     public Page<BookingDTO> findAllByCaseId(UUID caseId, Pageable pageable) {
         return bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseId, pageable)
             .map(BookingDTO::new);
     }
 
+    @Transactional
     public Page<BookingDTO> searchBy(
         UUID caseId,
         String caseReference,
@@ -88,7 +92,8 @@ public class BookingService {
         var until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
-                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS)))
+            .orElse(null);
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
@@ -187,6 +192,18 @@ public class BookingService {
         bookingRepository.saveAndFlush(booking);
     }
 
+    @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #booking.id)")
+    public void cleanUnusedCaptureSessions(Booking booking) {
+        for (CaptureSession captureSession : booking.getCaptureSessions()) {
+            if (captureSession.getDeletedAt() == null
+                && (captureSession.getStatus() == RecordingStatus.FAILURE
+                || captureSession.getStatus() == RecordingStatus.NO_RECORDING)) {
+                captureSessionService.deleteById(captureSession.getId());
+            }
+        }
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void undelete(UUID id) {
@@ -210,5 +227,30 @@ public class BookingService {
                 booking.setDeletedAt(Timestamp.from(Instant.now()));
                 bookingRepository.save(booking);
             });
+    }
+
+    @Transactional
+    public List<BookingDTO> findAllPastBookings() {
+        return bookingRepository.findAllPastUnusedBookings(Timestamp.from(Instant.now()))
+            .stream()
+            .map(BookingDTO::new)
+            .toList();
+    }
+
+    @Transactional
+    public List<BookingDTO> findAllBookingsForToday() {
+        LocalDate currentDate = LocalDate.now();
+        return searchBy(
+            null,
+            null,
+            null,
+            Optional.of(Timestamp.valueOf(currentDate.atStartOfDay())),
+            null,
+            null,
+            null,
+            null,
+            Pageable.unpaged()
+        )
+            .toList();
     }
 }

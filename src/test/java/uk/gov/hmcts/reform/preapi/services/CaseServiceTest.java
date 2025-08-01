@@ -5,17 +5,20 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -25,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -36,6 +40,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.service.notify.NotificationClient;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -67,26 +72,35 @@ class CaseServiceTest {
 
     private static List<Case> allCaseEntities = new ArrayList<>();
 
-    @MockBean
+    @MockitoBean
     private CaseRepository caseRepository;
 
-    @MockBean
+    @MockitoBean
     private CourtRepository courtRepository;
 
-    @MockBean
+    @MockitoBean
     private ParticipantRepository participantRepository;
 
-    @MockBean
+    @MockitoBean
     private BookingService bookingService;
 
-    @MockBean
+    @MockitoBean
     private ShareBookingService shareBookingService;
 
-    @MockBean
+    @MockitoBean
     private CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
+
+    @MockitoBean
+    private EmailServiceFactory emailServiceFactory;
+
+    @MockitoBean
+    private NotificationClient notificationClient;
+
+    @MockitoBean
+    private GovNotify govNotify;
 
     @Autowired
     private CaseService caseService;
@@ -108,6 +122,10 @@ class CaseServiceTest {
 
     @BeforeEach
     void reset() {
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
+        when(emailServiceFactory.getEnabledEmailService(eq("GovNotify"))).thenReturn(govNotify);
+        when(emailServiceFactory.isEnabled()).thenReturn(false);
+
         caseEntity.setDeletedAt(null);
         caseEntity.setState(CaseState.OPEN);
     }
@@ -380,6 +398,31 @@ class CaseServiceTest {
     }
 
     @Test
+    @DisplayName("Should send not try to send email updating case and cancelling closure with no shares")
+    void updateCaseCancelClosureNoSharesSuccess() {
+        caseEntity.setState(CaseState.PENDING_CLOSURE);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.OPEN);
+        caseDTOModel.setClosedAt(null);
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of());
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(0)).save(any());
+    }
+
+    @Test
     @DisplayName("Should log when an error occurs attempting to send email notification when cancelling closure")
     void updateCaseCancelClosureEmailNotificationError() {
         caseEntity.setState(CaseState.PENDING_CLOSURE);
@@ -451,7 +494,7 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
         verify(caseRepository, times(0)).save(any());
     }
@@ -593,6 +636,47 @@ class CaseServiceTest {
     }
 
     @Test
+    @DisplayName("Should create case PRE origin when origin is not set")
+    void createCaseOriginNotSet() {
+        var aCase = createTestingCase();
+        var createCaseDto = new CreateCaseDTO(aCase);
+
+        when(courtRepository.findById(aCase.getCourt().getId())).thenReturn(Optional.of(aCase.getCourt()));
+        when(caseRepository.findById(aCase.getId())).thenReturn(Optional.empty());
+
+        var response = caseService.upsert(createCaseDto);
+        assertThat(response).isEqualTo(UpsertResult.CREATED);
+
+        verify(courtRepository, times(1)).findById(aCase.getCourt().getId());
+        verify(caseRepository, times(1)).findById(aCase.getId());
+
+        var captor = ArgumentCaptor.forClass(Case.class);
+        verify(caseRepository, times(1)).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getOrigin()).isEqualTo(RecordingOrigin.PRE);
+    }
+
+    @Test
+    @DisplayName("Should create case PRE origin when origin is set")
+    void createCaseOriginSet() {
+        var aCase = createTestingCase();
+        aCase.setOrigin(RecordingOrigin.VODAFONE);
+        var createCaseDto = new CreateCaseDTO(aCase);
+
+        when(courtRepository.findById(aCase.getCourt().getId())).thenReturn(Optional.of(aCase.getCourt()));
+        when(caseRepository.findById(aCase.getId())).thenReturn(Optional.empty());
+
+        var response = caseService.upsert(createCaseDto);
+        assertThat(response).isEqualTo(UpsertResult.CREATED);
+
+        verify(courtRepository, times(1)).findById(aCase.getCourt().getId());
+        verify(caseRepository, times(1)).findById(aCase.getId());
+
+        var captor = ArgumentCaptor.forClass(Case.class);
+        verify(caseRepository, times(1)).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
+    }
+
+    @Test
     void createDataIntegrityViolationException() {
         Case testingCase = createTestingCase();
         var caseDTOModel = new CreateCaseDTO(testingCase);
@@ -700,7 +784,7 @@ class CaseServiceTest {
         verify(caseRepository).findAllByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
         verify(caseRepository).save(pendingCase);
         verify(shareBookingService).deleteCascade(pendingCase);
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(any());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(any());
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(pendingCase);
     }
 
@@ -741,6 +825,30 @@ class CaseServiceTest {
     }
 
     @Test
+    @DisplayName("Should not delete booking if it has an associated capture session"
+        + " with RECORDING_AVAILABLE status")
+    void onCaseClosedDeleteOnlyFailedCaptureSession() {
+        var captureSessionFailedRecording = new CaptureSession();
+        captureSessionFailedRecording.setStatus(RecordingStatus.FAILURE);
+
+        var captureSessionRecordingAvailable = new CaptureSession();
+        captureSessionRecordingAvailable.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaptureSessions(Set.of(captureSessionFailedRecording, captureSessionRecordingAvailable));
+
+        var aCase = new Case();
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)).thenReturn(List.of(booking));
+
+        caseService.onCaseClosed(aCase);
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
+        verify(bookingService, times(0)).markAsDeleted(booking.getId());
+    }
+
+    @Test
     @DisplayName("Should not delete bookings on closed if associated capture session's status is RECORDING_AVAILABLE")
     void onCaseClosedDeleteBookingsRecordingAvailable() {
         var bookingRecordingAvailable = new Booking();
@@ -756,6 +864,72 @@ class CaseServiceTest {
 
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
         verify(bookingService, never()).markAsDeleted(any());
+    }
+
+    @DisplayName("New email service should be used on case closed when enabled")
+    @Test
+    void caseClosedNewEmailServiceSuccess() {
+
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.CLOSED);
+        caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+
+        caseService.upsert(caseDTOModel);
+
+        verify(govNotify, times(1)).caseClosed(any(), any());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
+    }
+
+    @DisplayName("New email service should be used on case pending closure when enabled")
+    @Test
+    void casePendingClosureNewEmailServiceSuccess() {
+        caseEntity.setState(CaseState.OPEN);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.PENDING_CLOSURE);
+        caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+
+        caseService.upsert(caseDTOModel);
+
+        verify(govNotify, times(1)).casePendingClosure(any(), any(), any());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
+    }
+
+    @DisplayName("New email service should be used on case closure cancelled when enabled")
+    @Test
+    void caseClosureCancelledNewEmailServiceSuccess() {
+        caseEntity.setState(CaseState.PENDING_CLOSURE);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.OPEN);
+        caseDTOModel.setClosedAt(null);
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+
+        caseService.upsert(caseDTOModel);
+
+        verify(govNotify, times(1)).caseClosureCancelled(any(), any());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
     }
 
     private Case createTestingCase() {

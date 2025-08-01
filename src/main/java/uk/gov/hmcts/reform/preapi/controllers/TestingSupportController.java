@@ -5,8 +5,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -23,7 +31,6 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
-import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -32,7 +39,10 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
+import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -41,10 +51,11 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
+import uk.gov.hmcts.reform.preapi.services.EditRequestService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -54,6 +65,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
@@ -67,12 +80,15 @@ class TestingSupportController {
     private final ParticipantRepository participantRepository;
     private final RecordingRepository recordingRepository;
     private final RegionRepository regionRepository;
-    private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AppAccessRepository appAccessRepository;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
+    private final AuditRepository auditRepository;
+    private final ScheduledTaskRunner scheduledTaskRunner;
+    private final EditRequestService editRequestService;
+    private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -82,12 +98,15 @@ class TestingSupportController {
                              final ParticipantRepository participantRepository,
                              final RecordingRepository recordingRepository,
                              final RegionRepository regionRepository,
-                             final RoomRepository roomRepository,
                              final UserRepository userRepository,
-                             RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository,
-                             TermsAndConditionsRepository termsAndConditionsRepository,
-                             UserTermsAcceptedRepository userTermsAcceptedRepository) {
+                             final RoleRepository roleRepository,
+                             final AppAccessRepository appAccessRepository,
+                             final TermsAndConditionsRepository termsAndConditionsRepository,
+                             final UserTermsAcceptedRepository userTermsAcceptedRepository,
+                             final ScheduledTaskRunner scheduledTaskRunner,
+                             final AuditRepository auditRepository,
+                             final EditRequestService editRequestService,
+                             final AzureFinalStorageService azureFinalStorageService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -95,21 +114,15 @@ class TestingSupportController {
         this.participantRepository = participantRepository;
         this.recordingRepository = recordingRepository;
         this.regionRepository = regionRepository;
-        this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
-    }
-
-    @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createRoom(@RequestParam(required = false) String roomName) {
-        var room = new Room();
-        room.setName(roomName == null || roomName.isEmpty()  ? "Example Room" : roomName);
-        roomRepository.save(room);
-
-        return ResponseEntity.ok(Map.of("roomId", room.getId().toString(), "roomName", room.getName()));
+        this.auditRepository = auditRepository;
+        this.scheduledTaskRunner = scheduledTaskRunner;
+        this.editRequestService = editRequestService;
+        this.azureFinalStorageService = azureFinalStorageService;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -144,19 +157,14 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var room = new Room();
-        room.setName("Foo Room");
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
-
         court.setRegions(Set.of(region));
-        court.setRooms(Set.of(room));
         courtRepository.save(court);
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -201,15 +209,11 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var room = new Room();
-        room.setName("Room " + RandomStringUtils.randomAlphabetic(5));
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
-
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -268,7 +272,7 @@ class TestingSupportController {
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
         recording.setFilename("recording.mp4");
-        recording.setDuration(Duration.ofMinutes(30));
+        recording.setDuration(Duration.ofMinutes(3));
         recording.setEditInstruction("{\"foo\": \"bar\"}");
 
         recordingRepository.save(recording);
@@ -382,6 +386,32 @@ class TestingSupportController {
         return ResponseEntity.ok().build();
     }
 
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "0"
+    )
+    @Parameter(
+        name = "size",
+        description = "The number of search results to return per page",
+        schema = @Schema(implementation = Integer.class),
+        example = "10"
+    )
+    @GetMapping("/latest-audits")
+    public HttpEntity<PagedModel<EntityModel<Audit>>> getLatestAudits(
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<Audit> assembler
+    ) {
+        var resultPage = auditRepository.findLatest(pageable);
+
+        if (pageable.getPageNumber() > resultPage.getTotalPages()) {
+            throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
+        }
+
+        return ResponseEntity.ok(assembler.toModel(resultPage));
+    }
+
     @PostMapping(value = "/booking-scheduled-for-past/{bookingId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BookingDTO> bookingScheduledForPast(@PathVariable UUID bookingId) {
         var booking = bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
@@ -393,6 +423,82 @@ class TestingSupportController {
         return ResponseEntity.ok(new BookingDTO(booking));
     }
 
+    @PostMapping(value = "/trigger-task/{taskName}")
+    public ResponseEntity<Void> triggerTask(@PathVariable String taskName) {
+        final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
+        var task = scheduledTaskRunner.getTask(beanName);
+        if (task == null) {
+            throw new NotFoundException("Task: " + taskName);
+        }
+        task.run();
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
+    @PostMapping(value = "/create-existing-v1-recording/{recordingId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RecordingDTO> createExistingRecording(@PathVariable UUID recordingId) {
+        // done first so that we can get 404 if recording doesn't actually exist
+        var mp4FileName = azureFinalStorageService.getMp4FileName(recordingId.toString());
+
+        var court = createTestCourt();
+
+        var region = new Region();
+        region.setName("Foo Region");
+        region.setCourts(Set.of(court));
+        court.setRegions(Set.of(region));
+        regionRepository.save(region);
+
+        court.setRegions(Set.of(region));
+        courtRepository.save(court);
+
+        var caseEntity = new Case();
+        caseEntity.setId(UUID.randomUUID());
+        caseEntity.setReference("4567890123");
+        caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
+        caseRepository.save(caseEntity);
+
+        var participant1 = new Participant();
+        participant1.setId(UUID.randomUUID());
+        participant1.setParticipantType(ParticipantType.WITNESS);
+        participant1.setCaseId(caseEntity);
+        participant1.setFirstName("John");
+        participant1.setLastName("Smith");
+        var participant2 = new Participant();
+        participant2.setId(UUID.randomUUID());
+        participant2.setParticipantType(ParticipantType.DEFENDANT);
+        participant2.setCaseId(caseEntity);
+        participant2.setFirstName("Jane");
+        participant2.setLastName("Doe");
+        participantRepository.saveAll(Set.of(participant1, participant2));
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(caseEntity);
+        booking.setParticipants(Set.of(participant1, participant2));
+        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
+        bookingRepository.save(booking);
+
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        captureSession.setStartedAt(Timestamp.from(Instant.now()));
+        captureSession.setFinishedAt(Timestamp.from(Instant.now()));
+        captureSessionRepository.save(captureSession);
+
+        var recording = new Recording();
+        recording.setId(recordingId);
+        recording.setVersion(1);
+        recording.setCaptureSession(captureSession);
+        recording.setFilename(mp4FileName);
+        recording.setCreatedAt(Timestamp.from(Instant.now()));
+        recordingRepository.save(recording);
+
+        return ResponseEntity.ok(new RecordingDTO(recording));
+    }
 
     private Court createTestCourt() {
         var court = new Court();

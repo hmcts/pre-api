@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CaptureSessionController;
@@ -18,8 +18,8 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
@@ -55,13 +55,13 @@ public class CaptureSessionControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionService captureSessionService;
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
+    @MockitoBean
     private ScheduledTaskRunner taskRunner;
 
     private static final String TEST_URL = "http://localhost";
@@ -251,13 +251,13 @@ public class CaptureSessionControllerTest {
     @Test
     void deleteCaptureSessionRecordingNotDeleted() throws Exception {
         var captureSessionId = UUID.randomUUID();
-        doThrow(new RecordingNotDeletedException()).when(captureSessionService).deleteById(captureSessionId);
+        doThrow(new CaptureSessionNotDeletedException()).when(captureSessionService).deleteById(captureSessionId);
 
         mockMvc.perform(delete("/capture-sessions/" + captureSessionId)
                             .with(csrf()))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
-                           .value("Cannot delete because and associated recording has not been deleted."));
+                           .value("Cannot delete because an associated recording has not been deleted."));
 
     }
 

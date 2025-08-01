@@ -7,13 +7,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -25,6 +29,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,14 +42,17 @@ public class InviteServiceTest {
     private static PortalAccess portalAccessEntity;
     private static PortalAccess portalAccessEntity2;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private PortalAccessRepository portalAccessRepository;
 
-    @MockBean
+    @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private EmailServiceFactory emailServiceFactory;
 
     @Autowired
     private InviteService inviteService;
@@ -157,6 +165,43 @@ public class InviteServiceTest {
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(inviteId, AccessStatus.INVITATION_SENT);
         verify(userService, never()).deleteById(portalAccessEntity.getUser().getId());
         verify(userRepository, never()).deleteById(portalAccessEntity.getUser().getId());
+    }
+
+    @DisplayName("Upsert user sends email")
+    @Test
+    void upsertUserSendsEmail() {
+        var createInviteDTO = new CreateInviteDTO();
+        createInviteDTO.setUserId(portalUserEntity.getId());
+
+        when(userService.upsert(createInviteDTO)).thenReturn(UpsertResult.CREATED);
+        when(userRepository.findById(createInviteDTO.getUserId())).thenReturn(Optional.of(portalUserEntity));
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        var mockEmailService = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(mockEmailService);
+
+        assertThat(inviteService.upsert(createInviteDTO)).isEqualTo(UpsertResult.CREATED);
+
+        verify(mockEmailService, times(1)).portalInvite(portalUserEntity);
+    }
+
+    @DisplayName("Upsert user cant find user")
+    @Test
+    void upsertUserCantFindUser() {
+        var createInviteDTO = new CreateInviteDTO();
+        createInviteDTO.setUserId(portalUserEntity.getId());
+
+        when(userService.upsert(createInviteDTO)).thenReturn(UpsertResult.CREATED);
+        when(userRepository.findById(createInviteDTO.getUserId())).thenReturn(Optional.empty());
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        var mockEmailService = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(mockEmailService);
+
+        assertThrows(
+            NotFoundException.class,
+            () -> inviteService.upsert(createInviteDTO)
+        );
+
+        verify(mockEmailService, never()).portalInvite(portalUserEntity);
     }
 
     private void assertAllInvites(Page<InviteDTO> models) {
