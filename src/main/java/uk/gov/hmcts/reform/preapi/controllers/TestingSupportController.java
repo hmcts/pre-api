@@ -54,7 +54,6 @@ import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
@@ -87,7 +86,6 @@ class TestingSupportController {
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final AuditRepository auditRepository;
     private final ScheduledTaskRunner scheduledTaskRunner;
-    private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
@@ -105,7 +103,6 @@ class TestingSupportController {
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
-                             final EditRequestService editRequestService,
                              final AzureFinalStorageService azureFinalStorageService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
@@ -121,7 +118,6 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.auditRepository = auditRepository;
         this.scheduledTaskRunner = scheduledTaskRunner;
-        this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
     }
 
@@ -511,18 +507,6 @@ class TestingSupportController {
         return court;
     }
 
-    private AppAccess createAppAccess(String role) {
-        var access = new AppAccess();
-        access.setUser(createUser());
-        access.setCourt(createTestCourt());
-        access.setRole(createRole(role));
-        access.setActive(true);
-        access.setDefaultCourt(true);
-        appAccessRepository.save(access);
-
-        return access;
-    }
-
     private AppAccess createAppAccess(Role role) {
         var access = new AppAccess();
         access.setUser(createUser());
@@ -555,14 +539,5 @@ class TestingSupportController {
         roleRepository.save(role);
 
         return role;
-    }
-
-    public enum AuthLevel {
-        NONE,
-        SUPER_USER,
-        LEVEL_1,
-        LEVEL_2,
-        LEVEL_3,
-        LEVEL_4
     }
 }
