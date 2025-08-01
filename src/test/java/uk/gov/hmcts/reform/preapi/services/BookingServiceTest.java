@@ -152,6 +152,7 @@ class BookingServiceTest {
             null,
             null,
             null,
+            null,
             null
         ))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
@@ -162,7 +163,7 @@ class BookingServiceTest {
             }));
         assertThat(
             bookingService
-                .searchBy(null, "MyRef", null, Optional.empty(), null, null, null, null, null)
+                .searchBy(null, "MyRef", null, Optional.empty(), null, null, null, null, null, null)
                 .getContent()).isEqualTo(List.of(bookingModel1, bookingModel2));
     }
 
