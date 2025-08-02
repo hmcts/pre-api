@@ -425,7 +425,6 @@ public class MigrationRecordService {
         migrationRecordRepository.saveAll(groupRecords);
     }
 
-
     private static String nullToEmpty(String input) {
         return input == null ? "" : input;
     }

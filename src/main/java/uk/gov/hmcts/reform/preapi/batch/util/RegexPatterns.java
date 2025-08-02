@@ -68,6 +68,17 @@ public final class RegexPatterns {
         "^R[a-f0-9]{32}$", Pattern.CASE_INSENSITIVE
     );
 
+
+    public static final Pattern SNOW_MORNING_CHECKS_PATTERN = Pattern.compile(
+        "^SNOW\\s*Morning\\s*Checks\\s*\\d{4}\\s*\\d{2}\\s*\\d{2}\\s*VMR\\d+(?:\\.mp4)?$",
+        Pattern.CASE_INSENSITIVE 
+    );
+
+    public static final Pattern S28_MORNING_CHECKS_DDMMYYYY_PATTERN = Pattern.compile(
+        "^\\s*S?28\\s+Morning\\s+Checks\\s+(?:\\d{8}|\\d{2}[-/ ]\\d{2}[-/ ]\\d{4})(?:\\.mp4)?\\s*$",
+        Pattern.CASE_INSENSITIVE
+    );
+
     public static final Pattern QC_FILENAME_PATTERN = Pattern.compile(".*QC.*", Pattern.CASE_INSENSITIVE);
 
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
@@ -78,17 +89,19 @@ public final class RegexPatterns {
         Map.entry("Digit Only No Ext", DIGIT_ONLY_NO_EXT_PATTERN),
         Map.entry("Test Keyword", TEST_KEYWORDS_PATTERN),
         Map.entry("S28 Pattern", S28_PATTERN),
-        Map.entry("UUID Pattern", UUID_FILENAME_PATTERN),
         Map.entry("VMR Test Pattern", S28_VMR_TEST_PATTERN),
+        Map.entry("S28 Morning checks",S28_MORNING_CHECKS_DDMMYYYY_PATTERN),
+        Map.entry("UUID Pattern", UUID_FILENAME_PATTERN),
         Map.entry("Filename Pattern", FILENAME_PATTERN),
         Map.entry("QC Filename Pattern", QC_FILENAME_PATTERN),
         Map.entry("No Digit Pattern", NO_DIGIT_PATTERN),
         Map.entry("Batch Pattern", SIMPLE_BATCH_PATTERN),
         Map.entry("VMR Timestamp Pattern",VMR_TIMESTAMP_PATTERN),
-        Map.entry("Postrmx Pattern", POSTRMX_PATTERN),
         Map.entry("VMR Simple Pattern", SIMPLE_VMR_TEST_PATTERN),
+        Map.entry("Postrmx Pattern", POSTRMX_PATTERN),
         Map.entry("UUID R Prefix Pattern",UUID_STYLE_R_PREFIX_PATTERN),
-        Map.entry("VMR with date pattern", VMR_WITH_DATE_PATTERN)
+        Map.entry("VMR with date pattern", VMR_WITH_DATE_PATTERN),
+        Map.entry("Snow morning pattern",SNOW_MORNING_CHECKS_PATTERN)
     );
 
     private static Pattern buildTestKeywordsPattern() {
@@ -285,6 +298,19 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
+    public static final Pattern DOUBLE_URN_DOT_WITNESS_PATTERN = Pattern.compile(
+        "^"
+        + COURT_PATTERN + SEPARATOR_ONE                 // e.g., Aylsby
+        + "(?<date>\\d{6})" + SEPARATOR_ONE             // e.g., 220826
+        + URN_PATTERN + SEPARATOR_ONE                   // URN1 e.g., 43SS02412222
+        + "(?<urn2>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE  // URN2 e.g., 43SS02412
+        + "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)" + SEPARATOR_ONE
+        + "\\." + SEPARATOR_ONE                         // witness is a single dot
+        + VERSION_PATTERN                               // ORIG / COPY / etc (+ optional number)
+        + EXTENSION_PATTERN + "$",                      // optional .mp4/.raw (per your def)
+        Pattern.CASE_INSENSITIVE
+        );
+
     public static final Pattern PLUS_IN_NAME_PATTERN = Pattern.compile(
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ONE
@@ -345,6 +371,19 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
+    public static final Pattern STANDARD_WITNESS_PARENS_PATTERN = Pattern.compile(
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?"
+        + "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)" + SEPARATOR_ONE
+        + "(?<witnessFirstName>[A-Za-z0-9&']+(?:[-'\\s][A-Za-z]+)*(?:\\s*\\([A-Za-z0-9&+'\\-]{1,6}\\))?)" 
+        + SEPARATOR_ONE
+        + VERSION_PATTERN
+        + EXTENSION_PATTERN + "$",
+        Pattern.CASE_INSENSITIVE
+    );
+
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
         Map.entry("Standard", RegexPatterns.STANDARD_PATTERN),
         Map.entry("StandardWithNumbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS_PREFIX),
@@ -357,10 +396,12 @@ public final class RegexPatterns {
         Map.entry("Flexible", RegexPatterns.FLEXIBLE_PATTERN),
         Map.entry("ExtraId", RegexPatterns.URN_EXTRA_ID_PATTERN),
         Map.entry("DotsInName", RegexPatterns.DOTS_IN_NAME_PATTERN),
+        Map.entry("DotWitness", RegexPatterns.DOUBLE_URN_DOT_WITNESS_PATTERN),
         Map.entry("PlusInName", RegexPatterns.PLUS_IN_NAME_PATTERN),
         Map.entry("NoUrnPattern", RegexPatterns.NO_URN_PATTERN),
         Map.entry("NoExhibitPattern", RegexPatterns.NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
         Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN),
-        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN)
+        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN),
+        Map.entry("Participants Paren",RegexPatterns.STANDARD_WITNESS_PARENS_PATTERN)
     );
 }
