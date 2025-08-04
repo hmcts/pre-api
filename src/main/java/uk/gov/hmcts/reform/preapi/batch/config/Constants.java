@@ -49,22 +49,22 @@ public final class Constants {
         public static final String TEST_DURATION = "Recording is too short — must be longer than 10 seconds.";
 
         // File validation errors
-        public static final String NOT_PREFERRED = 
+        public static final String NOT_PREFERRED =
             "This recording has been skipped because a better version is already available.";
 
         // Court validation errors
         public static final String MISSING_COURT = "No matching court could be found for this recording.";
 
         // Version validation errors
-        public static final String NOT_MOST_RECENT_VERSION = 
+        public static final String NOT_MOST_RECENT_VERSION =
             "An updated version of this recording exists — this one is outdated.";
-        public static final String NO_PARENT_FOUND = 
+        public static final String NO_PARENT_FOUND =
             "No original (parent) recording found - but this file is marked as a later version.";
 
         // Case reference validation errors
-        public static final String CASE_REFERENCE_TOO_LONG = 
+        public static final String CASE_REFERENCE_TOO_LONG =
             "The case reference is too long — must be 24 characters or fewer..";
-        public static final String CASE_REFERENCE_TOO_SHORT = 
+        public static final String CASE_REFERENCE_TOO_SHORT =
             "The case reference is too short — must be at least 9 characters.";
 
         // Date validation errors
@@ -75,18 +75,6 @@ public final class Constants {
 
         // Pattern match errors
         public static final String PATTERN_MATCH = "The filename does not match any known or supported format.";
-    }
-
-    // Validation error messages
-    public static final class Reports {
-        public static final String FILE_MISSING_DATA = "Incomplete_Data";
-        public static final String FILE_ERROR = "General_Error";
-        public static final String FILE_INVALID_FORMAT = "Invalid_Format";
-        public static final String FILE_NOT_RECENT = "Not_Most_Recent";
-        public static final String FILE_PRE_GO_LIVE = "Pre_Go-Live";
-        public static final String FILE_REGEX = "Validation_Failed";
-        public static final String FILE_NOT_PREFERRED = "Alternative_Available";
-        public static final String FILE_PRE_EXISTING = "Pre-Existing";
     }
 
     public static final class XmlFields {

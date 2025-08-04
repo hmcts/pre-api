@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
@@ -15,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 @EnableFeignClients
 @EnableScheduling
 @EnableCaching
+@EnableAsync(proxyTargetClass = true)
 @SuppressWarnings("HideUtilityClassConstructor") // Spring needs a constructor, its not a utility class
 public class Application implements CommandLineRunner {
 

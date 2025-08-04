@@ -52,7 +52,7 @@ public class LoggingService {
             writer.println(LocalDateTime.now().format(FORMATTER) + " |  Vodafone ETL Job Started");
             writer.println("=====================================================");
         } catch (IOException e) {
-            System.err.println("Failed to initialize output.log: " + e.getMessage());
+            log.error("Failed to initialize output.log: {}", e.getMessage());
         }
     }
 
@@ -70,16 +70,19 @@ public class LoggingService {
 
     public void logInfo(String format, Object... args) {
         String message = String.format(format, args);
+        log.info(message);
         log("INFO", String.format("%s - %s", getCallerInfo(), message));
     }
 
     public void logWarning(String format, Object... args) {
         String message = String.format(format, args);
+        log.warn(message);
         log("WARN", String.format("%s - %s", getCallerInfo(), message));
     }
 
     public void logError(String format, Object... args) {
         String message = String.format(format, args);
+        log.error(message);
         log("ERROR", String.format("%s - %s", getCallerInfo(), message));
     }
 
