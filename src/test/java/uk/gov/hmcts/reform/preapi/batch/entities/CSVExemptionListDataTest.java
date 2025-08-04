@@ -2,10 +2,12 @@ package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class CSVExemptionListDataTest {
-
     @Test
     void testToString() {
         CSVExemptionListData data = new CSVExemptionListData(
@@ -34,5 +36,47 @@ class CSVExemptionListDataTest {
             + '}';
 
         assertEquals(expected, data.toString());
+    }
+
+    @Test
+    void getCreateTimeAsLocalDateTime_withTimestamp() {
+        CSVExemptionListData data = new CSVExemptionListData();
+        data.setCreateTime("1735689600000");
+
+        assertEquals(LocalDateTime.of(2025, 1, 1, 0, 0),
+                     data.getCreateTimeAsLocalDateTime());
+    }
+
+    @Test
+    void getCreateTimeAsLocalDateTime_withDateString() {
+        CSVExemptionListData data = new CSVExemptionListData();
+        data.setCreateTime("01/01/2025 00:00");
+
+        assertEquals(LocalDateTime.of(2025, 1, 1, 0, 0),
+                     data.getCreateTimeAsLocalDateTime());
+    }
+
+    @Test
+    void getCreateTimeAsLocalDateTime_withInvalidCreateTime() {
+        CSVExemptionListData data = new CSVExemptionListData();
+        data.setCreateTime("invalidDateTime");
+
+        assertNull(data.getCreateTimeAsLocalDateTime());
+    }
+
+    @Test
+    void getCreateTimeAsLocalDateTime_withNullCreateTime() {
+        CSVExemptionListData data = new CSVExemptionListData();
+        data.setCreateTime(null);
+
+        assertNull(data.getCreateTimeAsLocalDateTime());
+    }
+
+    @Test
+    void getCreateTimeAsLocalDateTime_withEmptyCreateTime() {
+        CSVExemptionListData data = new CSVExemptionListData();
+        data.setCreateTime("");
+
+        assertNull(data.getCreateTimeAsLocalDateTime());
     }
 }

@@ -37,8 +37,13 @@ public class DataExtractionService {
             loggingService.logWarning("Missing sanitized name");
         }
 
+        ServiceResult<?> preExistingValidation = validator.validatePreExisting(archiveItem);
+        if (!preExistingValidation.isSuccess()) {
+            return preExistingValidation;
+        }
+        
         String archiveName = archiveItem.getArchiveName();
-
+        
         // -- 1. TEST validation (validate for pre-go-live, duration check and test keywords)
         ServiceResult<?> validationResult = validator.validateTest(archiveItem);
         loggingService.logDebug("Validation result in extraction %s", validationResult.isSuccess());

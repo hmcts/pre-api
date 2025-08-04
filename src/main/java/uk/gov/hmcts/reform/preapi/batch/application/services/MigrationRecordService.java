@@ -270,11 +270,19 @@ public class MigrationRecordService {
             .stream()
             .filter(r -> !r.getArchiveName().toLowerCase().endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+            .filter(MigrationRecord::getIsPreferred)
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
                 return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
             })
-            .sorted((a, b) -> Boolean.compare(!a.getIsPreferred(), !b.getIsPreferred()))
+            .sorted((a, b) -> {
+                boolean aIsMp4 = a.getArchiveName().toLowerCase().endsWith(".mp4");
+                boolean bIsMp4 = b.getArchiveName().toLowerCase().endsWith(".mp4");
+                if (aIsMp4 != bIsMp4) {
+                    return bIsMp4 ? 1 : -1;
+                }
+                return Boolean.compare(b.getIsPreferred(), a.getIsPreferred());
+            })
             .findFirst();
 
         if (maybeOrig.isEmpty()) {
@@ -286,6 +294,7 @@ public class MigrationRecordService {
             migrationRecordRepository.save(copy);
         });
     }
+
 
     @Transactional
     public boolean deduplicatePreferredByArchiveId(String archiveId) {
@@ -302,7 +311,6 @@ public class MigrationRecordService {
         if (duplicates.isEmpty()) {
             return false;
         }
-
         duplicates.sort(Comparator.comparing(MigrationRecord::getCreateTime).reversed());
         MigrationRecord preferredRecord = duplicates.getFirst();
 
@@ -328,6 +336,7 @@ public class MigrationRecordService {
         MigrationRecord record = maybeRecord.get();
         String groupKey = record.getRecordingGroupKey();
         String version = record.getRecordingVersionNumber();
+
         if (groupKey == null || version == null) {
             return false;
         }
@@ -341,9 +350,10 @@ public class MigrationRecordService {
 
         boolean updated = false;
         boolean mp4Exists = matchingVersion.stream()
-            .anyMatch(r -> r.getFileName() != null && r.getFileName().toLowerCase().endsWith(".mp4"));
+            .anyMatch(r -> r.getArchiveName() != null && r.getArchiveName().toLowerCase().endsWith(".mp4"));
 
         if (mp4Exists) {
+
             for (MigrationRecord r : matchingVersion) {
                 boolean isMp4 = r.getFileName() != null && r.getFileName().toLowerCase().endsWith(".mp4");
                 r.setIsPreferred(isMp4);
@@ -351,11 +361,6 @@ public class MigrationRecordService {
                 updated = true;
             }
         }
-
-        loggingService.logDebug(
-            "Updated preference for groupKey=%s version=%s. mp4Exists=%s updated=%s",
-            groupKey, version, mp4Exists, updated
-        );
 
         return updated;
     }
@@ -419,7 +424,6 @@ public class MigrationRecordService {
 
         migrationRecordRepository.saveAll(groupRecords);
     }
-
 
     private static String nullToEmpty(String input) {
         return input == null ? "" : input;

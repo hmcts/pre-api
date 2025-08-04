@@ -62,10 +62,6 @@ public class RecordingMetadataProcessor {
             }
 
             ProcessedRecording cleansedData = result.getData();
-            // migrationRecordService.updateIsPreferred(
-            //     cleansedData.getArchiveId(),
-            //     cleansedData.isPreferred()
-            // );
 
             String origVersionStr = cleansedData.getOrigVersionNumberStr();
 

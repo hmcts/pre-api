@@ -115,7 +115,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 }
 
                 // Check if already migrated
-                if (isMigrated(cleansedData, migrationRecord)) {
+                if (isMigrated(migrationRecord)) {
                     return null;
                 }
 
@@ -136,7 +136,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             }
         }
 
-        if (status == VfMigrationStatus.RESOLVED) {
+        if (status == VfMigrationStatus.SUBMITTED) {
             ExtractedMetadata extractedData = convertToExtractedMetadata(migrationRecord);
             try {
                 ProcessedRecording cleansedData = transformData(extractedData);
@@ -243,7 +243,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return true;
     }
 
-    private boolean isMigrated(ProcessedRecording cleansedData, MigrationRecord archiveItem) {
+    private boolean isMigrated(MigrationRecord archiveItem) {
         Optional<MigrationRecord> maybeExisting = migrationRecordService.findByArchiveId(archiveItem.getArchiveId());
 
         if (maybeExisting.isPresent() && maybeExisting.get().getStatus() == VfMigrationStatus.SUCCESS) {
@@ -329,21 +329,19 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",recording));
         }
 
-        String urn = recording.getUrn();
-        String exhibitRef = recording.getExhibitReference();
-
         // case ref checks
-        if (urn == null || urn.isEmpty()) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",recording));
-        } else if (urn.length() < 11) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid URN length", recording));
+        String exhibitRef = recording.getExhibitReference();
+        String caseRef = recording.getCaseReference();
+
+        if (caseRef.length() < 9 || caseRef.length() < 20) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference length",recording));
         }
 
-        if (exhibitRef == null || exhibitRef.isEmpty()) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Missing Exhibit Ref", recording));
-        } else if (exhibitRef.length() < 9) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid Exhibit length", recording));
+        if (caseRef.equalsIgnoreCase(exhibitRef)) {
+            migrationTrackerService.addNotifyItem(new NotifyItem(
+                    "Used Xhibit reference as URN did not meet requirements",recording));
         }
+
     }
 
 }

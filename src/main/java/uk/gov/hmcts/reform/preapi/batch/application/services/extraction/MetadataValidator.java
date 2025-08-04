@@ -21,6 +21,7 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TE
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_ITEM_NAME;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_MISSING_DATA;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_PRE_EXISTING;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_PRE_GO_LIVE;
 
 @Service
@@ -30,6 +31,14 @@ public class MetadataValidator {
     @Autowired
     public MetadataValidator(final LoggingService loggingService) {
         this.loggingService = loggingService;
+    }
+
+    public ServiceResult<?> validatePreExisting(MigrationRecord archiveItem) {
+        String name = archiveItem.getArchiveName().toUpperCase();
+        if (name.contains("-PRE-")) {
+            return ServiceResultUtil.failure("Keyword 'PRE' found", FILE_PRE_EXISTING);
+        }
+        return ServiceResultUtil.success(archiveItem);
     }
 
     public ServiceResult<?> validateTest(MigrationRecord archiveItem) {

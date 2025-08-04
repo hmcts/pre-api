@@ -17,8 +17,8 @@ public final class Constants {
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     public static final int MIN_RECORDING_DURATION = 10;
     public static final Set<String> VALID_VERSION_TYPES = Set.of(
-        "ORIG", "COPY", "CPY", "ORG", "ORI", "COP", "OR", "CO");
-    public static final Set<String> VALID_ORIG_TYPES = Set.of("ORIG", "ORG", "ORI", "OR");
+        "ORIG", "COPY", "CPY", "ORG", "ORI", "COP", "OR", "CO", "OI");
+    public static final Set<String> VALID_ORIG_TYPES = Set.of("ORIG", "ORG", "ORI", "OR","OI");
     public static final Set<String> VALID_COPY_TYPES = Set.of("COPY", "CPY", "COP","CO");
     public static final Set<String> VALID_EXTENSIONS = Set.of("mp4");
     public static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("0.00");
@@ -59,7 +59,7 @@ public final class Constants {
         public static final String NOT_MOST_RECENT_VERSION = 
             "An updated version of this recording exists — this one is outdated.";
         public static final String NO_PARENT_FOUND = 
-            "No original (parent) recording found, but this file is marked as a later version.";
+            "No original (parent) recording found - but this file is marked as a later version.";
 
         // Case reference validation errors
         public static final String CASE_REFERENCE_TOO_LONG = 
@@ -79,13 +79,14 @@ public final class Constants {
 
     // Validation error messages
     public static final class Reports {
-        public static final String FILE_MISSING_DATA = "Missing_Data";
-        public static final String FILE_ERROR = "Error";
-        public static final String FILE_INVALID_FORMAT = "Invalid_File_Format";
+        public static final String FILE_MISSING_DATA = "Incomplete_Data";
+        public static final String FILE_ERROR = "General_Error";
+        public static final String FILE_INVALID_FORMAT = "Invalid_Format";
         public static final String FILE_NOT_RECENT = "Not_Most_Recent";
-        public static final String FILE_PRE_GO_LIVE = "Pre_Go_Live";
-        public static final String FILE_REGEX = "Regex_Matching_Errors";
-        public static final String FILE_NOT_PREFERRED = "Alternative_Found";
+        public static final String FILE_PRE_GO_LIVE = "Pre_Go-Live";
+        public static final String FILE_REGEX = "Validation_Failed";
+        public static final String FILE_NOT_PREFERRED = "Alternative_Available";
+        public static final String FILE_PRE_EXISTING = "Pre-Existing";
     }
 
     public static final class XmlFields {

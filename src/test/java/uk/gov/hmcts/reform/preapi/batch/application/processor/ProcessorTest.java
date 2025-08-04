@@ -212,7 +212,7 @@ class ProcessorTest {
 
     @Test
     void shouldProcessResolvedRecordingSuccessfully() throws Exception {
-        testMigrationRecord.setStatus(VfMigrationStatus.RESOLVED);
+        testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
         ServiceResult<ProcessedRecording> validationResult = ServiceResult.success(testProcessedRecording);
         
@@ -233,7 +233,7 @@ class ProcessorTest {
 
     @Test
     void shouldHandleResolvedValidationFailure() throws Exception {
-        testMigrationRecord.setStatus(VfMigrationStatus.RESOLVED);
+        testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
         ServiceResult<ProcessedRecording> validationResult = ServiceResult.error(
             "Resolved validation failed", "ResolvedValidationError");
@@ -320,52 +320,22 @@ class ProcessorTest {
         testProcessedRecording.setWitnessFirstName("Mary");
         testProcessedRecording.setUrn("");
         testProcessedRecording.setExhibitReference("EXHIBIT123");
+        testProcessedRecording.setCaseReference("EXHIBIT123");
 
         setupSuccessfulProcessingMocks();
 
         processor.process(testMigrationRecord);
 
         verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Missing URN")
+            item.getNotification().equals("Used Xhibit reference as URN did not meet requirements")
         ));
     }
 
     @Test
-    void shouldCreateNotifyItemForInvalidUrnLength() throws Exception {
+    void shouldCreateNotifyItemForCaseReferenceLength() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         testExtractedMetadata = createTestExtractedMetadata();
-        testExtractedMetadata.setUrn("SHORT");
-        
-        setupSuccessfulProcessingMocks();
-
-        processor.process(testMigrationRecord);
-
-        verify(migrationTrackerService, atLeastOnce()).addNotifyItem(any(NotifyItem.class));
-    }
-
-    @Test
-    void shouldCreateNotifyItemForMissingExhibitRef() throws Exception {
-        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        testExtractedMetadata = createTestExtractedMetadata();
-        testExtractedMetadata.setExhibitReference("");
-        
-        testProcessedRecording.setDefendantLastName("Smith");
-        testProcessedRecording.setWitnessFirstName("Mary");
-        testProcessedRecording.setUrn("12345678901");
-
-        setupSuccessfulProcessingMocks();
-
-        processor.process(testMigrationRecord);
-
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Missing Exhibit Ref")
-        ));
-    }
-
-    @Test
-    void shouldCreateNotifyItemForInvalidExhibitLength() throws Exception {
-        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        testExtractedMetadata = createTestExtractedMetadata();
+        testExtractedMetadata.setUrn("");
         testExtractedMetadata.setExhibitReference("SHORT");
         
         setupSuccessfulProcessingMocks();
@@ -442,6 +412,8 @@ class ProcessorTest {
     private ProcessedRecording createTestProcessedRecording() {
         ProcessedRecording recording = new ProcessedRecording();
         recording.setPreferred(true);
+        recording.setCaseReference("1234567890");
+        recording.setExhibitReference("EXHIBIT1234");
         return recording;
     }
 
