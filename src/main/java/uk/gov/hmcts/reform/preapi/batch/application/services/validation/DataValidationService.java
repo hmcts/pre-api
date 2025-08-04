@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 import java.util.Optional;
@@ -16,12 +17,15 @@ import java.util.Optional;
 @Service
 public class DataValidationService {
     private final MigrationRecordService migrationRecordService;
+    private final MigrationRecordRepository migrationRecordRepository;
     private final LoggingService loggingService;
 
     @Autowired
     public DataValidationService(final MigrationRecordService migrationRecordService,
+                                 final MigrationRecordRepository migrationRecordRepository,
                                  final LoggingService loggingService) {
         this.migrationRecordService = migrationRecordService;
+        this.migrationRecordRepository = migrationRecordRepository;
         this.loggingService = loggingService;
     }
 
@@ -35,13 +39,18 @@ public class DataValidationService {
 
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
-                                             VfFailureReason.INCOMPLETE_DATA.toString());
+                VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
-        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())
-            && !cleansedData.isMostRecentVersion()) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,
-                VfFailureReason.NOT_MOST_RECENT.toString());
+        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
+            boolean isMostRecent = migrationRecordRepository
+                .existsByArchiveIdAndIsMostRecentTrue(cleansedData.getArchiveId());
+
+            if (!isMostRecent) {
+                return ServiceResultUtil.failure(
+                    Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,
+                    VfFailureReason.NOT_MOST_RECENT.toString());
+            }
         }
 
         String caseReference = cleansedData.getCaseReference();
@@ -59,25 +68,31 @@ public class DataValidationService {
             );
         }
 
-        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
-            Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(
-                cleansedData.getArchiveId());
-
-            if (currentRecord.isPresent() && !isParentMigrated(currentRecord.get())) {
-                return ServiceResultUtil.failure(
-                    Constants.ErrorMessages.NO_PARENT_FOUND,
-                    VfFailureReason.INCOMPLETE_DATA.toString()
-                );
-            }
-
-        }
-
         if (!cleansedData.isPreferred()) {
             return ServiceResultUtil.failure(
                 Constants.ErrorMessages.NOT_PREFERRED,
                 VfFailureReason.ALTERNATIVE_AVAILABLE.toString()
             );
         }
+
+        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
+            Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(
+                cleansedData.getArchiveId());
+
+            if (currentRecord.isPresent() && currentRecord.get().getParentTempId() == null) {
+                return ServiceResultUtil.failure(
+                    Constants.ErrorMessages.NO_PARENT_FOUND,
+                    VfFailureReason.INCOMPLETE_DATA.toString()
+                );
+            }
+        }
+
+        // if (!cleansedData.isPreferred()) {
+        //     return ServiceResultUtil.failure(
+        //         Constants.ErrorMessages.NOT_PREFERRED,
+        //         Constants.Reports.FILE_NOT_PREFERRED
+        //     );
+        // }
 
         return ServiceResultUtil.success(cleansedData);
     }
@@ -126,9 +141,9 @@ public class DataValidationService {
         return ServiceResultUtil.success(cleansedData);
     }
 
-    private boolean isParentMigrated(MigrationRecord copy) {
-        return migrationRecordService.getOrigFromCopy(copy)
-            .map(MigrationRecord::getRecordingId)
-            .isPresent();
-    }
+    // private boolean isParentMigrated(MigrationRecord copy) {
+    //     return migrationRecordService.getOrigFromCopy(copy)
+    //         .map(MigrationRecord::getRecordingId)
+    //         .isPresent();
+    // }
 }

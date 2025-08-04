@@ -113,24 +113,7 @@ public class DataTransformationService {
             origVersionStr = versionNumber;
         }
 
-        String groupKey = MigrationRecordService.generateRecordingGroupKey(
-            extracted.getUrn(),
-            extracted.getExhibitReference(),
-            extracted.getWitnessFirstName(),
-            extracted.getDefendantLastName()
-        );
-
-        // Determine if this COPY is the most recent
-        boolean isMostRecent = true;
-        if ("COPY".equalsIgnoreCase(versionType)) {
-            isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
-                .map(mostRecent -> RecordingUtils.compareVersionStrings(versionNumber, mostRecent) >= 0)
-                .orElse(true);
-        }
-
-        // Determine preference
         boolean isPreferred = true;
-        // Non-mp4 filter
         if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4") && !"COPY".equalsIgnoreCase(versionType)) {
             boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveId());
             if (updated) {
@@ -150,6 +133,17 @@ public class DataTransformationService {
         }
 
         migrationRecordService.updateIsPreferred(extracted.getArchiveId(), isPreferred);
+
+        String groupKey = MigrationRecordService.generateRecordingGroupKey(
+            extracted.getUrn(),
+            extracted.getExhibitReference(),
+            extracted.getWitnessFirstName(),
+            extracted.getDefendantLastName()
+        );
+
+        boolean isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
+            .map(mostRecent -> RecordingUtils.compareVersionStrings(rawVersionNumber, mostRecent) >= 0)
+            .orElse(true);
 
         // Court Resolution
         Court court = fetchCourtFromDB(extracted, sitesDataMap);

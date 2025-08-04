@@ -25,8 +25,10 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import java.sql.Timestamp;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -407,8 +409,7 @@ public class MigrationRecordService {
     }
 
     private void setMostRecentFlag(String groupKey) {
-        var groupRecords = migrationRecordRepository.findByRecordingGroupKey(groupKey);
-
+        List<MigrationRecord> groupRecords = migrationRecordRepository.findByRecordingGroupKey(groupKey);
         if (groupRecords.isEmpty()) {
             return;
         }
@@ -417,20 +418,22 @@ public class MigrationRecordService {
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
             .forEach(r -> r.setIsMostRecent(true));
 
-        List<MigrationRecord> copyRecords = groupRecords.stream()
+        Map<UUID, List<MigrationRecord>> copiesGroupedByParent = groupRecords.stream()
             .filter(r -> "COPY".equalsIgnoreCase(r.getRecordingVersion()))
-            .filter(r -> r.getRecordingVersionNumber() != null && r.getRecordingVersionNumber().matches("\\d+"))
-            .toList();
+            .filter(r -> r.getRecordingVersionNumber() != null)
+            .filter(r -> r.getParentTempId() != null)
+            .collect(Collectors.groupingBy(MigrationRecord::getParentTempId));
 
-        if (copyRecords.size() == 1) {
-            copyRecords.getFirst().setIsMostRecent(true);
-        } else {
-            MigrationRecord mostRecentCopy = copyRecords.stream()
-                .max(Comparator.comparingInt(a -> Integer.parseInt(a.getRecordingVersionNumber())))
+        for (List<MigrationRecord> copies : copiesGroupedByParent.values()) {
+            MigrationRecord mostRecent = copies.stream()
+                .max((r1, r2) -> RecordingUtils.compareVersionStrings(
+                    r1.getRecordingVersionNumber(),
+                    r2.getRecordingVersionNumber()
+                ))
                 .orElse(null);
 
-            for (MigrationRecord copy : copyRecords) {
-                copy.setIsMostRecent(copy.equals(mostRecentCopy));
+            for (MigrationRecord copy : copies) {
+                copy.setIsMostRecent(copy.equals(mostRecent));
             }
         }
 
@@ -507,4 +510,5 @@ public class MigrationRecordService {
     private static String nullToEmpty(String input) {
         return input == null ? "" : input;
     }
+
 }

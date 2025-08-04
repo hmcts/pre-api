@@ -892,6 +892,7 @@ public class MigrationRecordServiceTest {
         copy.setRecordingGroupKey("urn|ex|wit|def"); // Set the groupKey that will be generated
         copy.setRecordingVersionNumber("2");
         copy.setIsMostRecent(false); // Initialize to false
+        copy.setParentTempId(UUID.randomUUID());
 
         when(migrationRecordRepository.findByArchiveId("id2")).thenReturn(Optional.of(copy));
         when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(copy));
@@ -917,12 +918,15 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should set isMostRecent true only for most recent copy in group")
     void updateMetadataFieldsShouldSetIsMostRecentForMostRecentCopy() {
+        UUID parentId = UUID.randomUUID();
+
         MigrationRecord copy1 = new MigrationRecord();
         copy1.setArchiveId("id3");
         copy1.setRecordingVersion("COPY");
         copy1.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
         copy1.setRecordingVersionNumber("1");
         copy1.setIsMostRecent(false);
+        copy1.setParentTempId(parentId);
 
         MigrationRecord copy2 = new MigrationRecord();
         copy2.setArchiveId("id4");
@@ -930,6 +934,7 @@ public class MigrationRecordServiceTest {
         copy2.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
         copy2.setRecordingVersionNumber("2");
         copy2.setIsMostRecent(false);
+        copy2.setParentTempId(parentId);
 
         when(migrationRecordRepository.findByArchiveId("id4")).thenReturn(Optional.of(copy2));
         when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(copy1, copy2));
