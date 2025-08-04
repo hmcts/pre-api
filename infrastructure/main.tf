@@ -41,7 +41,7 @@ module "pre_api" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API"
-  revision              = "97"
+  revision              = "114"
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url

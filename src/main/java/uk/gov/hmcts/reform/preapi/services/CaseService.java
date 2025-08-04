@@ -13,14 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
-import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -34,6 +35,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -269,7 +271,8 @@ public class CaseService {
         });
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRED, noRollbackFor = CaptureSessionNotDeletedException.class,
+        rollbackFor = Exception.class)
     public void onCaseClosed(Case c) {
         log.info("onCaseClosed: Case({})", c.getId());
         var shares = shareBookingService.deleteCascade(c);
@@ -283,16 +286,23 @@ public class CaseService {
             }
         }
 
-        bookingRepository
+        List<Booking> bookingsWithCaptureSessions = bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(c)
             .stream()
-            .filter(b -> !b.getCaptureSessions().isEmpty()
-                && b.getCaptureSessions()
-                .stream()
-                .map(CaptureSession::getStatus)
-                .anyMatch(s -> s == RecordingStatus.FAILURE || s == RecordingStatus.NO_RECORDING))
-            .map(BaseEntity::getId)
-            .forEach(bookingService::markAsDeleted);
+            .filter(b -> !b.getCaptureSessions().isEmpty())
+            .toList();
+
+        for (Booking booking : bookingsWithCaptureSessions) {
+            boolean allCaptureSessionsFailed = booking.getCaptureSessions()
+                .stream().map(CaptureSession::getStatus)
+                .allMatch(s -> s == RecordingStatus.FAILURE || s == RecordingStatus.NO_RECORDING);
+
+            if (allCaptureSessionsFailed) {
+                bookingService.markAsDeleted(booking.getId());
+            } else {
+                bookingService.cleanUnusedCaptureSessions(booking);
+            }
+        }
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
