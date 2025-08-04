@@ -2,10 +2,10 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class DataTransformationService {
@@ -46,7 +48,8 @@ public class DataTransformationService {
     public ServiceResult<ProcessedRecording> transformData(ExtractedMetadata extracted) {
         if (extracted == null) {
             loggingService.logError("Extracted item is null");
-            return ServiceResultUtil.failure("Extracted item cannot be null", Constants.Reports.FILE_MISSING_DATA);
+            return ServiceResultUtil.failure("Extracted item cannot be null",
+                                             VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         try {
@@ -60,7 +63,7 @@ public class DataTransformationService {
             return ServiceResultUtil.success(cleansedData);
         } catch (Exception e) {
             loggingService.logError("Data transformation failed for archive: %s - %s", extracted.getArchiveName(), e);
-            return ServiceResultUtil.failure(e.getMessage(), Constants.Reports.FILE_ERROR);
+            return ServiceResultUtil.failure(e.getMessage(), VfFailureReason.GENERAL_ERROR.toString());
         }
     }
 
@@ -110,24 +113,7 @@ public class DataTransformationService {
             origVersionStr = versionNumber;
         }
 
-        String groupKey = MigrationRecordService.generateRecordingGroupKey(
-            extracted.getUrn(),
-            extracted.getExhibitReference(),
-            extracted.getWitnessFirstName(),
-            extracted.getDefendantLastName()
-        );
-
-        // Determine if this COPY is the most recent
-        boolean isMostRecent = true;
-        if ("COPY".equalsIgnoreCase(versionType)) {
-            isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
-                .map(mostRecent -> RecordingUtils.compareVersionStrings(versionNumber, mostRecent) >= 0)
-                .orElse(true);
-        }
-
-        // Determine preference
         boolean isPreferred = true;
-        // Non-mp4 filter
         if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4") && !"COPY".equalsIgnoreCase(versionType)) {
             boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveId());
             if (updated) {
@@ -147,6 +133,17 @@ public class DataTransformationService {
         }
 
         migrationRecordService.updateIsPreferred(extracted.getArchiveId(), isPreferred);
+
+        String groupKey = MigrationRecordService.generateRecordingGroupKey(
+            extracted.getUrn(),
+            extracted.getExhibitReference(),
+            extracted.getWitnessFirstName(),
+            extracted.getDefendantLastName()
+        );
+
+        boolean isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
+            .map(mostRecent -> RecordingUtils.compareVersionStrings(rawVersionNumber, mostRecent) >= 0)
+            .orElse(true);
 
         // Court Resolution
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
@@ -209,7 +206,7 @@ public class DataTransformationService {
      */
     protected Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         String courtReference = extracted.getCourtReference();
-        if (courtReference == null || courtReference.isEmpty()) {
+        if (courtReference == null || courtReference.isEmpty() || extracted.getCourtId() == null) {
             loggingService.logError("Court reference is null or empty");
         }
 
@@ -218,10 +215,15 @@ public class DataTransformationService {
         return cacheService.getCourt(fullCourtName)
             .map(CourtDTO::getId)
             .flatMap(courtRepository::findById)
-            .orElseGet(() -> {
+            .or(() -> {
+                UUID extractedId = extracted.getCourtId();
+                if (extractedId != null) {
+                    return courtRepository.findById(extractedId);
+                }
                 loggingService.logWarning("Court not found in cache or DB for name: %s", fullCourtName);
-                return null;
-            });
+                return Optional.empty();
+            })
+            .orElse(null);
     }
 
     protected List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {

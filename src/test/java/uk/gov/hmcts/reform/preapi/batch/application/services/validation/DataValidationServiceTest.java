@@ -5,12 +5,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 
 import java.util.Optional;
@@ -22,6 +24,9 @@ import static org.mockito.Mockito.when;
 public class DataValidationServiceTest {
     @MockitoBean
     private MigrationRecordService migrationRecordService;
+
+    @MockitoBean
+    private MigrationRecordRepository migrationRecordRepository;
 
     @MockitoBean
     private LoggingService loggingService;
@@ -42,7 +47,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.MISSING_COURT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -63,7 +68,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.NOT_MOST_RECENT_VERSION);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_NOT_RECENT);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.NOT_MOST_RECENT.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -82,7 +87,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -102,7 +107,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -122,7 +127,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -132,6 +137,7 @@ public class DataValidationServiceTest {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
             .isMostRecentVersion(true)
+            .isPreferred(true)
             .caseReference("case_reference")
             .witnessFirstName("witness")
             .defendantLastName("defendant")
@@ -142,6 +148,8 @@ public class DataValidationServiceTest {
 
         MigrationRecord currentRecord = new MigrationRecord();
         when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
+        when(migrationRecordRepository.existsByArchiveIdAndIsMostRecentTrue("ARCHIVE123"))
+            .thenReturn(true);
         when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.empty());
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
@@ -151,7 +159,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.NO_PARENT_FOUND);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -160,11 +168,15 @@ public class DataValidationServiceTest {
     void validateProcessedRecordingNonPreferred() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
+            .archiveId("ARCH123")
             .isMostRecentVersion(true)
             .caseReference("123456789")
             .extractedRecordingVersion("COPY")
             .isPreferred(false)
             .build();
+
+        when(migrationRecordRepository.existsByArchiveIdAndIsMostRecentTrue("ARCH123"))
+            .thenReturn(true);
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
             processedRecording
@@ -173,7 +185,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.NOT_PREFERRED);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_NOT_PREFERRED);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.ALTERNATIVE_AVAILABLE.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -210,7 +222,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.MISSING_COURT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -226,7 +238,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -243,7 +255,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -260,7 +272,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG);
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -277,7 +289,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo("Missing or empty witness first name");
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -295,7 +307,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo("Missing or empty witness first name");
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -313,7 +325,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo("Missing or empty defendant last name");
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -332,7 +344,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo("Missing or empty defendant last name");
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -352,7 +364,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo("Invalid recording version number");
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -372,7 +384,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo("Missing file name");
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 
@@ -393,7 +405,7 @@ public class DataValidationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getData()).isNull();
         assertThat(result.getErrorMessage()).isEqualTo("Missing file name");
-        assertThat(result.getCategory()).isEqualTo(Constants.Reports.FILE_MISSING_DATA);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.INCOMPLETE_DATA.toString());
         assertThat(result.isSuccess()).isFalse();
     }
 

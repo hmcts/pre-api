@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
@@ -21,8 +22,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_PRE_EXISTING;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
 @SpringBootTest(classes = { DataExtractionService.class })
 public class DataExtractionServiceTest {
@@ -48,7 +47,7 @@ public class DataExtractionServiceTest {
 
         assertThat(result.isSuccess()).isFalse();
     }
-    
+
 
     // @Test
     // @SuppressWarnings("unchecked")
@@ -84,7 +83,7 @@ public class DataExtractionServiceTest {
 
         assertThat(result.isSuccess()).isFalse();
         assertThat(result.getErrorMessage()).isEqualTo(PATTERN_MATCH);
-        assertThat(result.getCategory()).isEqualTo(FILE_REGEX);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.VALIDATION_FAILED.toString());
     }
 
     @Test
@@ -225,7 +224,7 @@ public class DataExtractionServiceTest {
         data.setArchiveName("some-file-PRE-existing.mp4");
 
         when(metadataValidator.validatePreExisting(any(MigrationRecord.class)))
-            .thenReturn(ServiceResultUtil.failure("Keyword 'PRE' found", FILE_PRE_EXISTING));
+            .thenReturn(ServiceResultUtil.failure("Keyword 'PRE' found", VfFailureReason.PRE_EXISTING.toString()));
 
         ServiceResult<?> result = dataExtractionService.process(data);
 
