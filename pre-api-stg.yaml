@@ -1078,9 +1078,7 @@ definitions:
         format: date-time
         type: string
       created_by:
-        description: AuditCreatedBy
-        format: uuid
-        type: string
+        $ref: '#/definitions/BaseUserDTO'
       functional_area:
         description: AuditFunctionalArea
         type: string
@@ -2458,6 +2456,47 @@ paths:
     get:
       operationId: getAuditLogs
       parameters:
+        - description: The date time to search after
+          format: iso-date-time
+          in: query
+          name: after
+          type: string
+          x-example: '2021-01-01T00:00:00'
+        - description: The date time to search before
+          format: iso-date-time
+          in: query
+          name: before
+          type: string
+          x-example: '2021-01-01T00:00:00'
+        - description: The functional area to search by
+          in: query
+          name: functionalArea
+          type: string
+          x-example: API
+        - description: The source to search by
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          type: string
+        - description: Partial user's name to search by
+          in: query
+          name: userName
+          type: string
+        - description: The court id of the audit to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The case reference of the audit to search by
+          in: query
+          name: caseReference
+          type: string
+          x-example: CASE12345
         - description: The page number of search result to return
           format: int32
           in: query
