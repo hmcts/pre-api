@@ -62,6 +62,8 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
 
     @Query("""
         SELECT cs FROM CaptureSession cs
+        INNER JOIN FETCH cs.booking b
+        INNER JOIN FETCH b.caseId c
         WHERE cs.deletedAt IS NULL
         AND cs.startedAt IS NOT NULL
         """

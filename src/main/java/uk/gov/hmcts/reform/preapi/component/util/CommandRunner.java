@@ -20,19 +20,20 @@ public final class CommandRunner implements Callable<String> {
 
     @Override
     public String call() throws Exception {
-        var outputStream = new ByteArrayOutputStream();
+        var stdout = new ByteArrayOutputStream();
+        var stderr = new ByteArrayOutputStream();
         var exec = DefaultExecutor.builder().get();
-        var streamHandler = new PumpStreamHandler(outputStream);
+        var streamHandler = new PumpStreamHandler(stdout, stderr);
         exec.setStreamHandler(streamHandler);
 
         try {
             exec.execute(commandLine);
         } catch (Exception e) {
             throw new CommandExecutionException("Command failed with this output: "
-                                                    + outputStream.toString("UTF-8"), e);
+                                                    + stderr.toString("UTF-8"), e);
         }
 
-        var outputString = outputStream.toString(StandardCharsets.UTF_8);
+        var outputString = stdout.toString(StandardCharsets.UTF_8);
         log.debug("Command output: {} ", outputString);
         return outputString;
     }
