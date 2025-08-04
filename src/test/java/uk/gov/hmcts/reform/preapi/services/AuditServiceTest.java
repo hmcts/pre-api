@@ -48,7 +48,7 @@ class AuditServiceTest {
     @MockitoBean
     private AppAccessRepository appAccessRepository;
 
-    @MockBean
+    @MockitoBean
     private PortalAccessRepository portalAccessRepository;
 
     @Autowired
