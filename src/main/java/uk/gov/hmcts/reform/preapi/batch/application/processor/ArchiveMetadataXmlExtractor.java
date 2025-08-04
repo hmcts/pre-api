@@ -340,11 +340,24 @@ public class ArchiveMetadataXmlExtractor {
     }
 
     private String extractVersion(String displayName) {
-        String[] parts = displayName.split("-");
-        if (parts.length == 0) {
+        if (displayName == null || displayName.isBlank()) {
             return "";
         }
-        String versionPart = parts[parts.length - 1];
-        return versionPart.split("\\.")[0];
+
+        String cleanName = displayName.toUpperCase()
+            .replaceAll("\\.(MP4|RAW|M4A|MOV|AVI)$", "");
+
+        String[] parts = cleanName.split("-");
+
+        for (int i = parts.length - 1; i >= 0; i--) {
+            String part = parts[i];
+            for (String valid : Constants.VALID_VERSION_TYPES) {
+                if (part.startsWith(valid)) {
+                    return valid;
+                }
+            }
+        }
+
+        return "";
     }
 }

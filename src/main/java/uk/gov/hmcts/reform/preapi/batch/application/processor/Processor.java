@@ -115,7 +115,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 }
 
                 // Check if already migrated
-                if (isMigrated(cleansedData, migrationRecord)) {
+                if (isMigrated(migrationRecord)) {
                     return null;
                 }
 
@@ -243,7 +243,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return true;
     }
 
-    private boolean isMigrated(ProcessedRecording cleansedData, MigrationRecord archiveItem) {
+    private boolean isMigrated(MigrationRecord archiveItem) {
         Optional<MigrationRecord> maybeExisting = migrationRecordService.findByArchiveId(archiveItem.getArchiveId());
 
         if (maybeExisting.isPresent() && maybeExisting.get().getStatus() == VfMigrationStatus.SUCCESS) {

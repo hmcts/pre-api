@@ -38,7 +38,7 @@ public class MigrationRecordService {
     @Autowired
     public MigrationRecordService(final MigrationRecordRepository migrationRecordRepository,
                                   final CourtRepository courtRepository,
-        final LoggingService loggingService) {
+                                  final LoggingService loggingService) {
         this.migrationRecordRepository = migrationRecordRepository;
         this.courtRepository = courtRepository;
         this.loggingService = loggingService;

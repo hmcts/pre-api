@@ -97,7 +97,7 @@ public class ExtractedMetadata implements IArchiveData {
         }
         String t = s.trim();
         int len = t.length();
-        return len > MIN_LEN_EXCLUSIVE && len < MAX_LEN_EXCLUSIVE; 
+        return len >= MIN_LEN_EXCLUSIVE && len <= MAX_LEN_EXCLUSIVE; 
     }
 
     public String createCaseReference() {

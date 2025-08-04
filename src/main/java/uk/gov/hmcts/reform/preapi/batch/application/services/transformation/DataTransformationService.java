@@ -130,7 +130,6 @@ public class DataTransformationService {
 
         // Determine preference
         boolean isPreferred = true;
-
         // Non-mp4 filter
         if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4") && !"COPY".equalsIgnoreCase(versionType)) {
             boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveId());
