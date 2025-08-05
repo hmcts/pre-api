@@ -78,6 +78,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     TASK_START_LIVE_EVENTS_POLL_INTERVAL: 2000
     TASK_CLEANUP_LIVE_EVENTS_BATCH_SIZE: 3
     TASK_CLEANUP_LIVE_EVENTS_COOLDOWN: 60000
+    TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE: 20
+    TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL: 10000
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues

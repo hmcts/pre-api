@@ -104,7 +104,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
 
     private void onEncodeFromIngestProcessingComplete(EncodeJobDTO job, IMediaService mediaService) {
         log.info("EncodeFromIngest for capture session {} is complete", job.getCaptureSessionId());
-        var jobName = mediaService.triggerProcessingStep2(job.getRecordingId());
+        var jobName = mediaService.triggerProcessingStep2(job.getRecordingId(), false);
 
         if (jobName == null) {
             log.info("No recording found for capture session {}", job.getCaptureSessionId());

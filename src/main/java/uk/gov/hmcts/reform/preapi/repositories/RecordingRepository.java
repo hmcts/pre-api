@@ -126,4 +126,12 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     List<Recording> findAllCompletedCaptureSessionsWithRecordings();
 
     List<Recording> findAllByDurationIsNullAndDeletedAtIsNull();
+
+    @Query("""
+        SELECT r FROM Recording r
+        WHERE r.captureSession.origin = 'VODAFONE'
+        AND r.deletedAt IS NULL
+        """
+    )
+    List<Recording> findAllOriginVodafone();
 }

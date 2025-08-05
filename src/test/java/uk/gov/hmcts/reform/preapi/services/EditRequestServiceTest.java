@@ -740,7 +740,8 @@ public class EditRequestServiceTest {
         var sourceContainer = newRecordingId + "-input";
 
         when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
-        doThrow(new NotFoundException("Something went wrong")).when(mediaService).importAsset(any(), eq(false));
+        doThrow(new NotFoundException("Something went wrong")).when(mediaService)
+            .importAsset(any(GenerateAssetDTO.class), eq(false));
 
         var message = assertThrows(
             NotFoundException.class,
@@ -750,7 +751,7 @@ public class EditRequestServiceTest {
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
-        verify(mediaService, times(1)).importAsset(any(), eq(false));
+        verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
     }
 
     @Test
@@ -780,7 +781,7 @@ public class EditRequestServiceTest {
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
-        verify(mediaService, times(1)).importAsset(any(), eq(false));
+        verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
         verify(azureFinalStorageService, never()).getMp4FileName(any());
     }
 
@@ -810,7 +811,7 @@ public class EditRequestServiceTest {
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
-        verify(mediaService, times(1)).importAsset(any(), eq(false));
+        verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
         verify(azureFinalStorageService, times(1)).getMp4FileName(any());
     }
 

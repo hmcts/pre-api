@@ -36,6 +36,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -189,7 +190,7 @@ public class CleanupLiveEventsTest {
         when(captureSessionService.findByLiveEventId(liveEventDTO.getName())).thenReturn(captureSession);
         when(mediaService.triggerProcessingStep1(any(), any(), any())).thenReturn("job1");
         when(mediaService.hasJobCompleted(any(), eq("job1"))).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.triggerProcessingStep2(any())).thenReturn("job2");
+        when(mediaService.triggerProcessingStep2(any(), anyBoolean())).thenReturn("job2");
         when(mediaService.hasJobCompleted(any(), eq("job2"))).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
         when(mediaService.verifyFinalAssetExists(any())).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
 
