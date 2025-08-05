@@ -71,7 +71,7 @@ public final class RegexPatterns {
 
     public static final Pattern SNOW_MORNING_CHECKS_PATTERN = Pattern.compile(
         "^SNOW\\s*Morning\\s*Checks\\s*\\d{4}\\s*\\d{2}\\s*\\d{2}\\s*VMR\\d+(?:\\.mp4)?$",
-        Pattern.CASE_INSENSITIVE 
+        Pattern.CASE_INSENSITIVE
     );
 
     public static final Pattern S28_MORNING_CHECKS_DDMMYYYY_PATTERN = Pattern.compile(
@@ -371,18 +371,18 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
-    public static final Pattern STANDARD_WITNESS_PARENS_PATTERN = Pattern.compile(
-        "^" + COURT_PATTERN + SEPARATOR_ONE
-        + DATE_PATTERN + SEPARATOR_ONE
-        + URN_PATTERN + SEPARATOR_ONE
-        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?"
-        + "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)" + SEPARATOR_ONE
-        + "(?<witnessFirstName>[A-Za-z0-9&']+(?:[-'\\s][A-Za-z]+)*(?:\\s*\\([A-Za-z0-9&+'\\-]{1,6}\\))?)" 
-        + SEPARATOR_ONE
-        + VERSION_PATTERN
-        + EXTENSION_PATTERN + "$",
-        Pattern.CASE_INSENSITIVE
-    );
+    // public static final Pattern STANDARD_WITNESS_PARENS_PATTERN = Pattern.compile(
+    //     "^" + COURT_PATTERN + SEPARATOR_ONE
+    //     + DATE_PATTERN + SEPARATOR_ONE
+    //     + URN_PATTERN + SEPARATOR_ONE
+    //     + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?"
+    //     + "(?<defendantLastName>(?>[A-Za-z']++)(?>[-\\s][A-Za-z0-9&]++)*)" + SEPARATOR_ONE
+    //     + "(?<witnessFirstName>[A-Za-z0-9&']++(?:[-'\\s][A-Za-z]++)*(?:\\s*\\([A-Za-z0-9&+'\\-]{1,6}\\))?)"
+    //     + SEPARATOR_ONE
+    //     + VERSION_PATTERN
+    //     + EXTENSION_PATTERN + "$",
+    //     Pattern.CASE_INSENSITIVE
+    // );
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
         Map.entry("Standard", RegexPatterns.STANDARD_PATTERN),
@@ -401,7 +401,6 @@ public final class RegexPatterns {
         Map.entry("NoUrnPattern", RegexPatterns.NO_URN_PATTERN),
         Map.entry("NoExhibitPattern", RegexPatterns.NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
         Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN),
-        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN),
-        Map.entry("Participants Paren",RegexPatterns.STANDARD_WITNESS_PARENS_PATTERN)
+        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN)
     );
 }
