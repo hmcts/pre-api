@@ -65,12 +65,15 @@ azure:
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
+
   finalStorage:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
+  vodafoneStorage:
+    accountName: ${AZURE_VF_SA:}
+    connectionString: ${AZURE_VF_SA_CONNECTION_STRING:}
   managedIdentityClientId: ${AZURE_CLIENT_ID:}
   tenantId: ${AZURE_TENANT_ID:}
-
 
 hibernate:
   show_sql: true
@@ -97,6 +100,7 @@ media-service: ${MEDIA_SERVICE:MediaKind}
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
 cron-user-email: ${CRON_USER_EMAIL:test@test.com}
+vodafone-user-email: ${VODAFONE_USER_EMAIL:vodafone@test.com}
 
 nroUsersFilePath: src/integrationTest/resources/Test_NRO_User_Import.csv
 
@@ -112,6 +116,12 @@ portal:
 slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
+
+migration:
+  debug: ${MIGRATION_DEBUG:false}
+  type: ${MIGRATION_TYPE:FULL}
+  dryRun: ${DRY_RUN:false}
+
 editing:
   enable: ${ENABLE_AUTOMATED_EDITING:true}
 
@@ -124,8 +134,15 @@ tasks:
     cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
     job-poll-interval: 10000 # 10 seconds
 
+
+#logging:
+#  level:
+#    org.springframework.orm.jpa: DEBUG
+#    org.springframework.transaction: DEBUG
+
 feature-flags:
   enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+  enable-migration-admin-endpoints: ${ENABLE_MIGRATION_ADMIN_ENDPOINTS:false}
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
   ffmpeg-multi-command: ${ENABLE_MULTI_FFMPEG_COMMAND:false}

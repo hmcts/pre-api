@@ -80,6 +80,13 @@ public class CaseService {
             .orElseThrow(() -> new NotFoundException("Case: " + id));
     }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
+    public List<CaseDTO> getCasesByOrigin(RecordingOrigin origin) {
+        var cases = caseRepository.findAllByOrigin(origin);
+        return cases.stream().map(CaseDTO::new).toList();
+    }
+
     @Transactional
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     public Page<CaseDTO> searchBy(String reference, UUID courtId, boolean includeDeleted, Pageable pageable) {
