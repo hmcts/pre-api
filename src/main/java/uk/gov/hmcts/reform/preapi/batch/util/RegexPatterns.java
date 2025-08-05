@@ -376,8 +376,8 @@ public final class RegexPatterns {
         + DATE_PATTERN + SEPARATOR_ONE
         + URN_PATTERN + SEPARATOR_ONE
         + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?"
-        + "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)" + SEPARATOR_ONE
-        + "(?<witnessFirstName>[A-Za-z0-9&']+(?:[-'\\s][A-Za-z]+)*(?:\\s*\\([A-Za-z0-9&+'\\-]{1,6}\\))?)" 
+        + "(?<defendantLastName>(?>[A-Za-z']++)(?>[-\\s][A-Za-z0-9&]++)*)" + SEPARATOR_ONE
+        + "(?<witnessFirstName>[A-Za-z0-9&']++(?:[-'\\s][A-Za-z]++)*(?:\\s*\\([A-Za-z0-9&+'\\-]{1,6}\\))?)"
         + SEPARATOR_ONE
         + VERSION_PATTERN
         + EXTENSION_PATTERN + "$",
