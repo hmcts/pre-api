@@ -402,6 +402,5 @@ public final class RegexPatterns {
         Map.entry("NoExhibitPattern", RegexPatterns.NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
         Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN),
         Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN)
-        // Map.entry("Participants Paren",RegexPatterns.STANDARD_WITNESS_PARENS_PATTERN)
     );
 }
