@@ -28,6 +28,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: AZURE_FINAL_SA_CONNECTION_STRING
         - name: ingestsa-storage-account-connection-string
           alias: AZURE_INGEST_SA_CONNECTION_STRING
+        - name: vodasa-storage-account-connection-string
+          alias: AZURE_VF_SA_CONNECTION_STRING
         - name: symmetrickey
           alias: SYMMETRIC_KEY
         - name: pp-authorization
@@ -70,6 +72,7 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     ENABLE_AUTOMATED_EDITING: false
     ENABLE_ENHANCED_PROCESSING: false
     ENABLE_NULL_DURATION_UPSERT: false
+    ENABLE_MIGRATION_ADMIN_ENDPOINTS: false
     ENABLE_MULTI_FFMPEG_COMMAND: false
     TASK_START_LIVE_EVENTS_BATCH_SIZE: 20
     TASK_START_LIVE_EVENTS_POLL_INTERVAL: 2000
