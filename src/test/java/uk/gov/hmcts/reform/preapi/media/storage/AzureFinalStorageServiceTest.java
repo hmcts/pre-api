@@ -62,7 +62,6 @@ public class AzureFinalStorageServiceTest {
 
     private static MockedStatic<DocumentBuilderFactory> documentBuilderFactoryMock;
 
-
     @BeforeEach
     void setUp() {
         when(finalStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
