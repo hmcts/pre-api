@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
@@ -23,17 +24,20 @@ public class ProcessCaptureSessions extends RobotUserTask {
     private final CaptureSessionService captureSessionService;
     private final MediaServiceBroker mediaServiceBroker;
     private final EncodeJobService encodeJobService;
+    private final AzureIngestStorageService azureIngestStorageService;
 
-    protected ProcessCaptureSessions(UserService userService,
-                                     UserAuthenticationService userAuthenticationService,
-                                     @Value("${cron-user-email}") String cronUserEmail,
-                                     CaptureSessionService captureSessionService,
-                                     MediaServiceBroker mediaServiceBroker,
-                                     EncodeJobService encodeJobService) {
+    protected ProcessCaptureSessions(final UserService userService,
+                                     final UserAuthenticationService userAuthenticationService,
+                                     final CaptureSessionService captureSessionService,
+                                     final MediaServiceBroker mediaServiceBroker,
+                                     final EncodeJobService encodeJobService,
+                                     final AzureIngestStorageService azureIngestStorageService,
+                                     @Value("${cron-user-email}") String cronUserEmail) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.captureSessionService = captureSessionService;
         this.mediaServiceBroker = mediaServiceBroker;
         this.encodeJobService = encodeJobService;
+        this.azureIngestStorageService = azureIngestStorageService;
     }
 
     @Override
@@ -123,11 +127,13 @@ public class ProcessCaptureSessions extends RobotUserTask {
         encodeJobService.delete(job.getId());
         if (mediaService.verifyFinalAssetExists(job.getRecordingId()) == RecordingStatus.RECORDING_AVAILABLE) {
             log.info("Final asset found for capture session {}", job.getCaptureSessionId());
-            captureSessionService.stopCaptureSession(
+            var captureSession = captureSessionService.stopCaptureSession(
                 job.getCaptureSessionId(),
                 RecordingStatus.RECORDING_AVAILABLE,
                 job.getRecordingId()
             );
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+            azureIngestStorageService.markContainerAsSafeToDelete(job.getRecordingId().toString());
         } else {
             log.error("Final asset not found for capture session {}", job.getCaptureSessionId());
             captureSessionService.stopCaptureSession(job.getCaptureSessionId(), RecordingStatus.FAILURE, null);

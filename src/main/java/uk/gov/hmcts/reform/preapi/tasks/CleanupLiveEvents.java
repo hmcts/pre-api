@@ -20,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -44,6 +45,7 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final BookingService bookingService;
     private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
     private final EmailServiceFactory emailServiceFactory;
+    private final AzureIngestStorageService azureIngestStorageService;
 
     private final String platformEnv;
 
@@ -54,22 +56,24 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final ConcurrentHashMap<UUID, CleanupTask> liveEventCleanupMap = new ConcurrentHashMap<>();
 
     @Autowired
-    CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
-                      CaptureSessionService captureSessionService,
-                      BookingService bookingService,
-                      UserService userService,
-                      UserAuthenticationService userAuthenticationService,
-                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient,
-                      EmailServiceFactory emailServiceFactory,
-                      @Value("${cron-user-email}") String cronUserEmail,
-                      @Value("${platform-env}") String platformEnv,
-                      @Value("${tasks.cleanup-live-events.batch-size}") int batchSize,
-                      @Value("${tasks.cleanup-live-events.cooldown}") int batchCooldownTime,
-                      @Value("${tasks.cleanup-live-events.job-poll-interval}") int jobPollingInterval) {
+    public CleanupLiveEvents(final MediaServiceBroker mediaServiceBroker,
+                             final CaptureSessionService captureSessionService,
+                             final BookingService bookingService,
+                             final UserService userService,
+                             final UserAuthenticationService userAuthenticationService,
+                             final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient,
+                             final EmailServiceFactory emailServiceFactory,
+                             final AzureIngestStorageService azureIngestStorageService,
+                             @Value("${cron-user-email}") String cronUserEmail,
+                             @Value("${platform-env}") String platformEnv,
+                             @Value("${tasks.cleanup-live-events.batch-size}") int batchSize,
+                             @Value("${tasks.cleanup-live-events.cooldown}") int batchCooldownTime,
+                             @Value("${tasks.cleanup-live-events.job-poll-interval}") int jobPollingInterval) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
+        this.azureIngestStorageService = azureIngestStorageService;
         this.platformEnv = platformEnv;
         this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
         this.batchSize = batchSize;
@@ -320,11 +324,13 @@ public class CleanupLiveEvents extends RobotUserTask {
                     return;
                 }
                 log.info("Final asset found for capture session {}", captureSessionId);
-                captureSessionService.stopCaptureSession(
+                var captureSession = captureSessionService.stopCaptureSession(
                     captureSessionId,
                     RecordingStatus.RECORDING_AVAILABLE,
                     currentTask.getRecordingId()
                 );
+                azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+                azureIngestStorageService.markContainerAsSafeToDelete(currentTask.getRecordingId().toString());
                 currentTask.setStatus(CleanupTaskStatus.RECORDING_AVAILABLE);
             }
             case FAILURE -> {
