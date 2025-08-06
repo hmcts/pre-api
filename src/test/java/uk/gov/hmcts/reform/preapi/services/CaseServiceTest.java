@@ -156,7 +156,14 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return a list of models")
     @Test
     void findAllSuccess() {
-        when(caseRepository.searchCasesBy(null, null, false, null,null)).thenReturn(new PageImpl<>(allCaseEntities));
+        when(caseRepository.searchCasesBy(
+            null,
+            null,
+            false,
+            null,
+            false,
+            null
+        )).thenReturn(new PageImpl<>(allCaseEntities));
 
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -173,7 +180,14 @@ class CaseServiceTest {
     @Test
     void findAllSuccessNonAdmin() {
         var courtId = UUID.randomUUID();
-        when(caseRepository.searchCasesBy(null, null, false, courtId,null)).thenReturn(new PageImpl<>(allCaseEntities));
+        when(caseRepository.searchCasesBy(
+            null,
+            null,
+            false,
+            courtId,
+            false,
+            null
+        )).thenReturn(new PageImpl<>(allCaseEntities));
 
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isPortalUser()).thenReturn(false);
@@ -187,13 +201,20 @@ class CaseServiceTest {
         assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
 
-        verify(caseRepository, times(1)).searchCasesBy(null, null, false, courtId, null);
+        verify(caseRepository, times(1)).searchCasesBy(null, null, false, courtId, false,null);
     }
 
     @DisplayName("Find all cases and return list of models where reference is in list")
     @Test
     void findAllReferenceParamSuccess() {
-        when(caseRepository.searchCasesBy("234", null, false, null, null)).thenReturn(new PageImpl<>(allCaseEntities));
+        when(caseRepository.searchCasesBy(
+            "234",
+            null,
+            false,
+            null,
+            false,
+            null
+        )).thenReturn(new PageImpl<>(allCaseEntities));
 
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -208,7 +229,7 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return list of models where reference is not the in list")
     @Test
     void findAllReferenceParamNotFoundSuccess() {
-        when(caseRepository.searchCasesBy("abc", null, false, null,null)).thenReturn(Page.empty());
+        when(caseRepository.searchCasesBy("abc", null, false, null,false,null)).thenReturn(Page.empty());
 
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -221,7 +242,7 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return list of models where case with court is in list")
     @Test
     void findAllCourtIdParamSuccess() {
-        when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId(), false, null, null))
+        when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId(), false, null, false,null))
             .thenReturn(new PageImpl<>(allCaseEntities));
 
         var mockAuth = mock(UserAuthentication.class);
@@ -242,7 +263,7 @@ class CaseServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         UUID uuid = UUID.randomUUID();
-        when(caseRepository.searchCasesBy(null, uuid, false, null,null)).thenReturn(Page.empty());
+        when(caseRepository.searchCasesBy(null, uuid, false, null,false, null)).thenReturn(Page.empty());
 
         Page<CaseDTO> models = caseService.searchBy(null, uuid, false,null);
         assertThat(models.getTotalElements()).isEqualTo(0);
