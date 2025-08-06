@@ -131,8 +131,10 @@ public class CleanupLiveEvents extends RobotUserTask {
         // Delete live events that remain
         mediaService.getLiveEvents().stream()
             .map(LiveEventDTO::getName)
-            .peek(liveEvent -> log.info("Cleaning up remaining live event: {}", liveEvent))
-            .forEach(mediaService::stopLiveEvent);
+            .forEach(liveEvent -> {
+                log.info("Cleaning up remaining live event: {}", liveEvent);
+                mediaService.stopLiveEvent(liveEvent);
+            });
 
         // Handle past bookings that are unused
         handlePastBookings();
