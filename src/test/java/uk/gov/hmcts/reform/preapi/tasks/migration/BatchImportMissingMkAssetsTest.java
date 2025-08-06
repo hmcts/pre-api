@@ -80,13 +80,14 @@ public class BatchImportMissingMkAssetsTest {
 
     @BeforeEach
     void setUp() {
-        var accessDto = mock(AccessDTO.class);
-        var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
-        when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
-        when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
+        var access = new AccessDTO();
+        var appAccess = new BaseAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        access.setAppAccess(Set.of(appAccess));
         var userAuth = mock(UserAuthentication.class);
-        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+        when(userAuth.isAdmin()).thenReturn(true);
+        when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(access);
+        when(userAuthenticationService.validateUser(appAccess.getId().toString())).thenReturn(Optional.of(userAuth));
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
     }
 
