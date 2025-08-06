@@ -312,7 +312,7 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: versions.jackson
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
 
-  implementation group: 'com.opencsv', name: 'opencsv', version: '5.11.2'
+  implementation group: 'com.opencsv', name: 'opencsv', version: '5.12.0'
 
   implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.30.0'
   implementation group: 'com.azure', name: 'azure-core-serializer-json-jackson', version: '1.5.10'
