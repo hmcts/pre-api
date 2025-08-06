@@ -50,7 +50,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = {EntityCreationService.class})
 public class EntityCreationServiceTest {
-    private static final String VODAFONE_EMAIL = "dts-pre-app-stg@hmcts.net";
+    private static final String VODAFONE_EMAIL = "vodafone@test.com";
 
     @MockitoBean
     private LoggingService loggingService;
