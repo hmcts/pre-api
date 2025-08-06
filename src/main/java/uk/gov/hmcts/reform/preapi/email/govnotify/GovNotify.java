@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.templates.BaseTemplate;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailVerification;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
@@ -119,7 +120,7 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode) {
-        var template = new uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailVerification(
+        var template = new EmailVerification(
             email, firstName, lastName, verificationCode
         );
         try {
