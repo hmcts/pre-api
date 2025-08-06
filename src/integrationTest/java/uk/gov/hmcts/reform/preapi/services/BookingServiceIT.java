@@ -89,6 +89,7 @@ class BookingServiceIT extends IntegrationTestBase {
             null,
             null,
             null,
+            null,
             Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
         );
         assertEquals(1, findAllSharedWithUser.toList().size(), "Should find 1 booking");
@@ -188,6 +189,7 @@ class BookingServiceIT extends IntegrationTestBase {
             null,
             null,
             null,
+            null,
             Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
         );
         assertEquals(2, findByCaseReferenceResult.getContent().size(), "Should find 2 bookings");
@@ -199,6 +201,7 @@ class BookingServiceIT extends IntegrationTestBase {
             null,
             null,
             Optional.of(Timestamp.from(Instant.parse("2024-06-28T00:00:00.000Z"))),
+            null,
             null,
             null,
             null,
@@ -220,6 +223,7 @@ class BookingServiceIT extends IntegrationTestBase {
                                                               null,
                                                               null,
                                                               null,
+                                                              null,
                                                               null);
         assertEquals(1, findByParticipantResult.getContent().size());
         assertEquals(
@@ -232,6 +236,7 @@ class BookingServiceIT extends IntegrationTestBase {
                                                           null,
                                                           court1.getId(),
                                                           Optional.empty(),
+                                                          null,
                                                           null,
                                                           null,
                                                           null,
@@ -253,6 +258,7 @@ class BookingServiceIT extends IntegrationTestBase {
             false,
             null,
             null,
+            null,
             Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
         ).toList();
         assertEquals(findByHasRecordingsFalse.size(), 1);
@@ -268,6 +274,7 @@ class BookingServiceIT extends IntegrationTestBase {
             Optional.empty(),
             null,
             true,
+            null,
             null,
             null,
             Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
@@ -357,6 +364,7 @@ class BookingServiceIT extends IntegrationTestBase {
                                                           Optional.empty(),
                                                           null,
                                                           null,
+                                                          null,
                                                           List.of(RecordingStatus.STANDBY),
                                                           null,
                                                           null).getContent();
@@ -369,6 +377,7 @@ class BookingServiceIT extends IntegrationTestBase {
                                                           Optional.empty(),
                                                           null,
                                                           null,
+                                                          null,
                                                           List.of(RecordingStatus.PROCESSING),
                                                           null,
                                                           null).getContent();
@@ -379,6 +388,7 @@ class BookingServiceIT extends IntegrationTestBase {
                                                              null,
                                                              null,
                                                              Optional.empty(),
+                                                             null,
                                                              null,
                                                              null,
                                                              List.of(
@@ -399,6 +409,7 @@ class BookingServiceIT extends IntegrationTestBase {
                                                              Optional.empty(),
                                                              null,
                                                              null,
+                                                              null,
                                                              List.of(RecordingStatus.NO_RECORDING),
                                                              null,
                                                              null).getContent();
@@ -411,6 +422,7 @@ class BookingServiceIT extends IntegrationTestBase {
                                                          null,
                                                          null,
                                                          null,
+                                                         null,
                                                          List.of(RecordingStatus.STANDBY),
                                                          null).getContent();
         assertThat(findOnlyWithProcessing).hasSize(1);
@@ -420,6 +432,7 @@ class BookingServiceIT extends IntegrationTestBase {
                                                                        null,
                                                                        null,
                                                                        Optional.empty(),
+                                                                       null,
                                                                        null,
                                                                        null,
                                                                        null,
