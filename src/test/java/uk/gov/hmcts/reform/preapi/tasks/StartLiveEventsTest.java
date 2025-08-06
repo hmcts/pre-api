@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import lombok.Cleanup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -98,7 +99,7 @@ public class StartLiveEventsTest {
         captureSession2.setId(UUID.randomUUID());
         captureSession2.setStatus(RecordingStatus.INITIALISING);
 
-        var mockedUUID = mockStatic(UUID.class);
+        @Cleanup var mockedUUID = mockStatic(UUID.class);
         mockedUUID.when(UUID::randomUUID).thenReturn(captureSession1.getId(), captureSession2.getId());
         when(captureSessionService.findById(any())).thenReturn(captureSession1, captureSession2);
 
