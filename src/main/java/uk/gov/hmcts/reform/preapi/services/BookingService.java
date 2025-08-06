@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -47,19 +48,23 @@ public class BookingService {
     private final ShareBookingService shareBookingService;
     private final CaseService caseService;
 
+    private final boolean enableMigratedData;
+
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
                           final CaptureSessionService captureSessionService,
                           final ShareBookingService shareBookingService,
-                          @Lazy CaseService caseService) {
+                          @Lazy CaseService caseService,
+                          @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
         this.caseService = caseService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
@@ -91,7 +96,8 @@ public class BookingService {
         var until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
-                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS)))
+            .orElse(null);
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
@@ -110,6 +116,7 @@ public class BookingService {
                 hasRecordings,
                 statuses,
                 notStatuses,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
             .map(BookingDTO::new);
@@ -193,8 +200,9 @@ public class BookingService {
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #booking.id)")
     public void cleanUnusedCaptureSessions(Booking booking) {
         for (CaptureSession captureSession : booking.getCaptureSessions()) {
-            if (captureSession.getStatus() == RecordingStatus.FAILURE
-                || captureSession.getStatus() == RecordingStatus.NO_RECORDING) {
+            if (captureSession.getDeletedAt() == null
+                && (captureSession.getStatus() == RecordingStatus.FAILURE
+                || captureSession.getStatus() == RecordingStatus.NO_RECORDING)) {
                 captureSessionService.deleteById(captureSession.getId());
             }
         }
@@ -236,15 +244,17 @@ public class BookingService {
     @Transactional
     public List<BookingDTO> findAllBookingsForToday() {
         LocalDate currentDate = LocalDate.now();
-        return searchBy(null,
-                        null,
-                        null,
-                        Optional.of(Timestamp.valueOf(currentDate.atStartOfDay())),
-                        null,
-                        null,
-                        null,
-                        null,
-                        Pageable.unpaged())
+        return searchBy(
+            null,
+            null,
+            null,
+            Optional.of(Timestamp.valueOf(currentDate.atStartOfDay())),
+            null,
+            null,
+            null,
+            null,
+            Pageable.unpaged()
+        )
             .toList();
     }
 }
