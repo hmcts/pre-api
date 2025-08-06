@@ -140,7 +140,7 @@ class RecordingServiceTest {
     void findAllRecordingsSuccess() {
         var params = new SearchRecordings();
         when(
-            recordingRepository.searchAllBy(eq(params), eq(false), any())
+            recordingRepository.searchAllBy(eq(params), eq(false), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -160,7 +160,7 @@ class RecordingServiceTest {
         params.setStartedAtUntil(Timestamp.valueOf("2023-01-01 23:59:59"));
 
         when(
-            recordingRepository.searchAllBy(params, false, null)
+            recordingRepository.searchAllBy(params, false, false, null)
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -363,7 +363,7 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
         var params = new SearchRecordings();
-        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false, null)).thenReturn(Page.empty());
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
@@ -372,7 +372,7 @@ class RecordingServiceTest {
         var models = recordingService.findAll(params, false, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(params, false, null);
+            .searchAllBy(params, false, false,null);
 
         assertThat(models.size()).isEqualTo(0);
     }
@@ -441,13 +441,12 @@ class RecordingServiceTest {
         var params = new SearchRecordings();
         var startedAt = new Date();
         params.setStartedAt(startedAt);
-        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false,null)).thenReturn(Page.empty());
 
         recordingService.findAll(params, false, null);
 
         assertThat(params.getStartedAtFrom()).isNotNull();
         assertThat(params.getStartedAtFrom().toInstant()).isEqualTo(startedAt.toInstant());
-
         assertThat(params.getStartedAtUntil()).isNotNull();
         assertThat(params.getStartedAtUntil().toInstant())
             .isEqualTo(startedAt.toInstant().plus(86399, ChronoUnit.SECONDS));
@@ -461,12 +460,11 @@ class RecordingServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var params = new SearchRecordings();
-        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false, null)).thenReturn(Page.empty());
 
         recordingService.findAll(params, false, null);
 
         assertThat(params.getStartedAtFrom()).isNull();
-
         assertThat(params.getStartedAtUntil()).isNull();
     }
 

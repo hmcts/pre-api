@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -57,6 +58,8 @@ public class CaseService {
     private final BookingRepository bookingRepository;
     private final EmailServiceFactory emailServiceFactory;
 
+    private final boolean enableMigratedData;
+
     @Autowired
     public CaseService(CaseRepository caseRepository,
                        CourtRepository courtRepository,
@@ -65,8 +68,8 @@ public class CaseService {
                        ShareBookingService shareBookingService,
                        CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient,
                        @Lazy BookingRepository bookingRepository,
-                       EmailServiceFactory emailServiceFactory
-    ) {
+                       EmailServiceFactory emailServiceFactory,
+                       @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
@@ -75,6 +78,7 @@ public class CaseService {
         this.caseStateChangeNotifierFlowClient = caseStateChangeNotifierFlowClient;
         this.bookingRepository = bookingRepository;
         this.emailServiceFactory = emailServiceFactory;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @Transactional
@@ -84,6 +88,13 @@ public class CaseService {
             .findByIdAndDeletedAtIsNull(id)
             .map(CaseDTO::new)
             .orElseThrow(() -> new NotFoundException("Case: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
+    public List<CaseDTO> getCasesByOrigin(RecordingOrigin origin) {
+        var cases = caseRepository.findAllByOrigin(origin);
+        return cases.stream().map(CaseDTO::new).toList();
     }
 
     @Transactional
@@ -98,6 +109,7 @@ public class CaseService {
                 courtId,
                 includeDeleted,
                 authorisedCourt,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
             .map(CaseDTO::new);

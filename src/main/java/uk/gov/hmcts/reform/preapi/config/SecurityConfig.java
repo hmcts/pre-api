@@ -33,11 +33,18 @@ public class SecurityConfig {
         new AntPathRequestMatcher("/users/by-email/**"),
         new AntPathRequestMatcher("/reports/**"),
         new AntPathRequestMatcher("/audit/**"),
+        new AntPathRequestMatcher("/b2c/**"),
         new AntPathRequestMatcher("/error"),
         new AntPathRequestMatcher("/invites", "GET"),
         new AntPathRequestMatcher("/invites/redeem", "POST"),
         new AntPathRequestMatcher("/app-terms-and-conditions/latest"),
         new AntPathRequestMatcher("/portal-terms-and-conditions/latest"),
+        new AntPathRequestMatcher("/batch", "POST"),
+        new AntPathRequestMatcher("/batch/fetch-xml", "POST"),
+        new AntPathRequestMatcher("/batch/process-migration", "POST"),
+        new AntPathRequestMatcher("/batch/post-migration-tasks", "POST"),
+        new AntPathRequestMatcher("/batch/migrate-exclusions", "POST"),
+
     };
 
     @Autowired
