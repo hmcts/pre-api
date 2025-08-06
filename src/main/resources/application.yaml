@@ -136,6 +136,7 @@ migration:
   debug: ${MIGRATION_DEBUG:false}
   type: ${MIGRATION_TYPE:FULL}
   dryRun: ${DRY_RUN:false}
+  enableMigratedData: ${ENABLE_MIGRATED_DATA:false}
 
 editing:
   enable: ${ENABLE_AUTOMATED_EDITING:true}
