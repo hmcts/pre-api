@@ -50,6 +50,8 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = {EntityCreationService.class})
 public class EntityCreationServiceTest {
+    private static final String VODAFONE_EMAIL = "dts-pre-app-stg@hmcts.net";
+
     @MockitoBean
     private LoggingService loggingService;
 
@@ -163,7 +165,7 @@ public class EntityCreationServiceTest {
         user.setId(UUID.randomUUID());
         AccessDTO accessDTO = new AccessDTO();
         accessDTO.setUser(user);
-        when(userService.findByEmail("vodafone@test.com")).thenReturn(accessDTO);
+        when(userService.findByEmail(VODAFONE_EMAIL)).thenReturn(accessDTO);
 
         CreateBookingDTO booking = new CreateBookingDTO();
         booking.setId(UUID.randomUUID());
@@ -186,7 +188,7 @@ public class EntityCreationServiceTest {
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
 
         // String expectedKey = "key:version:null:sessionId";
-        verify(userService, times(1)).findByEmail("vodafone@test.com");
+        verify(userService, times(1)).findByEmail(VODAFONE_EMAIL);
         // verify(cacheService, times(1)).saveHashValue(expectedKey, "id", result.getId().toString());
     }
 
@@ -501,17 +503,17 @@ public class EntityCreationServiceTest {
 
         UserDTO vodafoneUser = new UserDTO();
         vodafoneUser.setId(UUID.randomUUID());
-        vodafoneUser.setEmail("vodafone@test.com");
+        vodafoneUser.setEmail(VODAFONE_EMAIL);
 
         AccessDTO accessDTO = new AccessDTO();
         accessDTO.setUser(vodafoneUser);
 
-        when(userService.findByEmail("vodafone@test.com")).thenReturn(accessDTO);
+        when(userService.findByEmail(VODAFONE_EMAIL)).thenReturn(accessDTO);
 
         // Mock cache service - ensure vodafone user ID is found in cache
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "test@example.com", String.class))
             .thenReturn(null);
-        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "vodafone@test.com", String.class))
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
             .thenReturn(vodafoneUser.getId().toString());
         when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
 
@@ -545,7 +547,7 @@ public class EntityCreationServiceTest {
         // Mock existing user in cache
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "existing@example.com", String.class))
             .thenReturn(existingUserId.toString());
-        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "vodafone@test.com", String.class))
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
             .thenReturn(vodafoneUserId.toString());
         when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
         when(cacheService.generateEntityCacheKey(
@@ -603,7 +605,7 @@ public class EntityCreationServiceTest {
 
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "test@example.com", String.class))
             .thenReturn(null);
-        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "vodafone@test.com", String.class))
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
             .thenReturn(null);
         when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
 
@@ -615,7 +617,7 @@ public class EntityCreationServiceTest {
         );
 
         assertThat(result).isNull();
-        verify(loggingService).logWarning("Vodafone user ID not found in cache for email: %s", "vodafone@test.com");
+        verify(loggingService).logWarning("Vodafone user ID not found in cache for email: %s", VODAFONE_EMAIL);
     }
 
     @Test
@@ -626,7 +628,7 @@ public class EntityCreationServiceTest {
 
         when(cacheService.getHashValue(eq(Constants.CacheKeys.USERS_PREFIX), eq("test@example.com"), eq(String.class)))
             .thenReturn(null);
-        when(cacheService.getHashValue(eq(Constants.CacheKeys.USERS_PREFIX), eq("vodafone@test.com"), eq(String.class)))
+        when(cacheService.getHashValue(eq(Constants.CacheKeys.USERS_PREFIX), eq(VODAFONE_EMAIL), eq(String.class)))
             .thenReturn(vodafoneUserId.toString());
         when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
         when(cacheService.generateEntityCacheKey(eq("share-booking"), eq(booking.getId().toString()), anyString()))
