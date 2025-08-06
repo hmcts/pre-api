@@ -520,7 +520,7 @@ public class ReportServiceTest {
 
     @DisplayName("Find audits relating to all playback attempts and return a report")
     @Test
-    void reportPlaybackAllSuccess() {
+    void userRecordingPlaybackReportAllSuccess() {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setEmail("example@example.com");
@@ -537,12 +537,10 @@ public class ReportServiceTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
 
-        var report = reportService.reportPlayback(null);
+        var report = reportService.userRecordingPlaybackReport();
 
         assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
         assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
-        assertThat(report.getFirst().getPlaybackTimeZone())
-            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
 
 
         assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
@@ -561,7 +559,7 @@ public class ReportServiceTest {
 
     @DisplayName("Find audits relating to all playback attempts and return a report when null auditdetails")
     @Test
-    void reportPlaybackAllSuccessNullAuditDetails() {
+    void userRecordingPlaybackReportAllSuccessNullAuditDetails() {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setEmail("example@example.com");
@@ -574,13 +572,11 @@ public class ReportServiceTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
 
-        var report = reportService.reportPlayback(null);
+        var report = reportService.userRecordingPlaybackReport();
 
         assertThat(report.size()).isEqualTo(1);
         assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
         assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
-        assertThat(report.getFirst().getPlaybackTimeZone())
-            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
         assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
         assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
         assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
@@ -596,7 +592,7 @@ public class ReportServiceTest {
 
     @Test
     @DisplayName("Returns audits for all playback attempts a report when createdBy is portalAccess id not of user id")
-    void reportPlaybackAllSuccessAuditDetailsWhenPortalAccessId() {
+    void userRecordingPlaybackReportAllSuccessAuditDetailsWhenPortalAccessId() {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setEmail("example@example.com");
@@ -614,7 +610,7 @@ public class ReportServiceTest {
         when(portalAccessRepository.findById(portalAccess.getId())).thenReturn(Optional.of(portalAccess));
         when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
 
-        var report = reportService.reportPlayback(null);
+        var report = reportService.userRecordingPlaybackReport();
 
         assertThat(report.size()).isEqualTo(1);
         assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));

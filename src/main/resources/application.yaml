@@ -25,6 +25,10 @@ spring:
     import: "optional:configtree:/mnt/secrets/pre-hmctskv/"
   application:
     name: Spring Boot Template
+  cache:
+    cache-names: users
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=10m
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:api}${DB_OPTIONS:}
@@ -40,11 +44,14 @@ spring:
       maxLifetime: 7200000
       connectionTimeout: 30000
     jpa:
+
+      show-sql: true
       hibernate:
         ddl-auto: none
       database-platform: org.hibernate.dialect.PostgreSQLDialect
       properties:
         hibernate:
+          format_sql: true
           default_schema: ${spring.datasource.schema}
           dialect: org.hibernate.dialect.PostgreSQLDialect
           globally_quoted_identifiers: true
@@ -58,12 +65,15 @@ azure:
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
+
   finalStorage:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
+  vodafoneStorage:
+    accountName: ${AZURE_VF_SA:}
+    connectionString: ${AZURE_VF_SA_CONNECTION_STRING:}
   managedIdentityClientId: ${AZURE_CLIENT_ID:}
   tenantId: ${AZURE_TENANT_ID:}
-
 
 hibernate:
   show_sql: true
@@ -91,6 +101,7 @@ media-service: ${MEDIA_SERVICE:MediaKind}
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
 cron-user-email: ${CRON_USER_EMAIL:test@test.com}
+vodafone-user-email: ${VODAFONE_USER_EMAIL:vodafone@test.com}
 
 flow:
   workflow:
@@ -120,8 +131,14 @@ portal:
 slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
+
+migration:
+  debug: ${MIGRATION_DEBUG:false}
+  type: ${MIGRATION_TYPE:FULL}
+  dryRun: ${DRY_RUN:false}
+
 editing:
-  enable: ${ENABLE_AUTOMATED_EDITING:false}
+  enable: ${ENABLE_AUTOMATED_EDITING:true}
 
 tasks:
   start-live-event:
@@ -132,10 +149,19 @@ tasks:
     cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
     job-poll-interval: 10000 # 10 seconds
 
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
 #    org.springframework.transaction: DEBUG
+
+feature-flags:
+  enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+  enable-migration-admin-endpoints: ${ENABLE_MIGRATION_ADMIN_ENDPOINTS:false}
+  cleanup-null-duration:
+    upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
+  ffmpeg-multi-command: ${ENABLE_MULTI_FFMPEG_COMMAND:false}
+
 #logging:
 #  level:
 #    uk:

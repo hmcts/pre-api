@@ -38,6 +38,7 @@ public class SecurityConfig {
         "/invites/redeem",
         "/app-terms-and-conditions/latest",
         "/portal-terms-and-conditions/latest"
+
     };
 
     @Autowired
