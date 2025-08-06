@@ -68,7 +68,7 @@ jobs:
           fi
 
           # get the revision number from the main.tf file in master
-          master_revision=$(grep -i 'revision' main.tf | grep -oE '[0-9]+')
+          master_revision=$(grep -i 'api_revision' main.tf | grep -oE '[0-9]+')
           branch_revision=$(grep -i 'api_revision' infrastructure/main.tf | grep -oE '[0-9]+')
 
           if cmp "master.pre-api-stg.yaml" "pre-api-stg.yaml"; then
