@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc(addFilters = false)
-class OpenAPIPublisherTest extends IntegrationTestBase {
+class OpenAPIB2CPublisherTest extends IntegrationTestBase {
 
     @Autowired
     private MockMvc mvc;
@@ -33,7 +33,7 @@ class OpenAPIPublisherTest extends IntegrationTestBase {
     @Test
     @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
     void generateDocs() throws Exception {
-        byte[] specs = mvc.perform(get("/v3/api-docs/pre-api"))
+        byte[] specs = mvc.perform(get("/v3/api-docs/b2c-api"))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
