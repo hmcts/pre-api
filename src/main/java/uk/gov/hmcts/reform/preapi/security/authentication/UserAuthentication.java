@@ -59,6 +59,11 @@ public class UserAuthentication extends AbstractAuthenticationToken {
         setAuthenticated(true);
     }
 
+    public boolean hasRole(String role) {
+        return getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals(role));
+    }
+
     @Override
     public Object getCredentials() {
         return null;
