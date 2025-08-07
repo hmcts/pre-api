@@ -11,6 +11,9 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -54,6 +57,20 @@ public class AzureVodafoneStorageService extends AzureStorageService {
         } catch (Exception e) {
             log.error("Failed to fetch blob: {} - {}", blobName, e.getMessage());
             return null;
+        }
+    }
+
+    public void uploadCsvFile(String containerName, String blobPath, File file) {
+        try {
+            BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(blobPath);
+
+            try (FileInputStream fis = new FileInputStream(file)) {
+                blobClient.upload(fis, file.length(), true);
+                log.info("Uploaded CSV to Azure: {}/{}", containerName, blobPath);
+            }
+        } catch (IOException e) {
+            log.error("Failed to upload CSV file to Azure: {} - {}", blobPath, e.getMessage());
         }
     }
 
