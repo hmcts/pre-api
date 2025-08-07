@@ -50,11 +50,44 @@ public class InMemoryCacheService {
     }
 
     public Optional<CreateCaseDTO> getCase(String caseRef) {
-        return Optional.ofNullable(caseCache.get(caseRef));
+        if (caseRef == null || caseRef.trim().isEmpty()) {
+            loggingService.logDebug("Attempted to get case with null or empty reference");
+            return Optional.empty();
+        }
+
+        String normalizedRef = normalizeCaseReference(caseRef);
+        loggingService.logInfo("Getting case from cache - Original: '%s', Normalized: '%s'", caseRef, normalizedRef);
+        CreateCaseDTO result = caseCache.get(normalizedRef);
+        if (result != null) {
+            loggingService.logInfo("Found case in cache: %s", result.getId());
+        } else {
+            loggingService.logInfo("Case not found in cache for reference: '%s'", normalizedRef);
+        }
+        
+
+        return Optional.ofNullable(result);
     }
 
     public void saveCase(String caseRef, CreateCaseDTO caseDTO) {
-        caseCache.put(caseRef, caseDTO);
+        if (caseRef == null || caseRef.trim().isEmpty()) {
+            throw new IllegalArgumentException("Case reference cannot be null or empty");
+        }
+        if (caseDTO == null) {
+            throw new IllegalArgumentException("Case DTO cannot be null");
+        }
+        
+        String normalizedRef = normalizeCaseReference(caseRef);
+        loggingService.logInfo("Saving case to cache - Original: '%s', Normalized: '%s', Case ID: %s", 
+                          caseRef, normalizedRef, caseDTO.getId());
+        caseCache.put(normalizedRef, caseDTO);
+    }
+
+
+    private String normalizeCaseReference(String caseRef) {
+        if (caseRef == null) {
+            return null;
+        }
+        return caseRef.trim().toUpperCase().replaceAll("\\s+", " ");  
     }
 
     public void saveShareBooking(String cacheKey, CreateShareBookingDTO dto) {

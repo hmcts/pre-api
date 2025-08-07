@@ -273,7 +273,7 @@ public class CaptureSessionService {
         return new CaptureSessionDTO(captureSession);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     public CaptureSessionDTO stopCaptureSession(UUID captureSessionId,
                                                 RecordingStatus status,
                                                 UUID recordingId) {
