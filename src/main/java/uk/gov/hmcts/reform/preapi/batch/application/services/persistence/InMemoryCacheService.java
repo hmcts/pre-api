@@ -56,12 +56,12 @@ public class InMemoryCacheService {
         }
 
         String normalizedRef = normalizeCaseReference(caseRef);
-        loggingService.logDebug("Getting case from cache - Original: '%s', Normalized: '%s'", caseRef, normalizedRef);
+        loggingService.logInfo("Getting case from cache - Original: '%s', Normalized: '%s'", caseRef, normalizedRef);
         CreateCaseDTO result = caseCache.get(normalizedRef);
         if (result != null) {
-            loggingService.logDebug("Found case in cache: %s", result.getId());
+            loggingService.logInfo("Found case in cache: %s", result.getId());
         } else {
-            loggingService.logDebug("Case not found in cache for reference: '%s'", normalizedRef);
+            loggingService.logInfo("Case not found in cache for reference: '%s'", normalizedRef);
         }
         
 
@@ -77,7 +77,7 @@ public class InMemoryCacheService {
         }
         
         String normalizedRef = normalizeCaseReference(caseRef);
-        loggingService.logDebug("Saving case to cache - Original: '%s', Normalized: '%s', Case ID: %s", 
+        loggingService.logInfo("Saving case to cache - Original: '%s', Normalized: '%s', Case ID: %s", 
                           caseRef, normalizedRef, caseDTO.getId());
         caseCache.put(normalizedRef, caseDTO);
     }
