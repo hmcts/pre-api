@@ -138,6 +138,7 @@ public class EntityCreationService {
     public CreateRecordingDTO createRecording(ProcessedRecording cleansedData, CreateCaptureSessionDTO captureSession) {
         String version = cleansedData.getExtractedRecordingVersion();
         boolean isCopy = "COPY".equalsIgnoreCase(version);
+        UUID parentRecordingId = null;
 
         if (isCopy) {
             Optional<MigrationRecord> currentRecordOpt = 
@@ -151,7 +152,8 @@ public class EntityCreationService {
                     return null;
                 }
 
-                if (maybeOrig.get().getRecordingId() == null) {
+                parentRecordingId = maybeOrig.get().getRecordingId();
+                if (parentRecordingId == null) {
                     loggingService.logWarning("Parent ORIG found but has no recording ID (archiveId: %s)",
                                             maybeOrig.get().getArchiveId());
                     return null;
@@ -173,9 +175,6 @@ public class EntityCreationService {
         recordingDTO.setFilename(cleansedData.getFileName());
 
         if (isCopy) {
-            UUID parentRecordingId = migrationRecordService
-                .getOrigFromCopy(migrationRecordService.findByArchiveId(cleansedData.getArchiveId()).get())
-                .get().getRecordingId();
             recordingDTO.setParentRecordingId(parentRecordingId);
         }
 
