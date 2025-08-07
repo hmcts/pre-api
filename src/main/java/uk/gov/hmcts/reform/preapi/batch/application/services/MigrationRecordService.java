@@ -233,6 +233,15 @@ public class MigrationRecordService {
         });
     }
 
+
+    @Transactional
+    public void updateIsMostRecent(String archiveId, boolean isMostRecent) {
+        migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
+            record.setIsMostRecent(isMostRecent);
+            migrationRecordRepository.save(record);
+        });
+    }
+
     @Transactional
     public void updateToFailed(String archiveId, String reason, String errorMessage) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
@@ -349,7 +358,8 @@ public class MigrationRecordService {
 
         MigrationRecord record = maybeRecord.get();
         String groupKey = record.getRecordingGroupKey();
-        String version = record.getRecordingVersionNumber();
+        String versionNumber = record.getRecordingVersionNumber();
+        String version = record.getRecordingVersion();
 
         if (groupKey == null || version == null) {
             return false;
@@ -358,8 +368,8 @@ public class MigrationRecordService {
         List<MigrationRecord> group = migrationRecordRepository.findByRecordingGroupKey(groupKey);
 
         List<MigrationRecord> matchingVersion = group.stream()
-            .filter(r -> version.equals(r.getRecordingVersionNumber()))
-            .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+            .filter(r -> versionNumber.equals(r.getRecordingVersionNumber()))
+            .filter(r -> version.equals(r.getRecordingVersion()))
             .toList();
 
         boolean updated = false;
@@ -391,6 +401,7 @@ public class MigrationRecordService {
     public Optional<String> findMostRecentVersionNumberInGroup(String groupKey) {
         return migrationRecordRepository.findByRecordingGroupKey(groupKey)
             .stream()
+            .filter(MigrationRecord::getIsPreferred)
             .map(MigrationRecord::getRecordingVersionNumber)
             .filter(version -> version != null && !version.isBlank())
             .max(RecordingUtils::compareVersionStrings);

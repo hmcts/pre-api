@@ -114,7 +114,7 @@ public class DataTransformationService {
         }
 
         boolean isPreferred = true;
-        if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4") && !"COPY".equalsIgnoreCase(versionType)) {
+        if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4") ) {
             boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveId());
             if (updated) {
                 loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
@@ -128,6 +128,7 @@ public class DataTransformationService {
             loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
             isPreferred = false;
         }
+        
         if (!isPreferred) {
             loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
         }
@@ -144,6 +145,11 @@ public class DataTransformationService {
         boolean isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
             .map(mostRecent -> RecordingUtils.compareVersionStrings(rawVersionNumber, mostRecent) >= 0)
             .orElse(true);
+
+        migrationRecordService.updateIsMostRecent(
+            extracted.getArchiveId(),
+            isMostRecent
+        );
 
         // Court Resolution
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
