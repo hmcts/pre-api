@@ -5,8 +5,8 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ public class InMemoryCacheService {
     private final Map<String, Map<String, Object>> hashStore = new ConcurrentHashMap<>();
 
     private final Map<String, CourtDTO> courtCache = new ConcurrentHashMap<>();
-    private final Map<String, CaseDTO> caseCache = new ConcurrentHashMap<>();
+    private final Map<String, CreateCaseDTO> caseCache = new ConcurrentHashMap<>();
     private final Map<String, CreateShareBookingDTO> shareBookingCache = new ConcurrentHashMap<>();
     private final Map<String, UUID> userCache = new ConcurrentHashMap<>();
 
@@ -49,7 +49,11 @@ public class InMemoryCacheService {
         return Optional.ofNullable(courtCache.get(courtName));
     }
 
-    public void saveCase(String caseRef, CaseDTO caseDTO) {
+    public Optional<CreateCaseDTO> getCase(String caseRef) {
+        return Optional.ofNullable(caseCache.get(caseRef));
+    }
+
+    public void saveCase(String caseRef, CreateCaseDTO caseDTO) {
         caseCache.put(caseRef, caseDTO);
     }
 
@@ -143,7 +147,7 @@ public class InMemoryCacheService {
         }
 
         //  caseCache
-        for (Map.Entry<String, CaseDTO> entry : caseCache.entrySet()) {
+        for (Map.Entry<String, CreateCaseDTO> entry : caseCache.entrySet()) {
             rows.add(List.of("db:cases", entry.getKey(), entry.getValue().toString()));
         }
 

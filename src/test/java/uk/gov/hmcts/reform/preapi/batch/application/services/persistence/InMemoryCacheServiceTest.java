@@ -12,8 +12,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 
 import java.io.IOException;
@@ -137,13 +137,15 @@ public class InMemoryCacheServiceTest {
 
     @Test
     void saveCaseStoresCaseSuccessfully() {
-        CaseDTO caseDTO = new CaseDTO();
-        caseDTO.setReference("CASE123");
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("CASE123");
 
-        inMemoryCacheService.saveCase("CASE123", caseDTO);
+        inMemoryCacheService.saveCase("CASE123", createCaseDTO);
 
         // Verify case is stored (no getter method, but can verify via dumpToFile behavior)
-        assertThat(caseDTO.getReference()).isEqualTo("CASE123");
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("CASE123");
+        assertThat(result).isPresent();
+        assertThat(createCaseDTO.getReference()).isEqualTo("CASE123");
     }
 
     @Test
@@ -293,7 +295,7 @@ public class InMemoryCacheServiceTest {
         court.setName("Test Court");
         inMemoryCacheService.saveCourt("Test Court", court);
 
-        CaseDTO caseDTO = new CaseDTO();
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
         caseDTO.setReference("CASE123");
         inMemoryCacheService.saveCase("CASE123", caseDTO);
 
