@@ -10,6 +10,7 @@ locals {
   env_to_deploy    = 1
   env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
+  api_revision     = "115"
 }
 
 data "azurerm_client_config" "current" {}
@@ -41,7 +42,7 @@ module "pre_api" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API"
-  revision              = "114"
+  revision              = local.api_revision
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url
@@ -136,6 +137,45 @@ resource "azurerm_key_vault_secret" "apim_subscription_editvm_secondary_key" {
   count        = local.env_to_deploy
   name         = "apim-sub-editvm-secondary-key"
   value        = module.apim_subscription_editvm[0].subscription_secondary_key
+  key_vault_id = data.azurerm_key_vault.keyvault.id
+}
+
+module "pre_api_b2c" {
+  count                 = local.env_to_deploy
+  source                = "git@github.com:hmcts/cnp-module-api-mgmt-api?ref=master"
+  name                  = "pre-api-b2c"
+  api_mgmt_rg           = "ss-${var.env}-network-rg"
+  api_mgmt_name         = "sds-api-mgmt-${var.env}"
+  display_name          = "Pre Recorded Evidence API B2C"
+  revision              = local.api_revision
+  product_id            = module.pre_product[0].product_id
+  path                  = "pre-api-b2c"
+  service_url           = local.apim_service_url
+  swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api-b2c.json"
+  content_format        = "openapi+json-link"
+  protocols             = ["http", "https"]
+  subscription_required = true
+}
+
+module "apim_subscription_b2c" {
+  count            = local.env_to_deploy
+  sub_display_name = "PRE B2C subscription"
+  source           = "git@github.com:hmcts/cnp-module-api-mgmt-subscription?ref=master"
+  api_mgmt_name    = "sds-api-mgmt-${var.env}"
+  api_mgmt_rg      = "ss-${var.env}-network-rg"
+  state            = "active"
+  allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
+}
+resource "azurerm_key_vault_secret" "apim_subscription_b2c_primary_key" {
+  count        = local.env_to_deploy
+  name         = "apim-sub-b2c-primary-key"
+  value        = module.apim_subscription_b2c[0].subscription_primary_key
+  key_vault_id = data.azurerm_key_vault.keyvault.id
+}
+resource "azurerm_key_vault_secret" "apim_subscription_b2c_secondary_key" {
+  count        = local.env_to_deploy
+  name         = "apim-sub-b2c-secondary-key"
+  value        = module.apim_subscription_b2c[0].subscription_secondary_key
   key_vault_id = data.azurerm_key_vault.keyvault.id
 }
 
