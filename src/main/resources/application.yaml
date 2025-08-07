@@ -167,7 +167,6 @@ feature-flags:
   enable-migration-admin-endpoints: ${ENABLE_MIGRATION_ADMIN_ENDPOINTS:false}
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
-  ffmpeg-multi-command: ${ENABLE_MULTI_FFMPEG_COMMAND:false}
 
 #logging:
 #  level:
