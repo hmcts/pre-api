@@ -6,6 +6,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.PathContainer;
 import org.springframework.security.core.Authentication;
@@ -59,12 +60,36 @@ public class XUserIdFilter extends GenericFilterBean {
     private boolean applyAuth(HttpServletRequest request) {
         PathPatternParser parser = new PathPatternParser();
 
-        var patterns = Arrays.stream(SecurityConfig.PERMITTED_URIS)
+        // Any request method
+        if (Arrays.stream(SecurityConfig.PERMITTED_URIS_ALL_REQUESTS)
             .map(parser::parse)
-            .toList();
+            .toList()
+            .stream()
+            .anyMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())))) {
+            return false;
+        }
 
-        return patterns.stream()
-            .noneMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())));
+        // GET
+        if (request.getMethod().equals(HttpMethod.GET.toString())
+            && Arrays.stream(SecurityConfig.PERMITTED_URIS_GET_ONLY)
+            .map(parser::parse)
+            .toList()
+            .stream()
+            .anyMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())))) {
+            return false;
+        }
+
+        // POST
+        if (request.getMethod().equals(HttpMethod.POST.toString())
+            && Arrays.stream(SecurityConfig.PERMITTED_URIS_POST)
+            .map(parser::parse)
+            .toList()
+            .stream()
+            .anyMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())))) {
+            return false;
+        }
+
+        return true;
     }
 
     private void writeErrorResponse(Exception e, HttpServletResponse response) throws IOException {

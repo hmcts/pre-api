@@ -19,6 +19,12 @@ springdoc:
     - /health/*
   api-docs:
     version: openapi_3_0
+  swagger-ui:
+    urls:
+      - name: pre-api
+        url: /v3/api-docs/pre-api
+      - name: b2c-api
+        url: /v3/api-docs/b2c-api
 
 spring:
   config:
@@ -101,7 +107,7 @@ media-service: ${MEDIA_SERVICE:MediaKind}
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
 cron-user-email: ${CRON_USER_EMAIL:test@test.com}
-vodafone-user-email: ${VODAFONE_USER_EMAIL:vodafone@test.com}
+vodafone-user-email: ${CRON_USER_EMAIL:vodafone@test.com}
 
 flow:
   workflow:

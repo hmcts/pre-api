@@ -21,7 +21,7 @@ public class SecurityConfig {
 
     private final UserAuthenticationService userAuthenticationService;
 
-    public static final String[] PERMITTED_URIS = new String[] {
+    public static final String[] PERMITTED_URIS_ALL_REQUESTS = new String[]{
         "/testing-support/**",
         "/swagger-ui/**",
         "/v3/api-docs/**",
@@ -33,12 +33,23 @@ public class SecurityConfig {
         "/users/by-email/**",
         "/reports/**",
         "/audit/**",
+        "/b2c/**",
         "/error",
-        "/invites",
-        "/invites/redeem",
         "/app-terms-and-conditions/latest",
         "/portal-terms-and-conditions/latest"
+    };
 
+    public static final String[] PERMITTED_URIS_GET_ONLY = new String[]{
+        "/invites",
+    };
+
+    public static final String[] PERMITTED_URIS_POST = new String[] {
+        "/invites/redeem",
+        "/batch",
+        "/batch/fetch-xml",
+        "/batch/process-migration",
+        "/batch/post-migration-tasks",
+        "/batch/migrate-exclusions",
     };
 
     @Autowired
@@ -52,9 +63,9 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authorize ->
                                        authorize
-                                           .requestMatchers(HttpMethod.GET, "/invites").permitAll()
-                                           .requestMatchers(HttpMethod.POST, "/invites/redeem").permitAll()
-                                           .requestMatchers(PERMITTED_URIS).permitAll()
+                                           .requestMatchers(HttpMethod.GET, PERMITTED_URIS_GET_ONLY).permitAll()
+                                           .requestMatchers(HttpMethod.POST,  PERMITTED_URIS_POST).permitAll()
+                                           .requestMatchers(PERMITTED_URIS_ALL_REQUESTS).permitAll()
                                            .anyRequest().authenticated()
             )
             .authenticationManager(authentication -> authentication)
