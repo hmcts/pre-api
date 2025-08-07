@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -40,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -456,6 +458,42 @@ public class MigrationTrackerServiceTest {
     }
 
     @Test
+    void writeAllToCsvWithAzureUploads() {
+        migrationTrackerService.addMigratedItem(createMockPassItem());
+        migrationTrackerService.addFailedItem(createMockFailedItem());
+        migrationTrackerService.addTestItem(createMockTestItem());
+        migrationTrackerService.addNotifyItem(createMockNotifyItem());
+        
+        Path mockMigratedPath = tempDir.resolve("Migrated.csv");
+        Path mockFailurePath = tempDir.resolve("Failures.csv");
+        Path mockTestPath = tempDir.resolve("Test.csv");
+        Path mockNotifyPath = tempDir.resolve("Notify.csv");
+        
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Migrated"), any(), anyBoolean()))
+            .thenReturn(mockMigratedPath);
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Failures"), any(), anyBoolean()))
+            .thenReturn(mockFailurePath);
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Test"), any(), anyBoolean()))
+            .thenReturn(mockTestPath);
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Notify"), any(), anyBoolean()))
+            .thenReturn(mockNotifyPath);
+        
+        try {
+            Files.createFile(mockMigratedPath);
+            Files.createFile(mockFailurePath);
+            Files.createFile(mockTestPath);
+            Files.createFile(mockNotifyPath);
+        } catch (IOException e) {
+            fail("Failed to create mock files");
+        }
+        
+        migrationTrackerService.writeAllToCsv();
+        
+        verify(azureVodafoneStorageService, times(4)).uploadCsvFile(anyString(), anyString(), any(File.class));
+        verify(loggingService, times(1)).setTotalRecords(anyInt());
+    }
+
+    @Test
     void buildFailedItemsRowsWithUnknownType() {
         FailedItem item = new FailedItem(mock(IArchiveData.class), "Unknown reason", "UnknownCategory");
         migrationTrackerService.addFailedItem(item);
@@ -463,7 +501,7 @@ public class MigrationTrackerServiceTest {
         List<FailedItem> items = List.of(item);
         List<List<String>> rows = migrationTrackerService.buildFailedItemsRows(items);
 
-        assertThat(rows).isEmpty(); // Nothing added
+        assertThat(rows).isEmpty(); 
         verify(loggingService, times(1)).logWarning(eq("Skipping unknown item type: %s"), anyString());
     }
 
@@ -540,6 +578,14 @@ public class MigrationTrackerServiceTest {
         when(passItem.cleansedData()).thenReturn(cleansedData);
 
         return passItem;
+    }
+
+    private FailedItem createMockFailedItem() {
+        ExtractedMetadata metadata = new ExtractedMetadata();
+        metadata.setFileName("test.mp4");
+        metadata.setFileSize("100");
+        metadata.setArchiveName("Test Archive");
+        return new FailedItem(metadata, "Test reason", "TestCategory");
     }
 
     private NotifyItem createMockNotifyItem() {
