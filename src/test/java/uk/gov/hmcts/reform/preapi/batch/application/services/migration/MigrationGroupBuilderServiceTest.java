@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -44,6 +44,7 @@ import static uk.gov.hmcts.reform.preapi.batch.application.services.migration.Mi
 public class MigrationGroupBuilderServiceTest {
     @MockitoBean
     private LoggingService loggingService;
+    
 
     @MockitoBean
     private EntityCreationService entityCreationService;
@@ -69,13 +70,6 @@ public class MigrationGroupBuilderServiceTest {
     private static final String CASE_REFERENCE = "CASE_REFERENCE";
     private static final String BASE_KEY = "baseKey";
 
-    @AfterEach
-    void tearDown() {
-        migrationGroupBuilderService.caseCache.clear();
-    }
-
-    // todo createMigratedItemGroup
-
     @Test
     @DisplayName("Should return null when case reference is invalid")
     void createCaseIfOrigCaseReferenceIsInvalid() {
@@ -88,9 +82,8 @@ public class MigrationGroupBuilderServiceTest {
     @Test
     @DisplayName("Should return updated case if already exists")
     void createCaseIfOrigUpdateCase() {
-        Case existingCase = createCase();
-        when(caseRepository.findAll()).thenReturn(List.of(existingCase));
-        applicationContext.publishEvent(new ContextRefreshedEvent(applicationContext));
+        CreateCaseDTO existingCase = new CreateCaseDTO(createCase());
+        when(inMemoryCacheService.getCase(CASE_REFERENCE)).thenReturn(Optional.of(existingCase));
         when(entityCreationService.createParticipants(any())).thenReturn(Set.of());
         ProcessedRecording cleansedData = ProcessedRecording.builder()
             .caseReference(CASE_REFERENCE)
@@ -98,13 +91,13 @@ public class MigrationGroupBuilderServiceTest {
 
         CreateCaseDTO result = migrationGroupBuilderService.createCaseIfOrig(cleansedData);
         assertThat(result).isNotNull();
+        verify(inMemoryCacheService, times(1)).getCase(CASE_REFERENCE);
     }
 
     @Test
     @DisplayName("Should return new case if doesn't already exist but is created successfully")
     void createCaseIfOrigCreateNewCaseSuccess() {
-        when(caseRepository.findAll()).thenReturn(List.of());
-        applicationContext.publishEvent(new ContextRefreshedEvent(applicationContext));
+        when(inMemoryCacheService.getCase(CASE_REFERENCE)).thenReturn(Optional.empty());
         CreateCaseDTO newCase = new CreateCaseDTO();
         when(entityCreationService.createCase(any())).thenReturn(newCase);
         ProcessedRecording cleansedData = ProcessedRecording.builder()
@@ -114,15 +107,15 @@ public class MigrationGroupBuilderServiceTest {
         CreateCaseDTO result = migrationGroupBuilderService.createCaseIfOrig(cleansedData);
         assertThat(result).isNotNull();
         assertThat(result).isEqualTo(newCase);
-        assertThat(migrationGroupBuilderService.caseCache.containsKey(CASE_REFERENCE)).isTrue();
-        assertThat(migrationGroupBuilderService.caseCache.get(CASE_REFERENCE)).isEqualTo(newCase);
+
+        verify(inMemoryCacheService, times(1)).getCase(CASE_REFERENCE);
+        verify(inMemoryCacheService, times(1)).saveCase(CASE_REFERENCE, newCase);
     }
 
     @Test
     @DisplayName("Should return null if doesn't already exist but new case cannot be created")
     void createCaseIfOrigCreateNewCaseFailure() {
-        when(caseRepository.findAll()).thenReturn(List.of());
-        applicationContext.publishEvent(new ContextRefreshedEvent(applicationContext));
+        when(inMemoryCacheService.getCase(CASE_REFERENCE)).thenReturn(Optional.empty());
         when(entityCreationService.createCase(any())).thenReturn(null);
         ProcessedRecording cleansedData = ProcessedRecording.builder()
             .caseReference(CASE_REFERENCE)
@@ -130,7 +123,8 @@ public class MigrationGroupBuilderServiceTest {
 
         CreateCaseDTO result = migrationGroupBuilderService.createCaseIfOrig(cleansedData);
         assertThat(result).isNull();
-        assertThat(migrationGroupBuilderService.caseCache.containsKey(CASE_REFERENCE)).isFalse();
+        verify(inMemoryCacheService, times(1)).getCase(CASE_REFERENCE);
+        verify(inMemoryCacheService, never()).saveCase(eq(CASE_REFERENCE), any());
     }
 
     @Test

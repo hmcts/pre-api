@@ -22,12 +22,15 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,6 +50,9 @@ import static org.mockito.Mockito.when;
 public class MigrationTrackerServiceTest {
     @MockitoBean
     private LoggingService loggingService;
+
+    @MockitoBean
+    private AzureVodafoneStorageService azureVodafoneStorageService;
 
     @Autowired
     private MigrationTrackerService migrationTrackerService;
@@ -131,12 +137,14 @@ public class MigrationTrackerServiceTest {
     void writeMigratedItemsToCsvSuccess() {
         String fileName = "test.csv";
         String outputDir = tempDir.toString();
+        Path mockPath = tempDir.resolve(fileName + ".csv");
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), any(), any(), anyBoolean()))
-            .thenReturn(null);
+            .thenReturn(mockPath);
 
         migrationTrackerService.addMigratedItem(createMockPassItem());
 
-        migrationTrackerService.writeMigratedItemsToCsv(fileName, outputDir);
+        File result = migrationTrackerService.writeMigratedItemsToCsv(fileName, outputDir);
+        assertThat(result).isNotNull();
 
         reportCsvWriter.verify(() -> ReportCsvWriter.writeToCsv(
             eq(MigrationTrackerService.MIGRATED_ITEM_HEADERS),
@@ -170,12 +178,14 @@ public class MigrationTrackerServiceTest {
     void writeNotifyItemsToCsvSuccess() {
         String fileName = "test.csv";
         String outputDir = tempDir.toString();
+        Path mockPath = tempDir.resolve(fileName + ".csv");
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), any(), any(), anyBoolean()))
-            .thenReturn(null);
+            .thenReturn(mockPath);
 
         migrationTrackerService.addNotifyItem(createMockNotifyItem());
 
-        migrationTrackerService.writeNotifyItemsToCsv(fileName, outputDir);
+        File result = migrationTrackerService.writeNotifyItemsToCsv(fileName, outputDir);
+        assertThat(result).isNotNull();
 
         reportCsvWriter.verify(() -> ReportCsvWriter.writeToCsv(
             eq(MigrationTrackerService.NOTIFY_ITEM_HEADERS),
@@ -209,12 +219,14 @@ public class MigrationTrackerServiceTest {
     void writeTestFailureReportSuccess() {
         String fileName = "test.csv";
         String outputDir = tempDir.toString();
+        Path mockPath = tempDir.resolve(fileName + ".csv");
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), any(), any(), anyBoolean()))
-                .thenReturn(null);
+                .thenReturn(mockPath);
 
         migrationTrackerService.addTestItem(createMockTestItem());
 
-        migrationTrackerService.writeTestFailureReport(fileName, outputDir);
+        File result = migrationTrackerService.writeTestFailureReport(fileName, outputDir);
+        assertThat(result).isNotNull();
 
         reportCsvWriter.verify(() -> ReportCsvWriter.writeToCsv(
             eq(MigrationTrackerService.TEST_FAILURE_HEADERS),
@@ -246,13 +258,21 @@ public class MigrationTrackerServiceTest {
 
     @Test
     void writeCategorizedFailureReportsSuccess() {
+        Path mockPathA = tempDir.resolve("CategoryA.csv");
+        Path mockPathB = tempDir.resolve("CategoryB.csv");
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("CategoryA"), any(), anyBoolean()))
+            .thenReturn(mockPathA);
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("CategoryB"), any(), anyBoolean()))
+            .thenReturn(mockPathB);
+
         ExtractedMetadata extractedMetadata1 = new ExtractedMetadata();
         extractedMetadata1.setFileName("test.csv");
         extractedMetadata1.setFileSize("10");
 
         ExtractedMetadata extractedMetadata2 = new ExtractedMetadata();
-        extractedMetadata1.setFileName("test2.csv");
-        extractedMetadata1.setFileSize("15");
+        extractedMetadata2.setFileName("test2.csv");
+        extractedMetadata2.setFileSize("15");
 
         FailedItem failedItem1 = new FailedItem(extractedMetadata1, "ReasonA", "CategoryA");
         FailedItem failedItem2 = new FailedItem(extractedMetadata2, "ReasonB", "CategoryB");
@@ -261,7 +281,9 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.addFailedItem(failedItem2);
 
         String outputDir = tempDir.toString();
-        migrationTrackerService.writeCategorizedFailureReports(outputDir);
+        List<File> result = migrationTrackerService.writeCategorizedFailureReports(outputDir);
+
+        assertThat(result).hasSize(2);
 
         verify(loggingService, times(1)).logInfo("Writing failure report for category: %s | %d items", "CategoryA", 1);
         verify(loggingService, times(1)).logInfo("Writing failure report for category: %s | %d items", "CategoryB", 1);
@@ -303,8 +325,9 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.addInvitedUser(user1);
         migrationTrackerService.addInvitedUser(user2);
 
+        Path mockPath = tempDir.resolve("Invited_users.csv");
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), any(), any(), anyBoolean()))
-            .thenReturn(null);
+            .thenReturn(mockPath);
 
         migrationTrackerService.writeNewUserReport();
 
