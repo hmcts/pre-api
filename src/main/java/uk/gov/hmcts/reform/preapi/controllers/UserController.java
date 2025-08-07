@@ -51,6 +51,7 @@ public class UserController extends PreApiController {
         operationId = "getUserAccessByEmail",
         summary = "Get a User's App Access by Email"
     )
+    @PreAuthorize("hasRole('ROLE_SUPER_USER') || #email.equalsIgnoreCase(authentication.principal.claims['email'])")
     public ResponseEntity<AccessDTO> getUserAccessById(@PathVariable String email) {
         return ResponseEntity.ok(userService.findByEmail(email));
     }
