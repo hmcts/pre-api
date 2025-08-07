@@ -49,17 +49,15 @@ public class MigrationGroupBuilderService {
     // =========================
     public MigratedItemGroup createMigratedItemGroup(ExtractedMetadata item, ProcessedRecording cleansedData) {
         CreateCaseDTO aCase = createCaseIfOrig(cleansedData);
-        String version = cleansedData.getExtractedRecordingVersion();
-        if (aCase == null && (version == null || !version.toUpperCase().contains("COPY"))) {
-            return null;
-        }
-
+        
         if (aCase == null) {
-            aCase = cacheService.getCase(cleansedData.getCaseReference()).orElse(null);
-            if (aCase == null) {
-                loggingService.logError("COPY file with missing case in cache: %s", cleansedData.getFileName());
+            String version = cleansedData.getExtractedRecordingVersion();
+            if (version == null || !version.toUpperCase().contains("COPY")) {
+                loggingService.logError("Failed to find or create case for file: %s", cleansedData.getFileName());
                 return null;
             }
+            loggingService.logError("COPY file with missing case in cache: %s", cleansedData.getFileName());
+            return null;
         }
 
         String baseKey = cacheService.generateEntityCacheKey(
@@ -91,15 +89,22 @@ public class MigrationGroupBuilderService {
 
     protected CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
+        
         if (isInvalidCaseReference(caseReference)) {
+            loggingService.logDebug("Invalid case reference: '%s'", caseReference);
             return null;
         }
 
         Optional<CreateCaseDTO> existingCaseOpt = cacheService.getCase(caseReference);
         if (existingCaseOpt.isPresent()) {
-            return updateExistingCase(caseReference, cleansedData, existingCaseOpt.get());
+            CreateCaseDTO existingCase = existingCaseOpt.get();
+            loggingService.logDebug("Existing case ID: %s, Reference: %s", 
+                                existingCase.getId(), existingCase.getReference());
+            return updateExistingCase(caseReference, cleansedData, existingCase);
         }
 
+        loggingService.logDebug("Case not found in cache, creating new case for reference: '%s'", caseReference);
+        
         return createNewCase(caseReference, cleansedData);
     }
 
