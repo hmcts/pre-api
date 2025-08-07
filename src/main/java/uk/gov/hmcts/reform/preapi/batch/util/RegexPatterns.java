@@ -35,12 +35,12 @@ public final class RegexPatterns {
     );
 
     public static final Pattern FILENAME_PATTERN = Pattern.compile(
-        "^0x[A-Fa-f0-9]+_[A-Za-z0-9]+_\\d+_\\d+_[A-Fa-f0-9]+(?:\\.(?:mp4|raw|mov|avi|mkv))?$",
+        "^0x[A-Fa-f0-9]+_[A-Za-z0-9]+_\\d+_\\d+_[A-Fa-f0-9]+(?:\\(\\d+\\))?(?:\\.(?:mp4|raw|mov|avi|mkv))?$",
         Pattern.CASE_INSENSITIVE
     );
 
     public static final Pattern S28_VMR_TEST_PATTERN = Pattern.compile(
-        "^S?28.*?(VMR\\d+)?[_\\s-]*\\d{9,20}.*(?:\\.(mp4|raw|mov|avi|mkv))?$",
+        "^\\s*^S?28[-_\\s+]*Morning[-_\\s+]*Checks[-_\\s+]*(?:\\d{8}|\\d{2}[-/ ]\\d{2}[-/ ]\\d{4})(?:\\.mp4)?\\s*$?$",
         Pattern.CASE_INSENSITIVE
     );
 
@@ -300,14 +300,14 @@ public final class RegexPatterns {
 
     public static final Pattern DOUBLE_URN_DOT_WITNESS_PATTERN = Pattern.compile(
         "^"
-        + COURT_PATTERN + SEPARATOR_ONE                 // e.g., Aylsby
-        + "(?<date>\\d{6})" + SEPARATOR_ONE             // e.g., 220826
-        + URN_PATTERN + SEPARATOR_ONE                   // URN1 e.g., 43SS02412222
-        + "(?<urn2>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE  // URN2 e.g., 43SS02412
+        + COURT_PATTERN + SEPARATOR_ONE                 
+        + "(?<date>\\d{6})" + SEPARATOR_ONE           
+        + URN_PATTERN + SEPARATOR_ONE        
+        + "(?<urn2>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE 
         + "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)" + SEPARATOR_ONE
-        + "\\." + SEPARATOR_ONE                         // witness is a single dot
-        + VERSION_PATTERN                               // ORIG / COPY / etc (+ optional number)
-        + EXTENSION_PATTERN + "$",                      // optional .mp4/.raw (per your def)
+        + "\\." + SEPARATOR_ONE                        
+        + VERSION_PATTERN                     
+        + EXTENSION_PATTERN + "$",           
         Pattern.CASE_INSENSITIVE
         );
 
@@ -371,18 +371,67 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
-    // public static final Pattern STANDARD_WITNESS_PARENS_PATTERN = Pattern.compile(
-    //     "^" + COURT_PATTERN + SEPARATOR_ONE
-    //     + DATE_PATTERN + SEPARATOR_ONE
-    //     + URN_PATTERN + SEPARATOR_ONE
-    //     + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?"
-    //     + "(?<defendantLastName>(?>[A-Za-z']++)(?>[-\\s][A-Za-z0-9&]++)*)" + SEPARATOR_ONE
-    //     + "(?<witnessFirstName>[A-Za-z0-9&']++(?:[-'\\s][A-Za-z]++)*(?:\\s*\\([A-Za-z0-9&+'\\-]{1,6}\\))?)"
-    //     + SEPARATOR_ONE
-    //     + VERSION_PATTERN
-    //     + EXTENSION_PATTERN + "$",
-    //     Pattern.CASE_INSENSITIVE
-    // );
+    public static final Pattern STANDARD_RELAXED_EXHIBIT_PATTERN = Pattern.compile(
+        "^" + COURT_PATTERN + SEPARATOR_ONE                     
+        + DATE_PATTERN + SEPARATOR_ONE          
+        + URN_PATTERN + SEPARATOR_ONE         
+        + "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{2,9})" + SEPARATOR_ONE
+        + NAMES_PATTERN + SEPARATOR_ONE         
+        + VERSION_PATTERN         
+        + EXTENSION_PATTERN + "$",      
+        Pattern.CASE_INSENSITIVE
+    );
+
+    public static final Pattern DOUBLE_URN_SECOND_DIGIT_ONLY_PATTERN = Pattern.compile(
+        "^" + COURT_PATTERN + SEPARATOR_ONE                  
+        + DATE_PATTERN + SEPARATOR_ONE           
+        + URN_PATTERN + SEPARATOR_ONE                
+        + "(?<urn2>\\d{4,10})" + SEPARATOR_ONE  
+        + NAMES_PATTERN + SEPARATOR_ONE   
+        + VERSION_PATTERN        
+        + EXTENSION_PATTERN + "$",    
+        Pattern.CASE_INSENSITIVE
+    );
+
+    public static final Pattern DOUBLE_DATE_NAME_PATTERN = Pattern.compile(
+        "^"
+        + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + "(?<court2>[A-Za-z]+(?:d|fd)?)" + SEPARATOR_ONE
+        + "(?<date2>\\d{6})" + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?<defendantLastName>[A-Za-z]+)" + SEPARATOR_ONE
+        + "(?<witnessFirstName>[A-Za-z]+)" + SEPARATOR_ONE
+        + VERSION_PATTERN
+        + EXTENSION_PATTERN + "$",
+        Pattern.CASE_INSENSITIVE
+    );
+
+    public static final Pattern URN_WITH_TIMESTAMP_PATTERN = Pattern.compile(
+        "^" 
+        + COURT_PATTERN + SEPARATOR_ONE        
+        + DATE_PATTERN + SEPARATOR_ONE         
+        + URN_PATTERN + SEPARATOR_ONE         
+         + EXHIBIT_PATTERN + SEPARATOR_ONE  
+        + "(?<defendantLastName>[A-Za-z]+)" + SEPARATOR_ONE
+        + "(?<witnessFirstName>[A-Za-z]+)_"   
+        + "(?<timestamp>\\d{17,18})$"         
+        ,
+        Pattern.CASE_INSENSITIVE
+    );
+
+    public static final Pattern COURT_REF_WITNESS_NUMBER_PATTERN = Pattern.compile(
+        "^" + COURT_PATTERN + SEPARATOR_ONE 
+        + DATE_PATTERN + SEPARATOR_ONE            
+        + "(?<urn>(?:Ct|court)?\\d+)" + SEPARATOR_ONE   
+        + "(?<exhibitRef>W?\\d+)" + SEPARATOR_ONE       
+        + "(?<defendantLastName>[A-Za-z]+)" + SEPARATOR_ONE
+        + "(?<witnessFirstName>[A-Za-z]+)" + SEPARATOR_ONE
+        + VERSION_PATTERN                            
+        + EXTENSION_PATTERN + "$",                      
+        Pattern.CASE_INSENSITIVE
+    );
+
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
         Map.entry("Standard", RegexPatterns.STANDARD_PATTERN),
@@ -401,6 +450,11 @@ public final class RegexPatterns {
         Map.entry("NoUrnPattern", RegexPatterns.NO_URN_PATTERN),
         Map.entry("NoExhibitPattern", RegexPatterns.NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
         Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN),
-        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN)
+        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN),
+        Map.entry("STANDARD_RELAXED_EXHIBIT_PATTERN", RegexPatterns.STANDARD_RELAXED_EXHIBIT_PATTERN),
+        Map.entry("DOUBLE_URN_SECOND_DIGIT_ONLY_PATTERN", RegexPatterns.DOUBLE_URN_SECOND_DIGIT_ONLY_PATTERN),
+        Map.entry("DOUBLE_DATE_NAME_PATTERN",RegexPatterns.DOUBLE_DATE_NAME_PATTERN),
+        Map.entry("URN_WITH_TIMESTAMP_PATTERN",RegexPatterns.URN_WITH_TIMESTAMP_PATTERN),
+        Map.entry("COURT_REF_WITNESS_NUMBER_PATTERN",RegexPatterns.COURT_REF_WITNESS_NUMBER_PATTERN)
     );
 }

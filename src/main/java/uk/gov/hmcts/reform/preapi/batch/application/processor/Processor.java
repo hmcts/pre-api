@@ -333,7 +333,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         String exhibitRef = recording.getExhibitReference();
         String caseRef = recording.getCaseReference();
 
-        if (caseRef.length() > 9 || caseRef.length() < 20) {
+        if (caseRef.length() < 9 || caseRef.length() > 20) {
             migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference length",recording));
         }
 
