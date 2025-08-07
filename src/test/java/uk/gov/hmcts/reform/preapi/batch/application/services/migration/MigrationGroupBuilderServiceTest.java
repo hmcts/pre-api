@@ -314,6 +314,162 @@ public class MigrationGroupBuilderServiceTest {
 
     }
 
+
+    @Test
+    @DisplayName("Should return null and log error for COPY file with missing case")
+    void createMigratedItemGroupCopyFileWithMissingCase() {
+        ExtractedMetadata metadata = new ExtractedMetadata();
+        metadata.setFileName("test_COPY.mp4");
+        
+        ProcessedRecording cleansedData = ProcessedRecording.builder()
+            .caseReference("INVALID_CASE")
+            .fileName("test_COPY.mp4")
+            .extractedRecordingVersion("COPY")  
+            .build();
+
+        when(inMemoryCacheService.getCase("INVALID_CASE")).thenReturn(Optional.empty());
+        when(entityCreationService.createCase(any())).thenReturn(null);
+
+        MigratedItemGroup result = migrationGroupBuilderService.createMigratedItemGroup(metadata, cleansedData);
+
+        assertThat(result).isNull();
+        
+        verify(loggingService, times(1)).logError("COPY file with missing case in cache: %s", "test_COPY.mp4");
+    }
+
+    @Test
+    @DisplayName("Should return null and log error for original file when case creation fails")
+    void createMigratedItemGroupOriginalFileWithCaseCreationFailure() {
+        ExtractedMetadata metadata = new ExtractedMetadata();
+        metadata.setFileName("test_original.mp4");
+        
+        ProcessedRecording cleansedData = ProcessedRecording.builder()
+            .caseReference("INVALID_CASE")
+            .fileName("test_original.mp4")
+            .extractedRecordingVersion("ORIG") 
+            .build();
+
+        when(inMemoryCacheService.getCase("INVALID_CASE")).thenReturn(Optional.empty());
+        when(entityCreationService.createCase(any())).thenReturn(null);
+
+        MigratedItemGroup result = migrationGroupBuilderService.createMigratedItemGroup(metadata, cleansedData);
+
+        assertThat(result).isNull();
+        
+        verify(loggingService, times(1)).logError("Failed to find or create case for file: %s", "test_original.mp4");
+    }
+
+    @Test
+    @DisplayName("Should return null for COPY file when extractedRecordingVersion is null")
+    void createMigratedItemGroupCopyFileWithNullVersion() {
+        ExtractedMetadata metadata = new ExtractedMetadata();
+        metadata.setFileName("test.mp4");
+        
+        ProcessedRecording cleansedData = ProcessedRecording.builder()
+            .caseReference("INVALID_CASE")
+            .fileName("test.mp4")
+            .extractedRecordingVersion(null)  
+            .build();
+
+        when(inMemoryCacheService.getCase("INVALID_CASE")).thenReturn(Optional.empty());
+        when(entityCreationService.createCase(any())).thenReturn(null);
+
+        MigratedItemGroup result = migrationGroupBuilderService.createMigratedItemGroup(metadata, cleansedData);
+
+        assertThat(result).isNull();
+        
+        verify(loggingService, times(1)).logError("Failed to find or create case for file: %s", "test.mp4");
+        verify(loggingService, never()).logError(eq("COPY file with missing case in cache: %s"), any());
+    }
+
+    @Test
+    @DisplayName("Should add new participants when updating existing case")
+    void updateExistingCaseWithNewParticipants() {
+        
+        CreateParticipantDTO existingParticipant = new CreateParticipantDTO();
+        existingParticipant.setFirstName("John");
+        existingParticipant.setLastName("Doe");
+        existingParticipant.setParticipantType(uk.gov.hmcts.reform.preapi.enums.ParticipantType.WITNESS);
+        
+        CreateCaseDTO existingCase = new CreateCaseDTO(createCase());
+        existingCase.setParticipants(Set.of(existingParticipant));
+        
+        when(inMemoryCacheService.getCase(CASE_REFERENCE)).thenReturn(Optional.of(existingCase));
+        
+        CreateParticipantDTO newParticipant = new CreateParticipantDTO();
+        newParticipant.setFirstName("Jane");
+        newParticipant.setLastName("Smith");
+        newParticipant.setParticipantType(uk.gov.hmcts.reform.preapi.enums.ParticipantType.DEFENDANT);
+        
+        when(entityCreationService.createParticipants(any())).thenReturn(Set.of(newParticipant));
+        
+        ProcessedRecording cleansedData = ProcessedRecording.builder()
+            .caseReference(CASE_REFERENCE)
+            .build();
+
+        CreateCaseDTO result = migrationGroupBuilderService.createCaseIfOrig(cleansedData);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getParticipants()).hasSize(2); 
+        
+        verify(inMemoryCacheService, times(1)).saveCase(eq(CASE_REFERENCE), any(CreateCaseDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should not update case when no new participants are added")
+    void updateExistingCaseWithNoNewParticipants() {
+        
+        CreateParticipantDTO existingParticipant = new CreateParticipantDTO();
+        existingParticipant.setFirstName("John");
+        existingParticipant.setLastName("Doe");
+        existingParticipant.setParticipantType(uk.gov.hmcts.reform.preapi.enums.ParticipantType.WITNESS);
+        
+        CreateCaseDTO existingCase = new CreateCaseDTO(createCase());
+        existingCase.setParticipants(Set.of(existingParticipant));
+        
+        when(inMemoryCacheService.getCase(CASE_REFERENCE)).thenReturn(Optional.of(existingCase));
+        
+        when(entityCreationService.createParticipants(any())).thenReturn(Set.of(existingParticipant));
+        
+        ProcessedRecording cleansedData = ProcessedRecording.builder()
+            .caseReference(CASE_REFERENCE)
+            .build();
+
+        CreateCaseDTO result = migrationGroupBuilderService.createCaseIfOrig(cleansedData);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getParticipants()).hasSize(1);
+        
+        verify(inMemoryCacheService, never()).saveCase(eq(CASE_REFERENCE), any(CreateCaseDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should handle case with null participants when updating")
+    void updateExistingCaseWithNullParticipants() {
+        CreateCaseDTO existingCase = new CreateCaseDTO(createCase());
+        existingCase.setParticipants(null); 
+        
+        when(inMemoryCacheService.getCase(CASE_REFERENCE)).thenReturn(Optional.of(existingCase));
+        
+        CreateParticipantDTO newParticipant = new CreateParticipantDTO();
+        newParticipant.setFirstName("Jane");
+        newParticipant.setLastName("Smith");
+        newParticipant.setParticipantType(uk.gov.hmcts.reform.preapi.enums.ParticipantType.DEFENDANT);
+        
+        when(entityCreationService.createParticipants(any())).thenReturn(Set.of(newParticipant));
+        
+        ProcessedRecording cleansedData = ProcessedRecording.builder()
+            .caseReference(CASE_REFERENCE)
+            .build();
+
+        CreateCaseDTO result = migrationGroupBuilderService.createCaseIfOrig(cleansedData);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getParticipants()).hasSize(1); 
+        
+        verify(inMemoryCacheService, times(1)).saveCase(eq(CASE_REFERENCE), any(CreateCaseDTO.class));
+    }
+
     private Case createCase() {
         Court court = new Court();
         court.setId(UUID.randomUUID());
