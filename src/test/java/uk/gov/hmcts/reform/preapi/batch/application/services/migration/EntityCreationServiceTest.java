@@ -159,6 +159,30 @@ public class EntityCreationServiceTest {
     }
 
     @Test
+    @DisplayName("Should return null if COPY version and no original booking ID exists")
+    public void createBookingReturnsNullIfCopyHasNoOrigBookingId() {
+        UUID archiveId = UUID.randomUUID();
+        MigrationRecord copyRecord = new MigrationRecord();
+        copyRecord.setArchiveId(archiveId.toString());
+
+        when(migrationRecordService.findByArchiveId(archiveId.toString()))
+            .thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord))
+            .thenReturn(Optional.of(new MigrationRecord())); 
+
+        ProcessedRecording recording = ProcessedRecording.builder()
+            .archiveId(archiveId.toString())
+            .extractedRecordingVersion("COPY")
+            .build();
+
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+
+        CreateBookingDTO result = entityCreationService.createBooking(recording, caseDTO, "key");
+        assertThat(result).isNull();
+    }
+
+    @Test
     @DisplayName("Should create a capture session successfully")
     public void createCaptureSessionSuccess() {
         BaseUserDTO user = new UserDTO();
@@ -187,9 +211,7 @@ public class EntityCreationServiceTest {
         assertThat(result.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
 
-        // String expectedKey = "key:version:null:sessionId";
         verify(userService, times(1)).findByEmail(VODAFONE_EMAIL);
-        // verify(cacheService, times(1)).saveHashValue(expectedKey, "id", result.getId().toString());
     }
 
     @Test
@@ -239,29 +261,6 @@ public class EntityCreationServiceTest {
         assertThat(result.getVersion()).isEqualTo(1);
         assertThat(result.getParentRecordingId()).isNull();
 
-        // ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
-        // ArgumentCaptor<String> fieldCaptor = ArgumentCaptor.forClass(String.class);
-        // ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
-
-        // verify(cacheService).saveHashValue(
-        //     keyCaptor.capture(),
-        //     fieldCaptor.capture(),
-        //     valueCaptor.capture()
-        // );
-
-        // String expectedKey = cacheService.generateEntityCacheKey(
-        //     "recording",
-        //     processedRecording.getCaseReference(),
-        //     processedRecording.getDefendantLastName(),
-        //     processedRecording.getWitnessFirstName(),
-        //     processedRecording.getExtractedRecordingVersionNumberStr()
-        // );
-
-        // String expectedField = "parentLookup:null";
-
-        // assertThat(keyCaptor.getValue()).isEqualTo(expectedKey);
-        // assertThat(fieldCaptor.getValue()).isEqualTo(expectedField);
-        // assertThat(valueCaptor.getValue()).startsWith(result.getId().toString());
     }
 
     @Test
@@ -363,6 +362,45 @@ public class EntityCreationServiceTest {
             && "Witness".equals(p.getFirstName()));
         assertThat(participants).anyMatch(p -> p.getParticipantType() == ParticipantType.DEFENDANT
             && "Defendant".equals(p.getLastName()));
+    }
+
+    @Test
+    @DisplayName("Should filter participants by witness or defendant name")
+    public void createBookingShouldFilterParticipants() {
+        
+        CreateParticipantDTO witness = new CreateParticipantDTO();
+        witness.setId(UUID.randomUUID());
+        witness.setFirstName("John");
+        witness.setParticipantType(ParticipantType.WITNESS);
+
+        CreateParticipantDTO defendant = new CreateParticipantDTO();
+        defendant.setId(UUID.randomUUID());
+        defendant.setLastName("Smith");
+        defendant.setParticipantType(ParticipantType.DEFENDANT);
+
+        UUID caseId = UUID.randomUUID();
+        String witnessFirstName = "John";
+        String defendantLastName = "Smith";
+
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
+        caseDTO.setId(caseId);
+        caseDTO.setParticipants(Set.of(witness, defendant));
+
+        ProcessedRecording recording = ProcessedRecording.builder()
+            .recordingTimestamp(Timestamp.from(Instant.now()))
+            .archiveId("ARCH456")
+            .extractedRecordingVersion("ORIG")
+            .witnessFirstName(witnessFirstName)
+            .defendantLastName(defendantLastName)
+            .build();
+
+        when(migrationRecordService.findByArchiveId("ARCH456"))
+            .thenReturn(Optional.empty());
+
+        CreateBookingDTO result = entityCreationService.createBooking(recording, caseDTO, "key");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getParticipants()).containsExactlyInAnyOrder(witness, defendant);
     }
 
     @Test

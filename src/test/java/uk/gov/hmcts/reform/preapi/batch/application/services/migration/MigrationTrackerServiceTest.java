@@ -456,6 +456,18 @@ public class MigrationTrackerServiceTest {
     }
 
     @Test
+    void buildFailedItemsRowsWithUnknownType() {
+        FailedItem item = new FailedItem(mock(IArchiveData.class), "Unknown reason", "UnknownCategory");
+        migrationTrackerService.addFailedItem(item);
+
+        List<FailedItem> items = List.of(item);
+        List<List<String>> rows = migrationTrackerService.buildFailedItemsRows(items);
+
+        assertThat(rows).isEmpty(); // Nothing added
+        verify(loggingService, times(1)).logWarning(eq("Skipping unknown item type: %s"), anyString());
+    }
+
+    @Test
     void buildInvitedUserRowsWithData() {
         CreateInviteDTO user1 = new CreateInviteDTO();
         user1.setUserId(UUID.randomUUID());
