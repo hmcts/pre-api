@@ -6,11 +6,14 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.server.PathContainer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
+import org.springframework.web.util.pattern.PathPatternParser;
 import uk.gov.hmcts.reform.preapi.config.SecurityConfig;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
@@ -55,8 +58,38 @@ public class XUserIdFilter extends GenericFilterBean {
     }
 
     private boolean applyAuth(HttpServletRequest request) {
-        return Arrays.stream(SecurityConfig.NOT_AUTHORIZED_URIS)
-            .noneMatch(antPathRequestMatcher -> antPathRequestMatcher.matches(request));
+        PathPatternParser parser = new PathPatternParser();
+
+        // Any request method
+        if (Arrays.stream(SecurityConfig.PERMITTED_URIS_ALL_REQUESTS)
+            .map(parser::parse)
+            .toList()
+            .stream()
+            .anyMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())))) {
+            return false;
+        }
+
+        // GET
+        if (request.getMethod().equals(HttpMethod.GET.toString())
+            && Arrays.stream(SecurityConfig.PERMITTED_URIS_GET_ONLY)
+            .map(parser::parse)
+            .toList()
+            .stream()
+            .anyMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())))) {
+            return false;
+        }
+
+        // POST
+        if (request.getMethod().equals(HttpMethod.POST.toString())
+            && Arrays.stream(SecurityConfig.PERMITTED_URIS_POST)
+            .map(parser::parse)
+            .toList()
+            .stream()
+            .anyMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())))) {
+            return false;
+        }
+
+        return true;
     }
 
     private void writeErrorResponse(Exception e, HttpServletResponse response) throws IOException {
