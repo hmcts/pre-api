@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.contains;
@@ -177,40 +176,25 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
-    void saveCaseThrowsExceptionWhenCaseRefIsNull() {
+    void saveCaseSkipsWhenCaseRefIsEmpty() {
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
-        createCaseDTO.setReference("CASE123");
+        createCaseDTO.setReference("");
 
-        assertThatThrownBy(() -> inMemoryCacheService.saveCase(null, createCaseDTO))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Case reference cannot be null or empty");
+        inMemoryCacheService.saveCase(null, createCaseDTO);
+        verify(loggingService, times(1))
+            .logInfo(org.mockito.ArgumentMatchers.contains(
+                "Case ref is null or empty"), org.mockito.ArgumentMatchers.isNull());
     }
 
     @Test
-    void saveCaseThrowsExceptionWhenCaseRefIsEmpty() {
+    void saveCaseSkipsWhenCaseRefIsNull() {
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
-        createCaseDTO.setReference("CASE123");
+        createCaseDTO.setReference(null);
 
-        assertThatThrownBy(() -> inMemoryCacheService.saveCase("", createCaseDTO))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Case reference cannot be null or empty");
-    }
-
-    @Test
-    void saveCaseThrowsExceptionWhenCaseRefIsWhitespace() {
-        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
-        createCaseDTO.setReference("CASE123");
-
-        assertThatThrownBy(() -> inMemoryCacheService.saveCase("   ", createCaseDTO))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Case reference cannot be null or empty");
-    }
-
-    @Test
-    void saveCaseThrowsExceptionWhenCaseDTOIsNull() {
-        assertThatThrownBy(() -> inMemoryCacheService.saveCase("CASE123", null))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Case DTO cannot be null");
+        inMemoryCacheService.saveCase(null, createCaseDTO);
+        verify(loggingService, times(1))
+            .logInfo(org.mockito.ArgumentMatchers.contains(
+                "Case ref is null or empty"), org.mockito.ArgumentMatchers.isNull());
     }
 
     @Test

@@ -70,10 +70,12 @@ public class InMemoryCacheService {
 
     public void saveCase(String caseRef, CreateCaseDTO caseDTO) {
         if (caseRef == null || caseRef.trim().isEmpty()) {
-            throw new IllegalArgumentException("Case reference cannot be null or empty");
+            loggingService.logInfo("Case ref is null or empty: %s", caseRef);
+            return;
         }
         if (caseDTO == null) {
-            throw new IllegalArgumentException("Case DTO cannot be null");
+            loggingService.logInfo("CaseDTO is null");
+            return;
         }
         
         String normalizedRef = normalizeCaseReference(caseRef);
@@ -99,6 +101,10 @@ public class InMemoryCacheService {
     }
 
     public void saveUser(String email, UUID userID) {
+        if (email == null || email.isBlank() || userID == null) {
+            loggingService.logWarning("Skipping saveUser: email or userID missing");
+            return;
+        }
         String lowerEmail = email.toLowerCase();
         userCache.put(lowerEmail, userID);
         saveHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, userID.toString());
