@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.contains;
@@ -150,6 +149,17 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
+    void saveCaseNormalizesCaseReference() {
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("case 123");
+        
+        inMemoryCacheService.saveCase("  case   123  ", createCaseDTO);
+        
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("CASE 123");
+        assertThat(result).isPresent();
+    }
+
+    @Test
     void getCaseReturnsEmptyWhenCaseRefIsNull() {
         Optional<CreateCaseDTO> result = inMemoryCacheService.getCase(null);
         
@@ -177,40 +187,79 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
-    void saveCaseThrowsExceptionWhenCaseRefIsNull() {
+    void saveCaseSkipsWhenCaseRefIsEmpty() {
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
-        createCaseDTO.setReference("CASE123");
+        createCaseDTO.setReference("");
 
-        assertThatThrownBy(() -> inMemoryCacheService.saveCase(null, createCaseDTO))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Case reference cannot be null or empty");
+        inMemoryCacheService.saveCase(null, createCaseDTO);
+        verify(loggingService, times(1))
+            .logInfo(org.mockito.ArgumentMatchers.contains(
+                "Case ref is null or empty"), org.mockito.ArgumentMatchers.isNull());
     }
 
     @Test
-    void saveCaseThrowsExceptionWhenCaseRefIsEmpty() {
+    void saveCaseSkipsWhenCaseRefIsNull() {
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
-        createCaseDTO.setReference("CASE123");
+        createCaseDTO.setReference(null);
 
-        assertThatThrownBy(() -> inMemoryCacheService.saveCase("", createCaseDTO))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Case reference cannot be null or empty");
+        inMemoryCacheService.saveCase(null, createCaseDTO);
+        verify(loggingService, times(1))
+            .logInfo(org.mockito.ArgumentMatchers.contains(
+                "Case ref is null or empty"), org.mockito.ArgumentMatchers.isNull());
     }
 
     @Test
-    void saveCaseThrowsExceptionWhenCaseRefIsWhitespace() {
-        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
-        createCaseDTO.setReference("CASE123");
-
-        assertThatThrownBy(() -> inMemoryCacheService.saveCase("   ", createCaseDTO))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Case reference cannot be null or empty");
+    void saveCaseSkipsWhenCaseDTOIsNull() {
+        inMemoryCacheService.saveCase("VALID_REF", null);
+        verify(loggingService, times(1))
+            .logInfo("CaseDTO is null");
     }
 
     @Test
-    void saveCaseThrowsExceptionWhenCaseDTOIsNull() {
-        assertThatThrownBy(() -> inMemoryCacheService.saveCase("CASE123", null))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Case DTO cannot be null");
+    void getCaseLogsWhenCaseFoundInCache() {
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("FOUND_CASE");
+        createCaseDTO.setId(UUID.randomUUID());
+        
+        inMemoryCacheService.saveCase("FOUND_CASE", createCaseDTO);
+        
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("FOUND_CASE");
+        
+        assertThat(result).isPresent();
+        verify(loggingService, times(1))
+            .logInfo(contains("Found case in cache"), any());
+    }
+
+    @Test
+    void getCaseLogsWhenCaseNotFoundInCache() {
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("NONEXISTENT_CASE");
+        
+        assertThat(result).isEmpty();
+        verify(loggingService, times(1))
+            .logInfo(contains("Case not found in cache for reference"), any());
+    }
+
+    @Test
+    void saveUserSkipsWhenEmailIsNull() {
+        UUID userId = UUID.randomUUID();
+        inMemoryCacheService.saveUser(null, userId);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
+    }
+
+    @Test
+    void saveUserSkipsWhenEmailIsBlank() {
+        UUID userId = UUID.randomUUID();
+        inMemoryCacheService.saveUser("", userId);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
+    }
+
+    @Test
+    void saveUserSkipsWhenUserIdIsNull() {
+        inMemoryCacheService.saveUser("test@example.com", null);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
     }
 
     @Test
