@@ -216,6 +216,53 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
+    void getCaseLogsWhenCaseFoundInCache() {
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("FOUND_CASE");
+        createCaseDTO.setId(UUID.randomUUID());
+        
+        inMemoryCacheService.saveCase("FOUND_CASE", createCaseDTO);
+        
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("FOUND_CASE");
+        
+        assertThat(result).isPresent();
+        verify(loggingService, times(1))
+            .logInfo(contains("Found case in cache"), any());
+    }
+
+    @Test
+    void getCaseLogsWhenCaseNotFoundInCache() {
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("NONEXISTENT_CASE");
+        
+        assertThat(result).isEmpty();
+        verify(loggingService, times(1))
+            .logInfo(contains("Case not found in cache for reference"), any());
+    }
+
+    @Test
+    void saveUserSkipsWhenEmailIsNull() {
+        UUID userId = UUID.randomUUID();
+        inMemoryCacheService.saveUser(null, userId);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
+    }
+
+    @Test
+    void saveUserSkipsWhenEmailIsBlank() {
+        UUID userId = UUID.randomUUID();
+        inMemoryCacheService.saveUser("", userId);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
+    }
+
+    @Test
+    void saveUserSkipsWhenUserIdIsNull() {
+        inMemoryCacheService.saveUser("test@example.com", null);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
+    }
+
+    @Test
     void saveAndGetShareBookingSuccess() {
         CreateShareBookingDTO shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
