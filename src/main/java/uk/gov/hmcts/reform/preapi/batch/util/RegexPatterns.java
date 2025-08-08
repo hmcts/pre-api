@@ -71,7 +71,7 @@ public final class RegexPatterns {
 
     public static final Pattern SNOW_MORNING_CHECKS_PATTERN = Pattern.compile(
         "^SNOW\\s*Morning\\s*Checks\\s*\\d{4}\\s*\\d{2}\\s*\\d{2}\\s*VMR\\d+(?:\\.mp4)?$",
-        Pattern.CASE_INSENSITIVE 
+        Pattern.CASE_INSENSITIVE
     );
 
     public static final Pattern S28_MORNING_CHECKS_DDMMYYYY_PATTERN = Pattern.compile(

@@ -136,6 +136,35 @@ public class EntityCreationService {
     }
 
     public CreateRecordingDTO createRecording(ProcessedRecording cleansedData, CreateCaptureSessionDTO captureSession) {
+        String version = cleansedData.getExtractedRecordingVersion();
+        boolean isCopy = "COPY".equalsIgnoreCase(version);
+        UUID parentRecordingId = null;
+
+        if (isCopy) {
+            Optional<MigrationRecord> currentRecordOpt = 
+                migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
+
+            if (currentRecordOpt.isPresent()) {
+                Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecordOpt.get());
+
+                if (maybeOrig.isEmpty()) {
+                    loggingService.logWarning("No ORIG found for COPY archiveId: %s", cleansedData.getArchiveId());
+                    return null;
+                }
+
+                parentRecordingId = maybeOrig.get().getRecordingId();
+                if (parentRecordingId == null) {
+                    loggingService.logWarning("Parent ORIG found but has no recording ID (archiveId: %s)",
+                                            maybeOrig.get().getArchiveId());
+                    return null;
+                }
+            } else {
+                loggingService.logWarning(
+                    "No migration record found for COPY archiveId: %s", cleansedData.getArchiveId());
+                return null;
+            }
+        }
+
         var recordingDTO = new CreateRecordingDTO();
         UUID recordingId = UUID.randomUUID();
         recordingDTO.setId(recordingId);
@@ -143,37 +172,18 @@ public class EntityCreationService {
         recordingDTO.setDuration(cleansedData.getDuration());
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
+        recordingDTO.setFilename(cleansedData.getFileName());
 
-        String version = cleansedData.getExtractedRecordingVersion();
-        boolean isCopy = "COPY".equalsIgnoreCase(version);
-
-        Optional<MigrationRecord> currentRecordOpt = migrationRecordService.findByArchiveId(
-            cleansedData.getArchiveId());
-
-        if (isCopy && currentRecordOpt.isPresent()) {
-            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecordOpt.get());
-
-            maybeOrig.ifPresent(orig -> {
-                UUID parentRecordingId = orig.getRecordingId();
-                if (parentRecordingId != null) {
-                    recordingDTO.setParentRecordingId(parentRecordingId);
-                } else {
-                    loggingService.logWarning(
-                        "Parent ORIG found but has no recording ID (archiveId: %s)", orig.getArchiveId());
-                }
-            });
-
-            if (maybeOrig.isEmpty()) {
-                loggingService.logWarning("No ORIG found for COPY archiveId: %s", cleansedData.getArchiveId());
-            }
+        if (isCopy) {
+            recordingDTO.setParentRecordingId(parentRecordingId);
         }
 
-        recordingDTO.setFilename(cleansedData.getFileName());
         migrationRecordService.updateRecordingId(cleansedData.getArchiveId(), recordingId);
 
         return recordingDTO;
     }
 
+   
     public Set<CreateParticipantDTO> createParticipants(ProcessedRecording cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
 
@@ -319,5 +329,15 @@ public class EntityCreationService {
         result.setInvites(invites);
         result.setShareBookings(shareBookings);
         return result;
+    }
+
+    private boolean isOrigRecordingPersisted(String archiveId) {
+        Optional<MigrationRecord> maybeRecord = migrationRecordService.findByArchiveId(archiveId);
+
+        if (maybeRecord.isPresent()) {
+            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(maybeRecord.get());
+            return maybeOrig.isPresent() && maybeOrig.get().getRecordingId() != null;
+        }
+        return false;
     }
 }

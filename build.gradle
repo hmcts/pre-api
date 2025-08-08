@@ -312,7 +312,7 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: versions.jackson
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
 
-  implementation group: 'com.opencsv', name: 'opencsv', version: '5.11.2'
+  implementation group: 'com.opencsv', name: 'opencsv', version: '5.12.0'
 
   implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.30.0'
   implementation group: 'com.azure', name: 'azure-core-serializer-json-jackson', version: '1.5.10'
@@ -327,6 +327,7 @@ dependencies {
 
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.23.Final')
+  developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.9:all'
   testImplementation 'org.springframework.security:spring-security-test:6.5.0'

@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
@@ -11,9 +12,11 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -35,6 +38,11 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.FILE_S
  */
 @Service
 public class MigrationTrackerService {
+    @Value("${azure.vodafoneStorage.container}")
+    private String reportContainer;
+
+    private final AzureVodafoneStorageService azureVodafoneStorageService;
+
     protected static final List<String> MIGRATED_ITEM_HEADERS = List.of(
         DISPLAY_NAME, "Case Reference", "Witness", "Defendant", "Scheduled For",
         "Case State", "Version", "File Name", "Duration", FILE_SIZE, "Date / Time migrated"
@@ -58,8 +66,10 @@ public class MigrationTrackerService {
 
     private final LoggingService loggingService;
 
-    public MigrationTrackerService(final LoggingService loggingService) {
+    public MigrationTrackerService(
+        final LoggingService loggingService, final AzureVodafoneStorageService azureVodafoneStorageService) {
         this.loggingService = loggingService;
+        this.azureVodafoneStorageService = azureVodafoneStorageService;
     }
 
     public void addMigratedItem(PassItem item) {
@@ -93,37 +103,45 @@ public class MigrationTrackerService {
         invitedUsers.add(user);
     }
 
-    public void writeMigratedItemsToCsv(String fileName, String outputDir) {
+    public File writeMigratedItemsToCsv(String fileName, String outputDir) {
         List<List<String>> rows = buildMigratedItemsRows();
 
         try {
-            ReportCsvWriter.writeToCsv(MIGRATED_ITEM_HEADERS, rows, fileName, outputDir, false);
+            Path path = ReportCsvWriter.writeToCsv(MIGRATED_ITEM_HEADERS, rows, fileName, outputDir, false);
+            return path.toFile();
         } catch (IOException e) {
             loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
+            return null;
         }
     }
 
-    public void writeNotifyItemsToCsv(String fileName, String outputDir) {
+    public File writeNotifyItemsToCsv(String fileName, String outputDir) {
         List<List<String>> rows = buildNotifyItemsRows();
 
         try {
-            ReportCsvWriter.writeToCsv(NOTIFY_ITEM_HEADERS, rows, fileName, outputDir, false);
+            Path path = ReportCsvWriter.writeToCsv(NOTIFY_ITEM_HEADERS, rows, fileName, outputDir, false);
+            return path.toFile();
         } catch (IOException e) {
             loggingService.logError("Failed to write notify items to CSV: %s", e.getMessage());
+            return null;
         }
     }
 
-    public void writeTestFailureReport(String fileName,String outputDir) {
+    public File writeTestFailureReport(String fileName,String outputDir) {
         List<List<String>> rows = buildTestFailureRows();
 
         try {
-            ReportCsvWriter.writeToCsv(TEST_FAILURE_HEADERS, rows, fileName, outputDir, false);
+            Path path = ReportCsvWriter.writeToCsv(TEST_FAILURE_HEADERS, rows, fileName, outputDir, false);
+            return path.toFile();
         } catch (IOException e) {
             loggingService.logError("Failed to write test failure report: %s", e.getMessage());
+            return null;
         }
     }
 
-    public void writeCategorizedFailureReports(String outputDir) {
+    public List<File> writeCategorizedFailureReports(String outputDir) {
+        List<File> writtenFiles = new ArrayList<>();
+
         categorizedFailures.forEach((category, failedItemsList) -> {
             loggingService.logInfo(
                 "Writing failure report for category: %s | %d items",
@@ -135,11 +153,18 @@ public class MigrationTrackerService {
             List<List<String>> rows = buildFailedItemsRows(failedItemsList);
 
             try {
-                ReportCsvWriter.writeToCsv(FAILED_ITEM_HEADERS, rows, fileName, outputDir, false);
+                Path path = ReportCsvWriter.writeToCsv(FAILED_ITEM_HEADERS, rows, fileName, outputDir, false);
+                if (path != null) {  
+                    writtenFiles.add(path.toFile());
+                } else {
+                    loggingService.logError(
+                        "Failed to write failure report for %s: ReportCsvWriter returned null", category);
+                }
             } catch (IOException e) {
                 loggingService.logError("Failed to write failure report for %s: %s", category, e.getMessage());
             }
         });
+        return writtenFiles;
     }
 
     public void writeInvitedUsersToCsv(String fileName, String outputDir) {
@@ -164,11 +189,40 @@ public class MigrationTrackerService {
         String failureDir = outputDir + "/Failure Reports";
         new File(failureDir).mkdirs();
 
-        writeMigratedItemsToCsv("Migrated", outputDir);
-        writeFailureSummary(outputDir);
-        writeCategorizedFailureReports(failureDir);
-        writeTestFailureReport("Test", failureDir);
-        writeNotifyItemsToCsv("Notify", outputDir);
+        File migratedFile = writeMigratedItemsToCsv("Migrated", outputDir);
+        if (migratedFile != null && migratedFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(reportContainer, timestamp + "/Migrated.csv", migratedFile);
+        }
+
+        File failureSummaryFile = writeFailureSummary(outputDir);
+        if (failureSummaryFile != null && failureSummaryFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(reportContainer, timestamp + "/Failures.csv", failureSummaryFile);
+        }
+
+        List<File> failureReports = writeCategorizedFailureReports(failureDir);
+        for (File file : failureReports) {
+            if (file != null && file.exists()) {
+                azureVodafoneStorageService.uploadCsvFile(
+                    reportContainer,
+                    timestamp + "/Failure Reports/" + file.getName(),
+                    file
+                );
+            }
+        }
+
+        File testFailureFile = writeTestFailureReport("Test", failureDir);
+        if (testFailureFile != null && testFailureFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(
+                reportContainer,
+                timestamp + "/Failure Reports/Test.csv",
+                testFailureFile
+            );
+        }
+
+        File notifyFile = writeNotifyItemsToCsv("Notify", outputDir);
+        if (notifyFile != null && notifyFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(reportContainer, timestamp + "/Notify.csv", notifyFile);
+        }
 
         loggingService.setTotalMigrated(migratedItems.size());
         loggingService.setTotalFailed(categorizedFailures, testFailures);
@@ -286,7 +340,7 @@ public class MigrationTrackerService {
         return rows;
     }
 
-    private void writeFailureSummary(String outputDir) {
+    private File writeFailureSummary(String outputDir) {
         List<String> headers = List.of("Failure Category", "Count");
         List<List<String>> rows = categorizedFailures.entrySet().stream()
                                                      .map(entry -> List.of(
@@ -300,9 +354,11 @@ public class MigrationTrackerService {
         }
 
         try {
-            ReportCsvWriter.writeToCsv(headers, rows, "Failures", outputDir, false);
+            Path writtenPath = ReportCsvWriter.writeToCsv(headers, rows, "Failures", outputDir, false);
+            return writtenPath.toFile();
         } catch (IOException e) {
             loggingService.logError("Failed to write failure summary: %s", e.getMessage());
+            return null;
         }
     }
 
