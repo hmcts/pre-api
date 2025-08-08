@@ -25,7 +25,7 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
-import uk.gov.hmcts.reform.preapi.util.Batcher;
+import uk.gov.hmcts.reform.preapi.utils.Batcher;
 
 import java.sql.Timestamp;
 import java.time.Instant;
