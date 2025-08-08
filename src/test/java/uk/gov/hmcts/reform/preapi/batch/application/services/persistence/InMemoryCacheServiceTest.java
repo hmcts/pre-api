@@ -198,6 +198,13 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
+    void saveCaseSkipsWhenCaseDTOIsNull() {
+        inMemoryCacheService.saveCase("VALID_REF", null);
+        verify(loggingService, times(1))
+            .logInfo("CaseDTO is null");
+    }
+
+    @Test
     void saveAndGetShareBookingSuccess() {
         CreateShareBookingDTO shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
