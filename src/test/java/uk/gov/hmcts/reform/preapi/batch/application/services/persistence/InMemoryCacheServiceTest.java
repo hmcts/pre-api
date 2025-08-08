@@ -149,6 +149,17 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
+    void saveCaseNormalizesCaseReference() {
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("case 123");
+        
+        inMemoryCacheService.saveCase("  case   123  ", createCaseDTO);
+        
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("CASE 123");
+        assertThat(result).isPresent();
+    }
+
+    @Test
     void getCaseReturnsEmptyWhenCaseRefIsNull() {
         Optional<CreateCaseDTO> result = inMemoryCacheService.getCase(null);
         
