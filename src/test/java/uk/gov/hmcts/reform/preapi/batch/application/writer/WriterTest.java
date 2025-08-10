@@ -4,15 +4,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.batch.item.Chunk;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -20,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -54,6 +61,25 @@ public class WriterTest {
     @Autowired
     private MigrationWriter writer;
 
+    // ---------- helpers ----------
+
+    private static CaseDTO persistedCase(UUID id, UUID courtId, String reference) {
+        var c = new CaseDTO();
+        c.setId(id != null ? id : UUID.randomUUID());
+        c.setReference(reference);
+        var court = new CourtDTO();
+        court.setId(courtId);
+        c.setCourt(court);
+        c.setState(CaseState.OPEN);
+        return c;
+    }
+
+    private static Page<CaseDTO> pageOf(CaseDTO... items) {
+        return new PageImpl<>(List.of(items));
+    }
+
+    // ---------- tests ----------
+
     @Test
     void writeMigratedItemsEmpty() {
         writer.write(Chunk.of());
@@ -64,9 +90,15 @@ public class WriterTest {
 
     @Test
     void writeItemGroupCaseUpsertFailure() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(Page.empty());
+
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .build();
@@ -77,14 +109,24 @@ public class WriterTest {
 
         verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
         verify(loggingService, times(1))
-            .logError(eq("Failed to upsert case. Case id: %s | %s"), eq(createCaseDTO.getId()), any());
+            .logError(eq("Create case failed (safe path). ref=%s court=%s | %s"),
+                eq("REFERENCE"), eq(courtId), any());
+    
     }
 
     @Test
     void writeItemGroupCaseSuccess() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted)) 
+            .thenReturn(pageOf(persisted));
+
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .build();
@@ -95,16 +137,25 @@ public class WriterTest {
 
         verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
         verify(loggingService, never())
-            .logError(eq("Failed to upsert case. Case id: %s | %s"), eq(createCaseDTO.getId()), any());
+            .logError(eq("Merge participants failed (safe path). caseId=%s | %s"), any(), any());
     }
 
     @Test
     void writeItemGroupBookingFailure() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
+
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(createBookingDTO)
@@ -123,9 +174,17 @@ public class WriterTest {
 
     @Test
     void writeItemGroupCaptureSessionFailure() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
         CreateCaptureSessionDTO createCaptureSessionDTO = new CreateCaptureSessionDTO();
@@ -156,9 +215,17 @@ public class WriterTest {
 
     @Test
     void writeItemGroupCaptureSessionSuccess() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
         CreateCaptureSessionDTO createCaptureSessionDTO = new CreateCaptureSessionDTO();
@@ -189,9 +256,17 @@ public class WriterTest {
 
     @Test
     void writeItemGroupRecordingFailure() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
         CreateCaptureSessionDTO createCaptureSessionDTO = new CreateCaptureSessionDTO();
@@ -227,9 +302,17 @@ public class WriterTest {
 
     @Test
     void writeItemGroupRecordingSuccess() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
         CreateCaptureSessionDTO createCaptureSessionDTO = new CreateCaptureSessionDTO();
@@ -265,9 +348,17 @@ public class WriterTest {
 
     @Test
     void writeItemGroupInvitesFailure() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
         CreateCaptureSessionDTO createCaptureSessionDTO = new CreateCaptureSessionDTO();
@@ -298,9 +389,18 @@ public class WriterTest {
 
     @Test
     void writeItemGroupInvitesSuccess() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
         CreateCaptureSessionDTO createCaptureSessionDTO = new CreateCaptureSessionDTO();
@@ -331,9 +431,17 @@ public class WriterTest {
 
     @Test
     void writeItemGroupShareBookingFailure() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
         CreateCaptureSessionDTO createCaptureSessionDTO = new CreateCaptureSessionDTO();
@@ -363,9 +471,17 @@ public class WriterTest {
 
     @Test
     void writeItemGroupShareBookingSuccess() {
+        var courtId = UUID.randomUUID();
         CreateCaseDTO createCaseDTO = new CreateCaseDTO();
         createCaseDTO.setId(UUID.randomUUID());
         createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+
         CreateBookingDTO createBookingDTO = new CreateBookingDTO();
         createBookingDTO.setId(UUID.randomUUID());
         CreateCaptureSessionDTO createCaptureSessionDTO = new CreateCaptureSessionDTO();
