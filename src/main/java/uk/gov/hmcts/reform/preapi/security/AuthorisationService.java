@@ -170,7 +170,8 @@ public class AuthorisationService {
 
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateShareBookingDTO dto) {
         return authentication.getUserId().equals(dto.getSharedByUser())
-            && (authentication.isAdmin() || hasBookingAccess(authentication, dto.getBookingId()));
+            && (authentication.isAdmin() || hasBookingAccess(authentication, dto.getBookingId()))
+            || authentication.hasRole("ROLE_SUPER_USER");
     }
 
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateCaseDTO dto) {

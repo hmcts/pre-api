@@ -543,6 +543,11 @@ class CaseServiceTest {
     @Test
     @DisplayName("Should throw ResourceInWrongStateException when attempting to update a case in wrong state")
     void updateCaseNotOpenBadRequest() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
         caseEntity.setState(CaseState.CLOSED);
         var testingCase = createTestingCase();
         var caseDTOModel = new CreateCaseDTO(testingCase);
@@ -562,6 +567,27 @@ class CaseServiceTest {
         verify(courtRepository, never()).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(caseRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should allow attempt to update a case in wrong state when Super Admin")
+    void updateCaseNotOpenAllowedAsSuperAdmin() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        caseEntity.setState(CaseState.CLOSED);
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+        caseDTOModel.setState(CaseState.CLOSED);
+
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.of(caseEntity));
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(caseRepository, times(1)).saveAndFlush(any());
     }
 
     @Test

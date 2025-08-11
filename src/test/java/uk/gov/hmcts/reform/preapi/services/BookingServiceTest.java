@@ -248,6 +248,8 @@ class BookingServiceTest {
     @DisplayName("Create/update a booking when case is not OPEN")
     @Test
     void upsertCreateBookingCaseNotOpen() {
+        setAuthentication();
+
         var bookingModel = new CreateBookingDTO();
         var caseId = UUID.randomUUID();
         bookingModel.setId(UUID.randomUUID());
@@ -275,6 +277,35 @@ class BookingServiceTest {
         verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseId);
         verify(bookingRepository, times(1)).findById(bookingModel.getId());
         verify(bookingRepository, never()).save(any());
+    }
+
+    @DisplayName("Create/update a booking when case is not OPEN but user is Super Admin")
+    @Test
+    void upsertCreateBookingCaseNotOpenWithSuperAdmin() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var bookingModel = new CreateBookingDTO();
+        var caseId = UUID.randomUUID();
+        bookingModel.setId(UUID.randomUUID());
+        bookingModel.setCaseId(caseId);
+        bookingModel.setParticipants(Set.of());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.CLOSED);
+
+        var bookingEntity = new Booking();
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(aCase));
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
+        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
+        when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
+        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
+
+        assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);
     }
 
     @DisplayName("Update a booking when case not found")
@@ -676,6 +707,7 @@ class BookingServiceTest {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(false);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
     }
 }

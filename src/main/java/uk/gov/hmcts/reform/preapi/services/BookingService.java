@@ -126,6 +126,7 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
+        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
 
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
@@ -137,7 +138,7 @@ public class BookingService {
         var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
             .orElseThrow(() -> new NotFoundException("Case: " + createBookingDTO.getCaseId()));
 
-        if (caseEntity.getState() != CaseState.OPEN) {
+        if (caseEntity.getState() != CaseState.OPEN && !auth.hasRole("ROLE_SUPER_USER")) {
             throw new ResourceInWrongStateException(
                 "Booking",
                 createBookingDTO.getId(),
