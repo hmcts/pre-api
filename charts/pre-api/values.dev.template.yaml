@@ -24,8 +24,6 @@ java:
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
     AZURE_VF_SA: prevodasastg
-    ENABLE_NEW_EMAIL_SERVICE: true
-    ENABLE_STREAMING_LOCATOR_ON_START: true
     ENABLE_AUTOMATED_EDITING: true
     ENABLE_ENHANCED_PROCESSING: true
     ENABLE_NULL_DURATION_UPSERT: true
