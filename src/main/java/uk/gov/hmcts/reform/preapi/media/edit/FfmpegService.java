@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.media.edit;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -201,7 +200,7 @@ public class FfmpegService implements IEditingService {
     }
 
     protected CommandLine generateCommand(EditRequest editRequest, String inputFileName, String outputFileName) {
-        var instructions = fromJson(editRequest.getEditInstruction());
+        var instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
 
         if (instructions.getFfmpegInstructions() == null
             || instructions.getFfmpegInstructions().isEmpty()) {
@@ -271,7 +270,7 @@ public class FfmpegService implements IEditingService {
     protected LinkedHashMap<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
                                                                            final String inputFileName,
                                                                            final String outputFileName) {
-        EditInstructions instructions = fromJson(editRequest.getEditInstruction());
+        EditInstructions instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
 
         if (instructions.getFfmpegInstructions() == null
             || instructions.getFfmpegInstructions().isEmpty()) {
@@ -331,14 +330,5 @@ public class FfmpegService implements IEditingService {
         }
         final long uploadEnd = System.currentTimeMillis();
         log.info("Upload completed in {} ms", (uploadEnd - uploadStart));
-    }
-
-    private EditInstructions fromJson(String editInstructions) {
-        try {
-            return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
-        } catch (Exception e) {
-            log.error("Error reading edit instructions: {} with message: {}", editInstructions, e.getMessage());
-            throw new UnknownServerException("Unable to read edit instructions");
-        }
     }
 }
