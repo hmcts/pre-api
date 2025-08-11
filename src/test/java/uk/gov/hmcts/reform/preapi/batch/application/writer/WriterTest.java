@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.application.writer;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.batch.item.Chunk;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -619,6 +621,108 @@ public class WriterTest {
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
+    }
+
+    @Test
+    void writeFiltersOutNullItemsAndProcessesValidOne() {
+        var courtId = UUID.randomUUID();
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REF");
+        when(caseService.searchBy(eq("REF"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted))
+            .thenReturn(pageOf(persisted));
+        when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
+
+        var createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setId(UUID.randomUUID());
+        createCaseDTO.setReference("REF");
+        createCaseDTO.setCourtId(courtId);
+
+        MigratedItemGroup valid = MigratedItemGroup.builder()
+            .acase(createCaseDTO)
+            .passItem(mock(PassItem.class))
+            .build();
+
+        writer.write(Chunk.of(null, valid)); 
+
+        verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
+        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
+    }
+
+    @Test
+    void writeMergesParticipantsAndUpsertPatchSucceeds() {
+        var courtId = UUID.randomUUID();
+        var caseId = UUID.randomUUID();
+
+        var existing = persistedCase(caseId, courtId, "REF");
+        when(caseService.searchBy(eq("REF"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(existing)); 
+    
+        doThrow(new NotFoundException("boom")).when(caseService).upsert(any(CreateCaseDTO.class));
+
+        var createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setId(UUID.randomUUID());
+        createCaseDTO.setReference("REF");
+        createCaseDTO.setCourtId(courtId);
+
+        MigratedItemGroup item = MigratedItemGroup.builder()
+            .acase(createCaseDTO)
+            .passItem(mock(PassItem.class))
+            .build();
+
+        writer.write(Chunk.of(item));
+
+        verify(loggingService, times(1))
+            .logError(eq("Merge participants failed (safe path). caseId=%s | %s"), eq(caseId), any());
+        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class)); 
+    }
+
+    @Test
+    void writeRemapsBookingParticipantsToPersistedIds() {
+        var courtId = UUID.randomUUID();
+        var caseId = UUID.randomUUID();
+
+        var persistedParticipant = persistedParticipant(ParticipantType.DEFENDANT, "Jane", "Doe");
+
+        var existing = persistedCase(caseId, courtId, "REF");
+        existing.setParticipants(List.of(persistedParticipant));
+
+        when(caseService.searchBy(eq("REF"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(existing))  
+            .thenReturn(pageOf(existing));  
+
+        when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.UPDATED);
+        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
+
+        var createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setId(UUID.randomUUID());
+        createCaseDTO.setReference("REF");
+        createCaseDTO.setCourtId(courtId);
+
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        participant.setParticipantType(ParticipantType.DEFENDANT);
+        participant.setFirstName("Jane");
+        participant.setLastName("Doe");
+
+        var booking = new CreateBookingDTO();
+        booking.setId(UUID.randomUUID());
+        booking.setParticipants(Set.of(participant));
+
+        MigratedItemGroup item = MigratedItemGroup.builder()
+            .acase(createCaseDTO)
+            .booking(booking)
+            .build();
+
+        writer.write(Chunk.of(item));
+
+        ArgumentCaptor<CreateBookingDTO> captor = ArgumentCaptor.forClass(CreateBookingDTO.class);
+        verify(bookingService, times(1)).upsert(captor.capture());
+
+        var sent = captor.getValue();
+        assertThat(sent.getParticipants()).hasSize(1);
+        var only = sent.getParticipants().iterator().next();
+        assertThat(only.getFirstName()).isEqualTo("Jane");
+        assertThat(only.getLastName()).isEqualTo("Doe");
     }
 
     
