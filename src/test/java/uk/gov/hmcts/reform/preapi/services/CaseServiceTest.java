@@ -66,9 +66,9 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyMethods"})
 class CaseServiceTest {
 
-    private static Case caseEntity;
+    private Case caseEntity;
 
-    private static List<Case> allCaseEntities = new ArrayList<>();
+    private List<Case> allCaseEntities = new ArrayList<>();
 
     @MockitoBean
     private CaseRepository caseRepository;
@@ -100,18 +100,10 @@ class CaseServiceTest {
     @Autowired
     private CaseService caseService;
 
-    @BeforeAll
-    static void setUp() {
-        caseEntity = new Case();
-        caseEntity.setId(UUID.randomUUID());
-        var court = new Court();
-        court.setId(UUID.randomUUID());
-        caseEntity.setCourt(court);
+    @BeforeEach
+    void setUp() {
+        caseEntity = createTestingCase();
         caseEntity.setReference("1234567890");
-        caseEntity.setTest(false);
-        caseEntity.setCreatedAt(Timestamp.from(Instant.now()));
-        caseEntity.setModifiedAt(Timestamp.from(Instant.now()));
-
         allCaseEntities.add(caseEntity);
     }
 
@@ -120,9 +112,6 @@ class CaseServiceTest {
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
         when(emailServiceFactory.getEnabledEmailService(eq("GovNotify"))).thenReturn(govNotify);
         when(emailServiceFactory.isEnabled()).thenReturn(false);
-
-        caseEntity.setDeletedAt(null);
-        caseEntity.setState(CaseState.OPEN);
     }
 
     @DisplayName("Find a case by it's id and return a model")
