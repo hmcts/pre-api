@@ -62,7 +62,7 @@ public class EditCutInstructionDTO {
             int seconds = Integer.parseInt(units[2]);
 
             return hours * 3600L + minutes * 60L + seconds;
-        } catch (IndexOutOfBoundsException | NumberFormatException e) {
+        } catch (Exception e) {
             throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS");
         }
     }
