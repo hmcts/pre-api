@@ -24,8 +24,10 @@ import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
@@ -50,11 +52,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class EditRequestService {
-
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
     private final FfmpegService ffmpegService;
@@ -64,13 +66,13 @@ public class EditRequestService {
     private final MediaServiceBroker mediaServiceBroker;
 
     @Autowired
-    public EditRequestService(EditRequestRepository editRequestRepository,
-                              RecordingRepository recordingRepository,
-                              FfmpegService ffmpegService,
-                              RecordingService recordingService,
-                              AzureIngestStorageService azureIngestStorageService,
-                              AzureFinalStorageService azureFinalStorageService,
-                              MediaServiceBroker mediaServiceBroker) {
+    public EditRequestService(final EditRequestRepository editRequestRepository,
+                              final RecordingRepository recordingRepository,
+                              final FfmpegService ffmpegService,
+                              final RecordingService recordingService,
+                              final AzureIngestStorageService azureIngestStorageService,
+                              final AzureFinalStorageService azureFinalStorageService,
+                              final MediaServiceBroker mediaServiceBroker) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -92,12 +94,8 @@ public class EditRequestService {
     @Transactional
     public Page<EditRequestDTO> findAll(SearchEditRequests params, Pageable pageable) {
         UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        params.setAuthorisedBookings(
-            auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
-        );
-        params.setAuthorisedCourt(
-            auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId()
-        );
+        params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
+        params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
         return editRequestRepository
             .searchAllBy(params, pageable)
@@ -113,7 +111,7 @@ public class EditRequestService {
     public EditRequest markAsProcessing(UUID editId) throws InterruptedException {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
-        var request = editRequestRepository.findById(editId)
+        EditRequest request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
 
         if (request.getStatus() != EditRequestStatus.PENDING) {
@@ -132,13 +130,10 @@ public class EditRequestService {
 
     @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
     public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
-        // ffmpeg
-        var newRecordingId = UUID.randomUUID();
+        UUID newRecordingId = UUID.randomUUID();
         String filename;
         try {
-            // apply ffmpeg
             ffmpegService.performEdit(newRecordingId, request);
-            // generate mk asset
             filename = generateAsset(newRecordingId, request);
         } catch (Exception e) {
             request.setFinishedAt(Timestamp.from(Instant.now()));
@@ -151,15 +146,14 @@ public class EditRequestService {
         request.setStatus(EditRequestStatus.COMPLETE);
         editRequestRepository.saveAndFlush(request);
 
-        // create db entry for recording
-        var createDto = createRecordingDto(newRecordingId, filename, request);
+        CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
         return recordingService.findById(newRecordingId);
     }
 
     @Transactional
     public @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
-        var createDto = new CreateRecordingDTO();
+        CreateRecordingDTO createDto = new CreateRecordingDTO();
         createDto.setId(newRecordingId);
         createDto.setParentRecordingId(request.getSourceRecording().getParentRecording() == null
                                            ? request.getSourceRecording().getId()
@@ -176,17 +170,17 @@ public class EditRequestService {
 
     @Transactional
     public String generateAsset(UUID newRecordingId, EditRequest request) throws InterruptedException {
-        var sourceContainer = newRecordingId + "-input";
+        String sourceContainer = newRecordingId + "-input";
         if (!azureIngestStorageService.doesContainerExist(sourceContainer)) {
             throw new NotFoundException("Source Container (" + sourceContainer + ") does not exist");
         }
         // throws 404 when doesn't exist
         azureIngestStorageService.getMp4FileName(sourceContainer);
-        var assetName = newRecordingId.toString().replace("-", "");
+        String assetName = newRecordingId.toString().replace("-", "");
 
         azureFinalStorageService.createContainerIfNotExists(newRecordingId.toString());
 
-        var generateAssetDto = GenerateAssetDTO.builder()
+        GenerateAssetDTO generateAssetDto = GenerateAssetDTO.builder()
             .sourceContainer(sourceContainer)
             .destinationContainer(newRecordingId)
             .tempAsset(assetName)
@@ -195,7 +189,8 @@ public class EditRequestService {
             .description("Edit of " + request.getSourceRecording().getId().toString().replace("-", ""))
             .build();
 
-        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDto, false);
+        GenerateAssetResponseDTO result = mediaServiceBroker.getEnabledMediaService()
+            .importAsset(generateAssetDto, false);
 
         if (!result.getJobStatus().equals(JobState.FINISHED.toString())) {
             throw new UnknownServerException("Failed to generate asset for edit request: "
@@ -211,7 +206,7 @@ public class EditRequestService {
     public UpsertResult upsert(CreateEditRequestDTO dto) {
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
 
-        var sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
+        Recording sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
             .orElseThrow(() -> new NotFoundException("Source Recording: " + dto.getSourceRecordingId()));
 
         if (sourceRecording.getDuration() == null) {
@@ -253,7 +248,7 @@ public class EditRequestService {
 
         boolean isUpdate = req.isPresent();
         if (!isUpdate) {
-            var user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
+            User user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
                 .getAppAccess().getUser();
 
             request.setCreatedBy(user);
@@ -267,7 +262,7 @@ public class EditRequestService {
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
-        var id = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
         upsert(CreateEditRequestDTO.builder()
                    .id(id)
                    .sourceRecordingId(sourceRecordingId)
@@ -282,7 +277,7 @@ public class EditRequestService {
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
         try {
-            @Cleanup var reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
+            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
             return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
                 .withType(EditCutInstructionDTO.class)
                 .build()
@@ -293,11 +288,11 @@ public class EditRequestService {
         }
     }
 
-    public List<FfmpegEditInstructionDTO> invertInstructions(List<EditCutInstructionDTO> instructions,
-                                                          Recording recording) {
-        var recordingDuration = recording.getDuration().toSeconds();
+    protected List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
+                                                                final Recording recording) {
+        long recordingDuration = recording.getDuration().toSeconds();
         if (instructions.size() == 1) {
-            var i = instructions.getFirst();
+            EditCutInstructionDTO i = instructions.getFirst();
             if (i.getStart() == 0 && i.getEnd() == recordingDuration) {
                 throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
                                                   + i.getStart()
@@ -313,8 +308,8 @@ public class EditRequestService {
                               .thenComparing(EditCutInstructionDTO::getEnd));
 
         for (int i = 1; i < instructions.size(); i++) {
-            var prev = instructions.get(i - 1);
-            var curr = instructions.get(i);
+            EditCutInstructionDTO prev = instructions.get(i - 1);
+            EditCutInstructionDTO curr = instructions.get(i);
             if (curr.getStart() < prev.getEnd()) {
                 throw new BadRequestException("Overlapping instructions: Previous End("
                                                   + prev.getEnd()
@@ -324,8 +319,8 @@ public class EditRequestService {
             }
         }
 
-        var currentTime = 0L;
-        var invertedInstructions = new ArrayList<FfmpegEditInstructionDTO>();
+        long currentTime = 0L;
+        List<FfmpegEditInstructionDTO> invertedInstructions = new ArrayList<>();
 
         // invert
         for (var instruction : instructions) {
