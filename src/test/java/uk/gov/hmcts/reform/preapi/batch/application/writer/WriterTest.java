@@ -17,8 +17,11 @@ import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -27,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -78,6 +82,14 @@ public class WriterTest {
         return new PageImpl<>(List.of(items));
     }
 
+    private static ParticipantDTO persistedParticipant(ParticipantType type, String firstName, String lastName) {
+        var participant = new ParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        participant.setParticipantType(type);
+        participant.setFirstName(firstName);
+        participant.setLastName(lastName);
+        return participant;
+    }
     // ---------- tests ----------
 
     @Test
@@ -87,6 +99,102 @@ public class WriterTest {
         verify(loggingService, times(1)).logInfo("Processing chunk with %d migrated items", 0);
         verify(loggingService, times(1)).logWarning("No valid items found in the current chunk.");
     }
+
+    @Test
+    void writeItemGroupWithNullComponents() {
+        var courtId = UUID.randomUUID();
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setId(UUID.randomUUID());
+        createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        var persisted = persistedCase(UUID.randomUUID(), courtId, "REFERENCE");
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(persisted));
+
+        when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.UPDATED);
+
+        MigratedItemGroup itemGroup = MigratedItemGroup.builder()
+            .acase(createCaseDTO)
+            .booking(null)  
+            .captureSession(null) 
+            .recording(null) 
+            .passItem(mock(PassItem.class))
+            .build();
+
+        writer.write(Chunk.of(itemGroup));
+
+        verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
+        verify(bookingService, never()).upsert(any(CreateBookingDTO.class));
+        verify(captureSessionService, never()).upsert(any(CreateCaptureSessionDTO.class));
+        verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
+        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
+    }
+
+    @Test
+    void writeItemGroupExceptionDuringProcessing() {
+        var courtId = UUID.randomUUID();
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setId(UUID.randomUUID());
+        createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        MigratedItemGroup itemGroup = MigratedItemGroup.builder()
+            .acase(createCaseDTO)
+            .build();
+
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenThrow(new RuntimeException("Database connection error"));
+
+        writer.write(Chunk.of(itemGroup));
+
+        verify(loggingService, times(1))
+            .logError(eq("Failed to process migrated item: %s | %s"), eq("REFERENCE"), any());
+        verify(migrationTrackerService, never()).addMigratedItem(any());
+    }
+
+    @Test
+    void writeItemGroupCaseWithParticipantsMerge() {
+        var courtId = UUID.randomUUID();
+        var caseId = UUID.randomUUID();
+        
+        var existingParticipant = persistedParticipant(ParticipantType.DEFENDANT, "Jane", "Smith");
+        CaseDTO existingCase = persistedCase(caseId, courtId, "REFERENCE");
+        existingCase.setParticipants(List.of(existingParticipant));
+        
+        var newParticipant = new CreateParticipantDTO();
+        newParticipant.setId(UUID.randomUUID());
+        newParticipant.setParticipantType(ParticipantType.WITNESS);
+        newParticipant.setFirstName("Bob");
+        newParticipant.setLastName("Johnson");
+        
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setId(UUID.randomUUID());
+        createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+        createCaseDTO.setParticipants(Set.of(newParticipant));
+
+        var updatedCase = persistedCase(caseId, courtId, "REFERENCE");
+        updatedCase.setParticipants(List.of(existingParticipant, 
+            persistedParticipant(ParticipantType.WITNESS, "Bob", "Johnson")));
+
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf(existingCase))  
+            .thenReturn(pageOf(updatedCase)); 
+
+        when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.UPDATED);
+
+        MigratedItemGroup itemGroup = MigratedItemGroup.builder()
+            .acase(createCaseDTO)
+            .passItem(mock(PassItem.class))
+            .build();
+
+        writer.write(Chunk.of(itemGroup));
+
+        verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
+        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
+    }
+
 
     @Test
     void writeItemGroupCaseUpsertFailure() {
@@ -512,4 +620,6 @@ public class WriterTest {
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
     }
+
+    
 }
