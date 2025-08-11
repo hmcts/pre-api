@@ -161,7 +161,11 @@ public class EditRequestService {
     public @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
         var createDto = new CreateRecordingDTO();
         createDto.setId(newRecordingId);
-        createDto.setParentRecordingId(request.getSourceRecording().getId());
+        createDto.setParentRecordingId(request.getSourceRecording().getParentRecording() == null
+                                           ? request.getSourceRecording().getId()
+                                           : request.getSourceRecording().getParentRecording().getId());
+        // if edit on edit without original edits saved (legacy edit),
+        //  then these edits will not align with the original timeline
         createDto.setEditInstructions(request.getEditInstruction());
         createDto.setVersion(recordingService.getNextVersionNumber(request.getSourceRecording().getId()));
         createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
@@ -216,17 +220,38 @@ public class EditRequestService {
                                                         + ") does not have a valid duration");
         }
 
-        var req = editRequestRepository.findById(dto.getId());
-        var request = req.orElse(new EditRequest());
+        boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
+
+        EditInstructions prevInstructions = null;
+        boolean isInstructionCombination = !isOriginalRecordingEdit
+            && sourceRecording.getEditInstruction() != null
+            && !sourceRecording.getEditInstruction().isEmpty()
+            && (prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction())) != null
+            && prevInstructions.getFfmpegInstructions() != null
+            && !prevInstructions.getFfmpegInstructions().isEmpty()
+            && prevInstructions.getRequestedInstructions() != null
+            && !prevInstructions.getRequestedInstructions().isEmpty();
+
+        Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
+        EditRequest request = req.orElse(new EditRequest());
 
         request.setId(dto.getId());
-        request.setSourceRecording(sourceRecording);
+        request.setSourceRecording(!isInstructionCombination
+                                       ? sourceRecording
+                                       : sourceRecording.getParentRecording());
         request.setStatus(dto.getStatus());
 
-        var editInstructions = invertInstructions(dto.getEditInstructions(), sourceRecording);
-        request.setEditInstruction(toJson(new EditInstructions(dto.getEditInstructions(), editInstructions)));
+        List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
+            ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
+            : dto.getEditInstructions();
 
-        var isUpdate = req.isPresent();
+        List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
+            requestedEdits,
+            isInstructionCombination ? request.getSourceRecording() : sourceRecording);
+
+        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
+
+        boolean isUpdate = req.isPresent();
         if (!isUpdate) {
             var user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
                 .getAppAccess().getUser();
@@ -339,7 +364,73 @@ public class EditRequestService {
         return invertedInstructions;
     }
 
-    private String toJson(EditInstructions instructions) {
+    protected List<EditCutInstructionDTO> combineCutsOnOriginalTimeline(
+        final EditInstructions original,
+        final List<EditCutInstructionDTO> newInstructions
+    ) {
+        final List<FfmpegEditInstructionDTO> keptSegments = original.getFfmpegInstructions();
+
+        final List<FfmpegEditInstructionDTO> editedTimelineMapping = new ArrayList<>();
+        long cursor = 0;
+        for (FfmpegEditInstructionDTO segment : keptSegments) {
+            long duration = segment.getEnd() - segment.getStart();
+            editedTimelineMapping.add(new FfmpegEditInstructionDTO(cursor, cursor + duration));
+            cursor += duration;
+        }
+
+        final List<EditCutInstructionDTO> mappedCuts = new ArrayList<>();
+        for (EditCutInstructionDTO newCut : newInstructions) {
+            for (int i = 0; i < keptSegments.size(); i++) {
+                final FfmpegEditInstructionDTO originalSegment = keptSegments.get(i);
+                final FfmpegEditInstructionDTO editedSegment = editedTimelineMapping.get(i);
+
+                long start = editedSegment.getStart();
+                long end = editedSegment.getEnd();
+
+                if (newCut.getEnd() <= start || newCut.getStart() >= end) {
+                    continue;
+                }
+
+                long overlapStart = Math.max(start, newCut.getStart());
+                long overlapEnd = Math.min(end, newCut.getEnd());
+
+                long offsetInSegment = overlapStart - start;
+                long cutLength = overlapEnd - overlapStart;
+
+                long originalMappedStart = originalSegment.getStart() + offsetInSegment;
+                long originalMappedEnd = originalMappedStart + cutLength;
+
+                mappedCuts.add(new EditCutInstructionDTO(originalMappedStart, originalMappedEnd, newCut.getReason()));
+            }
+        }
+
+        mappedCuts.addAll(original.getRequestedInstructions());
+        mappedCuts.sort(Comparator.comparing(EditCutInstructionDTO::getStart));
+
+        return mergeOverlappingCuts(mappedCuts)
+            .stream()
+            .map(cut -> new EditCutInstructionDTO(cut.getStart(), cut.getEnd(), cut.getReason()))
+            .collect(Collectors.toList());
+    }
+
+    protected List<EditCutInstructionDTO> mergeOverlappingCuts(final List<EditCutInstructionDTO> cuts) {
+        final List<EditCutInstructionDTO> merged = new ArrayList<>();
+        EditCutInstructionDTO current = cuts.getFirst();
+
+        for (int i = 1; i < cuts.size(); i++) {
+            final EditCutInstructionDTO next = cuts.get(i);
+            if (next.getStart() <= current.getEnd()) {
+                current.setEnd(Math.max(current.getEnd(), next.getEnd()));
+            } else {
+                merged.add(current);
+                current = next;
+            }
+        }
+        merged.add(current);
+        return merged;
+    }
+
+    protected String toJson(EditInstructions instructions) {
         try {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
