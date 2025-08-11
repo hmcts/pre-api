@@ -244,7 +244,8 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         Map<String, ParticipantDTO> persistedMap = new HashMap<>();
         if (persistedCase.getParticipants() != null) {
             for (ParticipantDTO p : persistedCase.getParticipants()) {
-                String key = p.getParticipantType() + "|" + normalize(p.getFirstName()) + "|" + normalize(p.getLastName());
+                String key = p.getParticipantType() + "|" + normalize(p.getFirstName()) 
+                    + "|" + normalize(p.getLastName());
                 persistedMap.put(key, p);
             }
         }
