@@ -206,8 +206,8 @@ public class DataTransformationService {
      */
     protected Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         String courtReference = extracted.getCourtReference();
-        if (courtReference == null || courtReference.isEmpty() || extracted.getCourtId() == null) {
-            loggingService.logError("Court reference is null or empty");
+        if (courtReference == null || courtReference.isEmpty()) {
+            loggingService.logWarning("Court reference is null or empty");
         }
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
