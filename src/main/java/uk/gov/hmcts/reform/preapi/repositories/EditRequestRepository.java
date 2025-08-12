@@ -41,7 +41,6 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
             OR e.modifiedAt >= :#{#params.lastModifiedAfter})
         AND (NULLIF(COALESCE(:#{#params.lastModifiedBefore}, 'NULL'), 'NULL') IS NULL
             OR e.modifiedAt <= :#{#params.lastModifiedBefore})
-        ORDER BY e.modifiedAt DESC
         """
     )
     Page<EditRequest> searchAllBy(

@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.data.web.SortDefault;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
@@ -72,6 +74,12 @@ public class EditController {
         example = "2024-04-27"
     )
     @Parameter(
+        name = "sort",
+        description = "Sort by",
+        schema = @Schema(implementation = String.class),
+        example = "createdAt,desc"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -84,9 +92,11 @@ public class EditController {
         example = "10"
     )
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_3')")
-    public HttpEntity<PagedModel<EntityModel<EditRequestDTO>>> searchRecordings(
+    public HttpEntity<PagedModel<EntityModel<EditRequestDTO>>> searchEdits(
         @Parameter(hidden = true) @ModelAttribute SearchEditRequests params,
-        @Parameter(hidden = true) Pageable pageable,
+        @SortDefault.SortDefaults(
+            @SortDefault(sort = "createdAt", direction = Sort.Direction.DESC)
+        ) @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<EditRequestDTO> assembler
     ) {
         Page<EditRequestDTO> resultPage = editRequestService.findAll(params, pageable);
