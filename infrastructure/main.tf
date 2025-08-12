@@ -154,7 +154,7 @@ module "pre_api_b2c" {
   swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api-b2c.json"
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
-  subscription_required = true
+  subscription_required = var.env == "stg" ? false : true # open up on staging whilst developing
 }
 
 module "apim_subscription_b2c" {
