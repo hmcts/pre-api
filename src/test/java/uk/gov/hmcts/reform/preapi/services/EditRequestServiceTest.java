@@ -4,6 +4,7 @@ import com.azure.resourcemanager.mediaservices.models.JobState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.PessimisticLockingFailureException;
@@ -37,6 +38,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
@@ -685,6 +687,33 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should return create recording dto with parent recording")
+    void createRecordingDtoWithParentRecording() {
+        var parentRecording = new Recording();
+        parentRecording.setId(UUID.randomUUID());
+
+        var sourceRecording = new Recording();
+        sourceRecording.setId(UUID.randomUUID());
+        sourceRecording.setParentRecording(parentRecording);
+        sourceRecording.setCaptureSession(new CaptureSession());
+        sourceRecording.setFilename("source.mp4");
+
+        var editRequest = new EditRequest();
+        editRequest.setSourceRecording(sourceRecording);
+        editRequest.setEditInstruction("{\"key\": \"value\"}");
+
+        var newRecordingId = UUID.randomUUID();
+        when(recordingService.getNextVersionNumber(sourceRecording.getId())).thenReturn(3);
+
+        var dto = editRequestService.createRecordingDto(newRecordingId, "newFile.mp4", editRequest);
+        assertThat(dto.getId()).isEqualTo(newRecordingId);
+        assertThat(dto.getParentRecordingId()).isEqualTo(parentRecording.getId());
+        assertThat(dto.getFilename()).isEqualTo("newFile.mp4");
+        assertThat(dto.getVersion()).isEqualTo(3);
+        assertThat(dto.getEditInstructions()).isEqualTo("{\"key\": \"value\"}");
+    }
+
+    @Test
     @DisplayName("Should throw not found when generate asset cannot find source container")
     void generateAssetSourceContainerNotFound() {
         var editRequest = new EditRequest();
@@ -903,13 +932,173 @@ public class EditRequestServiceTest {
             any(Pageable.class));
     }
 
-    private void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,
-                                          List<FfmpegEditInstructionDTO> actual) {
+    @Test
+    @DisplayName("Should combine instructions correctly with single new command")
+    void combineCutsOnOriginalTimelineSingleCommand() {
+        var originallyKeptSegments = List.of(createSegment(0, 10), createSegment(20, 30));
+        var originalCutSegments = List.of(createCut(10, 20, "some reason"));
+        var originalInstructions = new EditInstructions(originalCutSegments, originallyKeptSegments);
+
+        // Cut at 5–8 in the edited timeline mapping to 5–8 in the original timeline
+        var newCut = createCut(5, 8, "test");
+
+        var result = editRequestService.combineCutsOnOriginalTimeline(originalInstructions, List.of(newCut));
+
+        assertThat(result).hasSize(2);
+
+        assertThat(result.getFirst().getStart()).isEqualTo(5);
+        assertThat(result.getFirst().getEnd()).isEqualTo(8);
+        assertThat(result.getFirst().getReason()).isEqualTo("test");
+
+        assertThat(result.getLast().getStart()).isEqualTo(10);
+        assertThat(result.getLast().getEnd()).isEqualTo(20);
+        assertThat(result.getLast().getReason()).isEqualTo("some reason");
+    }
+
+    @Test
+    @DisplayName("Should combine instructions correctly with cuts across multiple segments")
+    void combineCutsOnOriginalTimelineMapsCutThatSpanningMultipleSegments() {
+        var originallyKeptSegments = List.of(createSegment(0, 10), createSegment(20, 30));
+        var originalCutSegments = List.of(createCut(10, 20, "some reason"));
+        var originalInstructions = new EditInstructions(originalCutSegments, originallyKeptSegments);
+
+        // Cut at 8–12 in the edited timeline:
+        // - 8–10 -> 8–10 in original (segment 1)
+        // - 10–12 -> 20–22 in original (segment 2)
+        var newCut = createCut(8, 12, "test");
+
+        var result = editRequestService.combineCutsOnOriginalTimeline(originalInstructions, List.of(newCut));
+
+        assertThat(result).hasSize(1);
+
+        assertThat(result.getFirst().getStart()).isEqualTo(8);
+        assertThat(result.getFirst().getEnd()).isEqualTo(22);
+        assertThat(result.getFirst().getReason()).isEqualTo("test");
+    }
+
+    @Test
+    @DisplayName("Should upsert when isOriginalRecordingEdit is false and isInstructionCombination false")
+    void upsertIsOriginalRecordingEditFalseIsInstructionCombinationFalse() {
+        // when editing an edit from legacy editing
+        Recording parentRecording = new Recording();
+        parentRecording.setId(UUID.randomUUID());
+
+        Recording sourceRecording = new Recording();
+        sourceRecording.setId(UUID.randomUUID());
+        sourceRecording.setParentRecording(parentRecording);
+        sourceRecording.setFilename("filename.mp4");
+        sourceRecording.setDuration(Duration.ofSeconds(30));
+
+        CreateEditRequestDTO request = new CreateEditRequestDTO();
+        request.setId(UUID.randomUUID());
+        request.setSourceRecordingId(sourceRecording.getId());
+        request.setStatus(EditRequestStatus.PENDING);
+        request.setEditInstructions(new ArrayList<>(List.of(createCut(10, 20, "some reason"))));
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
+            .thenReturn(Optional.of(sourceRecording));
+        when(editRequestRepository.findById(request.getId())).thenReturn(Optional.of(new EditRequest()));
+
+        UpsertResult result = editRequestService.upsert(request);
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+
+        ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
+
+        verify(editRequestRepository, times(1)).save(captor.capture());
+
+        EditRequest editRequest = captor.getValue();
+        assertThat(editRequest.getId()).isEqualTo(request.getId());
+        assertThat(editRequest.getSourceRecording().getId()).isEqualTo(sourceRecording.getId());
+        assertThat(editRequest.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(editRequest.getEditInstruction()).isNotNull();
+
+        EditInstructions editInstructions = EditInstructions.tryFromJson(editRequest.getEditInstruction());
+        assertThat(editInstructions).isNotNull();
+        assertThat(editInstructions.getRequestedInstructions()).isNotNull();
+        assertThat(editInstructions.getRequestedInstructions()).hasSize(1);
+        assertThat(editInstructions.getRequestedInstructions().getFirst().getStart()).isEqualTo(10);
+        assertThat(editInstructions.getRequestedInstructions().getFirst().getEnd()).isEqualTo(20);
+
+        assertThat(editInstructions.getFfmpegInstructions()).isNotNull();
+
+        assertEditInstructionsEq(List.of(createSegment(0, 10), createSegment(20, 30)),
+                                 editInstructions.getFfmpegInstructions());
+    }
+
+    @Test
+    @DisplayName("Should upsert when isOriginalRecordingEdit is false and isInstructionCombination true")
+    void upsertIsOriginalRecordingEditFalseIsInstructionCombinationTrue() {
+        // when editing an edit from the new editing process
+        Recording parentRecording = new Recording();
+        parentRecording.setId(UUID.randomUUID());
+        parentRecording.setFilename("filename.mp4");
+        parentRecording.setDuration(Duration.ofSeconds(30));
+
+        Recording sourceRecording = new Recording();
+        sourceRecording.setId(UUID.randomUUID());
+        sourceRecording.setParentRecording(parentRecording);
+        sourceRecording.setFilename("filename.mp4");
+        sourceRecording.setDuration(Duration.ofSeconds(27));
+        EditInstructions originalEdits = new EditInstructions(
+            List.of(createCut(10, 20, "some original reason")),
+            List.of(createSegment(0, 10), createSegment(20, 30)));
+        sourceRecording.setEditInstruction(editRequestService.toJson(originalEdits));
+
+        CreateEditRequestDTO request = new CreateEditRequestDTO();
+        request.setId(UUID.randomUUID());
+        request.setSourceRecordingId(sourceRecording.getId());
+        request.setStatus(EditRequestStatus.PENDING);
+        request.setEditInstructions(new ArrayList<>(List.of(createCut(5, 8, "some new reason"))));
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
+            .thenReturn(Optional.of(sourceRecording));
+        when(editRequestRepository.findById(request.getId())).thenReturn(Optional.of(new EditRequest()));
+
+        UpsertResult result = editRequestService.upsert(request);
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+
+        ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
+
+        verify(editRequestRepository, times(1)).save(captor.capture());
+
+        EditRequest editRequest = captor.getValue();
+        assertThat(editRequest.getId()).isEqualTo(request.getId());
+        assertThat(editRequest.getSourceRecording().getId()).isEqualTo(parentRecording.getId());
+        assertThat(editRequest.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(editRequest.getEditInstruction()).isNotNull();
+
+        EditInstructions editInstructions = EditInstructions.tryFromJson(editRequest.getEditInstruction());
+        assertThat(editInstructions).isNotNull();
+        assertThat(editInstructions.getRequestedInstructions()).isNotNull();
+        assertThat(editInstructions.getRequestedInstructions()).hasSize(2);
+        assertThat(editInstructions.getRequestedInstructions().getFirst().getStart()).isEqualTo(5);
+        assertThat(editInstructions.getRequestedInstructions().getFirst().getEnd()).isEqualTo(8);
+        assertThat(editInstructions.getRequestedInstructions().getFirst().getReason()).isEqualTo("some new reason");
+        assertThat(editInstructions.getRequestedInstructions().getLast().getStart()).isEqualTo(10);
+        assertThat(editInstructions.getRequestedInstructions().getLast().getEnd()).isEqualTo(20);
+        assertThat(editInstructions.getRequestedInstructions().getLast().getReason()).isEqualTo("some original reason");
+
+        assertThat(editInstructions.getFfmpegInstructions()).isNotNull();
+
+        assertEditInstructionsEq(List.of(createSegment(0, 5), createSegment(8, 10), createSegment(20, 30)),
+                                 editInstructions.getFfmpegInstructions());
+    }
+
+    private static void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,
+                                                 List<FfmpegEditInstructionDTO> actual) {
         assertThat(actual.size()).isEqualTo(expected.size());
 
         for (int i = 0; i < expected.size(); i++) {
             assertThat(actual.get(i).getStart()).isEqualTo(expected.get(i).getStart());
             assertThat(actual.get(i).getEnd()).isEqualTo(expected.get(i).getEnd());
         }
+    }
+
+    private static FfmpegEditInstructionDTO createSegment(long start, long end) {
+        return new FfmpegEditInstructionDTO(start, end);
+    }
+
+    private static EditCutInstructionDTO createCut(long start, long end, String reason) {
+        return new EditCutInstructionDTO(start, end, reason);
     }
 }

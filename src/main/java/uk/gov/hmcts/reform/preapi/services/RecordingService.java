@@ -242,6 +242,10 @@ public class RecordingService {
         if (filenameChanged || durationChanged) {
             recordingRepository.saveAndFlush(recording);
         }
+
+        if (recording.getParentRecording() != null) {
+            syncRecordingMetadataWithStorage(recording.getParentRecording().getId());
+        }
     }
 
     @Transactional

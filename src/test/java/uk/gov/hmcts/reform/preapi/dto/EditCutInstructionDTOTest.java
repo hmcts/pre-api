@@ -11,10 +11,10 @@ public class EditCutInstructionDTOTest {
     @Test
     @DisplayName("Should successfully parse start and end times from HH:MM:SS input format")
     void parseTimeSuccess() {
-        var startStr = "01:01:01"; // 3661 seconds
-        var endStr = "10:10:10"; // 36610 seconds
+        String startStr = "01:01:01"; // 3661 seconds
+        String endStr = "10:10:10"; // 36610 seconds
 
-        var dto = EditCutInstructionDTO.builder()
+        EditCutInstructionDTO dto = EditCutInstructionDTO.builder()
             .startOfCut(startStr)
             .endOfCut(endStr)
             .build();
@@ -26,46 +26,80 @@ public class EditCutInstructionDTOTest {
     @Test
     @DisplayName("Should throw error when attempting to parse start/end time that is not parsable")
     void parseTimeNumberFormatException() {
-        var startStr = "H1:01:01";
-        var endStr = "10:10:1S";
+        String startStr = "H1:01:01";
+        String endStr = "10:10:1S";
 
-        var dto = EditCutInstructionDTO.builder()
+        EditCutInstructionDTO dto = EditCutInstructionDTO.builder()
             .startOfCut(startStr)
             .endOfCut(endStr)
             .build();
 
-        var message1 = assertThrows(
-            BadRequestException.class,
-            dto::getStart
-        ).getMessage();
+        String message1 = assertThrows(BadRequestException.class, dto::getStart).getMessage();
         assertThat(message1).isEqualTo("Invalid time format: " + startStr + ". Must be in the form HH:MM:SS");
-        var message2 = assertThrows(
-            BadRequestException.class,
-            dto::getEnd
-        ).getMessage();
+
+        String message2 = assertThrows(BadRequestException.class, dto::getEnd).getMessage();
         assertThat(message2).isEqualTo("Invalid time format: " + endStr + ". Must be in the form HH:MM:SS");
     }
 
     @Test
     @DisplayName("Should throw error when attempting to parse start/end time that is not parsable")
     void parseTimeIndexOutOfBoundsException() {
-        var startStr = "0101:01";
-        var endStr = "101010";
+        String startStr = "0101:01";
+        String endStr = "101010";
 
-        var dto = EditCutInstructionDTO.builder()
+        EditCutInstructionDTO dto = EditCutInstructionDTO.builder()
             .startOfCut(startStr)
             .endOfCut(endStr)
             .build();
 
-        var message1 = assertThrows(
-            BadRequestException.class,
-            dto::getStart
-        ).getMessage();
+        String message1 = assertThrows(BadRequestException.class, dto::getStart).getMessage();
         assertThat(message1).isEqualTo("Invalid time format: " + startStr + ". Must be in the form HH:MM:SS");
-        var message2 = assertThrows(
-            BadRequestException.class,
-            dto::getEnd
-        ).getMessage();
+
+        String message2 = assertThrows(BadRequestException.class, dto::getEnd).getMessage();
         assertThat(message2).isEqualTo("Invalid time format: " + endStr + ". Must be in the form HH:MM:SS");
+    }
+
+    @Test
+    @DisplayName("Should return cached start value without parsing again")
+    void getStartReturnsCachedValue() {
+        EditCutInstructionDTO dto = EditCutInstructionDTO.builder()
+            .start(3600L)
+            .build();
+
+        assertThat(dto.getStart()).isEqualTo(3600L);
+    }
+
+    @Test
+    @DisplayName("Should correctly parse and calculate start value when accessed for the first time")
+    void getStartParsesStartValue() {
+        EditCutInstructionDTO dto = EditCutInstructionDTO.builder()
+            .startOfCut("01:30:00") // 5400 seconds
+            .build();
+
+        assertThat(dto.getStart()).isEqualTo(5400L);
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException for invalid empty start format")
+    void getStartThrowsForEmptyString() {
+        EditCutInstructionDTO dto = EditCutInstructionDTO.builder()
+            .startOfCut("")
+            .build();
+
+        String message = assertThrows(BadRequestException.class, dto::getStart).getMessage();
+
+        assertThat(message).isEqualTo("Invalid time format: . Must be in the form HH:MM:SS");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException for null start value")
+    void getStartThrowsForNullValue() {
+        EditCutInstructionDTO dto = EditCutInstructionDTO.builder()
+            .startOfCut(null)
+            .build();
+
+        String message = assertThrows(BadRequestException.class, dto::getStart).getMessage();
+
+        assertThat(message).isEqualTo("Invalid time format: null. Must be in the form HH:MM:SS");
     }
 }
