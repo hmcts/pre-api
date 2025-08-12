@@ -10,7 +10,7 @@ locals {
   env_to_deploy    = 1
   env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
-  api_revision     = "117"
+  api_revision     = "118"
 }
 
 data "azurerm_client_config" "current" {}
@@ -154,7 +154,7 @@ module "pre_api_b2c" {
   swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api-b2c.json"
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
-  subscription_required = var.env == "stg" ? false : true # open up on staging whilst developing
+  subscription_required = true
 }
 
 module "apim_subscription_b2c" {
