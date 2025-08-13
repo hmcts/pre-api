@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +16,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
@@ -132,8 +132,7 @@ public class EditRequestService {
 
     @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
     public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
-        // ffmpeg
-        var newRecordingId = UUID.randomUUID();
+        final UUID newRecordingId = UUID.randomUUID();
         String filename;
         try {
             // apply ffmpeg
@@ -151,15 +150,14 @@ public class EditRequestService {
         request.setStatus(EditRequestStatus.COMPLETE);
         editRequestRepository.saveAndFlush(request);
 
-        // create db entry for recording
-        var createDto = createRecordingDto(newRecordingId, filename, request);
-        recordingService.upsert(createDto);
+        clearPreviousEdits(newRecordingId);
+        createRecordingDto(newRecordingId, filename, request);
         return recordingService.findById(newRecordingId);
     }
 
     @Transactional
-    public @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
-        var createDto = new CreateRecordingDTO();
+    public void createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
+        final CreateRecordingDTO createDto = new CreateRecordingDTO();
         createDto.setId(newRecordingId);
         createDto.setParentRecordingId(request.getSourceRecording().getId());
         createDto.setEditInstructions(request.getEditInstruction());
@@ -167,7 +165,20 @@ public class EditRequestService {
         createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
         createDto.setFilename(filename);
         // duration is auto-generated
-        return createDto;
+
+        recordingService.upsert(createDto);
+    }
+
+    @Transactional
+    public void clearPreviousEdits(final UUID parentRecordingId) {
+        recordingService.findAll(SearchRecordings.builder()
+                                     .parentRecordingId(parentRecordingId)
+                                     .build(),
+                                 false,
+                                 Pageable.unpaged())
+            .stream()
+            .map(RecordingDTO::getId)
+            .forEach(recordingService::deleteById);
     }
 
     @Transactional
