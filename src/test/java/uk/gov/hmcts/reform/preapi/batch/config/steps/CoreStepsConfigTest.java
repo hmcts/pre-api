@@ -12,6 +12,7 @@ import org.springframework.batch.support.transaction.ResourcelessTransactionMana
 import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
@@ -31,6 +32,8 @@ class CoreStepsConfigTest {
     @Mock
     private Processor itemProcessor;
     @Mock
+    private MigrationTrackerService migrationTrackerService;
+    @Mock
     private MigrationWriter itemWriter;
     @Mock
     private LoggingService loggingService;
@@ -39,6 +42,7 @@ class CoreStepsConfigTest {
     void setup() {
         this.jobRepository = mock(JobRepository.class);
         this.itemProcessor = mock(Processor.class);
+        this.migrationTrackerService = mock(MigrationTrackerService.class);
         this.itemWriter = mock(MigrationWriter.class);
         this.loggingService = mock(LoggingService.class);
 
@@ -48,6 +52,7 @@ class CoreStepsConfigTest {
             jobRepository,
             transactionManager,
             itemProcessor,
+            migrationTrackerService,
             itemWriter,
             loggingService
         );
