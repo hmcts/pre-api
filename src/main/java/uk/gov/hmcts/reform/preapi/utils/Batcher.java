@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.util;
+package uk.gov.hmcts.reform.preapi.utils;
 
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.Nullable;
