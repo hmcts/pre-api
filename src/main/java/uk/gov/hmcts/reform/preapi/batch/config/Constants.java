@@ -51,6 +51,8 @@ public final class Constants {
         // File validation errors
         public static final String NOT_PREFERRED =
             "This recording has been skipped because a better version is already available.";
+        public static final String RAW_FILE =
+            ".raw file skipped";
 
         // Court validation errors
         public static final String MISSING_COURT = "No matching court could be found for this recording.";

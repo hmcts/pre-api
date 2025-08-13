@@ -33,7 +33,6 @@ import uk.gov.hmcts.reform.preapi.services.CaseService;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -175,7 +174,6 @@ public class PostMigrationJobConfig {
                             participant.getParticipantType(), participant.getFirstName(), participant.getLastName()));
 
                         for (String[] user : matchedUsers) {
-                            loggingService.logDebug("user:: %s", Arrays.toString(user));
                             String email = user[1];
 
                             String fullName = user[0];
@@ -187,7 +185,6 @@ public class PostMigrationJobConfig {
                                 loggingService.logInfo("[DRY RUN] Would invite and share booking with %s", email);
                                 continue;
                             }
-                            loggingService.logDebug("TEST");
                             var result = entityCreationService.createShareBookingAndInviteIfNotExists(
                                 booking, email, firstName, lastName);
                             if (result != null) {
@@ -197,15 +194,11 @@ public class PostMigrationJobConfig {
                                         migrationTrackerService.addInvitedUser(invite);
                                     }
                                 }
-                                loggingService.logDebug("✅ MigratedItemGroup added for user: %s", email);
-
+                                loggingService.logDebug("MigratedItemGroup added for user: %s", email);
                             }
-                            loggingService.logDebug("TEST - result: %s", result);
                         }
                     }
                 }
-
-                loggingService.logInfo("MigratedItems size before writing: %d", migratedItems.size());
                 postMigrationWriter.write(new Chunk<>(migratedItems));
                 migrationTrackerService.writeNewUserReport();
                 loggingService.logInfo("Share booking creation complete. Total created: %d", migratedItems.size());
@@ -224,8 +217,6 @@ public class PostMigrationJobConfig {
     private void processCase(CaseDTO caseDTO, Map<String, List<String[]>> channelUsersMap,
         AtomicInteger closed, AtomicInteger skipped, boolean dryRun) {
         String reference = caseDTO.getReference();
-        loggingService.logInfo("===== Evaluating case: %s", reference);
-
         if (!hasMatchingChannelUser(reference, channelUsersMap)) {
             loggingService.logDebug(
                 "Case %s does not have matching channel user entry — attempting to close.",
