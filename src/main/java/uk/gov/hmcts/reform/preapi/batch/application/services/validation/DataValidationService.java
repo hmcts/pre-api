@@ -54,7 +54,7 @@ public class DataValidationService {
         }
 
         String caseReference = cleansedData.getCaseReference();
-        if (caseReference == null || caseReference.length() < 9) {
+        if (caseReference == null || caseReference.length() < 7) {
             return ServiceResultUtil.failure(
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
                 VfFailureReason.INCOMPLETE_DATA.toString()
@@ -86,13 +86,6 @@ public class DataValidationService {
                 );
             }
         }
-
-        // if (!cleansedData.isPreferred()) {
-        //     return ServiceResultUtil.failure(
-        //         Constants.ErrorMessages.NOT_PREFERRED,
-        //         Constants.Reports.FILE_NOT_PREFERRED
-        //     );
-        // }
 
         return ServiceResultUtil.success(cleansedData);
     }
@@ -141,9 +134,4 @@ public class DataValidationService {
         return ServiceResultUtil.success(cleansedData);
     }
 
-    // private boolean isParentMigrated(MigrationRecord copy) {
-    //     return migrationRecordService.getOrigFromCopy(copy)
-    //         .map(MigrationRecord::getRecordingId)
-    //         .isPresent();
-    // }
 }

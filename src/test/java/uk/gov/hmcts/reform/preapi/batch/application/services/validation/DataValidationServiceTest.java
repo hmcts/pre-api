@@ -97,7 +97,7 @@ public class DataValidationServiceTest {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
             .isMostRecentVersion(true)
-            .caseReference("SHORTREF")
+            .caseReference("SHORT")
             .build();
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(

@@ -334,10 +334,9 @@ class ProcessorTest {
     @Test
     void shouldCreateNotifyItemForCaseReferenceLength() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        testExtractedMetadata = createTestExtractedMetadata();
-        testExtractedMetadata.setUrn("");
-        testExtractedMetadata.setExhibitReference("SHORT");
-        
+        testProcessedRecording = createTestProcessedRecording();
+        testProcessedRecording.setCaseReference("12345678");
+        testProcessedRecording.setPreferred(true);
         setupSuccessfulProcessingMocks();
 
         processor.process(testMigrationRecord);
