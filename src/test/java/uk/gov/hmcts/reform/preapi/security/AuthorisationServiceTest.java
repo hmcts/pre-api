@@ -778,6 +778,21 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @DisplayName("Should grant upsert access when the authenticated super user is not the one sharing the booking,")
+    @Test
+    void hasUpsertAccessSuperUserIsNotSharing() {
+        var dto = new CreateShareBookingDTO();
+
+        dto.setSharedByUser(UUID.randomUUID());
+        dto.setBookingId(UUID.randomUUID());
+
+        when(authenticationUser.getUserId()).thenReturn(UUID.randomUUID());
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
     @DisplayName("Should grant upsert access when the authenticated user is an admin")
     @Test
     void hasUpsertAccessUserIsAdmin() {
