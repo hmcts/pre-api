@@ -28,7 +28,6 @@ java:
     ENABLE_ENHANCED_PROCESSING: true
     ENABLE_NULL_DURATION_UPSERT: true
     ENABLE_MIGRATION_ADMIN_ENDPOINTS: true
-    ENABLE_MULTI_FFMPEG_COMMAND: true
     ENABLE_MIGRATED_DATA: false
   # Don't modify below here
   image: ${IMAGE_NAME}
