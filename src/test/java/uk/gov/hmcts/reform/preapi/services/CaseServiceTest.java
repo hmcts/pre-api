@@ -37,6 +37,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
+import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.service.notify.NotificationClient;
@@ -90,6 +91,9 @@ class CaseServiceTest {
 
     @MockitoBean
     private EmailServiceFactory emailServiceFactory;
+
+    @MockitoBean
+    private EditRequestRepository editRequestRepository;
 
     @MockitoBean
     private NotificationClient notificationClient;
@@ -201,7 +205,7 @@ class CaseServiceTest {
         assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
 
-        verify(caseRepository, times(1)).searchCasesBy(null, null, false, courtId, false,null);
+        verify(caseRepository, times(1)).searchCasesBy(null, null, false, courtId, false, null);
     }
 
     @DisplayName("Find all cases and return list of models where reference is in list")
@@ -596,6 +600,32 @@ class CaseServiceTest {
             () -> caseService.upsert(caseDTOModel)
         ).getMessage();
         assertThat(message2).isEqualTo(expectedErrorMessage);
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceInWrongState when setting state to PENDING_CLOSURE with incomplete edits")
+    void updateCasePendingClosureWithIncompleteEdits() {
+        caseEntity.setState(CaseState.OPEN);
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+        caseDTOModel.setState(CaseState.PENDING_CLOSURE);
+        caseDTOModel.setClosedAt(Timestamp.from(Instant.now().plusSeconds(86400))); // +1 day
+
+        when(editRequestRepository.existsByCaseIdAndIsIncomplete(caseDTOModel.getId())).thenReturn(true);
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.of(caseEntity));
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(caseEntity)).thenReturn(List.of());
+
+        String message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> caseService.upsert(caseDTOModel)
+        ).getMessage();
+        assertThat(message)
+            .isEqualTo("Resource Case("
+                           + caseDTOModel.getId()
+                           + ") has incomplete edits which must be completed before updating state to PENDING_CLOSURE");
+
+        verify(editRequestRepository, times(1)).existsByCaseIdAndIsIncomplete(caseDTOModel.getId());
+        verify(caseRepository, never()).saveAndFlush(any());
     }
 
     @Test
