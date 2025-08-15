@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,14 +37,17 @@ public class MigrationRecordService {
     private final MigrationRecordRepository migrationRecordRepository;
     private final LoggingService loggingService;
     private final CourtRepository courtRepository;
+    private final boolean dryRun;
 
     @Autowired
     public MigrationRecordService(final MigrationRecordRepository migrationRecordRepository,
                                   final CourtRepository courtRepository,
-                                  final LoggingService loggingService) {
+                                  final LoggingService loggingService,
+                                  @Value("${migration.dry-run:false}") boolean dryRun) {
         this.migrationRecordRepository = migrationRecordRepository;
         this.courtRepository = courtRepository;
         this.loggingService = loggingService;
+        this.dryRun = dryRun;
     }
 
     @Transactional(readOnly = true)
@@ -235,6 +239,9 @@ public class MigrationRecordService {
 
     @Transactional
     public void updateToFailed(String archiveId, String reason, String errorMessage) {
+        if (skipDryRun("updateToFailed(" + archiveId + ")")) {
+            return;
+        }
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setStatus(VfMigrationStatus.FAILED);
             record.setReason(reason);
@@ -245,6 +252,9 @@ public class MigrationRecordService {
 
     @Transactional
     public void updateToSuccess(String archiveId) {
+        if (skipDryRun("updateToSuccess(" + archiveId + ")")) {
+            return;
+        }
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setStatus(VfMigrationStatus.SUCCESS);
             record.setReason("");
@@ -495,6 +505,9 @@ public class MigrationRecordService {
 
     @Transactional
     public boolean markReadyAsSubmitted() {
+        if (skipDryRun("markReadyAsSubmitted()")) {
+            return false;
+        }
         List<MigrationRecord> readyRecords = migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY);
 
         if (readyRecords.isEmpty()) {
@@ -509,6 +522,14 @@ public class MigrationRecordService {
 
     private static String nullToEmpty(String input) {
         return input == null ? "" : input;
+    }
+
+    private boolean skipDryRun(String action) {
+        if (dryRun) {
+            loggingService.logInfo("[DRY-RUN] Skipping %s", action);
+            return true;
+        }
+        return false;
     }
 
 }

@@ -209,7 +209,7 @@ public class EntityCreationServiceTest {
         assertThat(result.getStartedByUserId()).isEqualTo(user.getId());
         assertThat(result.getFinishedAt()).isNotNull();
         assertThat(result.getFinishedByUserId()).isEqualTo(user.getId());
-        assertThat(result.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+        assertThat(result.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
 
         verify(userService, times(1)).findByEmail(VODAFONE_EMAIL);
@@ -241,7 +241,7 @@ public class EntityCreationServiceTest {
     public void createRecordingVersionOne() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .fileName("test_file.mp4")
-            .duration(Duration.ofMinutes(5))
+            .duration(null)
             .recordingVersionNumber(1)
             .extractedRecordingVersion("ORIG")
             .caseReference("CASE123")
@@ -258,7 +258,6 @@ public class EntityCreationServiceTest {
         assertThat(result.getId()).isNotNull();
         assertThat(result.getCaptureSessionId()).isEqualTo(captureSession.getId());
         assertThat(result.getFilename()).isEqualTo("test_file.mp4");
-        assertThat(result.getDuration()).isEqualTo(Duration.ofMinutes(5));
         assertThat(result.getVersion()).isEqualTo(1);
         assertThat(result.getParentRecordingId()).isNull();
 

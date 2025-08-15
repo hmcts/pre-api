@@ -8,7 +8,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -41,7 +40,6 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final BookingService bookingService;
     private final RecordingService recordingService;
     private final CaptureSessionService captureSessionService;
-    private final MigrationTrackerService migrationTrackerService;
 
     private final AtomicInteger successCount = new AtomicInteger(0);
     private final AtomicInteger failureCount = new AtomicInteger(0);
@@ -51,14 +49,13 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                            final CaseService caseService,
                            final BookingService bookingService,
                            final RecordingService recordingService,
-                           final CaptureSessionService captureSessionService,
-                           final MigrationTrackerService migrationTrackerService) {
+                           final CaptureSessionService captureSessionService
+                           ) {
         this.loggingService = loggingService;
         this.caseService = caseService;
         this.bookingService = bookingService;
         this.recordingService = recordingService;
         this.captureSessionService = captureSessionService;
-        this.migrationTrackerService = migrationTrackerService;
     }
 
     @Override
@@ -92,7 +89,6 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
 
                 boolean isSuccess = processItem(item);
                 if (isSuccess) {
-                    migrationTrackerService.addMigratedItem(item.getPassItem());
                     successCount.incrementAndGet();
                 } else {
                     failureCount.incrementAndGet();

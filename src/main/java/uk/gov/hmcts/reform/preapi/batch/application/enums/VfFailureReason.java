@@ -4,6 +4,7 @@ public enum VfFailureReason {
     INCOMPLETE_DATA("Incomplete_Data"),
     INVALID_FORMAT("Invalid_Format"),
     NOT_MOST_RECENT("Not_Most_Recent"),
+    RAW_FILES("Raw_Files"),
     PRE_GO_LIVE("Pre_Go_Live"),
     PRE_EXISTING("Pre_Existing"),
     VALIDATION_FAILED("Validation_Failed"),

@@ -27,6 +27,7 @@ public class MigrationGroupBuilderService {
     private final EntityCreationService entityCreationService;
     private final InMemoryCacheService cacheService;
     private final MigrationRecordService migrationRecordService;
+    private final MigrationTrackerService migrationTrackerService;
 
     protected static final String BOOKING_FIELD = "booking";
     protected static final String CAPTURE_SESSION_FIELD = "captureSession";
@@ -37,11 +38,13 @@ public class MigrationGroupBuilderService {
     public MigrationGroupBuilderService(final LoggingService loggingService,
                                         final EntityCreationService entityCreationService,
                                         final InMemoryCacheService cacheService,
-                                        final MigrationRecordService migrationRecordService) {
+                                        final MigrationRecordService migrationRecordService,
+                                        final MigrationTrackerService migrationTrackerService) {
         this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
         this.cacheService = cacheService;
         this.migrationRecordService = migrationRecordService;
+        this.migrationTrackerService = migrationTrackerService;
     }
 
     // =========================
@@ -82,7 +85,7 @@ public class MigrationGroupBuilderService {
             passItem
         );
         loggingService.logDebug("Migrating group: %s", migrationGroup);
-
+        migrationTrackerService.addMigratedItem(passItem);
         migrationRecordService.updateToSuccess(item.getArchiveId());
         return migrationGroup;
     }

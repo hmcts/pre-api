@@ -15,8 +15,6 @@ import java.util.stream.Collectors;
 @Setter
 @NoArgsConstructor
 public class ExtractedMetadata implements IArchiveData {
-    private static final int MIN_LEN_EXCLUSIVE = 9;   
-    private static final int MAX_LEN_EXCLUSIVE = 20;
     private String courtReference;
     private UUID courtId;
     private String urn;
@@ -91,22 +89,19 @@ public class ExtractedMetadata implements IArchiveData {
         return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
 
-    private static boolean isValidRef(String s) {
-        if (s == null) {
-            return false;
-        }
-        String t = s.trim();
-        int len = t.length();
-        return len >= MIN_LEN_EXCLUSIVE && len <= MAX_LEN_EXCLUSIVE; 
-    }
-
     public String createCaseReference() {
-        if (isValidRef(urn)) {
-            return urn.trim();
+        String urnTrimmed = urn != null ? urn.trim() : "";
+        String exhibitTrimmed = exhibitReference != null ? exhibitReference.trim() : "";
+
+        boolean urnValid = urnTrimmed.length() >= 9;
+        boolean exhibitValid = exhibitTrimmed.length() >= 7;
+
+        if (urnValid) {
+            return urnTrimmed;
+        } else if (exhibitValid) {
+            return exhibitTrimmed;
         }
-        if (isValidRef(exhibitReference)) {
-            return exhibitReference.trim();
-        }
+    
         return "";
     }
 
