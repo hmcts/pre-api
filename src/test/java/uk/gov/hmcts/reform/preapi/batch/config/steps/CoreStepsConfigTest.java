@@ -3,6 +3,9 @@ package uk.gov.hmcts.reform.preapi.batch.config.steps;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.JobSynchronizationManager;
@@ -98,10 +101,16 @@ class CoreStepsConfigTest {
 
     @Test
     void getDryRunFlagShouldReturnTrueWhenParameterIsTrue() {
-        // This would require mocking JobSynchronizationManager.getContext()
-        // which is complex due to static methods
+        JobParameters params = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+
+        JobExecution jobExecution = new JobExecution(1L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        assertThat(stepsConfig.getDryRunFlag()).isTrue();
+
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
     }
 
     @Test
