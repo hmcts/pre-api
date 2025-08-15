@@ -5,6 +5,7 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -187,5 +188,45 @@ public class MetadataValidatorTest {
     void parseExtensionIsNotMp4() {
         assertThat(metadataValidator.parseExtension(null)).isEqualTo("");
         assertThat(metadataValidator.parseExtension("file.exe")).isEqualTo("");
+    }
+
+    @Test
+    void validatePreExistingFails() {
+        when(archiveItem.getArchiveName()).thenReturn("Amersh-210301-XYZ-PRE-123.mp4");
+
+        ServiceResult<?> result = metadataValidator.validatePreExisting(archiveItem);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getErrorMessage()).isEqualTo("Keyword 'PRE' found");
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.PRE_EXISTING.toString());
+    }
+
+    @Test
+    void validatePreExistingSucceeds() {
+        when(archiveItem.getArchiveName()).thenReturn("Amersh-210301-XYZ-ORIG1.mp4");
+
+        ServiceResult<?> result = metadataValidator.validatePreExisting(archiveItem);
+
+        assertThat(result.isSuccess()).isTrue();
+    }
+
+    @Test
+    void validateRawFileFails() {
+        when(archiveItem.getArchiveName()).thenReturn("some/path/recording.RAW");
+
+        ServiceResult<?> result = metadataValidator.validateRawFile(archiveItem);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getErrorMessage()).isEqualTo(Constants.ErrorMessages.RAW_FILE);
+        assertThat(result.getCategory()).isEqualTo(VfFailureReason.RAW_FILES.toString());
+    }
+
+    @Test
+    void validateRawFileSucceeds() {
+        when(archiveItem.getArchiveName()).thenReturn("some/path/recording.mp4");
+
+        ServiceResult<?> result = metadataValidator.validateRawFile(archiveItem);
+
+        assertThat(result.isSuccess()).isTrue();
     }
 }
