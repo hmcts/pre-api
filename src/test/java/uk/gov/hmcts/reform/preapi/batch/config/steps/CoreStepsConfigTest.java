@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CoreStepsConfigTest {
@@ -186,6 +187,23 @@ class CoreStepsConfigTest {
 
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo(stepName);
+    }
+
+    @Test
+    void startLoggingStepShouldExecuteAndSetDebugFlag() throws Exception {
+        JobParameters params = new JobParametersBuilder()
+            .addString("debug", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(99L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        Step step = stepsConfig.startLogging();
+
+        step.execute(new org.springframework.batch.core.StepExecution(step.getName(), jobExecution));
+
+        verify(loggingService).setDebugEnabled(true);
+        verify(loggingService).initializeLogFile();
+        verify(loggingService).logInfo("Job started with debug mode: true");
     }
 
 }
