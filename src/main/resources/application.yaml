@@ -151,7 +151,7 @@ tasks:
   batch-import-missing-mk-assets:
     batch-size: ${TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE:20}
     poll-interval: ${TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL:10000}
-    mp4-source-container: Video
+    mp4-source-container: prod-migration-1
 
 
 #logging:

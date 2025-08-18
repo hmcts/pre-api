@@ -2,12 +2,14 @@ package uk.gov.hmcts.reform.preapi.tasks.migration;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
@@ -22,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -31,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,6 +43,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = BatchImportMissingMkAssets.class)
@@ -57,6 +62,9 @@ public class BatchImportMissingMkAssetsTest {
 
     @MockitoBean
     private RecordingService recordingService;
+
+    @MockitoBean
+    private CaptureSessionService captureSessionService;
 
     @MockitoBean
     private AzureVodafoneStorageService azureVodafoneStorageService;
@@ -131,6 +139,7 @@ public class BatchImportMissingMkAssetsTest {
         verify(azureVodafoneStorageService, never()).copyBlob(any(), any(), any());
         verify(azureVodafoneStorageService, times(1)).getStorageAccountName();
         verify(azureIngestStorageService, times(1)).getStorageAccountName();
+        verifyNoInteractions(captureSessionService);
     }
 
     @Test
@@ -153,6 +162,7 @@ public class BatchImportMissingMkAssetsTest {
         verify(azureIngestStorageService, never()).getStorageAccountName();
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(false));
         verify(mediaService, never()).importAsset(any(RecordingDTO.class), eq(true));
+        verifyNoInteractions(captureSessionService);
     }
 
     @Test
@@ -177,6 +187,7 @@ public class BatchImportMissingMkAssetsTest {
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(false));
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(true));
         verify(mediaService, never()).triggerProcessingStep2(any(), anyBoolean());
+        verifyNoInteractions(captureSessionService);
     }
 
     @Test
@@ -211,6 +222,7 @@ public class BatchImportMissingMkAssetsTest {
         verify(azureFinalStorageService, never()).getMp4FileName(any());
         verify(azureFinalStorageService, never()).getRecordingDuration(any());
         verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
+        verifyNoInteractions(captureSessionService);
     }
 
     @Test
@@ -251,5 +263,10 @@ public class BatchImportMissingMkAssetsTest {
         verify(azureFinalStorageService, times(1)).getMp4FileName(any());
         verify(azureFinalStorageService, times(1)).getRecordingDuration(any());
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
+
+        ArgumentCaptor<CreateCaptureSessionDTO> createCaptureSession =
+            ArgumentCaptor.forClass(CreateCaptureSessionDTO.class);
+        verify(captureSessionService, times(1)).upsert(createCaptureSession.capture());
+        assertThat(createCaptureSession.getValue().getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
     }
 }

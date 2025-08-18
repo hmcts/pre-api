@@ -130,6 +130,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     @Query("""
         SELECT r FROM Recording r
         WHERE r.captureSession.origin = 'VODAFONE'
+        AND r.captureSession.status = 'NO_RECORDING'
         AND r.deletedAt IS NULL
         """
     )

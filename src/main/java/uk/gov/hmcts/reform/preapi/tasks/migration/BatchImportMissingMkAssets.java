@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -14,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.tasks.RobotUserTask;
@@ -28,6 +31,7 @@ import java.util.Objects;
 public class BatchImportMissingMkAssets extends RobotUserTask {
     private final MediaServiceBroker mediaServiceBroker;
     private final RecordingService recordingService;
+    private final CaptureSessionService captureSessionService;
     private final AzureVodafoneStorageService azureVodafoneStorageService;
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
@@ -47,6 +51,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                                       @Value("${cron-user-email}") String cronUserEmail,
                                       MediaServiceBroker mediaServiceBroker,
                                       RecordingService recordingService,
+                                      CaptureSessionService captureSessionService,
                                       AzureVodafoneStorageService azureVodafoneStorageService,
                                       AzureIngestStorageService azureIngestStorageService,
                                       AzureFinalStorageService azureFinalStorageService) {
@@ -56,6 +61,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         this.azureVodafoneStorageService = azureVodafoneStorageService;
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.captureSessionService = captureSessionService;
     }
 
     @Override
@@ -173,5 +179,13 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         }
 
         recordingService.upsert(createRecordingDTO);
+        updateCaptureSessionToAvailable(originalRecording.getCaptureSession());
+    }
+
+    private void updateCaptureSessionToAvailable(final CaptureSessionDTO captureSessionDTO) {
+        final CreateCaptureSessionDTO dto = new CreateCaptureSessionDTO(captureSessionDTO);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        captureSessionService.upsert(dto);
     }
 }
