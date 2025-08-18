@@ -144,25 +144,6 @@ public class CaseService {
             isCasePendingClosure = foundCase.get().getState() == CaseState.OPEN
                 && createCaseDTO.getState() == CaseState.PENDING_CLOSURE;
 
-            if ((isCasePendingClosure || isCaseClosure) && bookingRepository
-                .findAllByCaseIdAndDeletedAtIsNull(foundCase.get())
-                .stream()
-                .anyMatch(b -> b.getCaptureSessions().isEmpty()
-                    || b.getCaptureSessions()
-                    .stream()
-                    .map(CaptureSession::getStatus)
-                    .anyMatch(s -> s != RecordingStatus.FAILURE
-                        && s != RecordingStatus.NO_RECORDING
-                        && s != RecordingStatus.RECORDING_AVAILABLE)
-                )
-            ) {
-                throw new ResourceInWrongStateException(
-                    "Resource Case("
-                        + createCaseDTO.getId()
-                        + ") has open bookings which must not be present when updating state to "
-                        + createCaseDTO.getState());
-            }
-
             if (isCasePendingClosure || isCaseClosure) {
                 if (bookingRepository.findAllByCaseIdAndDeletedAtIsNull(foundCase.get()).stream()
                     .anyMatch(b -> b.getCaptureSessions().isEmpty() || b.getCaptureSessions().stream()
