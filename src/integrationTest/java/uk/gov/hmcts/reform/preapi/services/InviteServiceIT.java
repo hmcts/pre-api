@@ -43,8 +43,8 @@ public class InviteServiceIT extends IntegrationTestBase {
         user.setId(UUID.randomUUID());
         entityManager.persist(user);
 
-        portalAccess = HelperFactory.createPortalAccess(user, new Timestamp(System.currentTimeMillis()), AccessStatus.INVITATION_SENT,
-                                                        new Timestamp(System.currentTimeMillis()), null, null);
+        portalAccess = HelperFactory.createPortalAccess(user, new Timestamp(System.currentTimeMillis()),
+            AccessStatus.INVITATION_SENT, new Timestamp(System.currentTimeMillis()), null, null);
         portalAccess.setId(UUID.randomUUID());
         entityManager.persist(portalAccess);
 
@@ -62,8 +62,9 @@ public class InviteServiceIT extends IntegrationTestBase {
         assertThat(invite.getEmail()).isEqualTo(user.getEmail());
         assertThat(invite.getInvitedAt()).isAfter(Instant.now().minusSeconds(5));
 
-        portalAccess = HelperFactory.createPortalAccess(user, new Timestamp(System.currentTimeMillis()), AccessStatus.ACTIVE,
-                                                        new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), null);
+        portalAccess = HelperFactory.createPortalAccess(user, new Timestamp(System.currentTimeMillis()),
+            AccessStatus.ACTIVE, new Timestamp(System.currentTimeMillis()),
+            new Timestamp(System.currentTimeMillis()),null);
         entityManager.persist(portalAccess);
         entityManager.flush();
         entityManager.refresh(user);
