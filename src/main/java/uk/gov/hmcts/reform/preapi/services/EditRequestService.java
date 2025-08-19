@@ -153,15 +153,17 @@ public class EditRequestService {
 
     @Transactional
     public @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
+        UUID parentId = request.getSourceRecording().getParentRecording() == null
+            ? request.getSourceRecording().getId()
+            : request.getSourceRecording().getParentRecording().getId();
+
         CreateRecordingDTO createDto = new CreateRecordingDTO();
         createDto.setId(newRecordingId);
-        createDto.setParentRecordingId(request.getSourceRecording().getParentRecording() == null
-                                           ? request.getSourceRecording().getId()
-                                           : request.getSourceRecording().getParentRecording().getId());
+        createDto.setParentRecordingId(parentId);
         // if edit on edit without original edits saved (legacy edit),
         //  then these edits will not align with the original timeline
         createDto.setEditInstructions(request.getEditInstruction());
-        createDto.setVersion(recordingService.getNextVersionNumber(request.getSourceRecording().getId()));
+        createDto.setVersion(recordingService.getNextVersionNumber(parentId));
         createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
         createDto.setFilename(filename);
         // duration is auto-generated

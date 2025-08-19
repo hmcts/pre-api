@@ -703,7 +703,7 @@ public class EditRequestServiceTest {
         editRequest.setEditInstruction("{\"key\": \"value\"}");
 
         var newRecordingId = UUID.randomUUID();
-        when(recordingService.getNextVersionNumber(sourceRecording.getId())).thenReturn(3);
+        when(recordingService.getNextVersionNumber(parentRecording.getId())).thenReturn(3);
 
         var dto = editRequestService.createRecordingDto(newRecordingId, "newFile.mp4", editRequest);
         assertThat(dto.getId()).isEqualTo(newRecordingId);
