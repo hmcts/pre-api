@@ -32,6 +32,10 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         """
         SELECT c FROM CaptureSession c
         WHERE c.deletedAt IS NULL
+        AND (
+            :includeVodafone = TRUE
+            OR (c.origin != 'VODAFONE' AND c.booking.caseId.origin != 'VODAFONE')
+        )
         AND (:authorisedBookings IS NULL OR c.booking.id IN :authorisedBookings)
         AND (CAST(:authCourtId as uuid) IS NULL OR c.booking.caseId.court.id = :authCourtId)
         AND (:caseReference IS NULL OR c.booking.caseId.reference ILIKE %:caseReference%)
@@ -57,6 +61,7 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
         @Param("authorisedBookings") List<UUID> authorisedBookings,
         @Param("authCourtId") UUID authCourtId,
+        @Param("includeVodafone") boolean includeVodafone,
         Pageable pageable
     );
 

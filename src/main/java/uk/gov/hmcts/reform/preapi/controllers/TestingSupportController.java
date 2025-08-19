@@ -18,9 +18,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -54,7 +59,6 @@ import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
@@ -87,8 +91,8 @@ class TestingSupportController {
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final AuditRepository auditRepository;
     private final ScheduledTaskRunner scheduledTaskRunner;
-    private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
+    private final MigrationRecordRepository migrationRecordRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -105,8 +109,8 @@ class TestingSupportController {
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
-                             final EditRequestService editRequestService,
-                             final AzureFinalStorageService azureFinalStorageService) {
+                             final AzureFinalStorageService azureFinalStorageService,
+                             final MigrationRecordRepository migrationRecordRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -121,8 +125,8 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.auditRepository = auditRepository;
         this.scheduledTaskRunner = scheduledTaskRunner;
-        this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.migrationRecordRepository = migrationRecordRepository;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -204,14 +208,14 @@ class TestingSupportController {
         var court = createTestCourt();
 
         var region = new Region();
-        region.setName("Region " + RandomStringUtils.randomAlphabetic(5));
+        region.setName("Region " + RandomStringUtils.secure().nextAlphabetic(5));
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
+        caseEntity.setReference(RandomStringUtils.secure().nextAlphabetic(5));
         caseEntity.setCourt(court);
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
@@ -241,14 +245,14 @@ class TestingSupportController {
         var finishUser = new User();
         finishUser.setId(UUID.randomUUID());
         finishUser.setEmail("finishuser@justice.local");
-        finishUser.setPhone(RandomStringUtils.randomNumeric(11));
+        finishUser.setPhone(RandomStringUtils.secure().nextNumeric(11));
         finishUser.setOrganisation("Gov Org");
         finishUser.setFirstName("Finish");
         finishUser.setLastName("User");
         var startUser = new User();
         startUser.setId(UUID.randomUUID());
         startUser.setEmail("startuser@justice.local");
-        startUser.setPhone(RandomStringUtils.randomNumeric(11));
+        startUser.setPhone(RandomStringUtils.secure().nextNumeric(11));
         startUser.setOrganisation("Gov Org");
         startUser.setFirstName("Start");
         startUser.setLastName("User");
@@ -314,18 +318,17 @@ class TestingSupportController {
 
     @PostMapping("/create-authenticated-user/{role}")
     public ResponseEntity<Map<String, String>> createAuthenticatedUser(@PathVariable TestingSupportRoles role) {
-        String roleName;
-        switch (role) {
-            case SUPER_USER -> roleName = "Super User";
-            case LEVEL_1 -> roleName = "Level 1";
-            case LEVEL_2 -> roleName = "Level 2";
-            case LEVEL_3 -> roleName = "Level 3";
-            case LEVEL_4 -> roleName = "Level 4";
-            default -> throw new IllegalArgumentException("Invalid role");
-        }
+        String roleName = switch (role) {
+            case SUPER_USER ->  "Super User";
+            case LEVEL_1 -> "Level 1";
+            case LEVEL_2 -> "Level 2";
+            case LEVEL_3 -> "Level 3";
+            case LEVEL_4 -> "Level 4";
+        };
         var r = roleRepository.findFirstByName(roleName)
             .orElse(createRole(roleName));
         var appAccess = createAppAccess(r);
+
         return ResponseEntity.ok(Map.of(
             "accessId", appAccess.getId().toString(),
             "courtId", appAccess.getCourt().getId().toString()
@@ -500,6 +503,77 @@ class TestingSupportController {
         return ResponseEntity.ok(new RecordingDTO(recording));
     }
 
+    @PostMapping("/create-random-formed-migration-record")
+    public ResponseEntity<VfMigrationRecordDTO> createRandomFormedMigrationRecord() {
+        String randomArchiveId = UUID.randomUUID().toString();
+        String randomArchiveName = "archive_" + randomArchiveId.substring(0, 8);
+        MigrationRecord record = new MigrationRecord();
+        record.setId(UUID.randomUUID());
+        record.setArchiveId(randomArchiveId);
+        record.setArchiveName(randomArchiveName);
+        record.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        record.setDuration((int) (Math.random() * 1000));
+        record.setCourtReference(courtRepository.findAll().getFirst().getName());
+        record.setUrn("urn" + (int) (Math.random() * 100000));
+        record.setExhibitReference(RandomStringUtils.randomAlphabetic(10));
+        record.setDefendantName("defendant");
+        record.setWitnessName("witness");
+        record.setRecordingVersion("ORIG");
+        record.setRecordingVersionNumber("1");
+        record.setFileName("file_" + randomArchiveId.substring(0, 4) + ".mp4");
+        record.setFileSizeMb(String.valueOf((Math.random() * 100) + 1));
+        record.setRecordingId(UUID.randomUUID());
+        record.setCaptureSessionId(UUID.randomUUID());
+        record.setBookingId(UUID.randomUUID());
+        record.setStatus(VfMigrationStatus.FAILED);
+        record.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        record.setReason(VfFailureReason.GENERAL_ERROR.toString());
+        record.setErrorMessage("error_message");
+        record.setIsMostRecent(true);
+        record.setIsPreferred(true);
+        record.setRecordingGroupKey("group_key");
+        migrationRecordRepository.saveAndFlush(record);
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
+    }
+
+    @PostMapping("/create-random-empty-migration-record")
+    public ResponseEntity<VfMigrationRecordDTO> createRandomEmptyMigrationRecord() {
+        String randomArchiveId = UUID.randomUUID().toString();
+        String randomArchiveName = "archive_" + randomArchiveId.substring(0, 8);
+        MigrationRecord record = new MigrationRecord();
+        record.setId(UUID.randomUUID());
+        record.setArchiveId(randomArchiveId);
+        record.setArchiveName(randomArchiveName);
+        record.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        record.setDuration((int) (Math.random() * 1000));
+        record.setRecordingVersionNumber("1");
+        record.setFileName("file_" + randomArchiveId.substring(0, 4) + ".mp4");
+        record.setFileSizeMb(String.valueOf((Math.random() * 100) + 1));
+        record.setStatus(VfMigrationStatus.FAILED);
+        record.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        record.setReason(VfFailureReason.INCOMPLETE_DATA.toString());
+        record.setErrorMessage("error_message");
+        record.setIsMostRecent(true);
+        record.setIsPreferred(true);
+        record.setRecordingGroupKey("group_key");
+        migrationRecordRepository.saveAndFlush(record);
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
+    }
+
+    @PostMapping("/update-migration-record-to-invalid-duration/{migrationRecordId}")
+    public ResponseEntity<VfMigrationRecordDTO> updateMigrationRecordToInvalidDuration(
+        @PathVariable UUID migrationRecordId) {
+
+        MigrationRecord record = migrationRecordRepository.findById(migrationRecordId)
+            .orElseThrow(() -> new NotFoundException("MigrationRecord: " + migrationRecordId));
+        record.setDuration(5); // must be more than 10 seconds, so this is invalid
+        record.setReason(VfFailureReason.INVALID_FORMAT.toString());
+        record.setErrorMessage("Duration too short");
+        migrationRecordRepository.saveAndFlush(record);
+
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
+    }
+
     private Court createTestCourt() {
         var court = new Court();
         court.setId(UUID.randomUUID());
@@ -509,18 +583,6 @@ class TestingSupportController {
         courtRepository.save(court);
 
         return court;
-    }
-
-    private AppAccess createAppAccess(String role) {
-        var access = new AppAccess();
-        access.setUser(createUser());
-        access.setCourt(createTestCourt());
-        access.setRole(createRole(role));
-        access.setActive(true);
-        access.setDefaultCourt(true);
-        appAccessRepository.save(access);
-
-        return access;
     }
 
     private AppAccess createAppAccess(Role role) {

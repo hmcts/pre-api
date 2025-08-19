@@ -92,7 +92,6 @@ public class MediaKind implements IMediaService {
     private final String subscription;
     private final String issuer;
     private final String symmetricKey;
-    protected boolean enableStreamingLocatorOnStart;
 
     private final MediaKindClient mediaKindClient;
     private final AzureIngestStorageService azureIngestStorageService;
@@ -118,7 +117,6 @@ public class MediaKind implements IMediaService {
         @Value("${mediakind.subscription}") String subscription,
         @Value("${mediakind.issuer:}") String issuer,
         @Value("${mediakind.symmetricKey:}") String symmetricKey,
-        @Value("${mediakind.streaming-locator-on-start:false}") Boolean enableStreamingLocatorOnStart,
         MediaKindClient mediaKindClient,
         AzureIngestStorageService azureIngestStorageService,
         AzureFinalStorageService azureFinalStorageService
@@ -132,7 +130,6 @@ public class MediaKind implements IMediaService {
         this.mediaKindClient = mediaKindClient;
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
-        this.enableStreamingLocatorOnStart = enableStreamingLocatorOnStart;
     }
 
     @Override
@@ -344,9 +341,7 @@ public class MediaKind implements IMediaService {
 
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        if (enableStreamingLocatorOnStart) {
-            assertStreamingLocatorExists(captureSession.getId());
-        }
+        assertStreamingLocatorExists(captureSession.getId());
     }
 
     private void startLiveEvent(String liveEventName) {
