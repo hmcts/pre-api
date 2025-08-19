@@ -12,8 +12,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 
 import java.io.IOException;
@@ -137,13 +137,129 @@ public class InMemoryCacheServiceTest {
 
     @Test
     void saveCaseStoresCaseSuccessfully() {
-        CaseDTO caseDTO = new CaseDTO();
-        caseDTO.setReference("CASE123");
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("CASE123");
 
-        inMemoryCacheService.saveCase("CASE123", caseDTO);
+        inMemoryCacheService.saveCase("CASE123", createCaseDTO);
 
         // Verify case is stored (no getter method, but can verify via dumpToFile behavior)
-        assertThat(caseDTO.getReference()).isEqualTo("CASE123");
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("CASE123");
+        assertThat(result).isPresent();
+        assertThat(createCaseDTO.getReference()).isEqualTo("CASE123");
+    }
+
+    @Test
+    void saveCaseNormalizesCaseReference() {
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("case 123");
+        
+        inMemoryCacheService.saveCase("  case   123  ", createCaseDTO);
+        
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("CASE 123");
+        assertThat(result).isPresent();
+    }
+
+    @Test
+    void getCaseReturnsEmptyWhenCaseRefIsNull() {
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase(null);
+        
+        assertThat(result).isEmpty();
+        verify(loggingService, times(1))
+            .logDebug("Attempted to get case with null or empty reference");
+    }
+
+    @Test
+    void getCaseReturnsEmptyWhenCaseRefIsEmpty() {
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("");
+        
+        assertThat(result).isEmpty();
+        verify(loggingService, times(1))
+            .logDebug("Attempted to get case with null or empty reference");
+    }
+
+    @Test
+    void getCaseReturnsEmptyWhenCaseRefIsWhitespace() {
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("   ");
+        
+        assertThat(result).isEmpty();
+        verify(loggingService, times(1))
+            .logDebug("Attempted to get case with null or empty reference");
+    }
+
+    @Test
+    void saveCaseSkipsWhenCaseRefIsEmpty() {
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("");
+
+        inMemoryCacheService.saveCase(null, createCaseDTO);
+        verify(loggingService, times(1))
+            .logInfo(org.mockito.ArgumentMatchers.contains(
+                "Case ref is null or empty"), org.mockito.ArgumentMatchers.isNull());
+    }
+
+    @Test
+    void saveCaseSkipsWhenCaseRefIsNull() {
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference(null);
+
+        inMemoryCacheService.saveCase(null, createCaseDTO);
+        verify(loggingService, times(1))
+            .logInfo(org.mockito.ArgumentMatchers.contains(
+                "Case ref is null or empty"), org.mockito.ArgumentMatchers.isNull());
+    }
+
+    @Test
+    void saveCaseSkipsWhenCaseDTOIsNull() {
+        inMemoryCacheService.saveCase("VALID_REF", null);
+        verify(loggingService, times(1))
+            .logInfo("CaseDTO is null");
+    }
+
+    @Test
+    void getCaseLogsWhenCaseFoundInCache() {
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setReference("FOUND_CASE");
+        createCaseDTO.setId(UUID.randomUUID());
+        
+        inMemoryCacheService.saveCase("FOUND_CASE", createCaseDTO);
+        
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("FOUND_CASE");
+        
+        assertThat(result).isPresent();
+        verify(loggingService, times(1))
+            .logInfo(contains("Found case in cache"), any());
+    }
+
+    @Test
+    void getCaseLogsWhenCaseNotFoundInCache() {
+        Optional<CreateCaseDTO> result = inMemoryCacheService.getCase("NONEXISTENT_CASE");
+        
+        assertThat(result).isEmpty();
+        verify(loggingService, times(1))
+            .logInfo(contains("Case not found in cache for reference"), any());
+    }
+
+    @Test
+    void saveUserSkipsWhenEmailIsNull() {
+        UUID userId = UUID.randomUUID();
+        inMemoryCacheService.saveUser(null, userId);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
+    }
+
+    @Test
+    void saveUserSkipsWhenEmailIsBlank() {
+        UUID userId = UUID.randomUUID();
+        inMemoryCacheService.saveUser("", userId);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
+    }
+
+    @Test
+    void saveUserSkipsWhenUserIdIsNull() {
+        inMemoryCacheService.saveUser("test@example.com", null);
+        verify(loggingService, times(1))
+            .logWarning("Skipping saveUser: email or userID missing");
     }
 
     @Test
@@ -293,7 +409,7 @@ public class InMemoryCacheServiceTest {
         court.setName("Test Court");
         inMemoryCacheService.saveCourt("Test Court", court);
 
-        CaseDTO caseDTO = new CaseDTO();
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
         caseDTO.setReference("CASE123");
         inMemoryCacheService.saveCase("CASE123", caseDTO);
 

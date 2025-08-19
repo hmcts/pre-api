@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -78,7 +78,10 @@ public class PreProcessor {
         loggingService.logInfo("Cached %d court records.", courts.size());
 
         List<Case> cases = caseRepository.findAll();
-        cases.forEach(acase -> cacheService.saveCase(acase.getReference(), new CaseDTO(acase)));
+        cases.forEach(acase -> {
+            CreateCaseDTO createCaseDTO = new CreateCaseDTO(acase);
+            cacheService.saveCase(acase.getReference(), createCaseDTO);
+        });
         loggingService.logInfo("Cached %d cases records.", cases.size());
 
         List<User> users = userRepository.findAll();

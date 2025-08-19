@@ -32,20 +32,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: AZURE_VF_SA_CONNECTION_STRING
         - name: symmetrickey
           alias: SYMMETRIC_KEY
-        - name: pp-authorization
-          alias: FLOW_KEY
-        - name: flow-close-live-event-http-api
-          alias: FLOW_CLOSE_LIVE_EVENT_HTTP_API
-        - name: flow-case-state-notifier-http-api
-          alias: FLOW_CASE_STATE_NOTIFIER_HTTP_API
-        - name: flow-case-state-notifier-workflow-id
-          alias: CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID
-        - name: flow-case-state-notifier-sig
-          alias: FLOW_CASE_STATE_CHANGE_NOTIFIER_SIG
-        - name: flow-close-live-event-email-workflow-id
-          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID
-        - name: flow-close-live-event-email-sig
-          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG
         - name: api-MK-SUBSCRIPTION-ID
           alias: MEDIA_KIND_SUBSCRIPTION_ID
         - name: api-MK-CUSTOMER-ID
@@ -68,8 +54,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     CRON_USER_EMAIL: "dts-pre-app-{{ .Values.global.environment }}@hmcts.net"
     ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
     EMAIL_SERVICE: GovNotify
-    ENABLE_NEW_EMAIL_SERVICE: false
-    ENABLE_STREAMING_LOCATOR_ON_START: false
     ENABLE_AUTOMATED_EDITING: false
     ENABLE_ENHANCED_PROCESSING: false
     ENABLE_NULL_DURATION_UPSERT: false
