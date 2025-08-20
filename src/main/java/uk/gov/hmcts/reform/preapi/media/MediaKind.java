@@ -360,6 +360,7 @@ public class MediaKind implements IMediaService {
                      captureSession.getId(),
                      captureSession.getBookingId().toString()
             );
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
             return null;
         }
 

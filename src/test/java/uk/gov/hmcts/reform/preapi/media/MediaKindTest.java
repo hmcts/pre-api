@@ -495,6 +495,8 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
         verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
+        verify(azureIngestStorageService, times(1))
+            .markContainerAsSafeToDelete(captureSession.getBookingId().toString());
         verify(mockClient, never()).putAsset(any(), any());
     }
 
