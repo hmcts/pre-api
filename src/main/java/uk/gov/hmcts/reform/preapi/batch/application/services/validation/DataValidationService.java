@@ -37,6 +37,7 @@ public class DataValidationService {
     public ServiceResult<ProcessedRecording> validateProcessedRecording(
             ProcessedRecording cleansedData) {
 
+       
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
                 VfFailureReason.INCOMPLETE_DATA.toString());
@@ -56,8 +57,10 @@ public class DataValidationService {
 
         if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
             boolean isMostRecent = Boolean.TRUE.equals(
-                migrationRecordRepository.getIsMostRecent(cleansedData.getArchiveId())
+                // migrationRecordRepository.getIsMostRecent(cleansedData.getArchiveId())
+                migrationRecordRepository.existsByArchiveIdAndIsMostRecentTrue(cleansedData.getArchiveId())
             );
+            
             if (!isMostRecent) {
                 return ServiceResultUtil.failure(
                     Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,
@@ -65,6 +68,8 @@ public class DataValidationService {
                 );
             }
         }
+
+        
 
         String caseReference = cleansedData.getCaseReference();
         if (caseReference == null || caseReference.length() < 7) {

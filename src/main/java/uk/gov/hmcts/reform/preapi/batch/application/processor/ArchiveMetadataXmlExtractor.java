@@ -327,19 +327,27 @@ public class ArchiveMetadataXmlExtractor {
             }
 
             // (4) Duration should be equal or within 1s (sanity check / log only)
-            double aDur = getDouble(a, "Duration");
-            double bDur = getDouble(b, "Duration");
-            if (!Double.isNaN(aDur) && !Double.isNaN(bDur)) {
-                double diff = Math.abs(aDur - bDur);
-                if (diff > 1.0) {
-                    loggingService.logWarning(String.format(
-                        "MP4 pair duration mismatch >1s (%s: %.3fs vs %s: %.3fs). Falling back to second file.",
-                        getName(a), aDur, getName(b), bDur
-                    ));
-                }
+            long aDur = getLong(a, "Duration");
+            long bDur = getLong(b, "Duration");
+
+            boolean aDurValid = aDur >= 0;
+            boolean bDurValid = bDur >= 0;
+
+            if (aDurValid && bDurValid && aDur != bDur) {
+                return (aDur > bDur) ? a : b;
+            }
+            if (aDurValid != bDurValid) {
+                return aDurValid ? a : b;
             }
 
-            // Fallback: use the second
+            // (5) If duration ties (or both invalid), prefer longer filename
+            int lenA = nameA != null ? nameA.length() : 0;
+            int lenB = nameB != null ? nameB.length() : 0;
+            if (lenA != lenB) {
+                return (lenA > lenB) ? a : b;
+            }
+
+            // Fallback: pick the second file (as you had)
             return b;
         }
 
