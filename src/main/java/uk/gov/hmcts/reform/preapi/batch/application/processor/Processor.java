@@ -212,7 +212,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logError("Failed to transform archive: %s", extractedData.getSanitizedArchiveName());
             return null;
         }
-        checkAndCreateNotifyItem(result.getData());
+        
         loggingService.logDebug("Transformed data: %s", result.getData());
         return result.getData();
     }
@@ -224,7 +224,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (checkForError(result, archiveItem)) {
             return false;
         }
-
+        checkAndCreateNotifyItem(result.getData());
         loggingService.logDebug("All validation rules passed");
         return true;
     }
@@ -357,6 +357,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         }
 
     }
+
+
+    
 
 }
 

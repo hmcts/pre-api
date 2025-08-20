@@ -134,7 +134,8 @@ public class ArchiveMetadataXmlExtractor {
             try (InputStream xmlStream = azureVodafoneStorageService.fetchSingleXmlBlob(
                 containerName, blobName).getInputStream()) {
 
-                List<List<String>> blobMetadata = parseArchiveMetadataFromXml(xmlStream);
+                String blobPrefix = blobName.contains("/") ? blobName.substring(0, blobName.indexOf('/')) : "";
+                List<List<String>> blobMetadata = parseArchiveMetadataFromXml(xmlStream, blobPrefix);
                 if (!blobMetadata.isEmpty()) {
                     allArchiveMetadata.addAll(blobMetadata);
                     loggingService.logDebug("Processing blob: %s", blobName);
@@ -178,7 +179,7 @@ public class ArchiveMetadataXmlExtractor {
      * @return A list of lists, each list being a row of data.
      * @throws Exception If there is an error during XML parsing.
      */
-    private List<List<String>> parseArchiveMetadataFromXml(InputStream inputStream)
+    private List<List<String>> parseArchiveMetadataFromXml(InputStream inputStream, String blobPrefix)
         throws IOException, SAXException, ParserConfigurationException {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         dbFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
@@ -187,7 +188,7 @@ public class ArchiveMetadataXmlExtractor {
         Document doc = dBuilder.parse(inputStream);
         doc.getDocumentElement().normalize();
 
-        return extractArchiveFileDetails(doc);
+        return extractArchiveFileDetails(doc, blobPrefix);
     }
 
     /**
@@ -196,7 +197,7 @@ public class ArchiveMetadataXmlExtractor {
      * @param document Parsed XML document
      * @return List of metadata rows
      */
-    private List<List<String>> extractArchiveFileDetails(Document document) {
+    private List<List<String>> extractArchiveFileDetails(Document document, String blobPrefix) {
         List<List<String>> metadataRows = new ArrayList<>();
         NodeList archiveFileNodes = document.getElementsByTagName("ArchiveFiles");
 
@@ -221,7 +222,8 @@ public class ArchiveMetadataXmlExtractor {
                 loggingService.logWarning("Missing CreatTime for archive: " + displayName);
             }
             String archiveId = extractTextContent(archiveElement, "ArchiveID");
-            metadataRows.addAll(processMP4Files(archiveElement, archiveId, displayName, createTime, duration));
+            metadataRows.addAll(processMP4Files(
+                archiveElement, blobPrefix, archiveId, displayName, createTime, duration));
         }
         return metadataRows;
     }
@@ -237,6 +239,7 @@ public class ArchiveMetadataXmlExtractor {
      */
     private List<List<String>> processMP4Files(
         Element archiveElement,
+        String blobPrefix,
         String archiveId,
         String displayName,
         String createTime,
@@ -263,7 +266,12 @@ public class ArchiveMetadataXmlExtractor {
                 }
                 if (isValidMP4File(fileName)) {
                     String formattedFileSize = formatFileSize(fileSizeKb);
-                    fileRows.add(List.of(archiveId, displayName, createTime, duration, fileName, formattedFileSize));
+
+                    String fullPath = (blobPrefix == null || blobPrefix.isBlank())
+                        ? archiveId + "/" + fileName
+                        : blobPrefix + "/" + archiveId + "/" + fileName;
+
+                    fileRows.add(List.of(archiveId, displayName, createTime, duration, fullPath, formattedFileSize));
                 }
             }
         }
@@ -271,31 +279,71 @@ public class ArchiveMetadataXmlExtractor {
     }
 
     private Element selectPreferredMp4File(NodeList mp4Files) {
-        Element fallback = null;
-
+        List<Element> files = new ArrayList<>();
         for (int i = 0; i < mp4Files.getLength(); i++) {
-            Node node = mp4Files.item(i);
-            if (node.getNodeType() != Node.ELEMENT_NODE) {
-                continue;
-            }
-
-            Element fileElement = (Element) node;
-            String fileName = extractTextContent(fileElement, "Name");
-
-            if (fileName.startsWith("0x1e")) {
-                return fileElement;
-            }
-
-            if (i == 1) {
-                fallback = fileElement;
-            }
-
-            if (mp4Files.getLength() == 1) {
-                fallback = fileElement;
+            Node n = mp4Files.item(i);
+            if (n.getNodeType() == Node.ELEMENT_NODE) {
+                files.add((Element) n);
             }
         }
 
-        return fallback;
+        if (files.isEmpty()) {
+            return null;
+        }
+        if (files.size() == 1) {
+            return files.get(0);
+        }
+
+        if (files.size() == 2) {
+            Element a = files.get(0);
+            Element b = files.get(1);
+
+            boolean aWatermarked = getBoolean(a, "watermark");
+            boolean bWatermarked = getBoolean(b, "watermark");
+
+            // (1) Prefer watermark = true when only one has it
+            if (aWatermarked ^ bWatermarked) {
+                return aWatermarked ? a : b;
+            }
+
+            // (2) If neither or both have watermark=true, prefer name starting with "UGC" when only one has it;
+            String nameA = getName(a).toUpperCase();
+            String nameB = getName(b).toUpperCase();
+            boolean aUGC = nameA.contains("UGC");
+            boolean bUGC = nameB.contains("UGC");
+            if (aUGC && !bUGC) {
+                return a;
+            }
+
+            if (!aUGC && bUGC) {
+                return b;
+            }
+
+            // (3) Otherwise pick the largest mp4 file size
+            long aSize = getLong(a, "Size");  
+            long bSize = getLong(b, "Size");
+            if (aSize != bSize) {
+                return (aSize > bSize) ? a : b;
+            }
+
+            // (4) Duration should be equal or within 1s (sanity check / log only)
+            double aDur = getDouble(a, "Duration");
+            double bDur = getDouble(b, "Duration");
+            if (!Double.isNaN(aDur) && !Double.isNaN(bDur)) {
+                double diff = Math.abs(aDur - bDur);
+                if (diff > 1.0) {
+                    loggingService.logWarning(String.format(
+                        "MP4 pair duration mismatch >1s (%s: %.3fs vs %s: %.3fs). Falling back to second file.",
+                        getName(a), aDur, getName(b), bDur
+                    ));
+                }
+            }
+
+            // Fallback: use the second
+            return b;
+        }
+
+        return files.get(0);
     }
 
     /**
@@ -305,7 +353,6 @@ public class ArchiveMetadataXmlExtractor {
      * @return true if valid, false otherwise
      */
     private boolean isValidMP4File(String fileName) {
-        // return fileName.endsWith(".mp4") && fileName.startsWith("0x1e");
         return fileName.endsWith(".mp4");
     }
 
@@ -360,4 +407,41 @@ public class ArchiveMetadataXmlExtractor {
 
         return "";
     }
+
+    //---------- helpers ---------- 
+
+    private String getName(Element el) {
+        String v = extractTextContent(el, "Name");
+        return v == null ? "" : v.trim();
+    }
+
+    private boolean getBoolean(Element el, String tag) {
+        String v = extractTextContent(el, tag);
+        if (v == null) {
+            return false;
+        }
+        v = v.trim().toLowerCase();
+        return v.equals("true") || v.equals("1") || v.equals("yes");
+    }
+
+    private long getLong(Element el, String tag) {
+        try {
+            String v = extractTextContent(el, tag);
+            return v == null ? 0L : Long.parseLong(v.trim());
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
+    private double getDouble(Element el, String tag) {
+        try {
+            String v = extractTextContent(el, tag);
+            return v == null ? Double.NaN : Double.parseDouble(v.trim());
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
+    }
+
+
+
 }

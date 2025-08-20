@@ -148,7 +148,7 @@ public class DataValidationServiceTest {
 
         MigrationRecord currentRecord = new MigrationRecord();
         when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
-        when(migrationRecordRepository.existsByArchiveIdAndIsMostRecentTrue("ARCHIVE123"))
+        when(migrationRecordRepository.getIsMostRecent("ARCHIVE123"))
             .thenReturn(true);
         when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.empty());
 
@@ -175,7 +175,7 @@ public class DataValidationServiceTest {
             .isPreferred(false)
             .build();
 
-        when(migrationRecordRepository.existsByArchiveIdAndIsMostRecentTrue("ARCH123"))
+        when(migrationRecordRepository.getIsMostRecent("ARCH123"))
             .thenReturn(true);
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(

@@ -108,7 +108,7 @@ class ArchiveMetadataXmlExtractorTest {
             eq("Test-230101-CASE1-WITNESS-ORIG"),
             eq("1731681144000"),
             eq("100"),
-            eq("0x1e_test_file.mp4"),
+            eq("abc123/0x1e_test_file.mp4"),
             eq("2.00")
         );
 
