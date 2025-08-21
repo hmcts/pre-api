@@ -92,6 +92,7 @@ public class XUserIdFilterTest {
         @Cleanup var writer = mock(PrintWriter.class);
         when(response.getWriter()).thenReturn(writer);
         when(request.getRequestURI()).thenReturn("/example-uri");
+        when(request.getMethod()).thenReturn("GET");
         when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
         when(request.getServletPath()).thenReturn("/example-uri");
         when(request.getPathInfo()).thenReturn("/example-uri");
@@ -136,5 +137,38 @@ public class XUserIdFilterTest {
         verify(userAuthenticationService, never()).loadAppUserById(id.toString());
         verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(filterChain, times(1)).doFilter(request, response);
+    }
+
+    @DisplayName("Should not require auth for POST but should require for GET")
+    @Test
+    void determineAuthRequirementsByHttpMethodSuccess() throws Exception {
+        var requestUri = "/batch";
+        var request = mock(MockHttpServletRequest.class);
+        var id = UUID.randomUUID();
+
+        when(request.getRequestURI()).thenReturn(requestUri);
+        when(request.getServletPath()).thenReturn(requestUri);
+        when(request.getPathInfo()).thenReturn(requestUri);
+        when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
+
+        // POST
+        var response = mock(MockHttpServletResponse.class);
+        var filterChain = mock(MockFilterChain.class);
+        when(request.getMethod()).thenReturn("POST");
+        filter.doFilter(request, response, filterChain);
+
+        verify(request, never()).getHeader(X_USER_ID_HEADER);
+        verify(userAuthenticationService, never()).loadAppUserById(any());
+        verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, times(1)).doFilter(request, response);
+
+        // GET
+        when(request.getMethod()).thenReturn("GET");
+        filter.doFilter(request, response, filterChain);
+
+        verify(request, times(1)).getHeader(X_USER_ID_HEADER);
+        verify(userAuthenticationService, times(1)).loadAppUserById(id.toString());
+        verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, times(2)).doFilter(request, response);
     }
 }

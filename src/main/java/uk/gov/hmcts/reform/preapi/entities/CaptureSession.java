@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -75,6 +74,9 @@ public class CaptureSession extends BaseEntity implements ISoftDeletable {
 
     @OneToMany(mappedBy = "captureSession")
     private Set<Recording> recordings;
+
+    @OneToMany(mappedBy = "captureSession")
+    private Set<EncodeJob> encodeJobs;
 
     public boolean isDeleted() {
         return deletedAt != null;

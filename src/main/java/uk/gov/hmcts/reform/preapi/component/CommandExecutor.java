@@ -15,19 +15,22 @@ import java.util.concurrent.Future;
 @Slf4j
 @Component
 public class CommandExecutor {
-    public boolean execute(CommandLine commandLine) {
+    public boolean execute(final CommandLine commandLine) {
+        return executeAndGetOutput(commandLine) != null;
+    }
+
+    public String executeAndGetOutput(final CommandLine commandLine) {
         log.info("Executing command: {}", commandLine);
         try {
-            @Cleanup("shutdown") ExecutorService executor = Executors.newSingleThreadExecutor();
-            Future<String> future = executor.submit(new CommandRunner(commandLine));
-            future.get();
-            return true;
+            @Cleanup("shutdown") final ExecutorService executor = Executors.newSingleThreadExecutor();
+            final Future<String> future = executor.submit(new CommandRunner(commandLine));
+            return future.get();
         } catch (InterruptedException e) {
             log.error("Failed to execute system command {} due to {}", commandLine, e.getMessage());
             Thread.currentThread().interrupt();
         } catch (ExecutionException | CommandExecutionException e) {
             log.error("Failed to execute system command {} due to {}", commandLine, e.getMessage());
         }
-        return false;
+        return null;
     }
 }

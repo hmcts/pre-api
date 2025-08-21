@@ -68,14 +68,14 @@ jobs:
           fi
 
           # get the revision number from the main.tf file in master
-          master_revision=$(grep -i 'revision' main.tf | grep -oE '[0-9]+')
-          branch_revision=$(grep -i 'revision' infrastructure/main.tf | grep -oE '[0-9]+')
+          master_revision=$(grep -i 'api_revision' main.tf | grep -oE '[0-9]+')
+          branch_revision=$(grep -i 'api_revision' infrastructure/main.tf | grep -oE '[0-9]+')
 
           if cmp "master.pre-api-stg.yaml" "pre-api-stg.yaml"; then
             echo "No changes to pre-api-stg.yaml"
             if [[ $master_revision -gt $branch_revision ]]; then
               echo "Master revision is greater than branch revision"
-              awk -v new_revision="$master_revision" 'BEGIN{FS=OFS="\""} /revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
+              awk -v new_revision="$master_revision" 'BEGIN{FS=OFS="\""} /api_revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
               git add infrastructure/main.tf
               commit_message="${commit_message} Bump APIm revision to $master_revision"
             fi
@@ -83,7 +83,7 @@ jobs:
             echo "API Spec has changed compared to master, ensure revision is incremented"
             if [[ $master_revision -ge $branch_revision ]]; then
               new_revision=$((master_revision + 1))
-              awk -v new_revision="$new_revision" 'BEGIN{FS=OFS="\""} /revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
+              awk -v new_revision="$new_revision" 'BEGIN{FS=OFS="\""} /api_revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
               git add infrastructure/main.tf
               commit_message="${commit_message} Bump APIm revision to $new_revision"
             fi

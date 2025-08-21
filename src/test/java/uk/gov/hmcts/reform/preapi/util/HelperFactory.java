@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
-import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -157,6 +156,7 @@ public class HelperFactory {
         captureSession.setFinishedByUser(finishedBy);
         captureSession.setStatus(status);
         captureSession.setDeletedAt(deletedAt);
+        captureSession.setRecordings(Set.of());
         return captureSession;
     }
 
@@ -179,13 +179,6 @@ public class HelperFactory {
         region.setName(name);
         region.setCourts(courts);
         return region;
-    }
-
-    public static Room createRoom(String name, Set<Court> courts) {
-        Room room = new Room();
-        room.setName(name);
-        room.setCourts(courts);
-        return room;
     }
 
     public static Recording createRecording(CaptureSession captureSession,

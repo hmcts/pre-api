@@ -2,14 +2,18 @@ package uk.gov.hmcts.reform.preapi.media.storage;
 
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.specialized.BlobInputStream;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Element;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -17,8 +21,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 @Service
 public class AzureFinalStorageService extends AzureStorageService {
     @Autowired
-    public AzureFinalStorageService(BlobServiceClient finalStorageClient) {
-        super(finalStorageClient);
+    public AzureFinalStorageService(BlobServiceClient finalStorageClient, AzureConfiguration azureConfiguration) {
+        super(finalStorageClient, azureConfiguration);
     }
 
     public Duration getRecordingDuration(UUID recordingId) {
@@ -58,5 +62,18 @@ public class AzureFinalStorageService extends AzureStorageService {
                 .findFirst()
                 .orElse(null)
             : null;
+    }
+
+    public String generateReadSasUrl(String containerName, String blobName) {
+        if (!doesBlobExist(containerName, blobName)) {
+            throw new NotFoundException("Blob in container " + containerName);
+        }
+        return client.getBlobContainerClient(containerName).getBlobClient(blobName).getBlobUrl()
+            + getBlobSasToken(
+            containerName,
+            blobName,
+            OffsetDateTime.now().plusHours(2),
+            new BlobSasPermission().setReadPermission(true)
+        );
     }
 }

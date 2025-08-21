@@ -3,7 +3,11 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -12,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -710,6 +715,11 @@ class CaseControllerFT extends FunctionalTestBase {
             assertCaseExists(dto.getId(), true);
             assertMatchesDto(dto);
 
+            // Outstanding issue with this whole test method - fails for reason not related to the case status
+            // update OPEN -> NULL
+            // var putResponse1 = putCase(dto, role);
+            // assertResponseCode(putResponse1, 204);
+
             // update OPEN -> PENDING_CLOSURE
             dto.setState(CaseState.PENDING_CLOSURE);
             dto.setClosedAt(Timestamp.from(Instant.now()));
@@ -723,24 +733,149 @@ class CaseControllerFT extends FunctionalTestBase {
             // update PENDING_CLOSURE -> OPEN
             dto.setState(CaseState.OPEN);
             dto.setClosedAt(null);
-            var putResponse6 = putCase(dto, role);
-            assertResponseCode(putResponse6, 403);
+            var putResponse3 = putCase(dto, role);
+            assertResponseCode(putResponse3, 403);
 
             // update PENDING_CLOSURE -> CLOSED
             dto.setState(CaseState.CLOSED);
             dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
-            var putResponse3 = putCase(dto, role);
-            assertResponseCode(putResponse3, 403);
+            var putResponse4 = putCase(dto, role);
+            assertResponseCode(putResponse4, 403);
 
-            // force the update the PENDING_CLOSURE
+            // force the update the CLOSED
             var forcedPut2 = putCase(dto);
             assertResponseCode(forcedPut2, 204);
+
+            // Outstanding issue with this whole test method - fails for reason not related to the case status
+            // update OPEN -> NULL
+            // dto.setState(null);
+            // var putResponse5 = putCase(dto, role);
+            // assertResponseCode(putResponse5, 403);
 
             // update CLOSED -> OPEN
             dto.setState(CaseState.OPEN);
             dto.setClosedAt(null);
-            var putResponse4 = putCase(dto, role);
-            assertResponseCode(putResponse4, 403);
+            var putResponse6 = putCase(dto, role);
+            assertResponseCode(putResponse6, 403);
+        }
+    }
+
+    @Test
+    @DisplayName("Create a case without participants")
+    void createCaseWithoutParticipants() throws JsonProcessingException {
+        var dto = createCase();
+        dto.setParticipants(Set.of());
+        var putResponse = putCase(dto);
+        assertResponseCode(putResponse, 400);
+
+        assertThat(putResponse.jsonPath().getString("participants"))
+            .isEqualTo("Participants must consist of at least 1 defendant and 1 witness");
+    }
+
+    @Test
+    @DisplayName("Update a case without participants")
+    void updateCaseWithoutParticipants() throws JsonProcessingException {
+        var dto = createCase();
+        var putResponse = putCase(dto);
+        assertResponseCode(putResponse, 201);
+        assertMatchesDto(dto);
+
+        dto.setParticipants(Set.of());
+        var putResponse2 = putCase(dto);
+
+        assertThat(putResponse2.jsonPath().getString("participants"))
+            .isEqualTo("Participants must consist of at least 1 defendant and 1 witness");
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=false")
+    class WithMigratedDataDisabled extends FunctionalTestBase {
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to VODAFONE cases to non super user requests")
+        void getById(TestingSupportRoles role) throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+            // ensures that super users can access
+            assertCaseExists(dto.getId(), true);
+
+            var request = doGetRequest(CASES_ENDPOINT + "/" + dto.getId(), role);
+            assertResponseCode(request, 403);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class,
+            names = {"SUPER_USER", "LEVEL_3"},
+            mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to VODAFONE cases to non super user requests")
+        void findAllCasesHideVodafoneCasesForNonSuperUser(TestingSupportRoles role) throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(role).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+
+            var getCases = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), role);
+            assertResponseCode(getCases, 200);
+            assertThat(getCases.body().jsonPath().getInt("page.totalElements")).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("Should not hide VODAFONE cases for super users")
+        void findAllCasesNotHideVodafoneCasesForSuperUser() throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+            assertCaseExists(dto.getId(), true);
+
+            var getCases = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(),
+                                        TestingSupportRoles.SUPER_USER);
+            assertResponseCode(getCases, 200);
+            assertThat(getCases.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=true")
+    class WithMigratedDataEnabled extends FunctionalTestBase {
+        @Test
+        @DisplayName("Should allow access to VODAFONE cases when feature flag enabled")
+        void getById() throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+            assertCaseExists(dto.getId(), true);
+
+            // SUPER USER
+            var request = doGetRequest(CASES_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.SUPER_USER);
+            assertResponseCode(request, 200);
+
+            // LEVEL 1
+            var request2 = doGetRequest(CASES_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.LEVEL_1);
+            assertResponseCode(request2, 200);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "LEVEL_3", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to VODAFONE cases when toggled on")
+        void findAllCasesNotHideVodafoneCases(TestingSupportRoles role) throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(role).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+            assertCaseExists(dto.getId(), true);
+
+            var getCases = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), role);
+            assertResponseCode(getCases, 200);
+            assertThat(getCases.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
         }
     }
 

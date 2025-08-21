@@ -114,8 +114,8 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(RecordingNotDeletedException.class)
-    ResponseEntity<String> onRecordingNotDeletedException(final RecordingNotDeletedException e)
+    @ExceptionHandler(CaptureSessionNotDeletedException.class)
+    ResponseEntity<String> onCaptureSessionNotDeletedException(final CaptureSessionNotDeletedException e)
         throws JsonProcessingException {
 
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -159,12 +159,6 @@ public class GlobalControllerExceptionHandler {
             "An error occurred when trying to communicate with Azure Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
         );
-    }
-
-    @ExceptionHandler(AMSLiveEventNotFoundException.class)
-    ResponseEntity<String> amsLiveEventNotFoundException(final AMSLiveEventNotFoundException e)
-        throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ResourceInWrongStateException.class)

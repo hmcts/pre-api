@@ -1,23 +1,30 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.context.TestPropertySource;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
-import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
@@ -29,13 +36,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CaseServiceIT extends IntegrationTestBase {
     @Autowired
     private CaseService caseService;
-
-    @Autowired
-    private RecordingRepository recordingRepository;
 
     @Transactional
     @Test
@@ -66,8 +71,8 @@ class CaseServiceIT extends IntegrationTestBase {
 
         var cases2 = caseService.searchBy(null, null, true, Pageable.unpaged()).toList();
         Assertions.assertEquals(cases2.size(), 2);
-        Assertions.assertTrue(cases2.stream().anyMatch(caseDTO -> caseDTO.getId().equals(caseEntity.getId())));
-        Assertions.assertTrue(cases2.stream().anyMatch(caseDTO -> caseDTO.getId().equals(caseEntity2.getId())));
+        assertTrue(cases2.stream().anyMatch(caseDTO -> caseDTO.getId().equals(caseEntity.getId())));
+        assertTrue(cases2.stream().anyMatch(caseDTO -> caseDTO.getId().equals(caseEntity2.getId())));
     }
 
     @Transactional
@@ -155,8 +160,8 @@ class CaseServiceIT extends IntegrationTestBase {
             .map(ParticipantDTO::getId)
             .collect(Collectors.toSet());
 
-        Assertions.assertTrue(participantIds.contains(participant1.getId()));
-        Assertions.assertTrue(participantIds.contains(participant2.getId()));
+        assertTrue(participantIds.contains(participant1.getId()));
+        assertTrue(participantIds.contains(participant2.getId()));
         Assertions.assertFalse(participantIds.contains(participant3.getId()));
     }
 
@@ -192,11 +197,11 @@ class CaseServiceIT extends IntegrationTestBase {
         entityManager.persist(recording);
 
         var message = Assertions.assertThrows(
-            RecordingNotDeletedException.class,
+            CaptureSessionNotDeletedException.class,
             () ->  caseService.deleteById(caseEntity.getId())
         ).getMessage();
 
-        Assertions.assertEquals(message, "Cannot delete because and associated recording has not been deleted.");
+        Assertions.assertEquals(message, "Cannot delete because an associated recording has not been deleted.");
 
         entityManager.refresh(caseEntity);
         entityManager.refresh(booking);
@@ -209,7 +214,8 @@ class CaseServiceIT extends IntegrationTestBase {
         Assertions.assertNull(recording.getDeletedAt());
 
         recording.setDeletedAt(Timestamp.from(Instant.now()));
-        recordingRepository.saveAndFlush(recording);
+        entityManager.persist(recording);
+        entityManager.flush();
         entityManager.refresh(recording);
 
         caseService.deleteById(caseEntity.getId());
@@ -369,5 +375,139 @@ class CaseServiceIT extends IntegrationTestBase {
         assertThat(captureSessionFailure.getDeletedAt()).isNotNull();
         assertThat(booking3.getDeletedAt()).isNull();
         assertThat(captureSessionRecordingAvailable.getDeletedAt()).isNull();
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=false")
+    class WithMigratedDataDisabled {
+        @Autowired
+        private CaseService caseService;
+
+        @Autowired
+        protected EntityManager entityManager;
+
+        @AfterEach
+        void tearDown() {
+            try {
+                entityManager.clear();
+                entityManager.flush();
+            } catch (Exception ignored) {
+                // ignored
+            }
+        }
+
+        @Test
+        @Transactional
+        void searchCasesDisableMigratedDataToggleNonSuperUser() {
+            mockNonAdminUser();
+
+            Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+            entityManager.persist(court);
+            Case aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase1.setOrigin(RecordingOrigin.PRE);
+            entityManager.persist(aCase1);
+            Case aCase2 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase2.setOrigin(RecordingOrigin.VODAFONE);
+            entityManager.persist(aCase2);
+            entityManager.flush();
+
+            Page<CaseDTO> results = caseService.searchBy(null, null, false, null);
+
+            assertThat(results.getTotalElements()).isEqualTo(1);
+            CaseDTO foundCase = results.getContent().getFirst();
+            assertThat(foundCase.getId()).isEqualTo(aCase1.getId());
+            assertThat(foundCase.getOrigin()).isEqualTo(RecordingOrigin.PRE);
+        }
+
+        @Test
+        @Transactional
+        void searchCasesDisableMigratedDataToggleSuperUser() {
+            mockAdminUser();
+
+            Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+            entityManager.persist(court);
+            Case aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase1.setOrigin(RecordingOrigin.PRE);
+            entityManager.persist(aCase1);
+            Case aCase2 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase2.setOrigin(RecordingOrigin.VODAFONE);
+            entityManager.persist(aCase2);
+            entityManager.flush();
+
+            Page<CaseDTO> results = caseService.searchBy(null, null, false, null);
+
+            assertThat(results.getTotalElements()).isEqualTo(2);
+            assertTrue(results.getContent().stream()
+                           .map(CaseDTO::getId)
+                           .anyMatch(caseId -> caseId.equals(aCase1.getId())));
+            assertTrue(results.getContent().stream()
+                           .map(CaseDTO::getId)
+                           .anyMatch(caseId -> caseId.equals(aCase2.getId())));
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=true")
+    class WithMigratedDataEnabled {
+        @Autowired
+        private CaseService caseService;
+
+        @Autowired
+        protected EntityManager entityManager;
+
+        @AfterEach
+        void tearDown() {
+            try {
+                entityManager.clear();
+                entityManager.flush();
+            } catch (Exception ignored) {
+                // ignored
+            }
+        }
+
+        @Test
+        @Transactional
+        void searchCasesEnableMigratedDataToggleNonSuperUser() {
+            mockNonAdminUser();
+
+            Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+            entityManager.persist(court);
+            Case aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase1.setOrigin(RecordingOrigin.PRE);
+            entityManager.persist(aCase1);
+            Case aCase2 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase2.setOrigin(RecordingOrigin.VODAFONE);
+            entityManager.persist(aCase2);
+            entityManager.flush();
+
+            Page<CaseDTO> results = caseService.searchBy(null, null, false, null);
+
+            assertThat(results.getTotalElements()).isEqualTo(2);
+            assertTrue(results.getContent().stream()
+                           .map(CaseDTO::getId)
+                           .anyMatch(caseId -> caseId.equals(aCase1.getId())));
+            assertTrue(results.getContent().stream()
+                           .map(CaseDTO::getId)
+                           .anyMatch(caseId -> caseId.equals(aCase2.getId())));
+        }
+
+        @Test
+        @Transactional
+        void searchCasesEnableMigratedDataToggleSuperUser() {
+            mockAdminUser();
+
+            Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+            entityManager.persist(court);
+            Case aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase1.setOrigin(RecordingOrigin.PRE);
+            entityManager.persist(aCase1);
+            Case aCase2 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase2.setOrigin(RecordingOrigin.VODAFONE);
+            entityManager.persist(aCase2);
+            entityManager.flush();
+
+            Page<CaseDTO> results = caseService.searchBy(null, null, false, null);
+            assertThat(results.getTotalElements()).isEqualTo(2);
+        }
     }
 }

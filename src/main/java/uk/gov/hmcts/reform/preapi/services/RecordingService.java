@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,17 +19,21 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,16 +43,23 @@ public class RecordingService {
 
     private final RecordingRepository recordingRepository;
     private final CaptureSessionRepository captureSessionRepository;
-
     private final CaptureSessionService captureSessionService;
+    private final AzureFinalStorageService azureFinalStorageService;
+
+    @Setter
+    private boolean enableMigratedData;
 
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository,
-                            @Lazy CaptureSessionService captureSessionService) {
+                            @Lazy CaptureSessionService captureSessionService,
+                            AzureFinalStorageService azureFinalStorageService,
+                            @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
+        this.azureFinalStorageService = azureFinalStorageService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @Transactional
@@ -89,8 +102,40 @@ public class RecordingService {
         );
 
         return recordingRepository
-            .searchAllBy(params, includeDeleted, pageable)
+            .searchAllBy(
+                params,
+                includeDeleted,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
+                pageable
+            )
             .map(RecordingDTO::new);
+    }
+
+    @Transactional
+    protected UpsertResult upsert(Optional<Recording> recording,
+                                  CaptureSession captureSession,
+                                  CreateRecordingDTO createRecordingDTO) {
+        Recording recordingEntity = recording.orElse(new Recording());
+        recordingEntity.setId(createRecordingDTO.getId());
+        recordingEntity.setCaptureSession(captureSession);
+        if (createRecordingDTO.getParentRecordingId() != null) {
+            Optional<Recording> parentRecording = recordingRepository
+                .findById(createRecordingDTO.getParentRecordingId());
+            if (parentRecording.isEmpty()) {
+                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
+            }
+            recordingEntity.setParentRecording(parentRecording.get());
+        } else {
+            recordingEntity.setParentRecording(null);
+        }
+        recordingEntity.setVersion(createRecordingDTO.getVersion());
+        recordingEntity.setFilename(createRecordingDTO.getFilename());
+        recordingEntity.setDuration(createRecordingDTO.getDuration());
+        recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
+
+        recordingRepository.save(recordingEntity);
+
+        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional
@@ -116,27 +161,19 @@ public class RecordingService {
             );
         }
 
-        Recording recordingEntity = recording.orElse(new Recording());
-        recordingEntity.setId(createRecordingDTO.getId());
-        recordingEntity.setCaptureSession(captureSession);
-        if (createRecordingDTO.getParentRecordingId() != null) {
-            Optional<Recording> parentRecording = recordingRepository
-                .findById(createRecordingDTO.getParentRecordingId());
-            if (parentRecording.isEmpty()) {
-                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
-            }
-            recordingEntity.setParentRecording(parentRecording.get());
-        } else {
-            recordingEntity.setParentRecording(null);
-        }
-        recordingEntity.setVersion(createRecordingDTO.getVersion());
-        recordingEntity.setFilename(createRecordingDTO.getFilename());
-        recordingEntity.setDuration(createRecordingDTO.getDuration());
-        recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
+        return upsert(recording, captureSession, createRecordingDTO);
+    }
 
-        recordingRepository.save(recordingEntity);
+    @Transactional
+    public UpsertResult forceUpsert(CreateRecordingDTO createRecordingDTO) {
+        // ignores deleted_at and case state
+        Optional<Recording> recording = recordingRepository.findById(createRecordingDTO.getId());
 
-        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        CaptureSession captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(createRecordingDTO.getCaptureSessionId())
+            .orElseThrow(() -> new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId()));
+
+        return upsert(recording, captureSession, createRecordingDTO);
     }
 
     @Transactional
@@ -159,9 +196,9 @@ public class RecordingService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void deleteCascade(CaptureSession captureSession) {
+    public void checkIfCaptureSessionHasAssociatedRecordings(CaptureSession captureSession) {
         if (recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)) {
-            throw new RecordingNotDeletedException();
+            throw new CaptureSessionNotDeletedException();
         }
     }
 
@@ -181,5 +218,38 @@ public class RecordingService {
     @Transactional
     public int getNextVersionNumber(UUID parentRecordingId) {
         return recordingRepository.countByParentRecording_Id(parentRecordingId) + 2;
+    }
+
+    @Transactional
+    public void syncRecordingMetadataWithStorage(UUID recordingId) {
+        Recording recording = recordingRepository.findById(recordingId)
+            .orElseThrow(() -> new NotFoundException("Recording: " + recordingId));
+
+        String storageMp4Filename = azureFinalStorageService.getMp4FileName(recordingId.toString());
+        Duration storageDuration = azureFinalStorageService.getRecordingDuration(recordingId);
+
+        boolean filenameChanged = !Objects.equals(recording.getFilename(), storageMp4Filename);
+        boolean durationChanged = !Objects.equals(recording.getDuration(), storageDuration);
+        if (filenameChanged) {
+            log.warn("Recording {} filename has changed to {}", recordingId, storageMp4Filename);
+            recording.setFilename(storageMp4Filename);
+        }
+
+        if (durationChanged) {
+            log.warn("Recording {} duration has changed to {}", recordingId, storageDuration);
+            recording.setDuration(storageDuration);
+        }
+
+        if (filenameChanged || durationChanged) {
+            recordingRepository.saveAndFlush(recording);
+        }
+    }
+
+    @Transactional
+    public List<RecordingDTO> findAllDurationNull() {
+        return recordingRepository.findAllByDurationIsNullAndDeletedAtIsNull()
+            .stream()
+            .map(RecordingDTO::new)
+            .toList();
     }
 }

@@ -19,12 +19,22 @@ springdoc:
     - /health/*
   api-docs:
     version: openapi_3_0
+  swagger-ui:
+    urls:
+      - name: pre-api
+        url: /v3/api-docs/pre-api
+      - name: b2c-api
+        url: /v3/api-docs/b2c-api
 
 spring:
   config:
     import: "optional:configtree:/mnt/secrets/pre-hmctskv/"
   application:
     name: Spring Boot Template
+  cache:
+    cache-names: users
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=10m
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:api}${DB_OPTIONS:}
@@ -34,17 +44,20 @@ spring:
       charSet: UTF-8
     hikari:
       minimumIdle: 2
-      maximumPoolSize: 10
+      maximumPoolSize: ${HIKARI_POOL_SIZE:10}
       idleTimeout: 10000
       poolName: PreHikariCP
       maxLifetime: 7200000
       connectionTimeout: 30000
     jpa:
+
+      show-sql: true
       hibernate:
         ddl-auto: none
       database-platform: org.hibernate.dialect.PostgreSQLDialect
       properties:
         hibernate:
+          format_sql: true
           default_schema: ${spring.datasource.schema}
           dialect: org.hibernate.dialect.PostgreSQLDialect
           globally_quoted_identifiers: true
@@ -55,17 +68,19 @@ spring:
       open-in-view: true # https://www.baeldung.com/spring-open-session-in-view may want to disable
 
 azure:
-  application-insights:
-    instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:00000000-0000-0000-0000-000000000000}
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
+
   finalStorage:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
+  vodafoneStorage:
+    accountName: ${AZURE_VF_SA:}
+    connectionString: ${AZURE_VF_SA_CONNECTION_STRING:}
+    container: ${AZURE_VF_CONTAINER:prod-migration-1}
   managedIdentityClientId: ${AZURE_CLIENT_ID:}
   tenantId: ${AZURE_TENANT_ID:}
-
 
 hibernate:
   show_sql: true
@@ -86,27 +101,13 @@ mediakind:
   token: ${MEDIA_KIND_TOKEN:}
   issuer: ${ISSUER:https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/}
   symmetricKey: ${SYMMETRIC_KEY:}
-  streaming-locator-on-start: ${ENABLE_STREAMING_LOCATOR_ON_START:false}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
 cron-user-email: ${CRON_USER_EMAIL:test@test.com}
-
-flow:
-  workflow:
-    stopLiveEventNotifier:
-      api: ${FLOW_CLOSE_LIVE_EVENT_HTTP_API:https://prod-01.uksouth.logic.azure.com}
-      id: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
-      sig: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG:123}
-      enabled: true
-    caseStateChangeNotifier:
-      api: ${FLOW_CASE_STATE_NOTIFIER_HTTP_API:https://prod-17.uksouth.logic.azure.com:443}
-      id: ${CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID:8b976c9fdc7749d3a4b8c9d6a6ef9d0c}
-      sig: ${FLOW_CASE_STATE_CHANGE_NOTIFIER_SIG:123}
-      enabled: true
-  key: ${FLOW_KEY:123}
+vodafone-user-email: ${CRON_USER_EMAIL:vodafone@test.com}
 
 nroUsersFilePath: src/integrationTest/resources/Test_NRO_User_Import.csv
 
@@ -114,7 +115,7 @@ email:
   service: ${EMAIL_SERVICE:GovNotify}
   govNotify:
     key: ${GOV_NOTIFY_API_KEY:}
-  enable: ${ENABLE_NEW_EMAIL_SERVICE:false}
+  enable: true
 
 portal:
   url: ${PORTAL_URL:https://pre-portal.staging.platform.hmcts.net/}
@@ -122,8 +123,15 @@ portal:
 slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
+
+migration:
+  debug: ${MIGRATION_DEBUG:false}
+  type: ${MIGRATION_TYPE:FULL}
+  dryRun: ${DRY_RUN:false}
+  enableMigratedData: ${ENABLE_MIGRATED_DATA:false}
+
 editing:
-  enable: ${ENABLE_AUTOMATED_EDITING:false}
+  enable: ${ENABLE_AUTOMATED_EDITING:true}
 
 tasks:
   start-live-event:
@@ -134,10 +142,18 @@ tasks:
     cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
     job-poll-interval: 10000 # 10 seconds
 
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
 #    org.springframework.transaction: DEBUG
+
+feature-flags:
+  enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+  enable-migration-admin-endpoints: ${ENABLE_MIGRATION_ADMIN_ENDPOINTS:false}
+  cleanup-null-duration:
+    upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
+
 #logging:
 #  level:
 #    uk:

@@ -12,8 +12,11 @@ import static java.lang.Character.toLowerCase;
 @Service
 public class ScheduledTaskRunner {
 
-    @Autowired
-    ApplicationContext context;
+    private final ApplicationContext context;
+
+    public ScheduledTaskRunner(@Autowired ApplicationContext context) {
+        this.context = context;
+    }
 
     public void run(String taskName) {
         final String beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);

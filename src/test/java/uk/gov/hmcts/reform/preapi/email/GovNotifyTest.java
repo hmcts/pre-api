@@ -319,4 +319,36 @@ public class GovNotifyTest {
 
         assertThat(message).isEqualTo("Failed to send email to: " + getUser().getEmail());
     }
+
+    @DisplayName(("Should send email verification email"))
+    @Test
+    void shouldSendEmailVerificationEmail() throws NotificationClientException {
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
+            .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
+
+        var user = getUser();
+        var response = govNotify.emailVerification(user.getEmail(), user.getFirstName(), user.getLastName(), "123456");
+
+        assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
+        assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
+        assertThat(response.getBody()).isEqualTo("MESSAGE TEXT");
+    }
+
+    @DisplayName(("Should fail to send email verification email"))
+    @Test
+    void shouldFailToSendEmailVerificationEmail() throws NotificationClientException {
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
+            .thenThrow(mock(NotificationClientException.class));
+
+        var user = getUser();
+        var message = assertThrows(EmailFailedToSendException.class,
+                                   () -> govNotify.emailVerification(user.getEmail(),
+                                                                     user.getFirstName(),
+                                                                     user.getLastName(),
+                                                                     "123456")).getMessage();
+
+        assertThat(message).isEqualTo("Failed to send email to: " + getUser().getEmail());
+    }
 }

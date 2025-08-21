@@ -4,16 +4,26 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public class EditControllerFT extends FunctionalTestBase {
     private static final String VALID_EDIT_CSV = "src/functionalTest/resources/test/edit/edit_from_csv.csv";
@@ -22,13 +32,21 @@ public class EditControllerFT extends FunctionalTestBase {
     private static final Map<String, String> MULTIPART_HEADERS =
         Map.of("Content-Type", MediaType.MULTIPART_FORM_DATA_VALUE);
 
+    @MockitoBean
+    private AzureFinalStorageService azureFinalStorageService;
+
     @Test
     @DisplayName("Should create an edit request from a csv")
     void editFromCsvSuccess() throws JsonProcessingException {
-        var recordingDetails = createRecording();
-        assertRecordingExists(recordingDetails.recordingId(), true);
+        CreateRecordingResponse recordingDetails = createRecording();
+        RecordingDTO recordingDTO = assertRecordingExists(recordingDetails.recordingId(), true).as(RecordingDTO.class);
 
-        var postResponse = doPostRequestWithMultipart(
+        when(azureFinalStorageService.getMp4FileName(recordingDetails.recordingId().toString()))
+            .thenReturn(recordingDTO.getFilename());
+        when(azureFinalStorageService.getRecordingDuration(recordingDetails.recordingId()))
+            .thenReturn(recordingDTO.getDuration());
+
+        EditRequestDTO postResponse = doPostRequestWithMultipart(
             EDIT_ENDPOINT + "/from-csv/" + recordingDetails.recordingId(),
             MULTIPART_HEADERS,
             VALID_EDIT_CSV,
@@ -40,11 +58,11 @@ public class EditControllerFT extends FunctionalTestBase {
         assertThat(postResponse.getStatus()).isEqualTo(EditRequestStatus.PENDING);
 
         assertThat(postResponse.getEditInstruction()).isNotNull();
-        var instructions = OBJECT_MAPPER.readValue(postResponse.getEditInstruction(),
-                                                   new TypeReference<EditInstructions>() {});
+        EditInstructions instructions = OBJECT_MAPPER.readValue(postResponse.getEditInstruction(),
+                                                   new TypeReference<>() {});
         assertThat(instructions).isNotNull();
 
-        var requestedInstructions = instructions.getRequestedInstructions();
+        List<EditCutInstructionDTO> requestedInstructions = instructions.getRequestedInstructions();
         assertThat(requestedInstructions).isNotEmpty();
         assertThat(requestedInstructions.size()).isEqualTo(2);
 
@@ -60,7 +78,7 @@ public class EditControllerFT extends FunctionalTestBase {
         assertThat(requestedInstructions.getLast().getStart()).isEqualTo(61);
         assertThat(requestedInstructions.getLast().getEnd()).isEqualTo(120);
 
-        var ffmpegInstructions = instructions.getFfmpegInstructions();
+        List<FfmpegEditInstructionDTO> ffmpegInstructions = instructions.getFfmpegInstructions();
         assertThat(ffmpegInstructions).isNotEmpty();
         assertThat(ffmpegInstructions.size()).isEqualTo(2);
 
@@ -71,55 +89,20 @@ public class EditControllerFT extends FunctionalTestBase {
         assertThat(ffmpegInstructions.getLast().getEnd()).isEqualTo(180);
     }
 
-    @Test
+    @NullSource
+    @ParameterizedTest
+    @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
     @DisplayName("Should return forbidden for users attempting to use from csv endpoint with incorrect role")
-    void editRequestFromCsvForbidden() {
+    void editRequestFromCsvForbidden(TestingSupportRoles role) {
         var recordingDetails = createRecording();
         assertRecordingExists(recordingDetails.recordingId(), true);
 
-        // Level 1
-        var responseLevel1 = doPostRequestWithMultipart(
+        var response = doPostRequestWithMultipart(
             EDIT_ENDPOINT + "/from-csv/" + recordingDetails.recordingId(),
             MULTIPART_HEADERS,
             VALID_EDIT_CSV,
-            TestingSupportRoles.LEVEL_1
+            role
         );
-        assertResponseCode(responseLevel1, 403);
-
-        // Level 2
-        var responseLevel2 = doPostRequestWithMultipart(
-            EDIT_ENDPOINT + "/from-csv/" + recordingDetails.recordingId(),
-            MULTIPART_HEADERS,
-            VALID_EDIT_CSV,
-            TestingSupportRoles.LEVEL_2
-        );
-        assertResponseCode(responseLevel2, 403);
-
-        // Level 3
-        var responseLevel3 = doPostRequestWithMultipart(
-            EDIT_ENDPOINT + "/from-csv/" + recordingDetails.recordingId(),
-            MULTIPART_HEADERS,
-            VALID_EDIT_CSV,
-            TestingSupportRoles.LEVEL_3
-        );
-        assertResponseCode(responseLevel3, 403);
-
-        // Level 4
-        var responseLevel4 = doPostRequestWithMultipart(
-            EDIT_ENDPOINT + "/from-csv/" + recordingDetails.recordingId(),
-            MULTIPART_HEADERS,
-            VALID_EDIT_CSV,
-            TestingSupportRoles.LEVEL_4
-        );
-        assertResponseCode(responseLevel4, 403);
-
-        // No X-User-Id
-        var responseNoRole = doPostRequestWithMultipart(
-            EDIT_ENDPOINT + "/from-csv/" + recordingDetails.recordingId(),
-            MULTIPART_HEADERS,
-            VALID_EDIT_CSV,
-            null
-        );
-        assertResponseCode(responseNoRole, 401);
+        assertResponseCode(response, role == null ? 401 : 403);
     }
 }

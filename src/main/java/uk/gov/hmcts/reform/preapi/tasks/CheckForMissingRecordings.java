@@ -151,11 +151,6 @@ public class CheckForMissingRecordings extends RobotUserTask {
                     "Recording for capture session %s has zero duration in database",
                     captureSessionId
                 ));
-            } else if (recording.getCaptureSession().getLiveOutputUrl() == null) {
-                unhappyRecordings.add(format(
-                    "Capture session %s missing live output url",
-                    captureSessionId
-                ));
             } else {
                 Duration recordingFromFinalSA = azureFinalStorageService.getRecordingDuration(recording.getId());
                 if (recordingFromFinalSA == null) {

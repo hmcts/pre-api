@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -101,9 +102,13 @@ public class AuthorisationServiceTest {
         var booking = new Booking();
         var id = UUID.randomUUID();
         booking.setId(id);
+
+        var aCase = new Case();
+        aCase.setOrigin(RecordingOrigin.PRE);
+        booking.setCaseId(aCase);
+
         when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.isPortalUser()).thenReturn(true);
-        when(bookingRepository.existsById(id)).thenReturn(true);
         when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
         when(authenticationUser.getSharedBookings()).thenReturn(List.of(id));
 
@@ -139,9 +144,11 @@ public class AuthorisationServiceTest {
         var booking = new Booking();
         var id = UUID.randomUUID();
         booking.setId(id);
+        var aCase = new Case();
+        aCase.setOrigin(RecordingOrigin.PRE);
+        booking.setCaseId(aCase);
         when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.isPortalUser()).thenReturn(true);
-        when(bookingRepository.existsById(id)).thenReturn(true);
         when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
         when(authenticationUser.getSharedBookings()).thenReturn(List.of(UUID.randomUUID()));
 
@@ -310,6 +317,7 @@ public class AuthorisationServiceTest {
         var bookingId = UUID.randomUUID();
         var captureSession = new CaptureSession();
         captureSession.setId(captureSessionId);
+        captureSession.setOrigin(RecordingOrigin.PRE);
         var booking = new Booking();
         booking.setId(bookingId);
         captureSession.setBooking(booking);
@@ -327,16 +335,20 @@ public class AuthorisationServiceTest {
         var captureSessionId = UUID.randomUUID();
         var captureSession = new CaptureSession();
         captureSession.setId(captureSessionId);
+        captureSession.setOrigin(RecordingOrigin.PRE);
         var bookingId = UUID.randomUUID();
         var booking = new Booking();
         booking.setId(bookingId);
         captureSession.setBooking(booking);
 
+        var aCase = new Case();
+        aCase.setOrigin(RecordingOrigin.PRE);
+        booking.setCaseId(aCase);
+
         when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.isPortalUser()).thenReturn(true);
         when(authenticationUser.getSharedBookings()).thenReturn(List.of());
         when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.of(captureSession));
-        when(bookingRepository.existsById(bookingId)).thenReturn(true);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         assertFalse(authorisationService.hasCaptureSessionAccess(authenticationUser, captureSessionId));
@@ -393,7 +405,11 @@ public class AuthorisationServiceTest {
         var bookingId = UUID.randomUUID();
         var booking = new Booking();
         booking.setId(bookingId);
+        var aCase = new Case();
+        aCase.setOrigin(RecordingOrigin.PRE);
+        booking.setCaseId(aCase);
         captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
         recording.setCaptureSession(captureSession);
 
         when(authenticationUser.isAdmin()).thenReturn(false);
@@ -401,7 +417,6 @@ public class AuthorisationServiceTest {
         when(authenticationUser.getSharedBookings()).thenReturn(List.of());
         when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
         when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.of(captureSession));
-        when(bookingRepository.existsById(bookingId)).thenReturn(true);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         assertFalse(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
@@ -428,8 +443,8 @@ public class AuthorisationServiceTest {
         assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
-    @DisplayName("Should not grant upsert access when capture session access is not granted")
     @Test
+    @DisplayName("Should not grant upsert access when capture session access is not granted")
     void hasUpsertAccessRecordingDTOAccessNotGranted() {
         var dto = new CreateRecordingDTO();
         dto.setParentRecordingId(null);
@@ -446,6 +461,7 @@ public class AuthorisationServiceTest {
         var captureSession = new CaptureSession();
         captureSession.setId(dto.getCaptureSessionId());
         captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
 
         when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
         when(bookingRepository.existsById(booking.getId())).thenReturn(true);
@@ -475,11 +491,11 @@ public class AuthorisationServiceTest {
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
 
         var parentRecording = new Recording();
         parentRecording.setId(dto.getParentRecordingId());
         parentRecording.setCaptureSession(captureSession);
-
 
         when(captureSessionRepository.findById(dto.getCaptureSessionId())).thenReturn(Optional.empty());
         when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
@@ -489,7 +505,6 @@ public class AuthorisationServiceTest {
         when(authenticationUser.isAppUser()).thenReturn(true);
         when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
         when(authenticationUser.isPortalUser()).thenReturn(false);
-
 
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
@@ -511,7 +526,6 @@ public class AuthorisationServiceTest {
             participant2,
             participant3
         );
-
 
         assertTrue(authorisationService.hasUpsertAccess(authenticationUser, participants));
     }
@@ -690,6 +704,51 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @DisplayName("Should grant upsert access when creating a new case as a non-admin")
+    @Test
+    void hasUpsertAccessNewCase() {
+        var dto = new CreateCaseDTO();
+        dto.setId(UUID.randomUUID());
+        var court = UUID.randomUUID();
+        dto.setCourtId(court);
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(court);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should grant upsert access when not supplying a new case state for an open case")
+    @Test
+    void hasUpsertAccessNullState() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+
+        var existingCase = new Case();
+        existingCase.setId(UUID.randomUUID());
+        existingCase.setCourt(court);
+        existingCase.setState(CaseState.OPEN);
+
+        var dto = new CreateCaseDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(court.getId());
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(court.getId());
+        when(caseRepository.findById(dto.getId())).thenReturn(Optional.of(existingCase));
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+
+        existingCase.setState(CaseState.PENDING_CLOSURE);
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
     @DisplayName("Should grant upsert access when the user is the one sharing the booking and has booking access")
     @Test
     void hasUpsertAccessUserIsSharingAndHasBookingAccess() {
@@ -746,12 +805,15 @@ public class AuthorisationServiceTest {
         var booking = new Booking();
         booking.setId(dto.getBookingId());
 
+        var aCase = new Case();
+        aCase.setOrigin(RecordingOrigin.PRE);
+        booking.setCaseId(aCase);
+
         when(authenticationUser.getUserId()).thenReturn(userId);
         when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.isAppUser()).thenReturn(false);
         when(authenticationUser.isPortalUser()).thenReturn(true);
         when(authenticationUser.getSharedBookings()).thenReturn(List.of(UUID.randomUUID()));
-        when(bookingRepository.existsById(booking.getId())).thenReturn(true);
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
 
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
@@ -804,5 +866,133 @@ public class AuthorisationServiceTest {
         when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.of(editRequest));
 
         assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, id));
+    }
+
+    @Test
+    @DisplayName(
+        "Should not grant access if booking is for VODAFONE, the user is not super user and migration data disabled")
+    void hasBookingAccessVodafoneNotSuperUserMigratedDataDisabled() {
+        var booking = new Booking();
+        var id = UUID.randomUUID();
+        booking.setId(id);
+        var aCase = new Case();
+        aCase.setOrigin(RecordingOrigin.VODAFONE);
+        booking.setCaseId(aCase);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(true);
+        when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of(id));
+
+        assertFalse(authorisationService.hasBookingAccess(authenticationUser, id));
+    }
+
+    @Test
+    @DisplayName("Should grant access if booking is for VODAFONE and migration data enabled")
+    void hasBookingAccessVodafoneNotSuperUserMigratedDataEnabled() {
+        var booking = new Booking();
+        var id = UUID.randomUUID();
+        booking.setId(id);
+        var aCase = new Case();
+        aCase.setOrigin(RecordingOrigin.VODAFONE);
+        booking.setCaseId(aCase);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(true);
+        when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of(id));
+
+        AuthorisationService authService = createAuthorisationServiceWithToggle(true);
+        assertTrue(authService.hasBookingAccess(authenticationUser, id));
+    }
+
+    @Test
+    @DisplayName("Should grant access if booking is for VODAFONE, the user is super user and migration data disabled")
+    void hasBookingAccessVodafoneIsSuperUserMigratedDataEnabled() {
+        var booking = new Booking();
+        var id = UUID.randomUUID();
+        booking.setId(id);
+        var aCase = new Case();
+        aCase.setOrigin(RecordingOrigin.VODAFONE);
+        booking.setCaseId(aCase);
+
+        when(authenticationUser.isAdmin()).thenReturn(true);
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        when(authenticationUser.isPortalUser()).thenReturn(true);
+        when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of(id));
+
+        assertTrue(authorisationService.hasBookingAccess(authenticationUser, id));
+    }
+
+    @Test
+    void hasCaseAccessVodafoneMigratedDataEnabled() {
+        UUID caseId = UUID.randomUUID();
+        Case caseEntity = new Case();
+        caseEntity.setId(caseId);
+        caseEntity.setOrigin(RecordingOrigin.VODAFONE);
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        caseEntity.setCourt(court);
+
+        when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseEntity));
+        when(authenticationUser.isAdmin()).thenReturn(true);
+        when(authenticationUser.getCourtId()).thenReturn(court.getId());
+
+        AuthorisationService service = createAuthorisationServiceWithToggle(true);
+        assertTrue(service.hasCaseAccess(authenticationUser, caseId));
+    }
+
+    @Test
+    void hasCaseAccessNotSuperUserMigratedDataDisabled() {
+        UUID caseId = UUID.randomUUID();
+        Case caseEntity = new Case();
+        caseEntity.setId(caseId);
+        caseEntity.setOrigin(RecordingOrigin.VODAFONE);
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        caseEntity.setCourt(court);
+
+        when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseEntity));
+        when(authenticationUser.getCourtId()).thenReturn(caseEntity.getCourt().getId());
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+
+        assertFalse(authorisationService.hasCaseAccess(authenticationUser, caseId));
+    }
+
+    @Test
+    void canViewVodafoneDataTrueIsSuperUserMigratedDataDisabled() {
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+        AuthorisationService service = createAuthorisationServiceWithToggle(true);
+
+        assertTrue(service.canViewVodafoneData(authenticationUser));
+    }
+
+    @Test
+    void canViewVodafoneDataFalseIsNotSuperUserMigratedDataDisabled() {
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+
+        assertFalse(authorisationService.canViewVodafoneData(authenticationUser));
+    }
+
+    @Test
+    void canViewDeletedIsAdmin() {
+        when(authenticationUser.isAdmin()).thenReturn(true);
+        assertTrue(authorisationService.canViewDeleted(authenticationUser));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        assertFalse(authorisationService.canViewDeleted(authenticationUser));
+    }
+
+    private AuthorisationService createAuthorisationServiceWithToggle(boolean enableMigratedData) {
+        return new AuthorisationService(
+            bookingRepository,
+            caseRepository,
+            participantRepository,
+            captureSessionRepository,
+            recordingRepository,
+            editRequestRepository,
+            enableMigratedData
+        );
     }
 }

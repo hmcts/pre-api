@@ -19,9 +19,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -32,7 +37,6 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
-import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -53,11 +57,9 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
@@ -84,7 +86,6 @@ class TestingSupportController {
     private final ParticipantRepository participantRepository;
     private final RecordingRepository recordingRepository;
     private final RegionRepository regionRepository;
-    private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AppAccessRepository appAccessRepository;
@@ -92,8 +93,8 @@ class TestingSupportController {
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final AuditRepository auditRepository;
     private final ScheduledTaskRunner scheduledTaskRunner;
-    private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
+    private final MigrationRecordRepository migrationRecordRepository;
 
     @Autowired
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -104,7 +105,6 @@ class TestingSupportController {
                              final ParticipantRepository participantRepository,
                              final RecordingRepository recordingRepository,
                              final RegionRepository regionRepository,
-                             final RoomRepository roomRepository,
                              final UserRepository userRepository,
                              final RoleRepository roleRepository,
                              final AppAccessRepository appAccessRepository,
@@ -112,8 +112,8 @@ class TestingSupportController {
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
-                             final EditRequestService editRequestService,
-                             final AzureFinalStorageService azureFinalStorageService) {
+                             final AzureFinalStorageService azureFinalStorageService,
+                             final MigrationRecordRepository migrationRecordRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -121,7 +121,6 @@ class TestingSupportController {
         this.participantRepository = participantRepository;
         this.recordingRepository = recordingRepository;
         this.regionRepository = regionRepository;
-        this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
@@ -129,17 +128,8 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.auditRepository = auditRepository;
         this.scheduledTaskRunner = scheduledTaskRunner;
-        this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
-    }
-
-    @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createRoom(@RequestParam(required = false) String roomName) {
-        Room room = new Room();
-        room.setName(roomName == null || roomName.isEmpty()  ? "Example Room" : roomName);
-        roomRepository.save(room);
-
-        return ResponseEntity.ok(Map.of("roomId", room.getId().toString(), "roomName", room.getName()));
+        this.migrationRecordRepository = migrationRecordRepository;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -169,13 +159,7 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        Room room = new Room();
-        room.setName("Foo Room");
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
-
         court.setRegions(Set.of(region));
-        court.setRooms(Set.of(room));
         courtRepository.save(court);
 
         Case caseEntity = new Case();
@@ -220,19 +204,14 @@ class TestingSupportController {
         Court court = createTestCourt();
 
         Region region = new Region();
-        region.setName("Region " + RandomStringUtils.randomAlphabetic(5));
+        region.setName("Region " + RandomStringUtils.secure().nextAlphabetic(5));
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        Room room = new Room();
-        room.setName("Room " + RandomStringUtils.randomAlphabetic(5));
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
-
-        Case caseEntity = new Case();
+        var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
+        caseEntity.setReference(RandomStringUtils.secure().nextAlphabetic(5));
         caseEntity.setCourt(court);
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
@@ -262,14 +241,14 @@ class TestingSupportController {
         User finishUser = new User();
         finishUser.setId(UUID.randomUUID());
         finishUser.setEmail("finishuser@justice.local");
-        finishUser.setPhone(RandomStringUtils.randomNumeric(11));
+        finishUser.setPhone(RandomStringUtils.secure().nextNumeric(11));
         finishUser.setOrganisation("Gov Org");
         finishUser.setFirstName("Finish");
         finishUser.setLastName("User");
         User startUser = new User();
         startUser.setId(UUID.randomUUID());
         startUser.setEmail("startuser@justice.local");
-        startUser.setPhone(RandomStringUtils.randomNumeric(11));
+        startUser.setPhone(RandomStringUtils.secure().nextNumeric(11));
         startUser.setOrganisation("Gov Org");
         startUser.setFirstName("Start");
         startUser.setLastName("User");
@@ -331,13 +310,13 @@ class TestingSupportController {
     @PostMapping("/create-authenticated-user/{role}")
     public ResponseEntity<Map<String, String>> createAuthenticatedUser(@PathVariable TestingSupportRoles role) {
         String roleName = switch (role) {
-            case SUPER_USER -> "Super User";
+            case SUPER_USER ->  "Super User";
             case LEVEL_1 -> "Level 1";
             case LEVEL_2 -> "Level 2";
             case LEVEL_3 -> "Level 3";
             case LEVEL_4 -> "Level 4";
         };
-        Role roleEntity = roleRepository.findFirstByName(roleName)
+        var r = roleRepository.findFirstByName(roleName)
             .orElse(createRole(roleName));
         AppAccess appAccess = createAppAccess(roleEntity);
         return ResponseEntity.ok(Map.of(
@@ -463,19 +442,14 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        Room room = new Room();
-        room.setName("Foo Room");
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
-
         court.setRegions(Set.of(region));
-        court.setRooms(Set.of(room));
         courtRepository.save(court);
 
         Case caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         Participant participant1 = new Participant();
@@ -517,6 +491,77 @@ class TestingSupportController {
         recordingRepository.save(recording);
 
         return ResponseEntity.ok(new RecordingDTO(recording));
+    }
+
+    @PostMapping("/create-random-formed-migration-record")
+    public ResponseEntity<VfMigrationRecordDTO> createRandomFormedMigrationRecord() {
+        String randomArchiveId = UUID.randomUUID().toString();
+        String randomArchiveName = "archive_" + randomArchiveId.substring(0, 8);
+        MigrationRecord record = new MigrationRecord();
+        record.setId(UUID.randomUUID());
+        record.setArchiveId(randomArchiveId);
+        record.setArchiveName(randomArchiveName);
+        record.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        record.setDuration((int) (Math.random() * 1000));
+        record.setCourtReference(courtRepository.findAll().getFirst().getName());
+        record.setUrn("urn" + (int) (Math.random() * 100000));
+        record.setExhibitReference(RandomStringUtils.randomAlphabetic(10));
+        record.setDefendantName("defendant");
+        record.setWitnessName("witness");
+        record.setRecordingVersion("ORIG");
+        record.setRecordingVersionNumber("1");
+        record.setFileName("file_" + randomArchiveId.substring(0, 4) + ".mp4");
+        record.setFileSizeMb(String.valueOf((Math.random() * 100) + 1));
+        record.setRecordingId(UUID.randomUUID());
+        record.setCaptureSessionId(UUID.randomUUID());
+        record.setBookingId(UUID.randomUUID());
+        record.setStatus(VfMigrationStatus.FAILED);
+        record.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        record.setReason(VfFailureReason.GENERAL_ERROR.toString());
+        record.setErrorMessage("error_message");
+        record.setIsMostRecent(true);
+        record.setIsPreferred(true);
+        record.setRecordingGroupKey("group_key");
+        migrationRecordRepository.saveAndFlush(record);
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
+    }
+
+    @PostMapping("/create-random-empty-migration-record")
+    public ResponseEntity<VfMigrationRecordDTO> createRandomEmptyMigrationRecord() {
+        String randomArchiveId = UUID.randomUUID().toString();
+        String randomArchiveName = "archive_" + randomArchiveId.substring(0, 8);
+        MigrationRecord record = new MigrationRecord();
+        record.setId(UUID.randomUUID());
+        record.setArchiveId(randomArchiveId);
+        record.setArchiveName(randomArchiveName);
+        record.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        record.setDuration((int) (Math.random() * 1000));
+        record.setRecordingVersionNumber("1");
+        record.setFileName("file_" + randomArchiveId.substring(0, 4) + ".mp4");
+        record.setFileSizeMb(String.valueOf((Math.random() * 100) + 1));
+        record.setStatus(VfMigrationStatus.FAILED);
+        record.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        record.setReason(VfFailureReason.INCOMPLETE_DATA.toString());
+        record.setErrorMessage("error_message");
+        record.setIsMostRecent(true);
+        record.setIsPreferred(true);
+        record.setRecordingGroupKey("group_key");
+        migrationRecordRepository.saveAndFlush(record);
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
+    }
+
+    @PostMapping("/update-migration-record-to-invalid-duration/{migrationRecordId}")
+    public ResponseEntity<VfMigrationRecordDTO> updateMigrationRecordToInvalidDuration(
+        @PathVariable UUID migrationRecordId) {
+
+        MigrationRecord record = migrationRecordRepository.findById(migrationRecordId)
+            .orElseThrow(() -> new NotFoundException("MigrationRecord: " + migrationRecordId));
+        record.setDuration(5); // must be more than 10 seconds, so this is invalid
+        record.setReason(VfFailureReason.INVALID_FORMAT.toString());
+        record.setErrorMessage("Duration too short");
+        migrationRecordRepository.saveAndFlush(record);
+
+        return ResponseEntity.ok(new VfMigrationRecordDTO(record));
     }
 
     private Court createTestCourt() {
