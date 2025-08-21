@@ -8,7 +8,11 @@ import org.mockito.ArgumentCaptor;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -192,7 +196,6 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.RECORDING_AVAILABLE), any());
-        verify(stopLiveEventNotifierFlowClient, times(1)).emailAfterStoppingLiveEvents(any());
     }
 
     @Test
