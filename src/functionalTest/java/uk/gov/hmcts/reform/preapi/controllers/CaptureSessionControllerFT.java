@@ -1,17 +1,27 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -311,5 +321,160 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
                     + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
                     + "Current state is PROCESSING"
             );
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=true")
+    class WithMigratedDataEnabled extends FunctionalTestBase {
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to capture sessions with VODAFONE case to non super user requests")
+        void getByIdVfCase(TestingSupportRoles role) throws JsonProcessingException {
+            CreateCaptureSessionDTO dto = setupCaptureSessionWithOrigins(
+                RecordingOrigin.VODAFONE,
+                RecordingOrigin.PRE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession = putCaptureSession(dto);
+            assertResponseCode(putCaptureSession, 201);
+            assertCaptureSessionExists(dto.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), role);
+            assertResponseCode(getResponse, 200);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to VODAFONE capture sessions with PRE case to non super user requests")
+        void getByIdVfCaptureSession(TestingSupportRoles role) throws JsonProcessingException {
+            CreateCaptureSessionDTO dto = setupCaptureSessionWithOrigins(
+                RecordingOrigin.PRE,
+                RecordingOrigin.VODAFONE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession = putCaptureSession(dto);
+            assertResponseCode(putCaptureSession, 201);
+            assertCaptureSessionExists(dto.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), role);
+            assertResponseCode(getResponse, 200);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to capture session with VODAFONE origin to non super user requests in search")
+        void getCases(TestingSupportRoles role) throws JsonProcessingException {
+            // vf case, pre capture session
+            CreateCaptureSessionDTO dto1 = setupCaptureSessionWithOrigins(
+                RecordingOrigin.VODAFONE,
+                RecordingOrigin.PRE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession1 = putCaptureSession(dto1);
+            assertResponseCode(putCaptureSession1, 201);
+            assertCaptureSessionExists(dto1.getId(), true);
+
+            // pre case, vf capture session
+            CreateCaptureSessionDTO dto2 = setupCaptureSessionWithOrigins(
+                RecordingOrigin.PRE,
+                RecordingOrigin.VODAFONE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession2 = putCaptureSession(dto2);
+            assertResponseCode(putCaptureSession2, 201);
+            assertCaptureSessionExists(dto2.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT
+                                                    + "?courtId="
+                                                    + authenticatedUserIds.get(role).courtId(),
+                                                role);
+            assertResponseCode(getResponse, 200);
+
+            List<UUID> foundCaptureSessions = getResponse.getBody()
+                .jsonPath()
+                .getList("_embedded.captureSessionDTOList", CaptureSessionDTO.class)
+                .stream()
+                .map(CreateCaptureSessionDTO::getId)
+                .toList();
+            assertThat(foundCaptureSessions).isNotEmpty();
+            assertThat(foundCaptureSessions).containsAll(List.of(dto1.getId(), dto2.getId()));
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=false")
+    class WithMigratedDataDisabled extends FunctionalTestBase {
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to capture sessions with VODAFONE case to non super user requests")
+        void getByIdVfCase(TestingSupportRoles role) throws JsonProcessingException {
+            CreateCaptureSessionDTO dto = setupCaptureSessionWithOrigins(
+                RecordingOrigin.VODAFONE,
+                RecordingOrigin.PRE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession = putCaptureSession(dto);
+            assertResponseCode(putCaptureSession, 201);
+            assertCaptureSessionExists(dto.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), role);
+            assertResponseCode(getResponse, 403);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to VODAFONE capture sessions with PRE case to non super user requests")
+        void getByIdVfCaptureSession(TestingSupportRoles role) throws JsonProcessingException {
+            CreateCaptureSessionDTO dto = setupCaptureSessionWithOrigins(
+                RecordingOrigin.PRE,
+                RecordingOrigin.VODAFONE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession = putCaptureSession(dto);
+            assertResponseCode(putCaptureSession, 201);
+            assertCaptureSessionExists(dto.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), role);
+            assertResponseCode(getResponse, 403);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to capture session with VODAFONE origin to non super user in search")
+        void getCases(TestingSupportRoles role) throws JsonProcessingException {
+            // vf case, pre capture session
+            CreateCaptureSessionDTO dto1 = setupCaptureSessionWithOrigins(
+                RecordingOrigin.VODAFONE,
+                RecordingOrigin.PRE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession1 = putCaptureSession(dto1);
+            assertResponseCode(putCaptureSession1, 201);
+            assertCaptureSessionExists(dto1.getId(), true);
+
+            // pre case, vf capture session
+            CreateCaptureSessionDTO dto2 = setupCaptureSessionWithOrigins(
+                RecordingOrigin.PRE,
+                RecordingOrigin.VODAFONE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession2 = putCaptureSession(dto2);
+            assertResponseCode(putCaptureSession2, 201);
+            assertCaptureSessionExists(dto2.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT
+                                                    + "?courtId="
+                                                    + authenticatedUserIds.get(role).courtId(),
+                                                role);
+            assertResponseCode(getResponse, 200);
+
+            List<UUID> foundCaptureSessions = getResponse.getBody()
+                .jsonPath()
+                .getList("_embedded.captureSessionDTOList", CaptureSessionDTO.class)
+                .stream()
+                .map(CreateCaptureSessionDTO::getId)
+                .toList();
+            assertThat(foundCaptureSessions).doesNotContainAnyElementsOf(List.of(dto1.getId(), dto2.getId()));
+        }
     }
 }

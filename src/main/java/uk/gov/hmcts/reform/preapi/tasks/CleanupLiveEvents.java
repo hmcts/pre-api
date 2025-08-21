@@ -8,12 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
-import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -42,8 +38,6 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
     private final BookingService bookingService;
-    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
-    private final EmailServiceFactory emailServiceFactory;
 
     private final String platformEnv;
 
@@ -59,8 +53,6 @@ public class CleanupLiveEvents extends RobotUserTask {
                       BookingService bookingService,
                       UserService userService,
                       UserAuthenticationService userAuthenticationService,
-                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient,
-                      EmailServiceFactory emailServiceFactory,
                       @Value("${cron-user-email}") String cronUserEmail,
                       @Value("${platform-env}") String platformEnv,
                       @Value("${tasks.cleanup-live-events.batch-size}") int batchSize,
@@ -71,11 +63,9 @@ public class CleanupLiveEvents extends RobotUserTask {
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
         this.platformEnv = platformEnv;
-        this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
         this.batchSize = batchSize;
         this.batchCooldownTime = batchCooldownTime;
         this.jobPollingInterval = jobPollingInterval;
-        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Override
@@ -138,19 +128,13 @@ public class CleanupLiveEvents extends RobotUserTask {
             throw new RuntimeException(e);
         }
 
-        // Notify
-        log.info("Notifying shares for new recordings");
-        liveEventCleanupMap.entrySet().stream()
-            .filter(entry -> entry.getValue().getStatus() == CleanupTaskStatus.RECORDING_AVAILABLE)
-            .map(Map.Entry::getKey)
-            .map(captureSessionService::findById)
-            .forEach(this::notify);
-
         // Delete live events that remain
         mediaService.getLiveEvents().stream()
             .map(LiveEventDTO::getName)
-            .peek(liveEvent -> log.info("Cleaning up stopped live event: {}", liveEvent))
-            .forEach(mediaService::stopLiveEvent);
+            .forEach(liveEvent -> {
+                log.info("Cleaning up remaining live event: {}", liveEvent);
+                mediaService.stopLiveEvent(liveEvent);
+            });
 
         // Handle past bookings that are unused
         handlePastBookings();
@@ -389,38 +373,6 @@ public class CleanupLiveEvents extends RobotUserTask {
             }
         } catch (Exception e) {
             log.error("Error stopping live event {}", liveEventName, e);
-        }
-    }
-
-    private void notify(CaptureSessionDTO captureSession) {
-        try {
-            var booking = bookingService.findById(captureSession.getBookingId());
-
-            var shares = booking.getShares();
-            // @todo simplify this after 4.3 goes live S28-3692
-            var toNotify = shares.stream()
-                .map(shareBooking -> userService.findById(shareBooking.getSharedWithUser().getId()))
-                .map(u -> StoppedLiveEventsNotificationDTO
-                    .builder()
-                    .email(u.getEmail())
-                    .firstName(u.getFirstName())
-                    .lastName(u.getLastName())
-                    .caseReference(booking.getCaseDTO().getReference())
-                    .courtName(booking.getCaseDTO().getCourt().getName())
-                    .build())
-                .toList();
-            if (!toNotify.isEmpty()) {
-                if (!emailServiceFactory.isEnabled()) {
-                    log.info("Sending email notifications to {} user(s)", toNotify.size());
-                    stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
-                }
-                // if GovNotify is enabled, users are notified via the
-                // RecordingListener.onRecordingCreated method
-            } else {
-                log.info("No users to notify for capture session {}", captureSession.getId());
-            }
-        } catch (NotFoundException e) {
-            log.error(e.getMessage());
         }
     }
 

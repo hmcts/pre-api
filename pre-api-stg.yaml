@@ -2337,6 +2337,22 @@ definitions:
         description: PlaybackReportWitness
         type: string
     type: object
+  VerifyEmailRequestDTO:
+    description: VerifyEmailRequestDTO
+    properties:
+      email:
+        description: Email
+        minLength: 1
+        type: string
+      verification_code:
+        description: VerificationCode
+        minLength: 1
+        pattern: '^[0-9]{6}$'
+        type: string
+    required:
+      - email
+      - verification_code
+    type: object
 externalDocs:
   description: README
   url: 'https://github.com/hmcts/pre-api'
@@ -2421,6 +2437,30 @@ paths:
       summary: Create an Audit Entry
       tags:
         - audit-controller
+  /b2c/email-verification:
+    post:
+      consumes:
+        - application/json
+      operationId: postEmailVerification
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/VerifyEmailRequestDTO'
+      responses:
+        '204':
+          description: No Content
+      summary: Trigger an email verification email to be sent out via gov notify
+      tags:
+        - b-2-c-controller
   /bookings:
     get:
       operationId: searchBookings
@@ -3137,7 +3177,7 @@ paths:
         - court-controller
   /edits:
     get:
-      operationId: searchRecordings
+      operationId: searchEdits
       parameters:
         - description: The source recording's id to search by
           format: uuid
@@ -3157,6 +3197,11 @@ paths:
           name: lastModifiedBefore
           type: string
           x-example: '2024-04-27'
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
         - description: The page number of search result to return
           format: int32
           in: query
