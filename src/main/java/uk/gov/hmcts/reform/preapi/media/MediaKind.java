@@ -286,7 +286,10 @@ public class MediaKind implements IMediaService {
         var recordingStatus = verifyFinalAssetExists(recordingId);
         if (recordingStatus == RecordingStatus.RECORDING_AVAILABLE) {
             telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+            azureIngestStorageService.markContainerAsSafeToDelete(recordingId.toString());
         }
+
         return recordingStatus;
     }
 
@@ -357,6 +360,7 @@ public class MediaKind implements IMediaService {
                      captureSession.getId(),
                      captureSession.getBookingId().toString()
             );
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
             return null;
         }
 
@@ -366,7 +370,7 @@ public class MediaKind implements IMediaService {
 
         createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-
+        azureIngestStorageService.markContainerAsProcessing(captureSession.getBookingId().toString());
         return encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
     }
 
@@ -382,6 +386,7 @@ public class MediaKind implements IMediaService {
         var recordingTempAssetName = recordingNoHyphen + "_temp";
         var recordingAssetName = recordingNoHyphen + "_output";
 
+        azureIngestStorageService.markContainerAsProcessing(recordingId.toString());
         return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
     }
 
