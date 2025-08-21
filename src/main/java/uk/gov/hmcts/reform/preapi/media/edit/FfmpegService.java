@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.media.edit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.component.CommandExecutor;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
@@ -34,19 +33,15 @@ public class FfmpegService implements IEditingService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final CommandExecutor commandExecutor;
 
-    private final boolean enableMultiCommand;
-
     private static final String CONCAT_FILENAME = "concat-list.txt";
 
     @Autowired
     public FfmpegService(AzureIngestStorageService azureIngestStorageService,
                          AzureFinalStorageService azureFinalStorageService,
-                         CommandExecutor commandExecutor,
-                         @Value("${feature-flags.ffmpeg-multi-command:false}") Boolean enableMultiCommand) {
+                         CommandExecutor commandExecutor) {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.commandExecutor = commandExecutor;
-        this.enableMultiCommand = enableMultiCommand;
     }
 
     @Override
@@ -57,30 +52,13 @@ public class FfmpegService implements IEditingService {
             throw new NotFoundException("No file name provided");
         }
 
-        if (enableMultiCommand) {
-            performEditsAsMultiCommand(request, newRecordingId, inputFileName, outputFileName);
-            return;
-        }
-
-        var command = generateCommand(request, inputFileName, outputFileName);
-
-        // download from final storage
-        downloadInputFile(request, inputFileName);
-        List<String> filesToDelete = List.of(inputFileName, outputFileName);
-
-        // apply ffmpeg
-        runFfmpegCommand(request.getId(), command, inputFileName, outputFileName, filesToDelete);
-
-        // upload to ingest storage
-        uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
-
-        cleanup(filesToDelete);
+        performCommandsForEdit(request, newRecordingId, inputFileName, outputFileName);
     }
 
-    private void performEditsAsMultiCommand(final EditRequest request,
-                                            final UUID newRecordingId,
-                                            final String inputFileName,
-                                            final String outputFileName) {
+    private void performCommandsForEdit(final EditRequest request,
+                                        final UUID newRecordingId,
+                                        final String inputFileName,
+                                        final String outputFileName) {
         final List<String> filesToDelete = new ArrayList<>();
         filesToDelete.add(inputFileName);
         filesToDelete.add(outputFileName);
@@ -197,48 +175,6 @@ public class FfmpegService implements IEditingService {
         } catch (Exception e) {
             log.error("Error deleting file: {}", fileName, e);
         }
-    }
-
-    protected CommandLine generateCommand(EditRequest editRequest, String inputFileName, String outputFileName) {
-        var instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
-
-        if (instructions.getFfmpegInstructions() == null
-            || instructions.getFfmpegInstructions().isEmpty()) {
-            throw new UnknownServerException("Malformed edit instructions");
-        }
-
-        var command = new CommandLine("ffmpeg");
-        command.addArgument("-y")
-            .addArgument("-i").addArgument(inputFileName);
-
-        var filterComplex = new StringBuilder();
-        var concatCommand = new StringBuilder();
-        for (int i = 0; i < instructions.getFfmpegInstructions().size(); i++) {
-            var segment = i + 1;
-            var instruction =  instructions.getFfmpegInstructions().get(i);
-
-            // video trim
-            filterComplex.append(String.format("[0:v]trim=start=%d:end=%d,setpts=PTS-STARTPTS[v%d];",
-                                               instruction.getStart(), instruction.getEnd(), segment));
-            // audio trim
-            filterComplex.append(String.format("[0:a]atrim=start=%d:end=%d,asetpts=PTS-STARTPTS[a%d];",
-                                               instruction.getStart(), instruction.getEnd(), segment));
-            // adding segments to final part of command
-            concatCommand.append(String.format("[v%d][a%d]", segment, segment));
-        }
-
-        concatCommand.append("concat=n=")
-            .append(instructions.getFfmpegInstructions().size())
-            .append(":v=1:a=1[outv][outa]");
-        filterComplex.append(concatCommand);
-
-        command.addArgument("-filter_complex").addArgument(filterComplex.toString())
-            .addArgument("-map").addArgument("[outv]")
-            .addArgument("-map").addArgument("[outa]")
-            .addArgument("-c:v").addArgument("libx264")
-            .addArgument("-c:a").addArgument("aac")
-            .addArgument(outputFileName);
-        return command;
     }
 
     protected CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
