@@ -23,7 +23,6 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
-// import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.ArrayList;
@@ -39,7 +38,6 @@ import java.util.stream.Collectors;
 public class EntityCreationService {
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
-    // private final RecordingService recordingService;
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
 
@@ -175,7 +173,7 @@ public class EntityCreationService {
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
         recordingDTO.setFilename(cleansedData.getFileName());
-
+        
         if (isCopy) {
             recordingDTO.setParentRecordingId(parentRecordingId);
         }

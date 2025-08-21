@@ -441,15 +441,4 @@ public class ArchiveMetadataXmlExtractor {
         }
     }
 
-    private double getDouble(Element el, String tag) {
-        try {
-            String v = extractTextContent(el, tag);
-            return v == null ? Double.NaN : Double.parseDouble(v.trim());
-        } catch (NumberFormatException e) {
-            return Double.NaN;
-        }
-    }
-
-
-
 }

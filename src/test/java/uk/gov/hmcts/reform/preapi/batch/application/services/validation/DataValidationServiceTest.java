@@ -175,7 +175,7 @@ public class DataValidationServiceTest {
             .isPreferred(false)
             .build();
 
-        when(migrationRecordRepository.existsByArchiveIdAndIsMostRecentTrue("ARCH123"))
+        when(migrationRecordRepository.getIsMostRecent("ARCH123"))
             .thenReturn(true);
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
