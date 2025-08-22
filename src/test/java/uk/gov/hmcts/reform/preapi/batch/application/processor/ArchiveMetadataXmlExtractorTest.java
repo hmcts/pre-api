@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -341,7 +342,141 @@ class ArchiveMetadataXmlExtractorTest {
     }
 
 
+    @Test
+    @DisplayName("Should warn when no archive metadata found to generate report")
+    void shouldWarnWhenNoArchiveMetadataFound() throws Exception {
+        String xml = """
+            <ArchiveFiles>
+            <ArchiveID>A1</ArchiveID>
+            <DisplayName>Case-ORIG</DisplayName>
+            <CreatTime>1</CreatTime><Duration>10</Duration>
+            <MP4FileGrp>
+                <MP4File><Name>not_video.txt</Name><Size>100</Size></MP4File> <!-- filtered out -->
+            </MP4FileGrp>
+            </ArchiveFiles>
+            """;
+        when(azureVodafoneStorageService.fetchBlobNamesWithPrefix(eq("c"), anyString()))
+            .thenReturn(List.of("pref/x.xml"));
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(eq("c"), eq("pref/x.xml")))
+            .thenReturn(new InputStreamResource(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))));
 
+        extractor.extractAndReportArchiveMetadata("c", "pref", "out", "rep");
+
+        verify(loggingService).logWarning("No archive metadata found to generate report");
+    }
+
+    @Test
+    @DisplayName("Should log warning and default size when file size is invalid")
+    void shouldDefaultFileSizeOnInvalidNumber() throws Exception {
+        String xml = """
+            <ArchiveFiles>
+            <ArchiveID>A1</ArchiveID>
+            <DisplayName>Case-ORIG</DisplayName>
+            <CreatTime>1</CreatTime><Duration>10</Duration>
+            <MP4FileGrp>
+                <MP4File><Name>a.mp4</Name><Size>oops</Size></MP4File>
+            </MP4FileGrp>
+            </ArchiveFiles>
+            """;
+        stubSingleBlob("c","pref/x.xml", xml);
+
+        extractor.extractAndReportArchiveMetadata("c", "pref", "out", "rep");
+
+        verify(loggingService).logWarning("Invalid file size: oops");
+        verify(migrationRecordService).insertPendingFromXml(
+            eq("A1"), eq("Case-ORIG"), eq("1"), eq("10"),
+            eq("pref/A1/a.mp4"), eq("0.00")
+        );
+    }
+
+
+    @Test
+    @DisplayName("Should log warning when MP4 fields are missing")
+    void shouldWarnWhenMp4FieldsMissing() throws Exception {
+        String xml = """
+            <ArchiveFiles>
+            <ArchiveID>A1</ArchiveID>
+            <DisplayName>Case-ORIG</DisplayName>
+            <CreatTime>1</CreatTime><Duration>10</Duration>
+            <MP4FileGrp>
+                <MP4File><Name></Name><Size>100</Size></MP4File>
+            </MP4FileGrp>
+            </ArchiveFiles>
+            """;
+        stubSingleBlob("c","pref/x.xml", xml);
+
+        extractor.extractAndReportArchiveMetadata("c", "pref", "out", "rep");
+
+        verify(loggingService).logWarning(
+            startsWith("MP4 file missing required fields: Name=%s, Size=%s")
+        );
+    }
+
+    @Test
+    @DisplayName("Should pick first file when more than two MP4 files exist")
+    void shouldPickFirstWhenMoreThanTwo() throws Exception {
+        String xml = """
+            <ArchiveFiles>
+            <ArchiveID>A1</ArchiveID>
+            <DisplayName>Case-ORIG</DisplayName>
+            <CreatTime>1</CreatTime><Duration>10</Duration>
+            <MP4FileGrp>
+                <MP4File><Name>first.mp4</Name><Size>100</Size></MP4File>
+                <MP4File><Name>second.mp4</Name><Size>200</Size></MP4File>
+                <MP4File><Name>third.mp4</Name><Size>300</Size></MP4File>
+            </MP4FileGrp>
+            </ArchiveFiles>
+            """;
+        stubSingleBlob("c","pref/x.xml", xml);
+
+        extractor.extractAndReportArchiveMetadata("c", "pref", "out", "rep");
+
+        verify(migrationRecordService).insertPendingFromXml(
+            eq("A1"), eq("Case-ORIG"), eq("1"), eq("10"),
+            eq("pref/A1/first.mp4"), eq("0.10")
+        );
+    }
+
+    @Test
+    @DisplayName("Should log error and continue when insert throws")
+    void shouldLogAndContinueWhenInsertThrows() throws Exception {
+        String xml = """
+            <ArchiveFiles>
+            <ArchiveID>A1</ArchiveID>
+            <DisplayName>Case-ORIG</DisplayName>
+            <CreatTime>1</CreatTime><Duration>10</Duration>
+            <MP4FileGrp><MP4File><Name>a.mp4</Name><Size>1024</Size></MP4File></MP4FileGrp>
+            </ArchiveFiles>
+            """;
+        stubSingleBlob("c","pref/x.xml", xml);
+
+        when(migrationRecordService.insertPendingFromXml(any(), any(), any(), any(), any(), any()))
+            .thenThrow(new RuntimeException("DB down"));
+
+        extractor.extractAndReportArchiveMetadata("c", "pref", "out", "rep");
+
+        verify(loggingService).logError(startsWith("Failed to insert row into migration records:"), anyString());
+    }
+
+    @Test
+    @DisplayName("Should warn when DisplayName or CreatTime missing")
+    void shouldWarnWhenDisplayNameOrCreateTimeMissing() throws Exception {
+        String xml = """
+            <ArchiveFiles>
+            <ArchiveID>A1</ArchiveID>
+            <DisplayName></DisplayName>
+            <CreatTime></CreatTime>
+            <Duration>1</Duration>
+            <MP4FileGrp><MP4File><Name>a.mp4</Name><Size>100</Size></MP4File></MP4FileGrp>
+            </ArchiveFiles>
+            """;
+        stubSingleBlob("c","pref/x.xml", xml);
+
+        extractor.extractAndReportArchiveMetadata("c", "pref", "out", "rep");
+
+        verify(loggingService).logWarning("Missing DisplayName in ArchiveFiles element.");
+        verify(loggingService).logWarning("Missing CreatTime for archive: ");
+    }
 
     // ---------------------------
     // Helpers

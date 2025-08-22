@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -166,7 +167,8 @@ public class DataValidationServiceTest {
     @DisplayName("Should succeed for COPY in processed when parent exists and most recent")
     void validateProcessedRecordingCopySuccessWhenParentAndMostRecent() {
         MigrationRecord current = new MigrationRecord();
-
+        current.setParentTempId(UUID.randomUUID());
+        
         when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(current));
         when(migrationRecordRepository.getIsMostRecent("ARCH123")).thenReturn(Optional.of(true));
 
