@@ -457,4 +457,62 @@ public class DataValidationServiceTest {
         assertThat(result.getCategory()).isNull();
         assertThat(result.isSuccess()).isTrue();
     }
+
+    @Test
+    @DisplayName("Should return failure for resolved COPY when not most recent")
+    void validateResolvedRecordingCopyNotMostRecent() {
+        ProcessedRecording data = new ProcessedRecording();
+        data.setCourt(new Court());
+        data.setArchiveId("ARCH123");
+        data.setExtractedRecordingVersion("COPY");
+        data.setCaseReference("0123456789");
+        data.setWitnessFirstName("witness");
+        data.setDefendantLastName("defendant");
+        data.setRecordingVersionNumber(1);
+        data.setFileName("file.mp4");
+
+        MigrationRecord mr = new MigrationRecord();
+        mr.setIsMostRecent(false);
+        when(migrationRecordRepository.findByArchiveId("ARCH123"))
+            .thenReturn(Optional.of(mr));
+
+        ServiceResult<ProcessedRecording> result =
+            dataValidationService.validateResolvedRecording(data, "ARCH123");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getData()).isNull();
+        assertThat(result.getErrorMessage())
+            .isEqualTo(Constants.ErrorMessages.NOT_MOST_RECENT_VERSION);
+        assertThat(result.getCategory())
+            .isEqualTo(VfFailureReason.NOT_MOST_RECENT.toString());
+        assertThat(result.isSuccess()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should succeed for resolved COPY when most recent")
+    void validateResolvedRecordingCopyMostRecentSuccess() {
+        ProcessedRecording data = new ProcessedRecording();
+        data.setCourt(new Court());
+        data.setArchiveId("ARCH123");
+        data.setExtractedRecordingVersion("COPY");
+        data.setCaseReference("0123456789");
+        data.setWitnessFirstName("witness");
+        data.setDefendantLastName("defendant");
+        data.setRecordingVersionNumber(1);
+        data.setFileName("file.mp4");
+
+        MigrationRecord mr = new MigrationRecord();
+        mr.setIsMostRecent(true);
+        when(migrationRecordRepository.findByArchiveId("ARCH123"))
+            .thenReturn(Optional.of(mr));
+
+        ServiceResult<ProcessedRecording> result =
+            dataValidationService.validateResolvedRecording(data, "ARCH123");
+
+        assertThat(result).isNotNull();
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isEqualTo(data);
+        assertThat(result.getErrorMessage()).isNull();
+        assertThat(result.getCategory()).isNull();
+    }
 }
