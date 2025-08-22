@@ -19,6 +19,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -1551,5 +1552,67 @@ public class MediaKindTest {
 
         var status = mediaKind.hasJobCompleted("transform1", "job1");
         assertThat(status).isEqualTo(RecordingStatus.PROCESSING);
+    }
+
+    @Test
+    @DisplayName("Should return true when asset is created in MediaKind when importing final asset")
+    void importAssetFinalAssetSuccess() {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+
+        boolean result = mediaKind.importAsset(recording, true);
+
+        assertThat(result).isTrue();
+
+        ArgumentCaptor<String> assetNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<MkAsset> mkAssetCaptor = ArgumentCaptor.forClass(MkAsset.class);
+        verify(mediaKindClient, times(1)).putAsset(assetNameCaptor.capture(), mkAssetCaptor.capture());
+
+        assertThat(assetNameCaptor.getValue())
+            .isEqualTo(recording.getId().toString().replace("-", "") + "_output");
+        assertThat(mkAssetCaptor.getValue().getProperties().getContainer())
+            .isEqualTo(recording.getId().toString());
+    }
+
+    @Test
+    @DisplayName("Should return true when asset is created in MediaKind when importing ingest asset")
+    void importAssetIngestAssetSuccess() {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+
+        boolean result = mediaKind.importAsset(recording, false);
+
+        assertThat(result).isTrue();
+
+        ArgumentCaptor<String> assetNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<MkAsset> mkAssetCaptor = ArgumentCaptor.forClass(MkAsset.class);
+        verify(mediaKindClient, times(1)).putAsset(assetNameCaptor.capture(), mkAssetCaptor.capture());
+
+        assertThat(assetNameCaptor.getValue())
+            .isEqualTo(recording.getId().toString().replace("-", "") + "_temp");
+        assertThat(mkAssetCaptor.getValue().getProperties().getContainer())
+            .isEqualTo(recording.getId().toString() + "-input");
+    }
+
+    @Test
+    @DisplayName("Should return false when asset fails to be created in MediaKind when importing final asset")
+    void importAssetFinalAssetFailure() {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+
+        doThrow(ConflictException.class).when(mockClient).putAsset(any(), any());
+
+        boolean result = mediaKind.importAsset(recording, true);
+
+        assertThat(result).isFalse();
+
+        ArgumentCaptor<String> assetNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<MkAsset> mkAssetCaptor = ArgumentCaptor.forClass(MkAsset.class);
+        verify(mediaKindClient, times(1)).putAsset(assetNameCaptor.capture(), mkAssetCaptor.capture());
+
+        assertThat(assetNameCaptor.getValue())
+            .isEqualTo(recording.getId().toString().replace("-", "") + "_output");
+        assertThat(mkAssetCaptor.getValue().getProperties().getContainer())
+            .isEqualTo(recording.getId().toString());
     }
 }

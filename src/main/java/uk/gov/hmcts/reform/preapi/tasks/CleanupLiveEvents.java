@@ -258,7 +258,7 @@ public class CleanupLiveEvents extends RobotUserTask {
         switch (mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, currentTask.getCurrentJobName())) {
             case RECORDING_AVAILABLE -> {
                 // trigger processing step 2
-                var jobName = mediaService.triggerProcessingStep2(currentTask.getRecordingId());
+                var jobName = mediaService.triggerProcessingStep2(currentTask.getRecordingId(), false);
 
                 if (jobName == null) {
                     log.error("Failed to trigger processing step 2 for capture session {}", captureSessionId);
