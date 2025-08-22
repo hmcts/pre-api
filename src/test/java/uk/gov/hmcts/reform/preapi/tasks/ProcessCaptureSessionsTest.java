@@ -152,7 +152,7 @@ public class ProcessCaptureSessionsTest {
         when(encodeJobService.findAllProcessing()).thenReturn(List.of(dto));
         when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, dto.getJobName()))
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.triggerProcessingStep2(dto.getRecordingId()))
+        when(mediaService.triggerProcessingStep2(dto.getRecordingId(), false))
             .thenReturn(newJobName);
 
         processCaptureSessions.run();
@@ -160,7 +160,7 @@ public class ProcessCaptureSessionsTest {
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, "jobName");
-        verify(mediaService, times(1)).triggerProcessingStep2(dto.getRecordingId());
+        verify(mediaService, times(1)).triggerProcessingStep2(dto.getRecordingId(), false);
         verifyNoInteractions(azureIngestStorageService);
 
         var argumentCaptor = ArgumentCaptor.forClass(EncodeJobDTO.class);
@@ -176,7 +176,7 @@ public class ProcessCaptureSessionsTest {
         when(encodeJobService.findAllProcessing()).thenReturn(List.of(dto));
         when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, dto.getJobName()))
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.triggerProcessingStep2(dto.getRecordingId()))
+        when(mediaService.triggerProcessingStep2(dto.getRecordingId(), false))
             .thenReturn(null);
 
         processCaptureSessions.run();
@@ -184,7 +184,7 @@ public class ProcessCaptureSessionsTest {
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, "jobName");
-        verify(mediaService, times(1)).triggerProcessingStep2(dto.getRecordingId());
+        verify(mediaService, times(1)).triggerProcessingStep2(dto.getRecordingId(), false);
         verify(encodeJobService, never()).upsert(any());
         verify(encodeJobService, times(1)).delete(any());
         verify(captureSessionService, times(1))
