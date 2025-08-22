@@ -163,6 +163,29 @@ public class DataValidationServiceTest {
     }
 
     @Test
+    @DisplayName("Should succeed for COPY in processed when parent exists and most recent")
+    void validateProcessedRecordingCopySuccessWhenParentAndMostRecent() {
+        MigrationRecord current = new MigrationRecord();
+
+        when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(current));
+        when(migrationRecordRepository.getIsMostRecent("ARCH123")).thenReturn(Optional.of(true));
+
+        ProcessedRecording pr = ProcessedRecording.builder()
+            .court(new Court())
+            .archiveId("ARCH123")
+            .extractedRecordingVersion("COPY")
+            .caseReference("123456789")
+            .isPreferred(true)
+            .build();
+
+        ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(pr);
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isEqualTo(pr);
+        assertThat(result.getErrorMessage()).isNull();
+    }
+
+    @Test
     @DisplayName("Should return failure when recording is not preferred")
     void validateProcessedRecordingNonPreferred() {
 
