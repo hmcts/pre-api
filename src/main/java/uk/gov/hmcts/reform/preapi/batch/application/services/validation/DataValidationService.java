@@ -71,7 +71,7 @@ public class DataValidationService {
         
 
         String caseReference = cleansedData.getCaseReference();
-        if (caseReference == null || caseReference.length() < 7) {
+        if (caseReference == null || caseReference.length() < 9) {
             return ServiceResultUtil.failure(
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
                 VfFailureReason.INCOMPLETE_DATA.toString()
