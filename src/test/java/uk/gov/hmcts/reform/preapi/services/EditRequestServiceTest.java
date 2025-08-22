@@ -63,6 +63,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditRequestService.class)
@@ -703,6 +704,7 @@ public class EditRequestServiceTest {
         assertThat(message).isEqualTo("Not found: Source Container (" + sourceContainer + ") does not exist");
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
+        verifyNoMoreInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -727,6 +729,7 @@ public class EditRequestServiceTest {
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+        verifyNoMoreInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -751,6 +754,8 @@ public class EditRequestServiceTest {
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(sourceContainer);
+        verify(azureIngestStorageService, never()).markContainerAsSafeToDelete(sourceContainer);
         verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
     }
 
@@ -781,6 +786,8 @@ public class EditRequestServiceTest {
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(sourceContainer);
+        verify(azureIngestStorageService, never()).markContainerAsSafeToDelete(sourceContainer);
         verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
         verify(azureFinalStorageService, never()).getMp4FileName(any());
     }
@@ -811,6 +818,8 @@ public class EditRequestServiceTest {
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(sourceContainer);
+        verify(azureIngestStorageService, times(1)).markContainerAsSafeToDelete(sourceContainer);
         verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
         verify(azureFinalStorageService, times(1)).getMp4FileName(any());
     }

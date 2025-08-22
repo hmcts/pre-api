@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -38,6 +39,7 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
     private final BookingService bookingService;
+    private final AzureIngestStorageService azureIngestStorageService;
 
     private final String platformEnv;
 
@@ -48,20 +50,22 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final ConcurrentHashMap<UUID, CleanupTask> liveEventCleanupMap = new ConcurrentHashMap<>();
 
     @Autowired
-    CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
-                      CaptureSessionService captureSessionService,
-                      BookingService bookingService,
-                      UserService userService,
-                      UserAuthenticationService userAuthenticationService,
-                      @Value("${cron-user-email}") String cronUserEmail,
-                      @Value("${platform-env}") String platformEnv,
-                      @Value("${tasks.cleanup-live-events.batch-size}") int batchSize,
-                      @Value("${tasks.cleanup-live-events.cooldown}") int batchCooldownTime,
-                      @Value("${tasks.cleanup-live-events.job-poll-interval}") int jobPollingInterval) {
+    CleanupLiveEvents(final MediaServiceBroker mediaServiceBroker,
+                      final CaptureSessionService captureSessionService,
+                      final BookingService bookingService,
+                      final UserService userService,
+                      final UserAuthenticationService userAuthenticationService,
+                      final AzureIngestStorageService azureIngestStorageService,
+                      final @Value("${cron-user-email}") String cronUserEmail,
+                      final @Value("${platform-env}") String platformEnv,
+                      final @Value("${tasks.cleanup-live-events.batch-size}") int batchSize,
+                      final @Value("${tasks.cleanup-live-events.cooldown}") int batchCooldownTime,
+                      final @Value("${tasks.cleanup-live-events.job-poll-interval}") int jobPollingInterval) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
+        this.azureIngestStorageService = azureIngestStorageService;
         this.platformEnv = platformEnv;
         this.batchSize = batchSize;
         this.batchCooldownTime = batchCooldownTime;
@@ -304,11 +308,13 @@ public class CleanupLiveEvents extends RobotUserTask {
                     return;
                 }
                 log.info("Final asset found for capture session {}", captureSessionId);
-                captureSessionService.stopCaptureSession(
+                var captureSession = captureSessionService.stopCaptureSession(
                     captureSessionId,
                     RecordingStatus.RECORDING_AVAILABLE,
                     currentTask.getRecordingId()
                 );
+                azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+                azureIngestStorageService.markContainerAsSafeToDelete(currentTask.getRecordingId().toString());
                 currentTask.setStatus(CleanupTaskStatus.RECORDING_AVAILABLE);
             }
             case FAILURE -> {
