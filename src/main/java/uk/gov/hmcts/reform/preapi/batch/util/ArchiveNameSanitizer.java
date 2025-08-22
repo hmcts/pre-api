@@ -29,6 +29,11 @@ public class ArchiveNameSanitizer {
             .replaceAll("(?i)asurn[-_\\s]*", "")
             .replaceAll("(?i)See Urn[-_\\s]*", "")
             .replaceAll("(?i)As-Urn[-_\\s]*", "")
+            .replaceAll("/", " ")
+            .replaceAll("Seeurn-", "")
+            .replaceAll("Cp-", "")
+            .replaceAll("Cpp-","")
+            .replaceAll("Urn-","")
             .replaceAll("[\\.]+[-_\\s]*[\\.]+", "-")
             .trim();
     }

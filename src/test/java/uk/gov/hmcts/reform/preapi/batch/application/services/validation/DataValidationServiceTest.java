@@ -134,6 +134,10 @@ public class DataValidationServiceTest {
     @Test
     @DisplayName("Should return failure when no parent recording found")
     void validateProcessedRecordingVersionGT1NoExistingMetadata() {
+        MigrationRecord currentRecord = new MigrationRecord();
+        
+        when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
+
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
             .isMostRecentVersion(true)
@@ -146,11 +150,6 @@ public class DataValidationServiceTest {
             .archiveId("ARCHIVE123")
             .build();
 
-        MigrationRecord currentRecord = new MigrationRecord();
-        when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
-        when(migrationRecordRepository.getIsMostRecent("ARCHIVE123"))
-            .thenReturn(true);
-        when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.empty());
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
             processedRecording
@@ -166,6 +165,7 @@ public class DataValidationServiceTest {
     @Test
     @DisplayName("Should return failure when recording is not preferred")
     void validateProcessedRecordingNonPreferred() {
+
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
             .archiveId("ARCH123")
@@ -175,8 +175,11 @@ public class DataValidationServiceTest {
             .isPreferred(false)
             .build();
 
+        when(migrationRecordService.findByArchiveId("ARCH123"))
+            .thenReturn(Optional.empty());
+
         when(migrationRecordRepository.getIsMostRecent("ARCH123"))
-            .thenReturn(true);
+            .thenReturn(Optional.of(true));
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
             processedRecording

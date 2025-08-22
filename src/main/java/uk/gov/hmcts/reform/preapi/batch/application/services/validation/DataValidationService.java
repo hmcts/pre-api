@@ -56,10 +56,10 @@ public class DataValidationService {
         }
 
         if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
-            boolean isMostRecent = Boolean.TRUE.equals(
-                migrationRecordRepository.getIsMostRecent(cleansedData.getArchiveId())
-            );
-            
+            boolean isMostRecent = migrationRecordRepository
+                .getIsMostRecent(cleansedData.getArchiveId())
+                .orElse(false);
+                        
             if (!isMostRecent) {
                 return ServiceResultUtil.failure(
                     Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,

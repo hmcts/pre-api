@@ -107,7 +107,6 @@ class ProcessorTest {
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
         assertNotNull(result);
-        verify(loggingService).logDebug("Processor - Processing item of type: %s", "MigrationRecord");
         verify(loggingService).incrementProgress();
         verify(cacheService).dumpToFile();
     }

@@ -29,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.lang.reflect.Method;
@@ -58,6 +59,9 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private InMemoryCacheService cacheService;
+
+    @MockitoBean
+    private RecordingService recordingService;
 
     @MockitoBean
     private MigrationRecordService migrationRecordService;
@@ -291,6 +295,8 @@ public class EntityCreationServiceTest {
 
         when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(currentRecord));
         when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.of(origRecord));
+        when(recordingService.getNextVersionNumber(parentId)).thenReturn(2);
+
 
         CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
 
@@ -803,6 +809,7 @@ public class EntityCreationServiceTest {
 
         when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
         when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
+        when(recordingService.getNextVersionNumber(parentRecordingId)).thenReturn(2);
 
         CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
 

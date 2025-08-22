@@ -63,7 +63,8 @@ public class MetadataValidator {
     }
 
     public ServiceResult<?> validateRawFile(MigrationRecord archiveItem) {
-        if (archiveItem.getArchiveName().toLowerCase().contains(".raw")) {
+        if (archiveItem.getArchiveName().toLowerCase().contains(".raw") 
+            || archiveItem.getArchiveName().toLowerCase().contains(".r")) {
             return ServiceResultUtil.failure(RAW_FILE, VfFailureReason.RAW_FILES.toString());
         }
 

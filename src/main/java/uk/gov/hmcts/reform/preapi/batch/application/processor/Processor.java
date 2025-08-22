@@ -73,8 +73,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 return null;
             }
 
-            loggingService.logDebug("Processor - Processing item of type: %s", item.getClass().getSimpleName());
-
             if (item instanceof MigrationRecord migrationRecord) {
                 return processRecording(migrationRecord);
             }

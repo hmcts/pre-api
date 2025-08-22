@@ -1,14 +1,11 @@
 package uk.gov.hmcts.reform.preapi.batch.repositories;
 
-import jakarta.persistence.QueryHint;
+// import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 
@@ -28,19 +25,14 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     List<MigrationRecord> findByRecordingGroupKeyStartingWith(String baseGroupKey);
 
-    boolean existsByArchiveIdAndIsMostRecentTrue(String archiveId);
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "false"),
-        @QueryHint(name = "jakarta.persistence.cache.retrieveMode", value = "BYPASS"),
-        @QueryHint(name = "jakarta.persistence.cache.storeMode", value = "BYPASS")
-    })
-    @Query(
-        value = "select is_most_recent from vf_migration_records where archive_id = :archiveId",
-        nativeQuery = true
-    )
-    Boolean getIsMostRecent(@Param("archiveId") String archiveId);
+    @Query(value = """
+        select is_most_recent
+        from vf_migration_records
+        where archive_id = :archiveId
+        order by created_at desc
+        limit 1
+        """, nativeQuery = true)
+    Optional<Boolean> getIsMostRecent(@Param("archiveId") String archiveId);
     
 
     @Query("""
