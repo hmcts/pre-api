@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.repositories;
 
+// import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,7 +25,15 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     List<MigrationRecord> findByRecordingGroupKeyStartingWith(String baseGroupKey);
 
-    boolean existsByArchiveIdAndIsMostRecentTrue(String archiveId);
+    @Query(value = """
+        select is_most_recent
+        from vf_migration_records
+        where archive_id = :archiveId
+        order by created_at desc
+        limit 1
+        """, nativeQuery = true)
+    Optional<Boolean> getIsMostRecent(@Param("archiveId") String archiveId);
+    
 
     @Query("""
         SELECT mr FROM MigrationRecord mr

@@ -9,7 +9,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
@@ -60,9 +59,6 @@ public class WriterTest {
 
     @MockitoBean
     private CaptureSessionService captureSessionService;
-
-    @MockitoBean
-    private MigrationTrackerService migrationTrackerService;
 
     @Autowired
     private MigrationWriter writer;
@@ -130,7 +126,6 @@ public class WriterTest {
         verify(bookingService, never()).upsert(any(CreateBookingDTO.class));
         verify(captureSessionService, never()).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
-        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
     }
 
     @Test
@@ -152,7 +147,6 @@ public class WriterTest {
 
         verify(loggingService, times(1))
             .logError(eq("Failed to process migrated item: %s | %s"), eq("REFERENCE"), any());
-        verify(migrationTrackerService, never()).addMigratedItem(any());
     }
 
     @Test
@@ -194,7 +188,6 @@ public class WriterTest {
         writer.write(Chunk.of(itemGroup));
 
         verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
-        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
     }
 
 
@@ -620,7 +613,6 @@ public class WriterTest {
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
-        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
     }
 
     @Test
@@ -645,7 +637,6 @@ public class WriterTest {
         writer.write(Chunk.of(null, valid)); 
 
         verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
-        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
     }
 
     @Test
@@ -673,7 +664,6 @@ public class WriterTest {
 
         verify(loggingService, times(1))
             .logError(eq("Merge participants failed (safe path). caseId=%s | %s"), eq(caseId), any());
-        verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class)); 
     }
 
     @Test
