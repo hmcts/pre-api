@@ -221,13 +221,12 @@ class GovNotifyFT {
 
     @DisplayName("Should send verify email email")
     @Test
-    @SuppressWarnings("LineLength")
     void verifyEmail() {
 
         var verificationCode = "123456";
 
-        var response = client.emailVerification(toEmailAddress, userFirstName, userLastName, verificationCode);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        var response = client.emailVerification(TO_EMAIL_ADDRESS, USER_FIRST_NAME, USER_LAST_NAME, verificationCode);
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Account Email Verification Code",
             response.getSubject()

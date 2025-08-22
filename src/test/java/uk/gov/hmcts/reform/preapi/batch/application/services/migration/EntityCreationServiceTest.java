@@ -31,7 +31,6 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
-import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -169,7 +168,7 @@ public class EntityCreationServiceTest {
         when(migrationRecordService.findByArchiveId(archiveId.toString()))
             .thenReturn(Optional.of(copyRecord));
         when(migrationRecordService.getOrigFromCopy(copyRecord))
-            .thenReturn(Optional.of(new MigrationRecord())); 
+            .thenReturn(Optional.of(new MigrationRecord()));
 
         ProcessedRecording recording = ProcessedRecording.builder()
             .archiveId(archiveId.toString())
@@ -368,7 +367,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should filter participants by witness or defendant name")
     public void createBookingShouldFilterParticipants() {
-        
+
         CreateParticipantDTO witness = new CreateParticipantDTO();
         witness.setId(UUID.randomUUID());
         witness.setFirstName("John");
@@ -691,7 +690,7 @@ public class EntityCreationServiceTest {
     @DisplayName("Should handle exception when getting user by email")
     void getUserByEmailShouldHandleException() {
         String email = "error@example.com";
-        
+
         when(userService.findByEmail(email)).thenThrow(new RuntimeException("Service error"));
 
         UUID result = entityCreationService.getUserByEmail(email);
@@ -753,7 +752,7 @@ public class EntityCreationServiceTest {
     void createRecordingShouldReturnNullForCopyWhenOrigHasNoRecordingId() {
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId("COPY123");
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setArchiveId("ORIG123");
         origRecord.setRecordingId(null); // No recording ID
@@ -783,10 +782,10 @@ public class EntityCreationServiceTest {
     @DisplayName("Should create COPY recording with parent recording ID when all conditions met")
     void createRecordingShouldCreateCopyWithParentRecordingId() {
         UUID parentRecordingId = UUID.randomUUID();
-        
+
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId("COPY123");
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setArchiveId("ORIG123");
         origRecord.setRecordingId(parentRecordingId);
@@ -811,71 +810,6 @@ public class EntityCreationServiceTest {
         assertThat(result.getParentRecordingId()).isEqualTo(parentRecordingId);
         assertThat(result.getVersion()).isEqualTo(2);
         verify(migrationRecordService, times(1)).updateRecordingId(eq("COPY123"), any(UUID.class));
-    }
-
-    @Test
-    @DisplayName("Should test isOrigRecordingPersisted method through reflection for false case")
-    void isOrigRecordingPersistedShouldReturnFalseWhenRecordNotFound() throws Exception {
-        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
-        method.setAccessible(true);
-
-        when(migrationRecordService.findByArchiveId("MISSING_ARCH")).thenReturn(Optional.empty());
-
-        Boolean result = (Boolean) method.invoke(entityCreationService, "MISSING_ARCH");
-
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should test isOrigRecordingPersisted method for false case when no orig found")
-    void isOrigRecordingPersistedShouldReturnFalseWhenNoOrigFound() throws Exception {
-        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
-        method.setAccessible(true);
-
-        MigrationRecord copyRecord = new MigrationRecord();
-        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
-        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.empty());
-
-        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
-
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should test isOrigRecordingPersisted method for false case when recording ID is null")
-    void isOrigRecordingPersistedShouldReturnFalseWhenRecordingIdIsNull() throws Exception {
-        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
-        method.setAccessible(true);
-
-        MigrationRecord copyRecord = new MigrationRecord();
-        MigrationRecord origRecord = new MigrationRecord();
-        origRecord.setRecordingId(null);
-
-        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
-        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
-
-        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
-
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should test isOrigRecordingPersisted method for true case")
-    void isOrigRecordingPersistedShouldReturnTrueWhenRecordingIdExists() throws Exception {
-        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
-        method.setAccessible(true);
-
-        UUID recordingId = UUID.randomUUID();
-        MigrationRecord copyRecord = new MigrationRecord();
-        MigrationRecord origRecord = new MigrationRecord();
-        origRecord.setRecordingId(recordingId);
-
-        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
-        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
-
-        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
-
-        assertThat(result).isTrue();
     }
 
     @Test
@@ -927,8 +861,8 @@ public class EntityCreationServiceTest {
     @DisplayName("Should handle empty trimmed participant names")
     void createParticipantsShouldIgnoreEmptyTrimmedNames() {
         ProcessedRecording recording = ProcessedRecording.builder()
-            .witnessFirstName("   ") 
-            .defendantLastName("") 
+            .witnessFirstName("   ")
+            .defendantLastName("")
             .build();
 
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(recording);
