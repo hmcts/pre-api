@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -35,6 +36,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -42,6 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Configuration
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class PostMigrationJobConfig {
     public final PlatformTransactionManager transactionManager;
     private final JobRepository jobRepository;
@@ -127,6 +130,7 @@ public class PostMigrationJobConfig {
     }
 
     @Bean
+    @SuppressWarnings("PMD.CognitiveComplexity")
     public Step createShareBookingsStep(PostMigrationWriter postMigrationWriter) {
         return new StepBuilder("createShareBookingsStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
@@ -147,10 +151,10 @@ public class PostMigrationJobConfig {
                     List<String[]> matchedUsers = channelUsersMap.entrySet().stream()
                         .filter(entry -> entry.getKey().contains(caseDTO.getReference())
                             && caseDTO.getParticipants().stream().anyMatch(p ->
-                                entry.getKey().toLowerCase().contains(Optional.ofNullable(p.getFirstName())
-                                    .orElse("").toLowerCase())
-                                || entry.getKey().toLowerCase().contains(Optional.ofNullable(p.getLastName())
-                                .orElse("").toLowerCase())
+                                entry.getKey().toLowerCase(Locale.UK).contains(Optional.ofNullable(p.getFirstName())
+                                    .orElse("").toLowerCase(Locale.UK))
+                                || entry.getKey().toLowerCase(Locale.UK).contains(Optional.ofNullable(p.getLastName())
+                                .orElse("").toLowerCase(Locale.UK))
                             )
                         )
                         .flatMap(entry -> entry.getValue().stream())
@@ -169,7 +173,7 @@ public class PostMigrationJobConfig {
                     }
 
                     for (BookingDTO booking : bookings) {
-                        var participants = booking.getParticipants();
+                        List<ParticipantDTO> participants = booking.getParticipants();
                         participants.forEach(participant -> loggingService.logDebug(
                             "Booking participant: %s , first name: %s, last name: %s",
                             participant.getParticipantType(), participant.getFirstName(), participant.getLastName()));
@@ -188,12 +192,12 @@ public class PostMigrationJobConfig {
                                 continue;
                             }
                             loggingService.logDebug("TEST");
-                            var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+                            PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
                                 booking, email, firstName, lastName);
                             if (result != null) {
                                 migratedItems.add(result);
                                 if (result.getInvites() != null) {
-                                    for (var invite : result.getInvites()) {
+                                    for (CreateInviteDTO invite : result.getInvites()) {
                                         migrationTrackerService.addInvitedUser(invite);
                                     }
                                 }
@@ -251,7 +255,7 @@ public class PostMigrationJobConfig {
 
     private boolean hasMatchingChannelUser(String reference, Map<String, List<String[]>> channelUsersMap) {
         return channelUsersMap.keySet().stream()
-            .anyMatch(k -> k.toLowerCase().contains(reference.toLowerCase()));
+            .anyMatch(k -> k.toLowerCase(Locale.UK).contains(reference.toLowerCase(Locale.UK)));
     }
 
     private CreateCaseDTO buildClosedCaseDTO(CaseDTO caseDTO) {
@@ -276,13 +280,12 @@ public class PostMigrationJobConfig {
         return dto;
     }
 
-    private CreateParticipantDTO mapParticipant(ParticipantDTO p) {
+    private CreateParticipantDTO mapParticipant(ParticipantDTO participant) {
         CreateParticipantDTO dto = new CreateParticipantDTO();
-        dto.setId(p.getId());
-        dto.setFirstName(p.getFirstName());
-        dto.setLastName(p.getLastName());
-        dto.setParticipantType(p.getParticipantType());
+        dto.setId(participant.getId());
+        dto.setFirstName(participant.getFirstName());
+        dto.setLastName(participant.getLastName());
+        dto.setParticipantType(participant.getParticipantType());
         return dto;
     }
-
 }

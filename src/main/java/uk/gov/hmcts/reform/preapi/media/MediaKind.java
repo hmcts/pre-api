@@ -86,7 +86,6 @@ import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitised
 @Slf4j
 @Service
 @SuppressWarnings({
-    "PMD.AvoidThrowingNewInstanceOfSameException",
     "PMD.CouplingBetweenObjects",
     "PMD.CyclomaticComplexity",
     "PMD.ExcessiveImports",
@@ -250,7 +249,7 @@ public class MediaKind implements IMediaService {
     @Override
     @Transactional(dontRollbackOn = Exception.class)
     public void stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) {
-        var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
+        String captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
     }
 
@@ -259,7 +258,7 @@ public class MediaKind implements IMediaService {
         try {
             stopAndDeleteLiveEvent(liveEventId);
         } catch (NotFoundException e) {
-            // ignore
+            log.info("Live event {} not found", liveEventId);
         }
     }
 
@@ -350,7 +349,6 @@ public class MediaKind implements IMediaService {
         assertStreamingLocatorExists(captureSession.getId());
     }
 
-    @SuppressWarnings("PMD.UnusedPrivateMethod") // this is used
     private void startLiveEvent(String liveEventName) {
         try {
             mediaKindClient.startLiveEvent(liveEventName);
@@ -674,7 +672,6 @@ public class MediaKind implements IMediaService {
                     isFinal);
     }
 
-    @SuppressWarnings("PMD.UnusedPrivateMethod") // this is used
     private void createAsset(String assetName,
                              String description,
                              String containerName,

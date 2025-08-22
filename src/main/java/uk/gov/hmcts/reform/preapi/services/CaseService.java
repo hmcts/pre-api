@@ -21,7 +21,6 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
-import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -93,7 +92,7 @@ public class CaseService {
     @Transactional(readOnly = true)
     @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
     public List<CaseDTO> getCasesByOrigin(RecordingOrigin origin) {
-        var cases = caseRepository.findAllByOrigin(origin);
+        List<Case> cases = caseRepository.findAllByOrigin(origin);
         return cases.stream().map(CaseDTO::new).toList();
     }
 
@@ -299,7 +298,7 @@ public class CaseService {
         if (!shares.isEmpty()) {
             try {
                 IEmailService emailService = emailServiceFactory.getEnabledEmailService();
-                shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
+                shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), aCase));
             } catch (Exception e) {
                 log.error("Failed to notify users of case closure: {}", aCase.getId());
             }
@@ -335,7 +334,7 @@ public class CaseService {
 
         try {
             IEmailService emailService = emailServiceFactory.getEnabledEmailService();
-            shares.forEach(share -> emailService.caseClosureCancelled(share.getSharedWith(), c));
+            shares.forEach(share -> emailService.caseClosureCancelled(share.getSharedWith(), aCase));
         } catch (Exception e) {
             log.error("Failed to notify users of case closure cancellation: {}", aCase.getId());
         }
@@ -352,7 +351,7 @@ public class CaseService {
 
         try {
             IEmailService emailService = emailServiceFactory.getEnabledEmailService();
-            shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c, c.getClosedAt()));
+            shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), aCase, aCase.getClosedAt()));
         } catch (Exception e) {
             log.error("Failed to notify users of case pending closure: {}", aCase.getId());
         }

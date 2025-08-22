@@ -29,15 +29,11 @@ public class AuditListener {
     private final HttpServletRequest request;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public AuditListener(
-        @Lazy AuditRepository auditRepository,
-        @Lazy HttpServletRequest request
-    ) {
+    public AuditListener(@Lazy AuditRepository auditRepository,
+                         @Lazy HttpServletRequest request) {
         this.auditRepository = auditRepository;
         this.request = request;
     }
-
-    ObjectMapper mapper = new ObjectMapper();
 
     @PrePersist
     public void prePersist(BaseEntity entity) {

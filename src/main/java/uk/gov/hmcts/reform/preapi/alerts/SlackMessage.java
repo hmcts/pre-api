@@ -23,7 +23,6 @@ public class SlackMessage {
      *
      * @return A string which is the message content.
      */
-    @SuppressWarnings("PMD.InsufficientStringBufferDeclaration")
     public String toJson() {
         return toJson(SlackMessageJsonOptions.builder()
                           .showEnvironment(true)
@@ -41,7 +40,7 @@ public class SlackMessage {
         boolean showEnvironment = options.showEnvironment();
         boolean showIcons = options.showIcons();
 
-        StringBuilder message = new StringBuilder();
+        StringBuilder message = new StringBuilder(78);
 
         if (showEnvironment) {
             message.append(":globe_with_meridians: *Environment:* ")

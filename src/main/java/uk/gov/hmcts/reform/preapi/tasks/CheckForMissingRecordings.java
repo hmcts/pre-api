@@ -66,7 +66,6 @@ public class CheckForMissingRecordings extends RobotUserTask {
     }
 
     @Override
-    @SuppressWarnings("PMD.CognitiveComplexity")
     public void run() {
         log.info("Signing in robot user with email {} on env {}", cronUserEmail, platformEnv);
         signInRobotUser();

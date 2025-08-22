@@ -22,7 +22,7 @@ public final class CommandRunner implements Callable<String> {
     @Override
     public String call() throws Exception {
         @Cleanup ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        @Cleanup ByteArrayOutputStream = new ByteArrayOutputStream();
+        @Cleanup ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         DefaultExecutor exec = DefaultExecutor.builder().get();
         PumpStreamHandler streamHandler = new PumpStreamHandler(stdout, stderr);
         exec.setStreamHandler(streamHandler);

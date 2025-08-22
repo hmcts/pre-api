@@ -21,7 +21,6 @@ public class ImportedNROUser {
 
     private static final char CSV_DELIMITER = ',';
 
-    @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
     public static String[] parseCsvLine(String line) {
         List<String> result = new ArrayList<>();
         StringBuilder currentValue = new StringBuilder();

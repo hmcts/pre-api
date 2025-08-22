@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class EntityCreationService {
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
@@ -55,7 +57,7 @@ public class EntityCreationService {
             throw new IllegalArgumentException("Court information is missing");
         }
 
-        var caseDTO = new CreateCaseDTO();
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
         caseDTO.setId(UUID.randomUUID());
         caseDTO.setCourtId(cleansedData.getCourt().getId());
         caseDTO.setReference(cleansedData.getCaseReference());
@@ -118,12 +120,12 @@ public class EntityCreationService {
             captureSessionId = UUID.randomUUID();
         }
 
-        var captureSessionDTO = new CreateCaptureSessionDTO();
+        CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();
         captureSessionDTO.setId(captureSessionId);
         captureSessionDTO.setBookingId(booking.getId());
         captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
 
-        var vodafoneUser = getUserByEmail(vodafoneUserEmail);
+        UUID vodafoneUser = getUserByEmail(vodafoneUserEmail);
         captureSessionDTO.setStartedByUserId(vodafoneUser);
         captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
         captureSessionDTO.setFinishedByUserId(vodafoneUser);
@@ -141,7 +143,7 @@ public class EntityCreationService {
         UUID parentRecordingId = null;
 
         if (isCopy) {
-            Optional<MigrationRecord> currentRecordOpt = 
+            Optional<MigrationRecord> currentRecordOpt =
                 migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
 
             if (currentRecordOpt.isPresent()) {
@@ -165,7 +167,7 @@ public class EntityCreationService {
             }
         }
 
-        var recordingDTO = new CreateRecordingDTO();
+        CreateRecordingDTO recordingDTO = new CreateRecordingDTO();
         UUID recordingId = UUID.randomUUID();
         recordingDTO.setId(recordingId);
         recordingDTO.setCaptureSessionId(captureSession.getId());
@@ -183,15 +185,15 @@ public class EntityCreationService {
         return recordingDTO;
     }
 
-   
+
     public Set<CreateParticipantDTO> createParticipants(ProcessedRecording cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
 
-        if (cleansedData.getWitnessFirstName() != null && !cleansedData.getWitnessFirstName().trim().isEmpty()) {
+        if (cleansedData.getWitnessFirstName() != null && !cleansedData.getWitnessFirstName().isBlank()) {
             participants.add(createParticipant(ParticipantType.WITNESS, cleansedData.getWitnessFirstName(), ""));
         }
 
-        if (cleansedData.getDefendantLastName() != null && !cleansedData.getDefendantLastName().trim().isEmpty()) {
+        if (cleansedData.getDefendantLastName() != null && !cleansedData.getDefendantLastName().isBlank()) {
             participants.add(createParticipant(ParticipantType.DEFENDANT, "", cleansedData.getDefendantLastName()));
         }
 
@@ -199,7 +201,7 @@ public class EntityCreationService {
     }
 
     private CreateParticipantDTO createParticipant(ParticipantType type, String firstName, String lastName) {
-        var participantDTO = new CreateParticipantDTO();
+        CreateParticipantDTO participantDTO = new CreateParticipantDTO();
         participantDTO.setId(UUID.randomUUID());
         participantDTO.setParticipantType(type);
         participantDTO.setFirstName(firstName != null ? firstName : Constants.DEFAULT_NAME);
@@ -212,7 +214,7 @@ public class EntityCreationService {
         CreateUserDTO sharedWith,
         CreateUserDTO sharedBy
     ) {
-        var shareBookingDTO = new CreateShareBookingDTO();
+        CreateShareBookingDTO shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(bookingDTO.getId());
         shareBookingDTO.setSharedByUser(sharedBy.getId());
@@ -247,7 +249,7 @@ public class EntityCreationService {
     }
 
     public CreateInviteDTO createInvite(CreateUserDTO user) {
-        var createInviteDTO = new CreateInviteDTO();
+        CreateInviteDTO createInviteDTO = new CreateInviteDTO();
         createInviteDTO.setEmail(user.getEmail());
         createInviteDTO.setFirstName(user.getFirstName());
         createInviteDTO.setUserId(user.getId());
@@ -261,7 +263,7 @@ public class EntityCreationService {
                                                                         String firstName,
                                                                         String lastName) {
         loggingService.logInfo("Creating share booking and user for %s %s %s", email, firstName, lastName);
-        String lowerEmail = email.toLowerCase();
+        String lowerEmail = email.toLowerCase(Locale.UK);
 
         List<CreateInviteDTO> invites = new ArrayList<>();
 
@@ -290,7 +292,7 @@ public class EntityCreationService {
         }
 
         String vodafoneID = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX,
-                                                      vodafoneUserEmail.toLowerCase(),
+                                                      vodafoneUserEmail.toLowerCase(Locale.UK),
                                                       String.class);
         CreateUserDTO sharedBy;
 
@@ -329,15 +331,5 @@ public class EntityCreationService {
         result.setInvites(invites);
         result.setShareBookings(shareBookings);
         return result;
-    }
-
-    private boolean isOrigRecordingPersisted(String archiveId) {
-        Optional<MigrationRecord> maybeRecord = migrationRecordService.findByArchiveId(archiveId);
-
-        if (maybeRecord.isPresent()) {
-            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(maybeRecord.get());
-            return maybeOrig.isPresent() && maybeOrig.get().getRecordingId() != null;
-        }
-        return false;
     }
 }

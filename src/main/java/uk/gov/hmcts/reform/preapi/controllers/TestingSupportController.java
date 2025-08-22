@@ -209,7 +209,7 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var caseEntity = new Case();
+        Case caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference(RandomStringUtils.secure().nextAlphabetic(5));
         caseEntity.setCourt(court);
@@ -316,7 +316,7 @@ class TestingSupportController {
             case LEVEL_3 -> "Level 3";
             case LEVEL_4 -> "Level 4";
         };
-        var r = roleRepository.findFirstByName(roleName)
+        Role roleEntity = roleRepository.findFirstByName(roleName)
             .orElse(createRole(roleName));
         AppAccess appAccess = createAppAccess(roleEntity);
         return ResponseEntity.ok(Map.of(

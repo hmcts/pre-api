@@ -94,7 +94,7 @@ public class EditRequestService {
 
     @Transactional
     public Page<EditRequestDTO> findAll(SearchEditRequests params, Pageable pageable) {
-        UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         params.setAuthorisedBookings(
             auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );

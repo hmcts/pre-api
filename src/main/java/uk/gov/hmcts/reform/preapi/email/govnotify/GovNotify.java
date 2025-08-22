@@ -137,15 +137,13 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode) {
-        var template = new EmailVerification(
-            email, firstName, lastName, verificationCode
-        );
+        EmailVerification template = new EmailVerification(email, firstName, lastName, verificationCode);
         try {
             log.info("Email verification sent to {}", email);
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send email verification to {}", email, e);
-            throw new EmailFailedToSendException(email);
+            throw new EmailFailedToSendException(email, e);
         }
     }
 

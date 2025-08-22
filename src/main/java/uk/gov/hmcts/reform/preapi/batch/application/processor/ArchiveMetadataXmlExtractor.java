@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -48,6 +49,7 @@ public class ArchiveMetadataXmlExtractor {
      * @param containerName The Azure Blob container name.
      * @param outputDir     The directory where the CSV files will be written.
      */
+    @SuppressWarnings("PMD.CognitiveComplexity")
     public void extractAndReportArchiveMetadata(
         String containerName, String folderPrefix, String outputDir, String filename) {
         try {
@@ -69,14 +71,14 @@ public class ArchiveMetadataXmlExtractor {
                 loggingService.logDebug("Generating archive metadata report in directory: %s", outputDir);
 
                 allArchiveMetadata.sort((a, b) -> {
-                    String nameA = a.get(1).toLowerCase();
-                    String nameB = b.get(1).toLowerCase();
+                    String nameA = a.get(1).toLowerCase(Locale.UK);
+                    String nameB = b.get(1).toLowerCase(Locale.UK);
 
                     String versionA = extractVersion(nameA);
                     String versionB = extractVersion(nameB);
 
-                    boolean aIsOrig = Constants.VALID_ORIG_TYPES.contains(versionA.toUpperCase());
-                    boolean bIsOrig = Constants.VALID_ORIG_TYPES.contains(versionB.toUpperCase());
+                    boolean aIsOrig = Constants.VALID_ORIG_TYPES.contains(versionA.toUpperCase(Locale.UK));
+                    boolean bIsOrig = Constants.VALID_ORIG_TYPES.contains(versionB.toUpperCase(Locale.UK));
 
                     if (aIsOrig && !bIsOrig) {
                         return -1;
@@ -270,6 +272,7 @@ public class ArchiveMetadataXmlExtractor {
         return fileRows;
     }
 
+    @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
     private Element selectPreferredMp4File(NodeList mp4Files) {
         Element fallback = null;
 
@@ -344,7 +347,7 @@ public class ArchiveMetadataXmlExtractor {
             return "";
         }
 
-        String cleanName = displayName.toUpperCase()
+        String cleanName = displayName.toUpperCase(Locale.UK)
             .replaceAll("\\.(MP4|RAW|M4A|MOV|AVI)$", "");
 
         String[] parts = cleanName.split("-");

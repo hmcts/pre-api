@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -69,10 +71,10 @@ public class UserTermsAcceptedService {
         accepted.setAcceptedAt(Timestamp.from(Instant.now()));
         userTermsAcceptedRepository.save(accepted);
 
-        var userEmail = user.getEmail(); // needed for cache eviction
-        var cache = cacheManager.getCache("users");
+        String userEmail = user.getEmail(); // needed for cache eviction
+        Cache cache = cacheManager.getCache("users");
         if (cache != null) {
-            cache.evict(userEmail.toLowerCase());
+            cache.evict(userEmail.toLowerCase(Locale.UK));
         }
     }
 }

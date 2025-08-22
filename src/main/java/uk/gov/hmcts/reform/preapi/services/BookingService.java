@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@SuppressWarnings({"PMD.SingularField", "PMD.CouplingBetweenObjects"})
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class BookingService {
 
     private final BookingRepository bookingRepository;
@@ -122,7 +122,6 @@ public class BookingService {
             .map(BookingDTO::new);
     }
 
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {

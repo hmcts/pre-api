@@ -37,6 +37,7 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.FILE_S
  * and provides functionality to write these items to CSV files for reporting purposes.
  */
 @Service
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
 public class MigrationTrackerService {
     @Value("${azure.vodafoneStorage.container}")
     private String reportContainer;
@@ -154,7 +155,7 @@ public class MigrationTrackerService {
 
             try {
                 Path path = ReportCsvWriter.writeToCsv(FAILED_ITEM_HEADERS, rows, fileName, outputDir, false);
-                if (path != null) {  
+                if (path != null) {
                     writtenFiles.add(path.toFile());
                 } else {
                     loggingService.logError(

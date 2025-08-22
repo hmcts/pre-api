@@ -78,7 +78,7 @@ public class AuthorisationService {
         if (bookingId == null) {
             return true;
         }
-        var booking = bookingRepository.findById(bookingId).orElse(null);
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
         if (booking == null) {
             return true;
         }

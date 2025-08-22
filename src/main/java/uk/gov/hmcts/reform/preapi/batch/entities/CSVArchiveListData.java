@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
@@ -15,7 +14,6 @@ import java.util.Objects;
 
 @Getter
 @Setter
-@NoArgsConstructor
 public class CSVArchiveListData implements IArchiveData  {
     private static final List<String> DATE_PATTERNS = List.of(
         "dd/MM/yyyy HH:mm", "dd/MM/yyyy H:mm",
@@ -29,13 +27,13 @@ public class CSVArchiveListData implements IArchiveData  {
         "yyyy-MM-dd HH:mm:ss"
     );
 
-    private String archiveId = "";
-    private String archiveName = "";
-    private String sanitizedArchiveName = "";
-    private String createTime = "";
-    private Integer duration = 0;
-    private String fileName = "";
-    private String fileSize = "";
+    private String archiveId;
+    private String archiveName;
+    private String sanitizedArchiveName;
+    private String createTime;
+    private Integer duration;
+    private String fileName;
+    private String fileSize;
 
     public CSVArchiveListData(String archiveId,
                               String archiveName,
@@ -91,6 +89,7 @@ public class CSVArchiveListData implements IArchiveData  {
         return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
 
+    @Override
     public LocalDateTime getCreateTimeAsLocalDateTime() {
         return getParsedCreateTime();
     }

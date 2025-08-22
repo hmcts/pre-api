@@ -41,7 +41,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
         signInRobotUser();
         log.info("Starting process capture session task");
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
         encodeJobService.findAllProcessing().forEach(job -> checkJob(job, mediaService));
 
         encodeJobService.findAllProcessing()
@@ -104,7 +104,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
 
     private void onEncodeFromIngestProcessingComplete(EncodeJobDTO job, IMediaService mediaService) {
         log.info("EncodeFromIngest for capture session {} is complete", job.getCaptureSessionId());
-        var jobName = mediaService.triggerProcessingStep2(job.getRecordingId());
+        String jobName = mediaService.triggerProcessingStep2(job.getRecordingId());
 
         if (jobName == null) {
             log.info("No recording found for capture session {}", job.getCaptureSessionId());

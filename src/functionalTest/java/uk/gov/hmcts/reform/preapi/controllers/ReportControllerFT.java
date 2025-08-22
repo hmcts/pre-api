@@ -16,8 +16,9 @@ class ReportControllerFT extends FunctionalTestBase {
 
     private static final String DATE_FORMAT_REGEX = "^\\d{2}/\\d{2}/\\d{4}$";
     private static final String TIME_FORMAT_REGEX = "^\\d{2}:\\d{2}:\\d{2}$";
-    @DisplayName("Scenario: Should format Duration and date correctly")
+
     @Test
+    @DisplayName("Scenario: Should format Duration and date correctly")
     void shouldFormatDurationAndDateCorrectly() throws JsonProcessingException {
         var bookingId = doPostRequest("/testing-support/should-delete-recordings-for-booking",
                                              TestingSupportRoles.SUPER_USER)

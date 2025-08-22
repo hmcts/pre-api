@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import java.sql.Timestamp;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,10 +33,13 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.TooManyMethods")
 public class MigrationRecordService {
     private final MigrationRecordRepository migrationRecordRepository;
     private final LoggingService loggingService;
     private final CourtRepository courtRepository;
+
+    private static final long EPOCH_THRESHOLD_SECONDS_TO_MILLIS = 100_000_000_000L;
 
     @Autowired
     public MigrationRecordService(final MigrationRecordRepository migrationRecordRepository,
@@ -66,6 +70,7 @@ public class MigrationRecordService {
     }
 
     @Transactional
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     public UpsertResult upsert(String archiveId,
                                String archiveName,
                                Timestamp createTime,
@@ -132,14 +137,16 @@ public class MigrationRecordService {
         Timestamp createTime = null;
         long epoch = Long.parseLong(createTimeEpoch);
         if (epoch > 0) {
-            if (epoch < 100_000_000_000L) {
+            if (epoch < EPOCH_THRESHOLD_SECONDS_TO_MILLIS) {
                 epoch *= 1000;
             }
             createTime = new Timestamp(epoch);
         }
 
-        Integer parsedDuration;
-        parsedDuration = duration != null ? Integer.valueOf(duration) : null;
+        Integer parsedDuration = null;
+        if (duration != null) {
+            parsedDuration = Integer.valueOf(duration);
+        }
 
         upsert(
             archiveId,
@@ -217,7 +224,7 @@ public class MigrationRecordService {
                 nullToEmpty(extracted.getExhibitReference()),
                 nullToEmpty(extracted.getWitnessFirstName()),
                 nullToEmpty(extracted.getDefendantLastName())
-            ).toLowerCase().trim();
+            ).toLowerCase(Locale.UK).trim();
 
             record.setRecordingGroupKey(groupKey);
             migrationRecordRepository.save(record);
@@ -282,7 +289,7 @@ public class MigrationRecordService {
         Optional<MigrationRecord> maybeOrig = migrationRecordRepository
             .findByRecordingGroupKey(recordingGroupKey)
             .stream()
-            .filter(r -> !r.getArchiveName().toLowerCase().endsWith(".raw"))
+            .filter(r -> !r.getArchiveName().toLowerCase(Locale.UK).endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
             .filter(MigrationRecord::getIsPreferred)
             .filter(r -> {
@@ -290,8 +297,8 @@ public class MigrationRecordService {
                 return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
             })
             .sorted((a, b) -> {
-                boolean aIsMp4 = a.getArchiveName().toLowerCase().endsWith(".mp4");
-                boolean bIsMp4 = b.getArchiveName().toLowerCase().endsWith(".mp4");
+                boolean aIsMp4 = a.getArchiveName().toLowerCase(Locale.UK).endsWith(".mp4");
+                boolean bIsMp4 = b.getArchiveName().toLowerCase(Locale.UK).endsWith(".mp4");
                 if (aIsMp4 != bIsMp4) {
                     return bIsMp4 ? 1 : -1;
                 }
@@ -364,12 +371,12 @@ public class MigrationRecordService {
 
         boolean updated = false;
         boolean mp4Exists = matchingVersion.stream()
-            .anyMatch(r -> r.getArchiveName() != null && r.getArchiveName().toLowerCase().endsWith(".mp4"));
+            .anyMatch(r -> r.getArchiveName() != null && r.getArchiveName().toLowerCase(Locale.UK).endsWith(".mp4"));
 
         if (mp4Exists) {
 
             for (MigrationRecord r : matchingVersion) {
-                boolean isMp4 = r.getFileName() != null && r.getFileName().toLowerCase().endsWith(".mp4");
+                boolean isMp4 = r.getFileName() != null && r.getFileName().toLowerCase(Locale.UK).endsWith(".mp4");
                 r.setIsPreferred(isMp4);
                 migrationRecordRepository.save(r);
                 updated = true;
@@ -404,7 +411,7 @@ public class MigrationRecordService {
                            nullToEmpty(exhibitRef),
                            nullToEmpty(witnessName),
                            nullToEmpty(defendantName))
-            .toLowerCase()
+            .toLowerCase(Locale.UK)
             .trim();
     }
 

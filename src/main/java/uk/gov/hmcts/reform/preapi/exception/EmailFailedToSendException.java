@@ -9,4 +9,8 @@ public class EmailFailedToSendException extends RuntimeException {
     public EmailFailedToSendException(String email) {
         super("Failed to send email to: " + email);
     }
+
+    public EmailFailedToSendException(String email, Exception cause) {
+        super("Failed to send email to: " + email, cause);
+    }
 }

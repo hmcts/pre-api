@@ -28,6 +28,7 @@ public class PostMigrationWriter implements ItemWriter<PostMigratedItemGroup> {
     }
 
     @Override
+    @SuppressWarnings("PMD.CognitiveComplexity")
     public void write(Chunk<? extends PostMigratedItemGroup> items) {
         loggingService.logInfo("PostMigrationWriter triggered with %d item(s)", items.size());
 

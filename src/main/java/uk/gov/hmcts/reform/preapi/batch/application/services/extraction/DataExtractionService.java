@@ -12,6 +12,9 @@ import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
 import uk.gov.hmcts.reform.preapi.batch.util.RegexPatterns;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
@@ -41,9 +44,9 @@ public class DataExtractionService {
         if (!preExistingValidation.isSuccess()) {
             return preExistingValidation;
         }
-        
+
         String archiveName = archiveItem.getArchiveName();
-        
+
         // -- 1. TEST validation (validate for pre-go-live, duration check and test keywords)
         ServiceResult<?> validationResult = validator.validateTest(archiveItem);
         loggingService.logDebug("Validation result in extraction %s", validationResult.isSuccess());
@@ -53,7 +56,7 @@ public class DataExtractionService {
 
         // -- 2. Pattern matching for legitimate and test scenarios
         String sanitisedName = archiveItem.getSanitizedArchiveName();
-        var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
+        Optional<Map.Entry<String, Matcher>> patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
         if (patternMatch.isEmpty()) {
             loggingService.logDebug("Extraction - No pattern matched: archiveName=%s", archiveName);
             return ServiceResultUtil.failure(PATTERN_MATCH, VfFailureReason.VALIDATION_FAILED.toString());
@@ -63,7 +66,7 @@ public class DataExtractionService {
 
         if (RegexPatterns.TEST_PATTERNS.containsKey(patternMatch.get().getKey())) {
             loggingService.logInfo("Extraction - Test pattern match: %s", patternMatch.get().getKey());
-            var testItem = new TestItem(
+            TestItem testItem = new TestItem(
                 archiveItem,
                 "Matched TEST regex pattern",
                 false,
@@ -77,7 +80,7 @@ public class DataExtractionService {
         }
 
         Matcher matcher = patternMatch.get().getValue();
-        var extractedData = extractMetaData(matcher, archiveItem);
+        ExtractedMetadata extractedData = extractMetaData(matcher, archiveItem);
         String archiveId = archiveItem.getArchiveId();
 
         loggingService.logDebug("Extraction - Metadata extracted: " + extractedData);
@@ -111,7 +114,7 @@ public class DataExtractionService {
         String versionNumber = getMatcherGroup(matcher, "versionNumber");
         versionType = RecordingUtils.normalizeVersionType(versionType);
 
-        if (Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())
+        if (Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase(Locale.UK))
             && (versionNumber == null || versionNumber.isEmpty())) {
             versionNumber = "1";
         }

@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -15,8 +16,6 @@ import java.util.stream.Collectors;
 @Setter
 @NoArgsConstructor
 public class ExtractedMetadata implements IArchiveData {
-    private static final int MIN_LEN_EXCLUSIVE = 9;   
-    private static final int MAX_LEN_EXCLUSIVE = 20;
     private String courtReference;
     private UUID courtId;
     private String urn;
@@ -34,6 +33,10 @@ public class ExtractedMetadata implements IArchiveData {
     private String archiveName;
     private String sanitizedArchiveName = "";
 
+    private static final int MIN_LEN_EXCLUSIVE = 9;
+    private static final int MAX_LEN_EXCLUSIVE = 20;
+
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     public ExtractedMetadata(String courtReference,
                              UUID courtId,
                              String urn,
@@ -51,10 +54,14 @@ public class ExtractedMetadata implements IArchiveData {
                              String archiveName) {
         this.courtReference = courtReference;
         this.courtId = courtId;
-        this.urn = urn != null ? urn.toUpperCase() : null;
-        this.exhibitReference = exhibitReference != null ? exhibitReference.toUpperCase() : null;
-        this.defendantLastName = formatName(defendantLastName != null ? defendantLastName.toLowerCase() : "");
-        this.witnessFirstName = formatName(witnessFirstName != null ? witnessFirstName.toLowerCase() : "");
+        if (urn != null) {
+            this.urn = urn.toUpperCase(Locale.UK);
+        }
+        if (exhibitReference != null) {
+            this.exhibitReference = exhibitReference.toUpperCase(Locale.UK);
+        }
+        this.defendantLastName = formatName(defendantLastName != null ? defendantLastName.toLowerCase(Locale.UK) : "");
+        this.witnessFirstName = formatName(witnessFirstName != null ? witnessFirstName.toLowerCase(Locale.UK) : "");
         this.recordingVersion = recordingVersion;
         this.recordingVersionNumber = recordingVersionNumber;
         this.fileExtension = fileExtension;
@@ -76,7 +83,7 @@ public class ExtractedMetadata implements IArchiveData {
                 if (part.matches("[-'\\s]")) {
                     return part;
                 } else {
-                    return StringUtils.capitalize(part.toLowerCase());
+                    return StringUtils.capitalize(part.toLowerCase(Locale.UK));
                 }
             })
             .collect(Collectors.joining(""));
@@ -91,13 +98,13 @@ public class ExtractedMetadata implements IArchiveData {
         return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
 
-    private static boolean isValidRef(String s) {
-        if (s == null) {
+    private static boolean isValidRef(String reference) {
+        if (reference == null) {
             return false;
         }
-        String t = s.trim();
-        int len = t.length();
-        return len >= MIN_LEN_EXCLUSIVE && len <= MAX_LEN_EXCLUSIVE; 
+
+        int len = reference.trim().length();
+        return len >= MIN_LEN_EXCLUSIVE && len <= MAX_LEN_EXCLUSIVE;
     }
 
     public String createCaseReference() {

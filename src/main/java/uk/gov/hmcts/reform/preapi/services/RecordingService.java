@@ -140,7 +140,6 @@ public class RecordingService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createRecordingDTO)")
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateRecordingDTO createRecordingDTO) {
         Optional<Recording> recording = recordingRepository.findById(createRecordingDTO.getId());
 

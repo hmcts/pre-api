@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -49,10 +50,10 @@ public class MigrationGroupBuilderService {
     // =========================
     public MigratedItemGroup createMigratedItemGroup(ExtractedMetadata item, ProcessedRecording cleansedData) {
         CreateCaseDTO aCase = createCaseIfOrig(cleansedData);
-        
+
         if (aCase == null) {
             String version = cleansedData.getExtractedRecordingVersion();
-            if (version == null || !version.toUpperCase().contains("COPY")) {
+            if (version == null || !version.toUpperCase(Locale.UK).contains("COPY")) {
                 loggingService.logError("Failed to find or create case for file: %s", cleansedData.getFileName());
                 return null;
             }
@@ -89,7 +90,7 @@ public class MigrationGroupBuilderService {
 
     protected CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
-        
+
         if (isInvalidCaseReference(caseReference)) {
             loggingService.logDebug("Invalid case reference: '%s'", caseReference);
             return null;
@@ -98,13 +99,13 @@ public class MigrationGroupBuilderService {
         Optional<CreateCaseDTO> existingCaseOpt = cacheService.getCase(caseReference);
         if (existingCaseOpt.isPresent()) {
             CreateCaseDTO existingCase = existingCaseOpt.get();
-            loggingService.logDebug("Existing case ID: %s, Reference: %s", 
+            loggingService.logDebug("Existing case ID: %s, Reference: %s",
                                 existingCase.getId(), existingCase.getReference());
             return updateExistingCase(caseReference, cleansedData, existingCase);
         }
 
         loggingService.logDebug("Case not found in cache, creating new case for reference: '%s'", caseReference);
-        
+
         return createNewCase(caseReference, cleansedData);
     }
 
@@ -164,7 +165,7 @@ public class MigrationGroupBuilderService {
     }
 
     private String normalizeName(String name) {
-        return name == null ? "" : name.trim().toLowerCase();
+        return name == null ? "" : name.trim().toLowerCase(Locale.UK);
     }
 
     protected CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO aCase) {

@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -27,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -34,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final LoggingService loggingService;
@@ -153,17 +156,17 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         Map<String, CreateParticipantDTO> union = new HashMap<>();
         if (persisted.getParticipants() != null) {
             for (ParticipantDTO p : persisted.getParticipants()) {
-                union.put(p.getParticipantType() + "|" + normalize(p.getFirstName()) 
+                union.put(p.getParticipantType() + "|" + normalize(p.getFirstName())
                     + "|" + normalize(p.getLastName()), toCreate(p));
             }
         }
         if (caseData.getParticipants() != null) {
-            for (var p : caseData.getParticipants()) {
+            for (CreateParticipantDTO p : caseData.getParticipants()) {
                 union.putIfAbsent(participantKey(p), p);
             }
         }
 
-        var patch = new CreateCaseDTO();
+        CreateCaseDTO patch = new CreateCaseDTO();
         patch.setId(persisted.getId());
         patch.setCourtId(persisted.getCourt().getId());
         patch.setReference(persisted.getReference());
@@ -244,15 +247,15 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         Map<String, ParticipantDTO> persistedMap = new HashMap<>();
         if (persistedCase.getParticipants() != null) {
             for (ParticipantDTO p : persistedCase.getParticipants()) {
-                String key = p.getParticipantType() + "|" + normalize(p.getFirstName()) 
+                String key = p.getParticipantType() + "|" + normalize(p.getFirstName())
                     + "|" + normalize(p.getLastName());
                 persistedMap.put(key, p);
             }
         }
 
-        
+
         Map<String, CreateParticipantDTO> clientMap = new HashMap<>();
-        for (var p : booking.getParticipants()) {
+        for (CreateParticipantDTO p : booking.getParticipants()) {
             clientMap.put(participantKey(p), p);
         }
 
@@ -261,46 +264,50 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 String key = participantKey(p);
                 ParticipantDTO match = persistedMap.get(key);
                 if (match != null) {
-                    var cp = new CreateParticipantDTO();
-                    cp.setId(match.getId()); 
+                    CreateParticipantDTO cp = new CreateParticipantDTO();
+                    cp.setId(match.getId());
                     cp.setParticipantType(match.getParticipantType());
                     cp.setFirstName(match.getFirstName());
                     cp.setLastName(match.getLastName());
                     return cp;
                 }
-                var client = clientMap.get(key);
+                CreateParticipantDTO client = clientMap.get(key);
                 if (client != null) {
                     return client;
-                }    
+                }
 
                 loggingService.logWarning("Booking participant not in persisted case, skipping: %s", key);
                 return null;
             })
             .filter(Objects::nonNull)
-            .collect(java.util.stream.Collectors.toSet());
+            .collect(Collectors.toSet());
 
         booking.setParticipants(remapped);
     }
 
-    private static String normalize(String s) { 
-        return s == null ? "" : s.trim().toLowerCase(); 
+    private static String normalize(String str) {
+        return str == null ? "" : str.trim().toLowerCase(Locale.UK);
     }
 
-    private static String participantKey(CreateParticipantDTO p) {
-        return p.getParticipantType() + "|" + normalize(p.getFirstName()) + "|" + normalize(p.getLastName());
+    private static String participantKey(CreateParticipantDTO participant) {
+        return participant.getParticipantType()
+            + "|"
+            + normalize(participant.getFirstName())
+            + "|"
+            + normalize(participant.getLastName());
     }
 
-    private static CreateParticipantDTO toCreate(ParticipantDTO p) {
-        var participantDTO = new CreateParticipantDTO();
-        participantDTO.setId(p.getId());
-        participantDTO.setParticipantType(p.getParticipantType());
-        participantDTO.setFirstName(p.getFirstName());
-        participantDTO.setLastName(p.getLastName());
+    private static CreateParticipantDTO toCreate(ParticipantDTO participant) {
+        CreateParticipantDTO participantDTO = new CreateParticipantDTO();
+        participantDTO.setId(participant.getId());
+        participantDTO.setParticipantType(participant.getParticipantType());
+        participantDTO.setFirstName(participant.getFirstName());
+        participantDTO.setLastName(participant.getLastName());
         return participantDTO;
     }
 
     private CaseDTO fetchByRefAndCourt(String reference, java.util.UUID courtId) {
-        var page = caseService.searchBy(reference, courtId, false, PageRequest.of(0, 1));
+        Page<CaseDTO> page = caseService.searchBy(reference, courtId, false, PageRequest.of(0, 1));
         return page.hasContent() ? page.getContent().get(0) : null;
     }
 

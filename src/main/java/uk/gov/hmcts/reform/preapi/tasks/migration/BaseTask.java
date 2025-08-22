@@ -36,7 +36,7 @@ public abstract class BaseTask extends RobotUserTask {
 
     protected void startJob(Job job, String jobName, String... extraParams) {
         try {
-            var jobParametersBuilder = new JobParametersBuilder()
+            JobParametersBuilder jobParametersBuilder = new JobParametersBuilder()
                 .addLong("time", System.currentTimeMillis())
                 .addString("debug", String.valueOf(debug))
                 .addString("dryRun", String.valueOf(dryRun));

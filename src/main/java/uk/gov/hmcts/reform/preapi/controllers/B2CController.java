@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 @RestController
@@ -37,8 +39,8 @@ public class B2CController {
         summary = "Trigger an email verification email to be sent out via gov notify"
     )
     public void postEmailVerification(@Valid @RequestBody VerifyEmailRequestDTO request) {
-        var user = userService.findByEmail(request.getEmail()).getUser();
-        var emailService = this.emailServiceFactory.getEnabledEmailService(emailServiceName);
+        BaseUserDTO user = userService.findByEmail(request.getEmail()).getUser();
+        IEmailService emailService = this.emailServiceFactory.getEnabledEmailService(emailServiceName);
         emailService.emailVerification(request.getEmail(),
                                        user.getFirstName(),
                                        user.getLastName(),

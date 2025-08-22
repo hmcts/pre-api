@@ -213,7 +213,7 @@ public class MediaServiceController extends PreApiController {
         try {
             if (!enableEnhancedProcessing) {
                 // todo code to removed once feature fully enabled (deprecated)
-                var status = mediaService.stopLiveEventAndProcess(dto, recordingId);
+                RecordingStatus status = mediaService.stopLiveEventAndProcess(dto, recordingId);
                 if (status == RecordingStatus.FAILURE) {
                     throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
                                                          + captureSessionId
@@ -222,7 +222,7 @@ public class MediaServiceController extends PreApiController {
                 dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
             } else {
                 mediaService.stopLiveEvent(dto, recordingId);
-                var jobName = mediaService.triggerProcessingStep1(
+                String jobName = mediaService.triggerProcessingStep1(
                     dto,
                     dto.getId().toString().replace("-", ""),
                     recordingId
@@ -236,7 +236,7 @@ public class MediaServiceController extends PreApiController {
                         RecordingStatus.PROCESSING,
                         recordingId
                     );
-                    var encodeJob = new EncodeJobDTO();
+                    EncodeJobDTO encodeJob = new EncodeJobDTO();
                     encodeJob.setId(UUID.randomUUID());
                     encodeJob.setCaptureSessionId(captureSessionId);
                     encodeJob.setJobName(jobName);

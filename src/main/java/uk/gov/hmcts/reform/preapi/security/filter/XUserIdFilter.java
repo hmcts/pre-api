@@ -85,16 +85,12 @@ public class XUserIdFilter extends GenericFilterBean {
         }
 
         // POST
-        if (request.getMethod().equals(HttpMethod.POST.toString())
-            && Arrays.stream(SecurityConfig.PERMITTED_URIS_POST)
+        return !request.getMethod().equals(HttpMethod.POST.toString())
+            || Arrays.stream(SecurityConfig.PERMITTED_URIS_POST)
             .map(parser::parse)
             .toList()
             .stream()
-            .anyMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())))) {
-            return false;
-        }
-
-        return true;
+            .noneMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())));
     }
 
     private void writeErrorResponse(Exception exception, HttpServletResponse response) throws IOException {

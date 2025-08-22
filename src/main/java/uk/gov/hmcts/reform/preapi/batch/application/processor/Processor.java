@@ -92,6 +92,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         }
     }
 
+    @SuppressWarnings("PMD.CognitiveComplexity")
     private MigratedItemGroup processRecording(MigrationRecord migrationRecord) {
         String archiveId = migrationRecord.getArchiveId();
         String archiveName = migrationRecord.getArchiveName();
@@ -201,9 +202,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return null;
         }
 
-        ExtractedMetadata extractedData = (ExtractedMetadata) extractionResult.getData();
-
-        return extractedData;
+        return (ExtractedMetadata) extractionResult.getData();
     }
 
     private ProcessedRecording transformData(ExtractedMetadata extractedData) {

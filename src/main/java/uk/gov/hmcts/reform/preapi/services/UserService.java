@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -106,7 +107,6 @@ public class UserService {
 
     @Transactional
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
-    @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public Page<UserDTO> findAllBy(
         String name,
         String email,
@@ -147,7 +147,6 @@ public class UserService {
         @CacheEvict(value = "users", key = "#createUserDTO.id"),
         @CacheEvict(value = "users", key = "#createUserDTO.email.toLowerCase()")
     })
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
         Optional<User> user = userRepository.findById(createUserDTO.getId());
 
@@ -204,7 +203,6 @@ public class UserService {
         @CacheEvict(value = "users", key = "#createInviteDTO.getUserId()"),
         @CacheEvict(value = "users", key = "#createInviteDTO.email.toLowerCase()")
     })
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
         Optional<User> user = userRepository.findById(createInviteDTO.getUserId());
         if (user.isPresent() && user.get().isDeleted()) {
@@ -263,7 +261,7 @@ public class UserService {
                 user.setDeletedAt(Timestamp.from(Instant.now()));
                 userRepository.saveAndFlush(user);
 
-                var cache = cacheManager.getCache("users");
+                Cache cache = cacheManager.getCache("users");
                 if (cache != null) {
                     cache.evict(userId);
                     cache.evict(user.getEmail());

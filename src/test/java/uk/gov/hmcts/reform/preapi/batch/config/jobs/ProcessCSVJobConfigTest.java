@@ -16,7 +16,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
-import uk.gov.hmcts.reform.preapi.batch.config.jobs.ProcessCSVJobConfig;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
@@ -137,7 +136,7 @@ public class ProcessCSVJobConfigTest {
     @Test
     void shouldCreatePendingMigrationRecordStepWithDryRunWriter() {
         // Given
-        when(coreStepsConfig.getDryRunFlag()).thenReturn(true);
+        when(coreStepsConfig.isDryRun()).thenReturn(true);
         when(coreStepsConfig.noOpWriter()).thenReturn(noOpWriter);
 
         // When
@@ -150,14 +149,14 @@ public class ProcessCSVJobConfigTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("pendingMigrationRecordStep");
-        verify(coreStepsConfig).getDryRunFlag();
+        verify(coreStepsConfig).isDryRun();
         verify(coreStepsConfig).noOpWriter();
     }
 
     @Test
     void shouldCreatePendingMigrationRecordStepWithRegularWriter() {
         // Given
-        when(coreStepsConfig.getDryRunFlag()).thenReturn(false);
+        when(coreStepsConfig.isDryRun()).thenReturn(false);
 
         // When
         Step result = processCSVJobConfig.pendingMigrationRecordStep(
@@ -169,7 +168,7 @@ public class ProcessCSVJobConfigTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("pendingMigrationRecordStep");
-        verify(coreStepsConfig).getDryRunFlag();
+        verify(coreStepsConfig).isDryRun();
     }
 
     @Test

@@ -31,7 +31,7 @@ public class MetadataValidator {
     }
 
     public ServiceResult<?> validatePreExisting(MigrationRecord archiveItem) {
-        String name = archiveItem.getArchiveName().toUpperCase();
+        String name = archiveItem.getArchiveName().toUpperCase(Locale.UK);
         if (name.contains("-PRE-")) {
             return ServiceResultUtil.failure("Keyword 'PRE' found", VfFailureReason.PRE_EXISTING.toString());
         }
@@ -110,7 +110,7 @@ public class MetadataValidator {
     }
 
     private boolean hasTestKeywords(MigrationRecord archiveItem) {
-        String lowerName = archiveItem.getSanitizedArchiveName().toLowerCase();
+        String lowerName = archiveItem.getSanitizedArchiveName().toLowerCase(Locale.UK);
         for (String keyword : Constants.TEST_KEYWORDS) {
             if (lowerName.contains(keyword)) {
                 return false;
@@ -126,7 +126,7 @@ public class MetadataValidator {
 
         List<String> foundKeywords = new ArrayList<>();
         for (String keyword : Constants.TEST_KEYWORDS) {
-            if (archiveName.toLowerCase().contains(keyword.toLowerCase())) {
+            if (archiveName.toLowerCase(Locale.UK).contains(keyword.toLowerCase(Locale.UK))) {
                 foundKeywords.add(keyword);
             }
         }
@@ -171,7 +171,7 @@ public class MetadataValidator {
             return false;
         }
 
-        boolean isValid = Constants.VALID_EXTENSIONS.contains(ext.toLowerCase());
+        boolean isValid = Constants.VALID_EXTENSIONS.contains(ext.toLowerCase(Locale.UK));
         if (!isValid) {
             loggingService.logDebug("Invalid file extension: %s | Allowed extensions: %s",
                 ext, Constants.VALID_EXTENSIONS);

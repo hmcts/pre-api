@@ -14,7 +14,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
-import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 
 import java.io.ByteArrayInputStream;
 
@@ -56,7 +55,7 @@ class CoreStepsConfigTest {
     @Test
     void getDryRunFlagShouldReturnFalseWhenNoContext() {
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
     }
 
 
@@ -96,7 +95,7 @@ class CoreStepsConfigTest {
         // This would require mocking JobSynchronizationManager.getContext()
         // which is complex due to static methods
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
     }
 
     @Test
