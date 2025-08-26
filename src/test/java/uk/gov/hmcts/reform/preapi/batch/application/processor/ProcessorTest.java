@@ -208,7 +208,7 @@ class ProcessorTest {
     @Test
     void shouldHandlePreExistingFailureFromExtraction() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        doReturn(ServiceResult.error("Keyword 'PRE' found", "Pre_Existing"))
+        doReturn(ServiceResult.createErrorResult("Keyword 'PRE' found", "Pre_Existing"))
             .when(extractionService).process(any(MigrationRecord.class));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -226,7 +226,7 @@ class ProcessorTest {
     @Test
     void shouldHandleRawFileFailureFromExtraction() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        doReturn(ServiceResult.error(Constants.ErrorMessages.RAW_FILE, "Raw_Files"))
+        doReturn(ServiceResult.createErrorResult(Constants.ErrorMessages.RAW_FILE, "Raw_Files"))
             .when(extractionService).process(any(MigrationRecord.class));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
