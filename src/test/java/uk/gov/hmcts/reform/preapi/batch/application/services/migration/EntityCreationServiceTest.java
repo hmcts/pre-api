@@ -29,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
@@ -57,6 +58,9 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private InMemoryCacheService cacheService;
+
+    @MockitoBean
+    private RecordingService recordingService;
 
     @MockitoBean
     private MigrationRecordService migrationRecordService;
@@ -208,7 +212,7 @@ public class EntityCreationServiceTest {
         assertThat(result.getStartedByUserId()).isEqualTo(user.getId());
         assertThat(result.getFinishedAt()).isNotNull();
         assertThat(result.getFinishedByUserId()).isEqualTo(user.getId());
-        assertThat(result.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+        assertThat(result.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
 
         verify(userService, times(1)).findByEmail(VODAFONE_EMAIL);
@@ -240,7 +244,7 @@ public class EntityCreationServiceTest {
     public void createRecordingVersionOne() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .fileName("test_file.mp4")
-            .duration(Duration.ofMinutes(5))
+            .duration(null)
             .recordingVersionNumber(1)
             .extractedRecordingVersion("ORIG")
             .caseReference("CASE123")
@@ -257,7 +261,6 @@ public class EntityCreationServiceTest {
         assertThat(result.getId()).isNotNull();
         assertThat(result.getCaptureSessionId()).isEqualTo(captureSession.getId());
         assertThat(result.getFilename()).isEqualTo("test_file.mp4");
-        assertThat(result.getDuration()).isEqualTo(Duration.ofMinutes(5));
         assertThat(result.getVersion()).isEqualTo(1);
         assertThat(result.getParentRecordingId()).isNull();
 
@@ -291,6 +294,8 @@ public class EntityCreationServiceTest {
 
         when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(currentRecord));
         when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.of(origRecord));
+        when(recordingService.getNextVersionNumber(parentId)).thenReturn(2);
+
 
         CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
 
@@ -803,6 +808,7 @@ public class EntityCreationServiceTest {
 
         when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
         when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
+        when(recordingService.getNextVersionNumber(parentRecordingId)).thenReturn(2);
 
         CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
 

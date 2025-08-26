@@ -42,21 +42,38 @@ public class DataValidationService {
     public ServiceResult<ProcessedRecording> validateProcessedRecording(
             ProcessedRecording cleansedData) {
 
+
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
                 VfFailureReason.INCOMPLETE_DATA.toString());
         }
 
         if (VfMigrationRecordingVersion.COPY.toString().equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
+            Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(
+                cleansedData.getArchiveId());
+
+            if (currentRecord.isPresent() && currentRecord.get().getParentTempId() == null) {
+                return ServiceResultUtil.failure(
+                    Constants.ErrorMessages.NO_PARENT_FOUND,
+                    VfFailureReason.INCOMPLETE_DATA.toString()
+                );
+            }
+        }
+
+        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
             boolean isMostRecent = migrationRecordRepository
-                .existsByArchiveIdAndIsMostRecentTrue(cleansedData.getArchiveId());
+                .getIsMostRecent(cleansedData.getArchiveId())
+                .orElse(false);
 
             if (!isMostRecent) {
                 return ServiceResultUtil.failure(
                     Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,
-                    VfFailureReason.NOT_MOST_RECENT.toString());
+                    VfFailureReason.NOT_MOST_RECENT.toString()
+                );
             }
         }
+
+
 
         String caseReference = cleansedData.getCaseReference();
         if (caseReference == null || caseReference.length() < MIN_CASE_REFERENCE_LENGTH) {
@@ -80,25 +97,6 @@ public class DataValidationService {
             );
         }
 
-        if (VfMigrationRecordingVersion.COPY.toString().equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
-            Optional<MigrationRecord> currentRecord = migrationRecordService.findByArchiveId(
-                cleansedData.getArchiveId());
-
-            if (currentRecord.isPresent() && currentRecord.get().getParentTempId() == null) {
-                return ServiceResultUtil.failure(
-                    Constants.ErrorMessages.NO_PARENT_FOUND,
-                    VfFailureReason.INCOMPLETE_DATA.toString()
-                );
-            }
-        }
-
-        // if (!cleansedData.isPreferred()) {
-        //     return ServiceResultUtil.failure(
-        //         Constants.ErrorMessages.NOT_PREFERRED,
-        //         Constants.Reports.FILE_NOT_PREFERRED
-        //     );
-        // }
-
         return ServiceResultUtil.success(cleansedData);
     }
 
@@ -109,6 +107,21 @@ public class DataValidationService {
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
                                              VfFailureReason.INCOMPLETE_DATA.toString());
+        }
+
+
+        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
+            boolean isMostRecent = migrationRecordRepository
+                .findByArchiveId(cleansedData.getArchiveId())
+                .map(mr -> Boolean.TRUE.equals(mr.getIsMostRecent()))
+                .orElse(false);
+
+            if (!isMostRecent) {
+                return ServiceResultUtil.failure(
+                    Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,
+                    VfFailureReason.NOT_MOST_RECENT.toString()
+                );
+            }
         }
 
         String caseReference = cleansedData.getCaseReference();
@@ -145,10 +158,4 @@ public class DataValidationService {
 
         return ServiceResultUtil.success(cleansedData);
     }
-
-    // private boolean isParentMigrated(MigrationRecord copy) {
-    //     return migrationRecordService.getOrigFromCopy(copy)
-    //         .map(MigrationRecord::getRecordingId)
-    //         .isPresent();
-    // }
 }

@@ -68,4 +68,17 @@ public class CreateCaptureSessionDTO {
         }
         this.status = captureSession.getStatus();
     }
+
+    public CreateCaptureSessionDTO(CaptureSessionDTO captureSession) {
+        this.id = captureSession.getId();
+        this.bookingId = captureSession.getBookingId();
+        this.origin = captureSession.getOrigin();
+        this.ingestAddress = captureSession.getIngestAddress();
+        this.liveOutputUrl = captureSession.getLiveOutputUrl();
+        this.startedAt = captureSession.getStartedAt();
+        this.startedByUserId = captureSession.getStartedByUserId();
+        this.finishedAt = captureSession.getFinishedAt();
+        this.finishedByUserId = captureSession.getFinishedByUserId();
+        this.status = captureSession.getStatus();
+    }
 }

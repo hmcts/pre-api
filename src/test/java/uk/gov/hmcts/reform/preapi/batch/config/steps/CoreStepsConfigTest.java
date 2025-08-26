@@ -3,6 +3,9 @@ package uk.gov.hmcts.reform.preapi.batch.config.steps;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.JobSynchronizationManager;
@@ -12,6 +15,7 @@ import org.springframework.batch.support.transaction.ResourcelessTransactionMana
 import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
 
@@ -19,6 +23,7 @@ import java.io.ByteArrayInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CoreStepsConfigTest {
@@ -30,6 +35,8 @@ class CoreStepsConfigTest {
     @Mock
     private Processor itemProcessor;
     @Mock
+    private MigrationTrackerService migrationTrackerService;
+    @Mock
     private MigrationWriter itemWriter;
     @Mock
     private LoggingService loggingService;
@@ -38,6 +45,7 @@ class CoreStepsConfigTest {
     void setup() {
         this.jobRepository = mock(JobRepository.class);
         this.itemProcessor = mock(Processor.class);
+        this.migrationTrackerService = mock(MigrationTrackerService.class);
         this.itemWriter = mock(MigrationWriter.class);
         this.loggingService = mock(LoggingService.class);
 
@@ -47,6 +55,7 @@ class CoreStepsConfigTest {
             jobRepository,
             transactionManager,
             itemProcessor,
+            migrationTrackerService,
             itemWriter,
             loggingService
         );
@@ -92,10 +101,16 @@ class CoreStepsConfigTest {
 
     @Test
     void getDryRunFlagShouldReturnTrueWhenParameterIsTrue() {
-        // This would require mocking JobSynchronizationManager.getContext()
-        // which is complex due to static methods
+        JobParameters params = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+
+        JobExecution jobExecution = new JobExecution(1L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        assertThat(stepsConfig.isDryRun()).isTrue();
+
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.isDryRun()).isFalse();
     }
 
     @Test
@@ -171,6 +186,23 @@ class CoreStepsConfigTest {
 
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo(stepName);
+    }
+
+    @Test
+    void startLoggingStepShouldExecuteAndSetDebugFlag() throws Exception {
+        JobParameters params = new JobParametersBuilder()
+            .addString("debug", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(99L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        Step step = stepsConfig.startLogging();
+
+        step.execute(new org.springframework.batch.core.StepExecution(step.getName(), jobExecution));
+
+        verify(loggingService).setDebugEnabled(true);
+        verify(loggingService).initializeLogFile();
+        verify(loggingService).logInfo("Job started with debug mode: true");
     }
 
 }

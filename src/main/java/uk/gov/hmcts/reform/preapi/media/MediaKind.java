@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
@@ -199,6 +200,23 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public boolean importAsset(RecordingDTO recordingDTO, boolean isFinal) {
+        String assetName = recordingDTO.getId().toString().replace("-", "") + (isFinal ? "_output" : "_temp");
+        try {
+            createAsset(
+                assetName,
+                recordingDTO.getId().toString(),
+                recordingDTO.getId() + (isFinal ? "" : "-input"),
+                isFinal
+            );
+        } catch (Exception e) {
+            log.info("Failed creating asset: {}", assetName);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public AssetDTO getAsset(String assetName) {
         try {
             return new AssetDTO(mediaKindClient.getAsset(assetName));
@@ -282,7 +300,7 @@ public class MediaKind implements IMediaService {
             return RecordingStatus.FAILURE;
         }
 
-        String jobName2 = triggerProcessingStep2(recordingId);
+        String jobName2 = triggerProcessingStep2(recordingId, false);
         if (jobName2 == null) {
             return RecordingStatus.FAILURE;
         }
@@ -295,7 +313,10 @@ public class MediaKind implements IMediaService {
         RecordingStatus recordingStatus = verifyFinalAssetExists(recordingId);
         if (recordingStatus == RecordingStatus.RECORDING_AVAILABLE) {
             telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+            azureIngestStorageService.markContainerAsSafeToDelete(recordingId.toString());
         }
+
         return recordingStatus;
     }
 
@@ -365,6 +386,7 @@ public class MediaKind implements IMediaService {
                      captureSession.getId(),
                      captureSession.getBookingId().toString()
             );
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
             return null;
         }
 
@@ -374,13 +396,15 @@ public class MediaKind implements IMediaService {
 
         createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-
+        azureIngestStorageService.markContainerAsProcessing(captureSession.getBookingId().toString());
         return encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
     }
 
     @Override
-    public String triggerProcessingStep2(UUID recordingId) {
-        String filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
+    public String triggerProcessingStep2(UUID recordingId, boolean isImport) {
+        String filename = azureIngestStorageService.tryGetMp4FileName(
+            recordingId.toString()
+                + (isImport ? "-input" : ""));
         if (filename == null) {
             log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
             return null;
@@ -390,6 +414,7 @@ public class MediaKind implements IMediaService {
         String recordingTempAssetName = recordingNoHyphen + "_temp";
         String recordingAssetName = recordingNoHyphen + "_output";
 
+        azureIngestStorageService.markContainerAsProcessing(recordingId.toString());
         return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
     }
 

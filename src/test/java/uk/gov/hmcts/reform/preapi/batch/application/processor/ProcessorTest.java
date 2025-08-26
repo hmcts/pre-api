@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemor
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.validation.DataValidationService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -106,7 +107,6 @@ class ProcessorTest {
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
         assertNotNull(result);
-        verify(loggingService).logDebug("Processor - Processing item of type: %s", "MigrationRecord");
         verify(loggingService).incrementProgress();
         verify(cacheService).dumpToFile();
     }
@@ -203,6 +203,42 @@ class ProcessorTest {
         verify(transformationService).transformData(testExtractedMetadata);
         verify(validationService).validateProcessedRecording(testProcessedRecording);
         verify(migrationService).createMigratedItemGroup(testExtractedMetadata, testProcessedRecording);
+    }
+
+    @Test
+    void shouldHandlePreExistingFailureFromExtraction() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        doReturn(ServiceResult.error("Keyword 'PRE' found", "Pre_Existing"))
+            .when(extractionService).process(any(MigrationRecord.class));
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNull(result);
+        verify(extractionService).process(any(MigrationRecord.class));
+        verify(migrationRecordService).updateToFailed(
+            testMigrationRecord.getArchiveId(),
+            "Pre_Existing",
+            "Keyword 'PRE' found"
+        );
+        verify(migrationTrackerService).addFailedItem(any());
+    }
+
+    @Test
+    void shouldHandleRawFileFailureFromExtraction() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        doReturn(ServiceResult.error(Constants.ErrorMessages.RAW_FILE, "Raw_Files"))
+            .when(extractionService).process(any(MigrationRecord.class));
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNull(result);
+        verify(extractionService).process(any(MigrationRecord.class));
+        verify(migrationRecordService).updateToFailed(
+            testMigrationRecord.getArchiveId(),
+            "Raw_Files",
+            Constants.ErrorMessages.RAW_FILE
+        );
+        verify(migrationTrackerService).addFailedItem(any());
     }
 
 
@@ -336,10 +372,9 @@ class ProcessorTest {
     @Test
     void shouldCreateNotifyItemForCaseReferenceLength() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        testExtractedMetadata = createTestExtractedMetadata();
-        testExtractedMetadata.setUrn("");
-        testExtractedMetadata.setExhibitReference("SHORT");
-
+        testProcessedRecording = createTestProcessedRecording();
+        testProcessedRecording.setCaseReference("12345678");
+        testProcessedRecording.setPreferred(true);
         setupSuccessfulProcessingMocks();
 
         processor.process(testMigrationRecord);
@@ -424,4 +459,6 @@ class ProcessorTest {
         MigratedItemGroup group = new MigratedItemGroup();
         return group;
     }
+
+
 }

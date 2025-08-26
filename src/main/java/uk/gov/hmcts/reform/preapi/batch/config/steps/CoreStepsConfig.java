@@ -16,6 +16,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
@@ -32,17 +33,20 @@ public class CoreStepsConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final Processor itemProcessor;
+    private final MigrationTrackerService migrationTrackerService;
     private final MigrationWriter itemWriter;
     private final LoggingService loggingService;
 
     public CoreStepsConfig(final JobRepository jobRepository,
                            final PlatformTransactionManager transactionManager,
                            final Processor itemProcessor,
+                           final MigrationTrackerService migrationTrackerService,
                            final MigrationWriter itemWriter,
                            final LoggingService loggingService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.itemProcessor = itemProcessor;
+        this.migrationTrackerService = migrationTrackerService;
         this.itemWriter = itemWriter;
         this.loggingService = loggingService;
     }
@@ -99,9 +103,19 @@ public class CoreStepsConfig {
                                    boolean writeToCsv,
                                    boolean dryRun) {
         FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
-        ItemWriter<MigratedItemGroup> writer = dryRun
-            ? noOpWriter()
-            : writeToCsv ? itemWriter : noOpWriter();
+
+        ItemWriter<MigratedItemGroup> writer;
+        if (dryRun) {
+            writer = chunk -> {
+                for (MigratedItemGroup item : chunk) {
+                    if (item != null && item.getPassItem() != null) {
+                        migrationTrackerService.addMigratedItem(item.getPassItem());
+                    }
+                }
+            };
+        } else {
+            writer = writeToCsv ? itemWriter : noOpWriter();
+        }
 
         return new StepBuilder(stepName, jobRepository)
             .<T, MigratedItemGroup>chunk(BatchConfiguration.CHUNK_SIZE, transactionManager)

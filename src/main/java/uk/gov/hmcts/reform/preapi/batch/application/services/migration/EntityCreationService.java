@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.ArrayList;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 public class EntityCreationService {
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
+    private final RecordingService recordingService;
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
 
@@ -129,7 +131,7 @@ public class EntityCreationService {
         captureSessionDTO.setStartedByUserId(vodafoneUser);
         captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
         captureSessionDTO.setFinishedByUserId(vodafoneUser);
-        captureSessionDTO.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        captureSessionDTO.setStatus(RecordingStatus.NO_RECORDING);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
         migrationRecordService.updateCaptureSessionId(cleansedData.getArchiveId(), captureSessionId);
@@ -171,13 +173,14 @@ public class EntityCreationService {
         UUID recordingId = UUID.randomUUID();
         recordingDTO.setId(recordingId);
         recordingDTO.setCaptureSessionId(captureSession.getId());
-        recordingDTO.setDuration(cleansedData.getDuration());
+        recordingDTO.setDuration(null);
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
         recordingDTO.setFilename(cleansedData.getFileName());
-
+        
         if (isCopy) {
             recordingDTO.setParentRecordingId(parentRecordingId);
+            recordingDTO.setVersion(recordingService.getNextVersionNumber(parentRecordingId));
         }
 
         migrationRecordService.updateRecordingId(cleansedData.getArchiveId(), recordingId);

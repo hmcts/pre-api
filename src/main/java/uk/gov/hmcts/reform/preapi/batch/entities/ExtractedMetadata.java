@@ -98,22 +98,19 @@ public class ExtractedMetadata implements IArchiveData {
         return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
 
-    private static boolean isValidRef(String reference) {
-        if (reference == null) {
-            return false;
-        }
-
-        int len = reference.trim().length();
-        return len >= MIN_LEN_EXCLUSIVE && len <= MAX_LEN_EXCLUSIVE;
-    }
-
     public String createCaseReference() {
-        if (isValidRef(urn)) {
-            return urn.trim();
+        String urnTrimmed = urn != null ? urn.trim() : "";
+        String exhibitTrimmed = exhibitReference != null ? exhibitReference.trim() : "";
+
+        boolean urnValid = urnTrimmed.length() >= 9;
+        boolean exhibitValid = exhibitTrimmed.length() >= 7;
+
+        if (urnValid) {
+            return urnTrimmed;
+        } else if (exhibitValid) {
+            return exhibitTrimmed;
         }
-        if (isValidRef(exhibitReference)) {
-            return exhibitReference.trim();
-        }
+
         return "";
     }
 
