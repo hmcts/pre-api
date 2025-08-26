@@ -126,6 +126,8 @@ public class UserDTOTest {
     private User createUserEntity() {
         var user = HelperFactory.createUser("Example", "Person", "example@example.com", null, null, null);
 
+        var now = Instant.now();
+
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example", "123");
         var access2 = HelperFactory.createAppAccess(
             user,
@@ -133,7 +135,7 @@ public class UserDTOTest {
             HelperFactory.createRole("Example Role 1"),
             true,
             null,
-            Timestamp.from(Instant.now()),
+            Timestamp.from(now),
             true
         );
         var access3 = HelperFactory.createAppAccess(
@@ -142,7 +144,7 @@ public class UserDTOTest {
             HelperFactory.createRole("Example Role 2"),
             true,
             null,
-            Timestamp.from(Instant.now()),
+            Timestamp.from(now.plusSeconds(10)),
             false
         );
         var access1 = HelperFactory.createAppAccess(
@@ -151,7 +153,7 @@ public class UserDTOTest {
             HelperFactory.createRole("Example Role 3"),
             true,
             null,
-            Timestamp.from(Instant.now()),
+            Timestamp.from(now.plusSeconds(20)),
             false
         );
         var access4 = HelperFactory.createAppAccess(

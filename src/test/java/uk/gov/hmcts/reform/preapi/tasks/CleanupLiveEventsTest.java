@@ -15,13 +15,12 @@ import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
-import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -36,12 +35,14 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class CleanupLiveEventsTest {
@@ -51,8 +52,7 @@ public class CleanupLiveEventsTest {
     private static MediaKind mediaService;
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
-    private static StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
-    private static EmailServiceFactory emailServiceFactory;
+    private static AzureIngestStorageService azureIngestStorageService;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
     private static final String CRON_PLATFORM_ENV = "Staging";
@@ -70,8 +70,7 @@ public class CleanupLiveEventsTest {
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
         bookingService = mock(BookingService.class);
-        stopLiveEventNotifierFlowClient = mock(StopLiveEventNotifierFlowClient.class);
-        emailServiceFactory = mock(EmailServiceFactory.class);
+        azureIngestStorageService = mock(AzureIngestStorageService.class);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
 
@@ -96,6 +95,7 @@ public class CleanupLiveEventsTest {
         assertDoesNotThrow(cleanupLiveEvents::run);
 
         verify(mediaService, times(2)).getLiveEvents();
+        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -115,6 +115,7 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(4)).findByLiveEventId(liveEvent.getName());
         verify(mediaService, times(2)).cleanupStoppedLiveEvent(liveEvent.getName());
+        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -133,8 +134,7 @@ public class CleanupLiveEventsTest {
             bookingService,
             userService,
             userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
+            azureIngestStorageService,
             CRON_USER_EMAIL,
             "Production",
             BATCH_SIZE,
@@ -147,6 +147,7 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(4)).findByLiveEventId(liveEvent.getName());
         verify(mediaService, never()).cleanupStoppedLiveEvent(liveEvent.getName());
+        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -189,7 +190,7 @@ public class CleanupLiveEventsTest {
         when(captureSessionService.findByLiveEventId(liveEventDTO.getName())).thenReturn(captureSession);
         when(mediaService.triggerProcessingStep1(any(), any(), any())).thenReturn("job1");
         when(mediaService.hasJobCompleted(any(), eq("job1"))).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.triggerProcessingStep2(any())).thenReturn("job2");
+        when(mediaService.triggerProcessingStep2(any(), anyBoolean())).thenReturn("job2");
         when(mediaService.hasJobCompleted(any(), eq("job2"))).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
         when(mediaService.verifyFinalAssetExists(any())).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
 
@@ -203,7 +204,6 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.RECORDING_AVAILABLE), any());
-        verify(stopLiveEventNotifierFlowClient, times(1)).emailAfterStoppingLiveEvents(any());
     }
 
     @Test
@@ -232,6 +232,7 @@ public class CleanupLiveEventsTest {
             .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any());
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), any());
+        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -245,20 +246,7 @@ public class CleanupLiveEventsTest {
         when(mediaService.getLiveEvents()).thenReturn(List.of(liveEvent));
         when(bookingService.findAllPastBookings()).thenReturn(List.of());
 
-        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
-            mediaServiceBroker,
-            captureSessionService,
-            bookingService,
-            userService,
-            userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
-            CRON_USER_EMAIL,
-            CRON_PLATFORM_ENV,
-            BATCH_SIZE,
-            BATCH_COOLDOWN,
-            POLLING_INTERVAL
-        );
+        CleanupLiveEvents cleanupLiveEvents = createCleanupLiveEventsTask();
 
         cleanupLiveEvents.run();
 
@@ -266,6 +254,7 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(1)).stopLiveEvent("liveEventName");
         verify(bookingService, times(1)).findAllPastBookings();
         verify(captureSessionService, times(1)).findAllPastIncompleteCaptureSessions();
+        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -278,20 +267,7 @@ public class CleanupLiveEventsTest {
         when(mediaService.getLiveEvents()).thenReturn(List.of());
         when(bookingService.findAllPastBookings()).thenReturn(List.of(booking));
 
-        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
-            mediaServiceBroker,
-            captureSessionService,
-            bookingService,
-            userService,
-            userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
-            CRON_USER_EMAIL,
-            CRON_PLATFORM_ENV,
-            BATCH_SIZE,
-            BATCH_COOLDOWN,
-            POLLING_INTERVAL
-        );
+        CleanupLiveEvents cleanupLiveEvents = createCleanupLiveEventsTask();
 
         cleanupLiveEvents.run();
 
@@ -306,6 +282,8 @@ public class CleanupLiveEventsTest {
         assertThat(captor.getValue().getBookingId()).isEqualTo(booking.getId());
         assertThat(captor.getValue().getOrigin()).isEqualTo(RecordingOrigin.PRE);
         assertThat(captor.getValue().getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
+
+        verifyNoInteractions(azureIngestStorageService);
     }
 
     @Test
@@ -319,20 +297,7 @@ public class CleanupLiveEventsTest {
         when(bookingService.findAllPastBookings()).thenReturn(List.of());
         when(captureSessionService.findAllPastIncompleteCaptureSessions()).thenReturn(List.of(captureSessionDTO));
 
-        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
-            mediaServiceBroker,
-            captureSessionService,
-            bookingService,
-            userService,
-            userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
-            CRON_USER_EMAIL,
-            CRON_PLATFORM_ENV,
-            BATCH_SIZE,
-            BATCH_COOLDOWN,
-            POLLING_INTERVAL
-        );
+        CleanupLiveEvents cleanupLiveEvents = createCleanupLiveEventsTask();
 
         cleanupLiveEvents.run();
 
@@ -347,6 +312,8 @@ public class CleanupLiveEventsTest {
         assertThat(captor.getValue().getFinishedAt()).isNotNull();
         assertThat(captor.getValue().getFinishedByUserId()).isEqualTo(userAuth.getUserId());
         assertThat(captor.getValue().getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
+
+        verifyNoInteractions(azureIngestStorageService);
     }
 
     private CleanupLiveEvents createCleanupLiveEventsTask() {
@@ -356,8 +323,7 @@ public class CleanupLiveEventsTest {
             bookingService,
             userService,
             userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
+            azureIngestStorageService,
             CRON_USER_EMAIL,
             CRON_PLATFORM_ENV,
             BATCH_SIZE,

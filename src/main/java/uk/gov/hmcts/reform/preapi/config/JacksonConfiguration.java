@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.config;
 
+import com.azure.core.serializer.json.jackson.JacksonJsonProvider;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -34,8 +35,10 @@ public class JacksonConfiguration {
                                         .configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true)
                                         .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
                                         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                                        .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
                                         .enable(INFER_BUILDER_TYPE_BINDINGS)
                                         .serializationInclusion(JsonInclude.Include.NON_NULL)
+                                        .addModule(JacksonJsonProvider.getJsonSerializableDatabindModule())
                                         .build();
 
         SimpleModule deserialization = new SimpleModule();

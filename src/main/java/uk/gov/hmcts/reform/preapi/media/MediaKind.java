@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
@@ -92,7 +93,6 @@ public class MediaKind implements IMediaService {
     private final String subscription;
     private final String issuer;
     private final String symmetricKey;
-    protected boolean enableStreamingLocatorOnStart;
 
     private final MediaKindClient mediaKindClient;
     private final AzureIngestStorageService azureIngestStorageService;
@@ -100,11 +100,11 @@ public class MediaKind implements IMediaService {
 
     private final TelemetryClient telemetryClient = new TelemetryClient();
 
-    private static final String LOCATION = "uksouth";
     public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
     public static final String ENCODE_FROM_INGEST_TRANSFORM = "EncodeFromIngest";
     public static final String DEFAULT_VOD_STREAMING_ENDPOINT = "default";
     public static final String DEFAULT_LIVE_STREAMING_ENDPOINT = "default-live";
+    private static final String LOCATION = "uksouth";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
     private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
     private static final String SENT_FOR_ENCODING = "SENT_FOR_ENCODING";
@@ -118,7 +118,6 @@ public class MediaKind implements IMediaService {
         @Value("${mediakind.subscription}") String subscription,
         @Value("${mediakind.issuer:}") String issuer,
         @Value("${mediakind.symmetricKey:}") String symmetricKey,
-        @Value("${mediakind.streaming-locator-on-start:false}") Boolean enableStreamingLocatorOnStart,
         MediaKindClient mediaKindClient,
         AzureIngestStorageService azureIngestStorageService,
         AzureFinalStorageService azureFinalStorageService
@@ -132,7 +131,6 @@ public class MediaKind implements IMediaService {
         this.mediaKindClient = mediaKindClient;
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
-        this.enableStreamingLocatorOnStart = enableStreamingLocatorOnStart;
     }
 
     @Override
@@ -196,6 +194,23 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public boolean importAsset(RecordingDTO recordingDTO, boolean isFinal) {
+        String assetName = recordingDTO.getId().toString().replace("-", "") + (isFinal ? "_output" : "_temp");
+        try {
+            createAsset(
+                assetName,
+                recordingDTO.getId().toString(),
+                recordingDTO.getId() + (isFinal ? "" : "-input"),
+                isFinal
+            );
+        } catch (Exception e) {
+            log.info("Failed creating asset: {}", assetName);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public AssetDTO getAsset(String assetName) {
         try {
             return new AssetDTO(mediaKindClient.getAsset(assetName));
@@ -244,11 +259,25 @@ public class MediaKind implements IMediaService {
 
     @Override
     @Transactional(dontRollbackOn = Exception.class)
-    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
-    public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
+    public void stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) {
+        var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
+        cleanupStoppedLiveEvent(captureSessionNoHyphen);
+    }
+
+    @Override
+    public void stopLiveEvent(String liveEventId) {
+        try {
+            stopAndDeleteLiveEvent(liveEventId);
+        } catch (NotFoundException e) {
+            // ignore
+        }
+    }
+
+    @Override
+    @Transactional(dontRollbackOn = Exception.class)
+    public RecordingStatus stopLiveEventAndProcess(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
         var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
-
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
         var jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
@@ -263,7 +292,7 @@ public class MediaKind implements IMediaService {
             return RecordingStatus.FAILURE;
         }
 
-        var jobName2 = triggerProcessingStep2(recordingId);
+        var jobName2 = triggerProcessingStep2(recordingId, false);
         if (jobName2 == null) {
             return RecordingStatus.FAILURE;
         }
@@ -275,17 +304,11 @@ public class MediaKind implements IMediaService {
         var recordingStatus = verifyFinalAssetExists(recordingId);
         if (recordingStatus == RecordingStatus.RECORDING_AVAILABLE) {
             telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+            azureIngestStorageService.markContainerAsSafeToDelete(recordingId.toString());
         }
-        return recordingStatus;
-    }
 
-    @Override
-    public void stopLiveEvent(String liveEventId) {
-        try {
-            stopAndDeleteLiveEvent(liveEventId);
-        } catch (NotFoundException e) {
-            // ignore
-        }
+        return recordingStatus;
     }
 
     @Override
@@ -336,9 +359,7 @@ public class MediaKind implements IMediaService {
 
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        if (enableStreamingLocatorOnStart) {
-            assertStreamingLocatorExists(captureSession.getId());
-        }
+        assertStreamingLocatorExists(captureSession.getId());
     }
 
     private void startLiveEvent(String liveEventName) {
@@ -357,6 +378,7 @@ public class MediaKind implements IMediaService {
                      captureSession.getId(),
                      captureSession.getBookingId().toString()
             );
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
             return null;
         }
 
@@ -366,13 +388,15 @@ public class MediaKind implements IMediaService {
 
         createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-
+        azureIngestStorageService.markContainerAsProcessing(captureSession.getBookingId().toString());
         return encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
     }
 
     @Override
-    public String triggerProcessingStep2(UUID recordingId) {
-        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
+    public String triggerProcessingStep2(UUID recordingId, boolean isImport) {
+        String filename = azureIngestStorageService.tryGetMp4FileName(
+            recordingId.toString()
+                + (isImport ? "-input" : ""));
         if (filename == null) {
             log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
             return null;
@@ -382,6 +406,7 @@ public class MediaKind implements IMediaService {
         var recordingTempAssetName = recordingNoHyphen + "_temp";
         var recordingAssetName = recordingNoHyphen + "_output";
 
+        azureIngestStorageService.markContainerAsProcessing(recordingId.toString());
         return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
     }
 
@@ -422,18 +447,6 @@ public class MediaKind implements IMediaService {
         return state.equals(JobState.FINISHED)
             || state.equals(JobState.ERROR)
             || state.equals(JobState.CANCELED);
-    }
-
-    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
-        log.info("Waiting for job [{}] to complete", jobName);
-        MkJob job = null;
-        do {
-            if (job != null) {
-                TimeUnit.MILLISECONDS.sleep(10000);
-            }
-            job = mediaKindClient.getJob(transformName, jobName);
-        } while (!hasJobCompleted(job));
-        return job.getProperties().getState();
     }
 
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
@@ -616,6 +629,18 @@ public class MediaKind implements IMediaService {
                 .build());
         log.info("Job [{}] created", jobName);
         return jobName;
+    }
+
+    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
+        log.info("Waiting for job [{}] to complete", jobName);
+        MkJob job = null;
+        do {
+            if (job != null) {
+                TimeUnit.MILLISECONDS.sleep(10000);
+            }
+            job = mediaKindClient.getJob(transformName, jobName);
+        } while (!hasJobCompleted(job));
+        return job.getProperties().getState();
     }
 
     private MkStreamingEndpoint checkStreamingEndpointReady(MkStreamingEndpoint endpoint) throws InterruptedException {

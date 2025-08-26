@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media;
 
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
@@ -19,6 +20,8 @@ public interface IMediaService {
     GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO, boolean sourceIsFinalStorage)
         throws InterruptedException;
 
+    boolean importAsset(RecordingDTO recordingDTO, boolean isFinal);
+
     AssetDTO getAsset(String assetId);
 
     List<AssetDTO> getAssets();
@@ -29,9 +32,12 @@ public interface IMediaService {
 
     void startLiveEvent(CaptureSessionDTO captureSession);
 
-    RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) throws InterruptedException;
+    void stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) throws InterruptedException;
 
     void stopLiveEvent(String liveEventId);
+
+    RecordingStatus stopLiveEventAndProcess(CaptureSessionDTO captureSession, UUID recordingId)
+        throws InterruptedException;
 
     void cleanupStoppedLiveEvent(String liveEventId);
 
@@ -39,7 +45,7 @@ public interface IMediaService {
 
     String triggerProcessingStep1(CaptureSessionDTO captureSession, String captureSessionNoHyphen, UUID recordingId);
 
-    String triggerProcessingStep2(UUID recordingId);
+    String triggerProcessingStep2(UUID recordingId, boolean isImport);
 
     RecordingStatus verifyFinalAssetExists(UUID recordingId);
 

@@ -33,7 +33,7 @@ class OpenAPIPublisherTest extends IntegrationTestBase {
     @Test
     @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
     void generateDocs() throws Exception {
-        byte[] specs = mvc.perform(get("/v3/api-docs"))
+        byte[] specs = mvc.perform(get("/v3/api-docs/pre-api"))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
