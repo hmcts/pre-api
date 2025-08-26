@@ -31,7 +31,7 @@ public class MigrateResolved extends BaseTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    public void run() {
         startJob(resolvedMigrationRecordJob, "Process Resolved Migration Records");
     }
 

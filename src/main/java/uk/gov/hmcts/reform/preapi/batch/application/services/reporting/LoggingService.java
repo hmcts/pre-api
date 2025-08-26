@@ -7,9 +7,13 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
-import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -19,24 +23,25 @@ import java.util.Map;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.AvoidSynchronizedAtMethodLevel")
 public class LoggingService {
     @Getter
-    private boolean debugEnabled = false;
+    private boolean debugEnabled;
 
     @Setter
-    private int totalMigrated = 0;
+    private int totalMigrated;
 
     @Setter
-    private int totalInvited = 0;
+    private int totalInvited;
 
     @Setter
     private int totalRecords;
 
     @Getter
-    private int processedRecords = 0;
+    private int processedRecords;
 
     @Getter
-    private int totalFailed = 0;
+    private int totalFailed;
 
     protected LocalDateTime startTime;
     protected final Map<String, Integer> failedCategoryCounts = new HashMap<>();
@@ -47,10 +52,17 @@ public class LoggingService {
     public void initializeLogFile() {
         startTime = LocalDateTime.now();
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE_PATH, false))) {
-            writer.println("=====================================================");
-            writer.println(LocalDateTime.now().format(FORMATTER) + " |  Vodafone ETL Job Started");
-            writer.println("=====================================================");
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(LOG_FILE_PATH),
+                                                             StandardCharsets.UTF_8,
+                                                             StandardOpenOption.CREATE,
+                                                             StandardOpenOption.TRUNCATE_EXISTING)) {
+            writer.write("=====================================================");
+            writer.newLine();
+            writer.write(LocalDateTime.now().format(FORMATTER) + " | Vodafone ETL Job Started");
+            writer.newLine();
+            writer.write("=====================================================");
+            writer.newLine();
+
         } catch (IOException e) {
             log.error("Failed to initialize output.log: {}", e.getMessage());
         }
@@ -60,11 +72,14 @@ public class LoggingService {
         String timestamp = LocalDateTime.now().format(FORMATTER);
         String logMessage = String.format("%s [%s] %s", timestamp, level, message);
 
-        try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
-             PrintWriter printWriter = new PrintWriter(fileWriter)) {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(LOG_FILE_PATH),
+                                                             StandardCharsets.UTF_8,
+                                                             StandardOpenOption.CREATE,
+                                                             StandardOpenOption.APPEND);
+             PrintWriter printWriter = new PrintWriter(writer)) {
             printWriter.println(logMessage);
         } catch (IOException e) {
-            log.error("Failed to initialize output.log: {}", e.getMessage());
+            log.error("Failed to write to output.log: {}", e.getMessage());
         }
     }
 
@@ -125,9 +140,10 @@ public class LoggingService {
         refreshProgressBar();
     }
 
+    @SuppressWarnings("PMD.SystemPrintln")
     private synchronized void refreshProgressBar() {
         int progressWidth = 40;
-        double percentage = Math.min((processedRecords * 100.0) / totalRecords, 100.0);
+        double percentage = Math.min(processedRecords * 100.0 / totalRecords, 100.0);
         int filledLength = Math.max((int) (progressWidth * (percentage / 100)), 0);
 
         String progressBar = "[" + "=".repeat(filledLength) + " ".repeat(progressWidth - filledLength) + "]";
@@ -154,7 +170,7 @@ public class LoggingService {
             startTime = LocalDateTime.now();
         }
 
-        var endTime = LocalDateTime.now();
+        LocalDateTime endTime = LocalDateTime.now();
         Duration duration = Duration.between(startTime, endTime);
         long seconds = duration.getSeconds();
 
@@ -175,8 +191,12 @@ public class LoggingService {
             "Total Execution Time", seconds
         );
 
-        try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
-             PrintWriter printWriter = new PrintWriter(fileWriter)) {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(LOG_FILE_PATH),
+                                                             StandardCharsets.UTF_8,
+                                                             StandardOpenOption.CREATE,
+                                                             StandardOpenOption.APPEND);
+             PrintWriter printWriter = new PrintWriter(writer)) {
+
             printWriter.println(summary);
         } catch (IOException e) {
             log.error("Failed to write summary to output.log: {}", e.getMessage());

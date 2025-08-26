@@ -46,6 +46,7 @@ public class VfMigrationController extends PreApiController {
     @Autowired
     public VfMigrationController(final MigrationRecordService migrationRecordService,
                                  final MigrateResolved migrateResolved) {
+        super();
         this.migrationRecordService = migrationRecordService;
         this.migrateResolved = migrateResolved;
     }

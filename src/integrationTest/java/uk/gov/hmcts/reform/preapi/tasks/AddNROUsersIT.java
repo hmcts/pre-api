@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 @TestPropertySource(properties = "spring.cache.type=none")
-public class AddNROUsersIT extends IntegrationTestBase {
+class AddNROUsersIT extends IntegrationTestBase {
 
     @Autowired
     private AppAccessRepository appAccessRepository;
@@ -95,7 +95,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
     @DisplayName("Test NRO users listed in a CSV file are successfully uploaded to the DB")
     @Transactional
     @Test
-    public void testRunAddNROUsers() {
+    void testRunAddNROUsers() {
         // initialise & run the AddNROUsers test
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
@@ -204,7 +204,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void testInvalidCSVFile() {
+    void testInvalidCSVFile() {
         mockAdminUser();
         String falseFileName = "falseFileName";
         AddNROUsers addNROUsers = new AddNROUsers(userService,

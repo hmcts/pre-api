@@ -47,7 +47,7 @@ public class NotPastDateValidatorTest {
 
     @DisplayName("Should return true when value is in the future")
     @Test
-    void givenFutureDate_ReturnsTrue() {
+    void givenFutureDateReturnsTrue() {
         ZonedDateTime futureDateTime = ZonedDateTime.now(ZoneId.of("Europe/London"))
             .plusDays(1);
         Timestamp futureTimestamp = Timestamp.from(futureDateTime.toInstant());

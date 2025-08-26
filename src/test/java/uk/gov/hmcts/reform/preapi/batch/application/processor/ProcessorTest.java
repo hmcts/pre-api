@@ -137,7 +137,7 @@ class ProcessorTest {
     void shouldHandleExtractionFailure() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         when(extractionService.process(any(MigrationRecord.class)))
-            .thenReturn(ServiceResult.error("Extraction failed", "ExtractionError"));
+            .thenReturn(ServiceResult.createErrorResult("Extraction failed", "ExtractionError"));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
@@ -152,7 +152,7 @@ class ProcessorTest {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
         when(validationService.validateProcessedRecording(any()))
-            .thenReturn(ServiceResult.error("Validation failed", "ValidationError"));
+            .thenReturn(ServiceResult.createErrorResult("Validation failed", "ValidationError"));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
@@ -208,7 +208,7 @@ class ProcessorTest {
     @Test
     void shouldHandlePreExistingFailureFromExtraction() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        doReturn(ServiceResult.error("Keyword 'PRE' found", "Pre_Existing"))
+        doReturn(ServiceResult.createErrorResult("Keyword 'PRE' found", "Pre_Existing"))
             .when(extractionService).process(any(MigrationRecord.class));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -226,7 +226,7 @@ class ProcessorTest {
     @Test
     void shouldHandleRawFileFailureFromExtraction() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        doReturn(ServiceResult.error(Constants.ErrorMessages.RAW_FILE, "Raw_Files"))
+        doReturn(ServiceResult.createErrorResult(Constants.ErrorMessages.RAW_FILE, "Raw_Files"))
             .when(extractionService).process(any(MigrationRecord.class));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -249,13 +249,14 @@ class ProcessorTest {
     @Test
     void shouldProcessResolvedRecordingSuccessfully() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
-        ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
-        ServiceResult<ProcessedRecording> validationResult = ServiceResult.success(testProcessedRecording);
-        
+        ServiceResult<ProcessedRecording> transformationResult = ServiceResult
+            .createSuccessResult(testProcessedRecording);
+        ServiceResult<ProcessedRecording> validationResult = ServiceResult.createSuccessResult(testProcessedRecording);
+
         when(transformationService.transformData(any(ExtractedMetadata.class))).thenReturn(transformationResult);
         when(validationService.validateResolvedRecording(
             testProcessedRecording, testMigrationRecord.getArchiveName())).thenReturn(validationResult);
-        when(migrationService.createMigratedItemGroup(any(ExtractedMetadata.class), 
+        when(migrationService.createMigratedItemGroup(any(ExtractedMetadata.class),
             eq(testProcessedRecording))).thenReturn(testMigratedItemGroup);
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -270,10 +271,11 @@ class ProcessorTest {
     @Test
     void shouldHandleResolvedValidationFailure() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
-        ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
-        ServiceResult<ProcessedRecording> validationResult = ServiceResult.error(
+        ServiceResult<ProcessedRecording> transformationResult = ServiceResult
+            .createSuccessResult(testProcessedRecording);
+        ServiceResult<ProcessedRecording> validationResult = ServiceResult.createErrorResult(
             "Resolved validation failed", "ResolvedValidationError");
-        
+
         when(transformationService.transformData(any(ExtractedMetadata.class))).thenReturn(transformationResult);
         when(validationService.validateResolvedRecording(
             testProcessedRecording, testMigrationRecord.getArchiveName())).thenReturn(validationResult);
@@ -282,8 +284,8 @@ class ProcessorTest {
 
         assertNull(result);
         verify(migrationRecordService).updateToFailed(
-            testMigrationRecord.getArchiveId(), 
-            "ResolvedValidationError", 
+            testMigrationRecord.getArchiveId(),
+            "ResolvedValidationError",
             "Resolved validation failed"
         );
     }
@@ -297,7 +299,7 @@ class ProcessorTest {
         assertNull(result);
         verify(loggingService).logWarning(
             "MigrationRecord with archiveId=%s has unexpected status: %s",
-            testMigrationRecord.getArchiveId(), 
+            testMigrationRecord.getArchiveId(),
             VfMigrationStatus.FAILED
         );
     }
@@ -336,7 +338,7 @@ class ProcessorTest {
         testProcessedRecording.setWitnessFirstName("Mary-Jane");
         testProcessedRecording.setUrn("12345678901");
         testProcessedRecording.setExhibitReference("EXHIBIT123");
-        
+
         setupSuccessfulProcessingMocks();
 
         processor.process(testMigrationRecord);
@@ -351,7 +353,7 @@ class ProcessorTest {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         testExtractedMetadata = createTestExtractedMetadata();
         testExtractedMetadata.setUrn(null);
-        
+
         testProcessedRecording.setDefendantLastName("Smith");
         testProcessedRecording.setWitnessFirstName("Mary");
         testProcessedRecording.setUrn("");
@@ -386,10 +388,11 @@ class ProcessorTest {
 
     @SuppressWarnings("unchecked")
     private void setupSuccessfulProcessingMocks() {
-        ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
-        ServiceResult<ProcessedRecording> validationResult = ServiceResult.success(testProcessedRecording);
-        
-        doReturn(ServiceResult.success(testExtractedMetadata)).when(extractionService)
+        ServiceResult<ProcessedRecording> transformationResult = ServiceResult
+            .createSuccessResult(testProcessedRecording);
+        ServiceResult<ProcessedRecording> validationResult = ServiceResult.createSuccessResult(testProcessedRecording);
+
+        doReturn(ServiceResult.createSuccessResult(testExtractedMetadata)).when(extractionService)
             .process(any(MigrationRecord.class));
         when(transformationService.transformData(any(ExtractedMetadata.class))).thenReturn(transformationResult);
         when(migrationRecordService.findByArchiveId(anyString())).thenReturn(Optional.empty());
@@ -399,7 +402,7 @@ class ProcessorTest {
             .thenReturn(validationResult);
         when(migrationService.createMigratedItemGroup(any(ExtractedMetadata.class), any(ProcessedRecording.class)))
             .thenReturn(testMigratedItemGroup);
-        
+
         doNothing().when(migrationRecordService).updateMetadataFields(anyString(), any(ExtractedMetadata.class));
         doNothing().when(loggingService).incrementProgress();
         doNothing().when(cacheService).dumpToFile();
@@ -457,5 +460,5 @@ class ProcessorTest {
         return group;
     }
 
-    
+
 }

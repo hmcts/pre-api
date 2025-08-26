@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
+@SuppressWarnings("PMD.MethodNamingConventions")
 public interface ShareBookingRepository extends JpaRepository<ShareBooking, UUID> {
     List<ShareBooking> findAllByDeletedAtIsNotNull();
 

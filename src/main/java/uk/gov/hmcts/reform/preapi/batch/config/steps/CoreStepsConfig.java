@@ -73,7 +73,7 @@ public class CoreStepsConfig {
             new String[]{"channel_name", "channel_user", "channel_user_email"},
             CSVChannelData.class,
             false,
-            getDryRunFlag()
+            isDryRun()
         );
     }
 
@@ -103,7 +103,7 @@ public class CoreStepsConfig {
                                    boolean writeToCsv,
                                    boolean dryRun) {
         FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
-        
+
         ItemWriter<MigratedItemGroup> writer;
         if (dryRun) {
             writer = chunk -> {
@@ -142,7 +142,7 @@ public class CoreStepsConfig {
         return items -> { /*  no-op writer  does nothing */ };
     }
 
-    public boolean getDryRunFlag() {
+    public boolean isDryRun() {
         return Optional.ofNullable(JobSynchronizationManager.getContext())
             .map(ctx -> ctx.getJobParameters().get("dryRun"))
             .map(Object::toString)
@@ -159,7 +159,7 @@ public class CoreStepsConfig {
             new String[]{"archive_id", "archive_name", "create_time", "duration", "file_name", "file_size"},
             CSVArchiveListData.class,
             true,
-            getDryRunFlag()
+            isDryRun()
         );
     }
 }

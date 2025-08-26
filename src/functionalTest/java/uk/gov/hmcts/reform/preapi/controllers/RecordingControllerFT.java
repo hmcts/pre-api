@@ -20,7 +20,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RecordingControllerFT extends FunctionalTestBase {
+class RecordingControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Restore recording")
     @Test
     void undeleteRecording() {

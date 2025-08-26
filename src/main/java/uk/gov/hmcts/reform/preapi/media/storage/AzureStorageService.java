@@ -14,13 +14,16 @@ import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
+@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class AzureStorageService {
     protected final BlobServiceClient client;
     protected final AzureConfiguration azureConfiguration;
@@ -48,7 +51,7 @@ public abstract class AzureStorageService {
     }
 
     public String getMp4FileName(String containerName) {
-        var blob = client.getBlobContainerClient(containerName)
+        Optional<BlobItem> blob = client.getBlobContainerClient(containerName)
                          .listBlobs()
                          .stream()
                          .filter(blobItem -> blobItem.getName().endsWith(".mp4"))
@@ -96,11 +99,11 @@ public abstract class AzureStorageService {
     }
 
     public boolean uploadBlob(String localFileName, String containerName, String uploadFileName) {
-        try {
-            var file = new File(localFileName);
-            var containerClient = client.createBlobContainerIfNotExists(containerName);
-            var blobClient = containerClient.getBlobClient(uploadFileName);
-            blobClient.upload(new FileInputStream(file), file.length(), true);
+        File file = new File(localFileName);
+        try (InputStream inputStream = Files.newInputStream(file.toPath())) {
+            BlobContainerClient containerClient = client.createBlobContainerIfNotExists(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(uploadFileName);
+            blobClient.upload(inputStream, file.length(), true);
             log.info("Successfully uploaded to ingest storage: {}/{}", containerName, uploadFileName);
             return true;
         } catch (IOException e) {

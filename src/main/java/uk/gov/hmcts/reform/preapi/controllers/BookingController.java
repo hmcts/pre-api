@@ -231,8 +231,7 @@ public class BookingController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<ShareBookingDTO> assembler
     ) {
-
-        var resultPage = shareBookingService.getShareLogsForBooking(bookingId, pageable);
+        Page<ShareBookingDTO> resultPage = shareBookingService.getShareLogsForBooking(bookingId, pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());

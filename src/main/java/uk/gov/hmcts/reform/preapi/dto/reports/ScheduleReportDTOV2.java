@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
@@ -27,7 +28,7 @@ public class ScheduleReportDTOV2 extends BaseReportDTO {
 
     public ScheduleReportDTOV2(CaptureSession captureSession) {
         super(captureSession.getBooking().getCaseId());
-        var booking = captureSession.getBooking();
+        Booking booking = captureSession.getBooking();
         scheduledDate = DateTimeUtils.formatDate(booking.getScheduledFor());
         dateOfBooking = DateTimeUtils.formatDate(booking.getCreatedAt());
 

@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
 public class EditRequestService {
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
@@ -93,7 +94,7 @@ public class EditRequestService {
 
     @Transactional
     public Page<EditRequestDTO> findAll(SearchEditRequests params, Pageable pageable) {
-        UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
@@ -206,6 +207,7 @@ public class EditRequestService {
     }
 
     @Transactional
+    @SuppressWarnings("PMD.UnusedAssignment")
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
@@ -288,20 +290,21 @@ public class EditRequestService {
                 .parse();
         } catch (Exception e) {
             log.error("Error when reading CSV file: {} ", e.getMessage());
-            throw new UnknownServerException("Uploaded CSV file incorrectly formatted");
+            throw new UnknownServerException("Uploaded CSV file incorrectly formatted", e);
         }
     }
 
-    protected List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
+    @SuppressWarnings({"PMD.CognitiveComplexity", "PMD.AvoidLiteralsInIfCondition"})
+    public List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
                                                                 final Recording recording) {
         long recordingDuration = recording.getDuration().toSeconds();
         if (instructions.size() == 1) {
-            EditCutInstructionDTO i = instructions.getFirst();
-            if (i.getStart() == 0 && i.getEnd() == recordingDuration) {
+            EditCutInstructionDTO firstInstruction = instructions.getFirst();
+            if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
                 throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
-                                                  + i.getStart()
+                                                  + firstInstruction.getStart()
                                                   + "), End("
-                                                  + i.getEnd()
+                                                  + firstInstruction.getEnd()
                                                   + "), Recording Duration("
                                                   + recordingDuration
                                                   + ")");
@@ -327,7 +330,7 @@ public class EditRequestService {
         List<FfmpegEditInstructionDTO> invertedInstructions = new ArrayList<>();
 
         // invert
-        for (var instruction : instructions) {
+        for (EditCutInstructionDTO instruction : instructions) {
             if (instruction.getStart() == instruction.getEnd()) {
                 throw new BadRequestException("Invalid instruction: Instruction with 0 second duration invalid: Start("
                                                   + instruction.getStart()
@@ -433,7 +436,7 @@ public class EditRequestService {
         try {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
-            throw new UnknownServerException("Something went wrong: " + e.getMessage());
+            throw new UnknownServerException("Something went wrong: " + e.getMessage(), e);
         }
     }
 }

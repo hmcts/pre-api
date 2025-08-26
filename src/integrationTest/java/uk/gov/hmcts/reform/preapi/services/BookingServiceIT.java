@@ -397,10 +397,10 @@ class BookingServiceIT extends IntegrationTestBase {
                                                              null,
                                                              null).getContent();
         assertThat(findEitherStandbyOrProcessing).hasSize(2);
-        assertThat(findEitherStandbyOrProcessing.stream().map(BookingDTO::getId).anyMatch(b ->  b == booking1.getId()))
-            .isTrue();
-        assertThat(findEitherStandbyOrProcessing.stream().map(BookingDTO::getId).anyMatch(b ->  b == booking2.getId()))
-            .isTrue();
+        assertThat(findEitherStandbyOrProcessing.stream().map(BookingDTO::getId)
+                       .anyMatch(b ->  b.equals(booking1.getId()))).isTrue();
+        assertThat(findEitherStandbyOrProcessing.stream().map(BookingDTO::getId)
+                       .anyMatch(b ->  b.equals(booking2.getId()))).isTrue();
 
         var findOnlyWithNoRecording = bookingService.searchBy(null,
                                                              null,

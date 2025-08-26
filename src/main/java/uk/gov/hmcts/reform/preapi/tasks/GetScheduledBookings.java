@@ -38,14 +38,14 @@ public class GetScheduledBookings extends RobotUserTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    public void run() {
         log.info("Signing in robot user with email {} on env {}", cronUserEmail, platformEnv);
         signInRobotUser();
 
         log.info("Running GetScheduledBookings task: looking for bookings for today");
-        var bookings = getBookings();
+        List<BookingDTO> bookings = getBookings();
 
-        var slackMessage = createSlackMessage(bookings);
+        String slackMessage = createSlackMessage(bookings);
         log.info("About to send slack notification");
         slackClient.postSlackMessage(slackMessage);
 
@@ -61,7 +61,7 @@ public class GetScheduledBookings extends RobotUserTask {
     private String createSlackMessage(List<BookingDTO> bookings) {
         List<SlackMessageSection> sections = List.of(createSlackMessageSection(bookings));
 
-        var slackMessage = SlackMessage.builder()
+        SlackMessage slackMessage = SlackMessage.builder()
             .sections(sections)
             .build();
 

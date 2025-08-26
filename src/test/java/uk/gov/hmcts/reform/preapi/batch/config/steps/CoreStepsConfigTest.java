@@ -18,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
-import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 
 import java.io.ByteArrayInputStream;
 
@@ -65,7 +64,7 @@ class CoreStepsConfigTest {
     @Test
     void getDryRunFlagShouldReturnFalseWhenNoContext() {
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
     }
 
 
@@ -109,7 +108,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isTrue();
+        assertThat(stepsConfig.isDryRun()).isTrue();
 
         JobSynchronizationManager.close();
     }

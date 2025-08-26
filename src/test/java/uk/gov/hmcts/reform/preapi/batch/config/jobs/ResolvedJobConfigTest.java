@@ -14,7 +14,6 @@ import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.jobs.ResolvedJobConfig;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
@@ -123,7 +122,7 @@ class ResolvedJobConfigTest {
     void shouldCreateResolvedMigrationRecordStepWithDryRunEnabled() {
         // Given
         ListItemReader<MigrationRecord> reader = new ListItemReader<>(Collections.emptyList());
-        when(coreSteps.getDryRunFlag()).thenReturn(true);
+        when(coreSteps.isDryRun()).thenReturn(true);
         when(coreSteps.noOpWriter()).thenReturn(noOpObjectWriter);
 
         // When
@@ -132,7 +131,7 @@ class ResolvedJobConfigTest {
         // Then
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo("resolvedMigrationRecordStep");
-        verify(coreSteps).getDryRunFlag();
+        verify(coreSteps).isDryRun();
         verify(coreSteps).noOpWriter();
     }
 
@@ -140,7 +139,7 @@ class ResolvedJobConfigTest {
     void shouldCreateResolvedMigrationRecordStepWithDryRunDisabled() {
         // Given
         ListItemReader<MigrationRecord> reader = new ListItemReader<>(Collections.emptyList());
-        when(coreSteps.getDryRunFlag()).thenReturn(false);
+        when(coreSteps.isDryRun()).thenReturn(false);
 
         // When
         Step step = resolvedJobConfig.resolvedMigrationRecordStep(reader, processor, writer);
@@ -148,7 +147,7 @@ class ResolvedJobConfigTest {
         // Then
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo("resolvedMigrationRecordStep");
-        verify(coreSteps).getDryRunFlag();
+        verify(coreSteps).isDryRun();
     }
 
     @Test

@@ -66,7 +66,7 @@ class RecordingMetadataProcessorTest {
         when(migrationRecordService.findByArchiveId("B456"))
             .thenReturn(Optional.of(record));
         when(extractionService.process(record))
-            .thenReturn(ServiceResult.error("Error", "Mock failure"));
+            .thenReturn(ServiceResult.createErrorResult("Error", "Mock failure"));
 
         processor.processRecording(record);
 
@@ -91,10 +91,10 @@ class RecordingMetadataProcessorTest {
             true
         );
 
-        ServiceResult<TestItem> testResult = ServiceResult.test(testItem);
+        ServiceResult<TestItem> testResult = ServiceResult.createTestResult(testItem);
 
         when(extractionService.process(record))
-            .thenAnswer(invocation -> testResult); 
+            .thenAnswer(invocation -> testResult);
 
         processor.processRecording(record);
 
@@ -117,10 +117,10 @@ class RecordingMetadataProcessorTest {
             .thenReturn(Optional.of(record));
 
         when(extractionService.process(record))
-            .thenAnswer(invocation -> ServiceResult.success(extracted)); 
+            .thenAnswer(invocation -> ServiceResult.createSuccessResult(extracted));
 
         when(transformationService.transformData(extracted))
-            .thenAnswer(invocation -> ServiceResult.error("Error", "Missing"));
+            .thenAnswer(invocation -> ServiceResult.createErrorResult("Error", "Missing"));
 
         processor.processRecording(record);
 
@@ -147,10 +147,10 @@ class RecordingMetadataProcessorTest {
             .thenReturn(Optional.of(record));
 
         when(extractionService.process(record))
-            .thenAnswer(invocation -> ServiceResult.success(extracted));
+            .thenAnswer(invocation -> ServiceResult.createSuccessResult(extracted));
 
         when(transformationService.transformData(extracted))
-            .thenAnswer(invocation -> ServiceResult.success(processed));
+            .thenAnswer(invocation -> ServiceResult.createSuccessResult(processed));
 
         processor.processRecording(record);
 

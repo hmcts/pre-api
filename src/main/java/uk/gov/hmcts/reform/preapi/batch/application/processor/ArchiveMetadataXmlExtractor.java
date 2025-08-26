@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -28,6 +29,7 @@ import javax.xml.parsers.ParserConfigurationException;
  * It fetches XML files stored in Azure Blob Storage, parses them, and writes the extracted data into a CSV file.
  */
 @Service
+@SuppressWarnings("PMD.GodClass")
 public class ArchiveMetadataXmlExtractor {
     private final AzureVodafoneStorageService azureVodafoneStorageService;
     private final MigrationRecordService migrationRecordService;
@@ -48,6 +50,7 @@ public class ArchiveMetadataXmlExtractor {
      * @param containerName The Azure Blob container name.
      * @param outputDir     The directory where the CSV files will be written.
      */
+    @SuppressWarnings("PMD.CognitiveComplexity")
     public void extractAndReportArchiveMetadata(
         String containerName, String folderPrefix, String outputDir, String filename) {
         try {
@@ -69,14 +72,14 @@ public class ArchiveMetadataXmlExtractor {
                 loggingService.logDebug("Generating archive metadata report in directory: %s", outputDir);
 
                 allArchiveMetadata.sort((a, b) -> {
-                    String nameA = a.get(1).toLowerCase();
-                    String nameB = b.get(1).toLowerCase();
+                    String nameA = a.get(1).toLowerCase(Locale.UK);
+                    String nameB = b.get(1).toLowerCase(Locale.UK);
 
                     String versionA = extractVersion(nameA);
                     String versionB = extractVersion(nameB);
 
-                    boolean aIsOrig = Constants.VALID_ORIG_TYPES.contains(versionA.toUpperCase());
-                    boolean bIsOrig = Constants.VALID_ORIG_TYPES.contains(versionB.toUpperCase());
+                    boolean aIsOrig = Constants.VALID_ORIG_TYPES.contains(versionA.toUpperCase(Locale.UK));
+                    boolean bIsOrig = Constants.VALID_ORIG_TYPES.contains(versionB.toUpperCase(Locale.UK));
 
                     if (aIsOrig && !bIsOrig) {
                         return -1;
@@ -237,6 +240,7 @@ public class ArchiveMetadataXmlExtractor {
      * @param duration       Recording duration
      * @return List of metadata rows for MP4 files
      */
+    @SuppressWarnings("PMD.CognitiveComplexity")
     private List<List<String>> processMP4Files(
         Element archiveElement,
         String blobPrefix,
@@ -278,12 +282,13 @@ public class ArchiveMetadataXmlExtractor {
         return fileRows;
     }
 
+    @SuppressWarnings({"PMD.AvoidLiteralsInIfCondition", "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity"})
     private Element selectPreferredMp4File(NodeList mp4Files) {
         List<Element> files = new ArrayList<>();
         for (int i = 0; i < mp4Files.getLength(); i++) {
-            Node n = mp4Files.item(i);
-            if (n.getNodeType() == Node.ELEMENT_NODE) {
-                files.add((Element) n);
+            Node node = mp4Files.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                files.add((Element) node);
             }
         }
 
@@ -295,60 +300,60 @@ public class ArchiveMetadataXmlExtractor {
         }
 
         if (files.size() == 2) {
-            Element a = files.get(0);
-            Element b = files.get(1);
+            Element elementA = files.get(0);
+            Element elementB = files.get(1);
 
-            boolean aWatermarked = getBoolean(a, "watermark");
-            boolean bWatermarked = getBoolean(b, "watermark");
+            boolean aWatermarked = getBoolean(elementA, "watermark");
+            boolean bWatermarked = getBoolean(elementB, "watermark");
 
             // (1) Prefer watermark = true when only one has it
             if (aWatermarked ^ bWatermarked) {
-                return aWatermarked ? a : b;
+                return aWatermarked ? elementA : elementB;
             }
 
             // (2) If neither or both have watermark=true, prefer name starting with "UGC" when only one has it;
-            String nameA = getName(a).toUpperCase();
-            String nameB = getName(b).toUpperCase();
+            String nameA = getName(elementA).toUpperCase(Locale.UK);
+            String nameB = getName(elementB).toUpperCase(Locale.UK);
             boolean aUGC = nameA.contains("UGC");
             boolean bUGC = nameB.contains("UGC");
             if (aUGC && !bUGC) {
-                return a;
+                return elementA;
             }
 
             if (!aUGC && bUGC) {
-                return b;
+                return elementB;
             }
 
             // (3) Otherwise pick the largest mp4 file size
-            long aSize = getLong(a, "Size");  
-            long bSize = getLong(b, "Size");
+            long aSize = getLong(elementA, "Size");
+            long bSize = getLong(elementB, "Size");
             if (aSize != bSize) {
-                return (aSize > bSize) ? a : b;
+                return (aSize > bSize) ? elementA : elementB;
             }
 
             // (4) Duration should be equal or within 1s (sanity check / log only)
-            long aDur = getLong(a, "Duration");
-            long bDur = getLong(b, "Duration");
+            long aDur = getLong(elementA, "Duration");
+            long bDur = getLong(elementB, "Duration");
 
             boolean aDurValid = aDur >= 0;
             boolean bDurValid = bDur >= 0;
 
             if (aDurValid && bDurValid && aDur != bDur) {
-                return (aDur > bDur) ? a : b;
+                return (aDur > bDur) ? elementA : elementB;
             }
             if (aDurValid != bDurValid) {
-                return aDurValid ? a : b;
+                return aDurValid ? elementA : elementB;
             }
 
             // (5) If duration ties (or both invalid), prefer longer filename
             int lenA = nameA != null ? nameA.length() : 0;
             int lenB = nameB != null ? nameB.length() : 0;
             if (lenA != lenB) {
-                return (lenA > lenB) ? a : b;
+                return (lenA > lenB) ? elementA : elementB;
             }
 
             // Fallback: pick the second file (as you had)
-            return b;
+            return elementB;
         }
 
         return files.get(0);
@@ -399,7 +404,7 @@ public class ArchiveMetadataXmlExtractor {
             return "";
         }
 
-        String cleanName = displayName.toUpperCase()
+        String cleanName = displayName.toUpperCase(Locale.UK)
             .replaceAll("\\.(MP4|RAW|M4A|MOV|AVI)$", "");
 
         String[] parts = cleanName.split("-");
@@ -416,26 +421,26 @@ public class ArchiveMetadataXmlExtractor {
         return "";
     }
 
-    //---------- helpers ---------- 
+    //---------- helpers ----------
 
     private String getName(Element el) {
-        String v = extractTextContent(el, "Name");
-        return v == null ? "" : v.trim();
+        String content = extractTextContent(el, "Name");
+        return content == null ? "" : content.trim();
     }
 
     private boolean getBoolean(Element el, String tag) {
-        String v = extractTextContent(el, tag);
-        if (v == null) {
+        String content = extractTextContent(el, tag);
+        if (content == null) {
             return false;
         }
-        v = v.trim().toLowerCase();
-        return v.equals("true") || v.equals("1") || v.equals("yes");
+        content = content.trim().toLowerCase(Locale.UK);
+        return content.equals("true") || content.equals("1") || content.equals("yes");
     }
 
     private long getLong(Element el, String tag) {
         try {
-            String v = extractTextContent(el, tag);
-            return v == null ? 0L : Long.parseLong(v.trim());
+            String content = extractTextContent(el, tag);
+            return content == null ? 0L : Long.parseLong(content.trim());
         } catch (NumberFormatException e) {
             return 0L;
         }

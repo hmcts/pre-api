@@ -38,13 +38,13 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class CaseServiceIT extends IntegrationTestBase {
+class CaseServiceIT extends IntegrationTestBase {
     @Autowired
     private CaseService caseService;
 
     @Transactional
     @Test
-    public void searchCasesAsAdmin() {
+    void searchCasesAsAdmin() {
         mockAdminUser();
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
@@ -77,7 +77,7 @@ public class CaseServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void searchCasesAsNonAdmin() {
+    void searchCasesAsNonAdmin() {
         mockNonAdminUser();
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
@@ -112,7 +112,7 @@ public class CaseServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void updateCaseParticipants() {
+    void updateCaseParticipants() {
         mockAdminUser();
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
@@ -167,7 +167,7 @@ public class CaseServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void testCascadeDelete() {
+    void testCascadeDelete() {
         mockAdminUser();
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
@@ -233,7 +233,7 @@ public class CaseServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void undeleteCase() {
+    void undeleteCase() {
         mockAdminUser();
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
