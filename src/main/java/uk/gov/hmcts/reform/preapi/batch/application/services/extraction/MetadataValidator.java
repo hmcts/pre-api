@@ -23,6 +23,7 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TE
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_ITEM_NAME;
 
 @Service
+@SuppressWarnings("PMD.GodClass")
 public class MetadataValidator {
     private final LoggingService loggingService;
 
@@ -63,7 +64,7 @@ public class MetadataValidator {
     }
 
     public ServiceResult<?> validateRawFile(MigrationRecord archiveItem) {
-        if (archiveItem.getArchiveName().toLowerCase().contains(".raw") 
+        if (archiveItem.getArchiveName().toLowerCase().contains(".raw")
             || archiveItem.getArchiveName().toLowerCase().contains(".r")) {
             return ServiceResultUtil.failure(RAW_FILE, VfFailureReason.RAW_FILES.toString());
         }

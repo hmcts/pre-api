@@ -73,7 +73,7 @@ public class EditCutInstructionDTO {
         }
 
         long hours = time / 3600;
-        long minutes = (time % 3600) / 60;
+        long minutes = time % 3600 / 60;
         long seconds = time % 60;
 
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);

@@ -164,7 +164,7 @@ public class ObscureNROUsers extends RobotUserTask {
         try {
             this.userEmailAndIDs.put(email, this.userService.findByEmail(email).getUser().getId());
         } catch (NotFoundException | NullPointerException e) {
-            log.info("{} does not exist in the DB yet!", email, e);
+            log.info("{} does not exist in the DB yet!", email);
         }
     }
 }

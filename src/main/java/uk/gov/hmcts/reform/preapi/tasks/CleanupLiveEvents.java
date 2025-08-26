@@ -52,6 +52,7 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final Map<UUID, CleanupTask> liveEventCleanupMap = new ConcurrentHashMap<>();
 
     @Autowired
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     public CleanupLiveEvents(final MediaServiceBroker mediaServiceBroker,
                       final CaptureSessionService captureSessionService,
                       final BookingService bookingService,
@@ -310,7 +311,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                     return;
                 }
                 log.info("Final asset found for capture session {}", captureSessionId);
-                var captureSession = captureSessionService.stopCaptureSession(
+                CaptureSessionDTO captureSession = captureSessionService.stopCaptureSession(
                     captureSessionId,
                     RecordingStatus.RECORDING_AVAILABLE,
                     currentTask.getRecordingId()
@@ -370,7 +371,7 @@ public class CleanupLiveEvents extends RobotUserTask {
             currentTask.setStatus(CleanupTaskStatus.READY);
         } catch (NotFoundException e) {
             if (platformEnv.equals("Production")) {
-                log.error("Error stopping live event {}", liveEventName, e);
+                log.error("Error stopping live event {}", liveEventName);
                 return;
             }
             log.info("Stopping live event without associated capture session: {}", liveEventName);

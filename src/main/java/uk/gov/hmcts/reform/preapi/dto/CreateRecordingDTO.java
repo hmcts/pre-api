@@ -38,6 +38,7 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
     }
 
     public CreateRecordingDTO(RecordingDTO recordingDTO) {
+        super();
         id = recordingDTO.getId();
         captureSessionId = recordingDTO.getCaptureSession().getId();
         parentRecordingId = recordingDTO.getParentRecordingId();

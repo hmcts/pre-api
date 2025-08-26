@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -127,7 +128,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
         encodeJobService.delete(job.getId());
         if (mediaService.verifyFinalAssetExists(job.getRecordingId()) == RecordingStatus.RECORDING_AVAILABLE) {
             log.info("Final asset found for capture session {}", job.getCaptureSessionId());
-            var captureSession = captureSessionService.stopCaptureSession(
+            CaptureSessionDTO captureSession = captureSessionService.stopCaptureSession(
                 job.getCaptureSessionId(),
                 RecordingStatus.RECORDING_AVAILABLE,
                 job.getRecordingId()
@@ -140,6 +141,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
         }
     }
 
+    @SuppressWarnings("PMD.TooFewBranchesForSwitch")
     private String getTransformName(EncodeTransform transform) {
         return switch (transform) {
             case ENCODE_FROM_INGEST -> MediaKind.ENCODE_FROM_INGEST_TRANSFORM;

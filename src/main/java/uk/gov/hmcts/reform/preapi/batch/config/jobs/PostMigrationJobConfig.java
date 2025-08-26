@@ -189,7 +189,7 @@ public class PostMigrationJobConfig {
                                 loggingService.logInfo("[DRY RUN] Would invite and share booking with %s", email);
                                 continue;
                             }
-                            var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+                            PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
                                 booking, email, firstName, lastName);
                             if (result != null) {
                                 migratedItems.add(result);

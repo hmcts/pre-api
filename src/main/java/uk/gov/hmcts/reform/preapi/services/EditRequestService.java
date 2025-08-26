@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@SuppressWarnings("PMD.CouplingBetweenObjects")
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
 public class EditRequestService {
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
@@ -222,7 +222,7 @@ public class EditRequestService {
 
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
-        EditInstructions prevInstructions = null;
+        EditInstructions prevInstructions;
         boolean isInstructionCombination = !isOriginalRecordingEdit
             && sourceRecording.getEditInstruction() != null
             && !sourceRecording.getEditInstruction().isEmpty()
@@ -298,8 +298,8 @@ public class EditRequestService {
                                                                 final Recording recording) {
         long recordingDuration = recording.getDuration().toSeconds();
         if (instructions.size() == 1) {
-            EditCutInstructionDTO i = instructions.getFirst();
-            if (i.getStart() == 0 && i.getEnd() == recordingDuration) {
+            EditCutInstructionDTO firstInstruction = instructions.getFirst();
+            if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
                 throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
                                                   + firstInstruction.getStart()
                                                   + "), End("

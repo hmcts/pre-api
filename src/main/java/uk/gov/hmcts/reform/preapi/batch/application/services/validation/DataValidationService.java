@@ -60,7 +60,7 @@ public class DataValidationService {
             }
         }
 
-        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
+        if (VfMigrationRecordingVersion.COPY.toString().equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
             boolean isMostRecent = migrationRecordRepository
                 .getIsMostRecent(cleansedData.getArchiveId())
                 .orElse(false);
@@ -72,8 +72,6 @@ public class DataValidationService {
                 );
             }
         }
-
-
 
         String caseReference = cleansedData.getCaseReference();
         if (caseReference == null || caseReference.length() < MIN_CASE_REFERENCE_LENGTH) {
@@ -110,7 +108,7 @@ public class DataValidationService {
         }
 
 
-        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
+        if (VfMigrationRecordingVersion.COPY.toString().equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
             boolean isMostRecent = migrationRecordRepository
                 .findByArchiveId(cleansedData.getArchiveId())
                 .map(mr -> Boolean.TRUE.equals(mr.getIsMostRecent()))

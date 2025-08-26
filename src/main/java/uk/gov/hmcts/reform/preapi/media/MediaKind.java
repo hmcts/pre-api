@@ -697,6 +697,7 @@ public class MediaKind implements IMediaService {
                     isFinal);
     }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private void createAsset(String assetName,
                              String description,
                              String containerName,
