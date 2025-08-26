@@ -303,6 +303,7 @@ public class DataTransformationServiceTest {
         ExtractedMetadata data = new ExtractedMetadata(
             "court_reference",
             UUID.randomUUID(),
+            "200101",
             "URN123",
             "exhibitRef",
             "defendantName",
@@ -341,6 +342,7 @@ public class DataTransformationServiceTest {
         ExtractedMetadata data = new ExtractedMetadata(
             "court_reference",
             UUID.randomUUID(),
+            "200101",
             "URN123",
             "exhibitRef",
             "defendantName",
@@ -372,6 +374,7 @@ public class DataTransformationServiceTest {
         ExtractedMetadata data = new ExtractedMetadata(
             "unknown_court",
             UUID.randomUUID(),
+            "200101",
             "URN123",
             "exhibitRef",
             "defendantName",
@@ -406,6 +409,7 @@ public class DataTransformationServiceTest {
         ExtractedMetadata data = new ExtractedMetadata(
             "court_reference",
             UUID.randomUUID(),
+            "200101",
             "URN123",
             "exhibitRef",
             "defendantName",
@@ -440,6 +444,7 @@ public class DataTransformationServiceTest {
         ExtractedMetadata extractedMetadata = new ExtractedMetadata(
             "courtReference",
             UUID.randomUUID(),
+            "200101",
             "URN123",
             "exhibitRef123",
             "defendantName",
