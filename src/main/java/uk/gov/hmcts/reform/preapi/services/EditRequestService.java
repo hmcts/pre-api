@@ -207,6 +207,7 @@ public class EditRequestService {
     }
 
     @Transactional
+    @SuppressWarnings("PMD.UnusedAssignment")
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
@@ -222,7 +223,7 @@ public class EditRequestService {
 
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
-        EditInstructions prevInstructions;
+        EditInstructions prevInstructions = null;
         boolean isInstructionCombination = !isOriginalRecordingEdit
             && sourceRecording.getEditInstruction() != null
             && !sourceRecording.getEditInstruction().isEmpty()
