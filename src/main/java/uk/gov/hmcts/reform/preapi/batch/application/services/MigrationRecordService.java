@@ -412,12 +412,12 @@ public class MigrationRecordService {
         
         String datePart = normaliseDate(datePattern);
 
-        return java.util.stream.Stream.of(urn, exhibitRef, witnessName, defendantName, datePart)
+        return Stream.of(urn, exhibitRef, witnessName, defendantName, datePart)
             .map(MigrationRecordService::nullToEmpty)
             .map(String::trim)
             .map(String::toLowerCase)
             .filter(s -> !s.isEmpty())   
-            .collect(java.util.stream.Collectors.joining("|"));
+            .collect(Collectors.joining("|"));
      
     }
 
