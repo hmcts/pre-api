@@ -426,8 +426,8 @@ public class MigrationRecordService {
             return "";
         }
         if (in.matches("\\d{6}")) {
-            java.time.format.DateTimeFormatter f = java.time.format.DateTimeFormatter.ofPattern("yyMMdd");
-            return java.time.LocalDate.parse(in, f).toString(); 
+            DateTimeFormatter f = DateTimeFormatter.ofPattern("yyMMdd");
+            return LocalDate.parse(in, f).toString(); 
         }
         return in.trim();
     }
