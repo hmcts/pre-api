@@ -73,25 +73,26 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should return lowercase combined string from non-null parameters")
     void generateRecordingGroupKeyShouldReturnLowercaseCombinedString() {
-        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe");
+        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe", "241211");
 
-        assertThat(result).isEqualTo("urn123|exhibit1|john|doe");
+        assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
 
     @Test
     @DisplayName("Should handle null values by replacing with empty strings")
     void generateRecordingGroupKeyShouldHandleNullValues() {
-        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe");
+        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe","241211");
 
-        assertThat(result).isEqualTo("|exhibit1||doe");
+        assertThat(result).isEqualTo("exhibit1|doe|2024-12-11");
     }
 
     @Test
     @DisplayName("Should trim leading and trailing whitespace")
     void generateRecordingGroupKeyShouldTrimWhitespace() {
-        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ", " John ", " Doe ");
+        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ", 
+            " John ", " Doe ","241211");
 
-        assertThat(result).isEqualTo("urn123 | exhibit1 | john | doe");
+        assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
 
     @Test
