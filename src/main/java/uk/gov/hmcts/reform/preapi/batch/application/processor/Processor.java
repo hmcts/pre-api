@@ -73,8 +73,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 return null;
             }
 
-            loggingService.logDebug("Processor - Processing item of type: %s", item.getClass().getSimpleName());
-
             if (item instanceof MigrationRecord migrationRecord) {
                 return processRecording(migrationRecord);
             }
@@ -212,7 +210,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logError("Failed to transform archive: %s", extractedData.getSanitizedArchiveName());
             return null;
         }
-        checkAndCreateNotifyItem(result.getData());
+        
         loggingService.logDebug("Transformed data: %s", result.getData());
         return result.getData();
     }
@@ -224,7 +222,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (checkForError(result, archiveItem)) {
             return false;
         }
-
+        checkAndCreateNotifyItem(result.getData());
         loggingService.logDebug("All validation rules passed");
         return true;
     }
@@ -291,6 +289,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return new ExtractedMetadata(
             migrationRecord.getCourtReference(),
             migrationRecord.getCourtId(),
+            null,
             migrationRecord.getUrn(),
             migrationRecord.getExhibitReference(),
             migrationRecord.getDefendantName(),
@@ -333,16 +332,33 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         String exhibitRef = recording.getExhibitReference();
         String caseRef = recording.getCaseReference();
 
-        if (caseRef.length() > 9 || caseRef.length() < 20) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference length",recording));
+        if (caseRef == null || caseRef.isBlank()) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference", recording));
+            return;
         }
 
-        if (caseRef.equalsIgnoreCase(exhibitRef)) {
-            migrationTrackerService.addNotifyItem(new NotifyItem(
-                    "Used Xhibit reference as URN did not meet requirements",recording));
+        boolean exhibitBased = exhibitRef != null && caseRef.equalsIgnoreCase(exhibitRef);
+        int len = caseRef.length();
+
+        String reason = null;
+        if (exhibitBased) {
+            reason = "Used Xhibit reference as URN did not meet requirements";
+
+            if (len < 9 || len > 20) {
+                reason += " (length outside 9–20)";
+            }
+        } else if (len < 9 || len > 20) {
+            reason = "Invalid case reference length";
+        }
+
+        if (reason != null) {
+            migrationTrackerService.addNotifyItem(new NotifyItem(reason, recording));
         }
 
     }
+
+
+    
 
 }
 

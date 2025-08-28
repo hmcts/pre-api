@@ -141,6 +141,10 @@ tasks:
     batch-size: ${TASK_CLEANUP_LIVE_EVENTS_BATCH_SIZE:3}
     cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
     job-poll-interval: 10000 # 10 seconds
+  batch-import-missing-mk-assets:
+    batch-size: ${TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE:20}
+    poll-interval: ${TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL:10000}
+    mp4-source-container: prod-migration-1
 
 
 #logging:
@@ -153,7 +157,7 @@ feature-flags:
   enable-migration-admin-endpoints: ${ENABLE_MIGRATION_ADMIN_ENDPOINTS:false}
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
-  ffmpeg-multi-command: ${ENABLE_MULTI_FFMPEG_COMMAND:false}
+  enable-v2-b2c: ${ENABLE_V2_B2C:false} # when true, enables the B2C API endpoints (S28-4056)
 
 #logging:
 #  level:

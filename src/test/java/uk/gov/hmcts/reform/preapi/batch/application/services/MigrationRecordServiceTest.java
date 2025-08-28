@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +33,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -54,28 +59,40 @@ public class MigrationRecordServiceTest {
     @Autowired
     private MigrationRecordService migrationRecordService;
 
+    private UUID testId;
+    private MigrationRecord testRecord;
+
+    @BeforeEach
+    void setUp() {
+        testId = UUID.randomUUID();
+        testRecord = new MigrationRecord();
+        testRecord.setId(testId);
+    }
+
+
     @Test
     @DisplayName("Should return lowercase combined string from non-null parameters")
     void generateRecordingGroupKeyShouldReturnLowercaseCombinedString() {
-        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe");
+        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe", "241211");
 
-        assertThat(result).isEqualTo("urn123|exhibit1|john|doe");
+        assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
 
     @Test
     @DisplayName("Should handle null values by replacing with empty strings")
     void generateRecordingGroupKeyShouldHandleNullValues() {
-        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe");
+        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe","241211");
 
-        assertThat(result).isEqualTo("|exhibit1||doe");
+        assertThat(result).isEqualTo("exhibit1|doe|2024-12-11");
     }
 
     @Test
     @DisplayName("Should trim leading and trailing whitespace")
     void generateRecordingGroupKeyShouldTrimWhitespace() {
-        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ", " John ", " Doe ");
+        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ", 
+            " John ", " Doe ","241211");
 
-        assertThat(result).isEqualTo("urn123 | exhibit1 | john | doe");
+        assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
 
     @Test
@@ -858,9 +875,9 @@ public class MigrationRecordServiceTest {
         MigrationRecord record = new MigrationRecord();
         record.setArchiveId("id1");
         record.setRecordingVersion("ORIG");
-        record.setRecordingGroupKey("urn|ex|wit|def"); // Set the groupKey that will be generated
+        record.setRecordingGroupKey("urn|ex|wit|def"); 
         record.setRecordingVersionNumber("1");
-        record.setIsMostRecent(false); // Initialize to false
+        record.setIsMostRecent(false); 
 
         when(migrationRecordRepository.findByArchiveId("id1")).thenReturn(Optional.of(record));
         when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(record));
@@ -889,9 +906,9 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setArchiveId("id2");
         copy.setRecordingVersion("COPY");
-        copy.setRecordingGroupKey("urn|ex|wit|def"); // Set the groupKey that will be generated
+        copy.setRecordingGroupKey("urn|ex|wit|def");  
         copy.setRecordingVersionNumber("2");
-        copy.setIsMostRecent(false); // Initialize to false
+        copy.setIsMostRecent(false);
         copy.setParentTempId(UUID.randomUUID());
 
         when(migrationRecordRepository.findByArchiveId("id2")).thenReturn(Optional.of(copy));
@@ -1140,6 +1157,156 @@ public class MigrationRecordServiceTest {
 
         verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.READY);
         verify(migrationRecordRepository, never()).saveAllAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("Should insert pending from XML")
+    void insertPendingFromXmlShouldConvertSmallEpochToMillis() {
+        when(migrationRecordRepository.findByArchiveId("test-id")).thenReturn(Optional.empty());
+
+        boolean result = migrationRecordService.insertPendingFromXml(
+            "test-id", "test.mp4", "1000000", "120", "test.mp4", "100MB"
+        );
+
+        assertTrue(result);
+        verify(migrationRecordRepository).saveAndFlush(any(MigrationRecord.class));
+    }
+
+ 
+
+    @Test
+    @DisplayName("Should insert pending from XML when duration is null")
+    void insertPendingFromXmlShouldHandleNullDuration() {
+        when(migrationRecordRepository.findByArchiveId("test-id")).thenReturn(Optional.empty());
+
+        boolean result = migrationRecordService.insertPendingFromXml(
+            "test-id", "test.mp4", "1609459200", null, "test.mp4", "100MB"
+        );
+
+        assertTrue(result);
+        verify(migrationRecordRepository).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Update should throw ResourceInWrongStateException when record status is SUCCESS")
+    void updateThrowsResourceInWrongStateExceptionWhenSuccessStatus() {
+        CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(testId);
+        dto.setCourtId(UUID.randomUUID());
+
+        testRecord.setStatus(VfMigrationStatus.SUCCESS);
+        when(migrationRecordRepository.findById(testId)).thenReturn(Optional.of(testRecord));
+
+        assertThrows(ResourceInWrongStateException.class,
+            () -> migrationRecordService.update(dto));
+    }
+
+    @Test
+    @DisplayName("Update should handle null recordingVersionNumber")
+    void updateHandlesNullRecordingVersionNumber() {
+        CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(testId);
+        dto.setCourtId(UUID.randomUUID());
+        dto.setRecordingVersionNumber(null);
+        dto.setRecordingVersion(VfMigrationRecordingVersion.COPY);
+
+        Court court = new Court();
+        court.setName("Test Court");
+
+        when(migrationRecordRepository.findById(testId)).thenReturn(Optional.of(testRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertEquals(UpsertResult.UPDATED, result);
+        verify(migrationRecordRepository).saveAndFlush(testRecord);
+    }
+
+    @Test
+    @DisplayName("Should skip updateToFailed in DRY-RUN mode")
+    void updateToFailedShouldSkipInDryRun() {
+        MigrationRecordService dryRunService = new MigrationRecordService(
+            migrationRecordRepository, courtRepository, loggingService, true
+        );
+
+        dryRunService.updateToFailed("test-id", "reason", "error");
+
+        verify(loggingService).logInfo(eq("[DRY-RUN] Skipping %s"), eq("updateToFailed(test-id)"));
+        verify(migrationRecordRepository, never()).findByArchiveId(any());
+    }
+
+    @Test
+    @DisplayName("Should skip updateToSuccess in DRY-RUN mode")
+    void updateToSuccessShouldSkipInDryRun() {
+        MigrationRecordService dryRunService = new MigrationRecordService(
+            migrationRecordRepository, courtRepository, loggingService, true
+        );
+
+        dryRunService.updateToSuccess("test-id");
+
+        verify(loggingService).logInfo(eq("[DRY-RUN] Skipping %s"), eq("updateToSuccess(test-id)"));
+        verify(migrationRecordRepository, never()).findByArchiveId(any());
+    }
+
+    @Test
+    @DisplayName("Should skip markReadyAsSubmitted in DRY-RUN mode and return false")
+    void markReadyAsSubmittedShouldSkipInDryRun() {
+        MigrationRecordService dryRunService = new MigrationRecordService(
+            migrationRecordRepository, courtRepository, loggingService, true
+        );
+
+        boolean result = dryRunService.markReadyAsSubmitted();
+
+        assertFalse(result);
+        verify(loggingService).logInfo(eq("[DRY-RUN] Skipping %s"), eq("markReadyAsSubmitted()"));
+        verify(migrationRecordRepository, never()).findAllByStatus(any());
+    }
+
+    @Test
+    @DisplayName("Should return false when no READY records exist (non-DRY-RUN)")
+    void markReadyAsSubmittedShouldReturnFalseWhenNoReadyRecords() {
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.READY))
+            .thenReturn(java.util.Collections.emptyList());
+
+        boolean result = migrationRecordService.markReadyAsSubmitted();
+
+        assertFalse(result);
+        verify(migrationRecordRepository, never()).saveAllAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("Should return empty original when copy has null parentTempId")
+    void getOrigFromCopyShouldReturnEmptyWhenParentIdNull() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+
+        assertTrue(result.isEmpty());
+        verify(migrationRecordRepository, never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("Should return false in markNonMp4AsNotPreferred when groupKey is null")
+    void markNonMp4AsNotPreferredShouldReturnFalseWhenGroupKeyNull() {
+        testRecord.setRecordingGroupKey(null);
+        when(migrationRecordRepository.findByArchiveId("test-id")).thenReturn(Optional.of(testRecord));
+
+        boolean result = migrationRecordService.markNonMp4AsNotPreferred("test-id");
+
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("Should return false in markNonMp4AsNotPreferred when version is null")
+    void markNonMp4AsNotPreferredShouldReturnFalseWhenVersionNull() {
+        testRecord.setRecordingGroupKey("test-group");
+        testRecord.setRecordingVersionNumber(null);
+        when(migrationRecordRepository.findByArchiveId("test-id")).thenReturn(Optional.of(testRecord));
+
+        boolean result = migrationRecordService.markNonMp4AsNotPreferred("test-id");
+
+        assertFalse(result);
     }
 
 

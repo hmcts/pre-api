@@ -378,7 +378,7 @@ public class MigrationTrackerServiceTest {
     }
 
     @Test
-    void writeFailureSummarySuccess() {
+    void writeSummarySuccess() {
         ExtractedMetadata metadata1 = new ExtractedMetadata();
         metadata1.setFileName("test1.csv");
         metadata1.setFileSize("10");
@@ -394,26 +394,26 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.addTestItem(createMockTestItem());
 
         String outputDir = tempDir.toString();
-        Path mockPath = tempDir.resolve("Failures.csv");
-        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Failures"), any(), anyBoolean()))
+        Path mockPath = tempDir.resolve("Summary.csv");
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Summary"), any(), anyBoolean()))
             .thenReturn(mockPath);
 
         try {
-            Method writeFailureSummaryMethod = MigrationTrackerService.class.getDeclaredMethod(
-                "writeFailureSummary", String.class);
-            writeFailureSummaryMethod.setAccessible(true);
-            File result = (File) writeFailureSummaryMethod.invoke(migrationTrackerService, outputDir);
+            Method writeSummaryMethod = MigrationTrackerService.class.getDeclaredMethod(
+                "writeSummary", String.class);
+            writeSummaryMethod.setAccessible(true);
+            File result = (File) writeSummaryMethod.invoke(migrationTrackerService, outputDir);
             
             assertThat(result).isNotNull();
             verify(loggingService, never()).logError(anyString(), anyString());
         } catch (Exception e) {
-            fail("Failed to invoke writeFailureSummary method: " + e.getMessage());
+            fail("Failed to invoke writeSummary method: " + e.getMessage());
         }
     }
 
 
     @Test
-    void writeFailureSummaryFailure() {
+    void writeSummaryFailure() {
         String outputDir = tempDir.toString();
         
         ExtractedMetadata metadata = new ExtractedMetadata();
@@ -422,19 +422,19 @@ public class MigrationTrackerServiceTest {
         FailedItem failedItem = new FailedItem(metadata, "ReasonA", "CategoryA");
         migrationTrackerService.addFailedItem(failedItem);
         
-        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Failures"), any(), anyBoolean()))
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Summary"), any(), anyBoolean()))
             .thenThrow(new IOException("Test exception"));
 
         try {
-            Method writeFailureSummaryMethod = MigrationTrackerService.class.getDeclaredMethod(
-                "writeFailureSummary", String.class);
-            writeFailureSummaryMethod.setAccessible(true);
-            File result = (File) writeFailureSummaryMethod.invoke(migrationTrackerService, outputDir);
+            Method writeSummary = MigrationTrackerService.class.getDeclaredMethod(
+                "writeSummary", String.class);
+            writeSummary.setAccessible(true);
+            File result = (File) writeSummary.invoke(migrationTrackerService, outputDir);
             
             assertThat(result).isNull();
             verify(loggingService, times(1)).logError(anyString(), anyString());
         } catch (Exception e) {
-            fail("Failed to invoke writeFailureSummary method: " + e.getMessage());
+            fail("Failed to invoke writeSummary method: " + e.getMessage());
         }
     }
 
@@ -465,13 +465,13 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.addNotifyItem(createMockNotifyItem());
         
         Path mockMigratedPath = tempDir.resolve("Migrated.csv");
-        Path mockFailurePath = tempDir.resolve("Failures.csv");
+        Path mockFailurePath = tempDir.resolve("Summary.csv");
         Path mockTestPath = tempDir.resolve("Test.csv");
         Path mockNotifyPath = tempDir.resolve("Notify.csv");
         
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Migrated"), any(), anyBoolean()))
             .thenReturn(mockMigratedPath);
-        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Failures"), any(), anyBoolean()))
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Summary"), any(), anyBoolean()))
             .thenReturn(mockFailurePath);
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Test"), any(), anyBoolean()))
             .thenReturn(mockTestPath);
