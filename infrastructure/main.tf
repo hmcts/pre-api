@@ -178,7 +178,7 @@ XML
 }
 
 module "pre_api_b2c" {
-  count                 = local.env_to_deploy
+  count                 = var.env == "prod" ? 0 : 1
   source                = "git@github.com:hmcts/cnp-module-api-mgmt-api?ref=master"
   name                  = "pre-api-b2c"
   api_mgmt_rg           = "ss-${var.env}-network-rg"
