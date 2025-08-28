@@ -413,8 +413,8 @@ class ArchiveMetadataXmlExtractorTest {
     }
 
     @Test
-    @DisplayName("Should pick first file when more than two MP4 files exist")
-    void shouldPickFirstWhenMoreThanTwo() throws Exception {
+    @DisplayName("Should pick best MP4 when more than two files exist (largest size)")
+    void shouldPickBestWhenMoreThanTwo() throws Exception {
         String xml = """
             <ArchiveFiles>
             <ArchiveID>A1</ArchiveID>
@@ -433,7 +433,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("A1"), eq("Case-ORIG"), eq("1"), eq("10"),
-            eq("pref/A1/first.mp4"), eq("0.10")
+            eq("pref/A1/third.mp4"), eq("0.29")
         );
     }
 
