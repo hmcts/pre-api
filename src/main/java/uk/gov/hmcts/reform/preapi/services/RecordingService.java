@@ -75,7 +75,12 @@ public class RecordingService {
     }
 
     @Transactional
-    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
+    @PreAuthorize(
+        """
+        (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
+        and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
+        """
+    )
     public Page<RecordingDTO> findAll(
         SearchRecordings params,
         boolean includeDeleted,

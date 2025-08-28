@@ -3856,6 +3856,10 @@ paths:
           in: query
           name: version
           type: integer
+        - description: The case status to search by
+          in: query
+          name: caseOpen
+          type: boolean
         - description: Sort by
           in: query
           name: sort

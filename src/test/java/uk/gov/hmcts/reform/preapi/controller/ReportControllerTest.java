@@ -41,7 +41,7 @@ import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
@@ -585,7 +585,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].active").value(dto.getActive()))
             .andExpect(jsonPath("$[0].role_name").value(dto.getRoleName()))
             .andExpect(jsonPath("$[0].last_access").value(dto.getLastAccess().toInstant()
-                                                              .atOffset(OffsetDateTime.now().getOffset())
+                                                              .atOffset(ZoneOffset.UTC)
                                                               .format(DateTimeFormatter
                                                                       .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS+00:00"))));
     }
