@@ -201,7 +201,7 @@ public final class RegexPatterns {
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ONE
         + URN_PATTERN + SEPARATOR_ONE
-        + "(?<urn2>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE
+        + "(?<exhibitRef>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE
         + NAMES_PATTERN + SEPARATOR_ONE
         + VERSION_PATTERN
         + EXTENSION_PATTERN + "$"
