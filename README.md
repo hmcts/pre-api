@@ -545,7 +545,6 @@ A connection string is used to connect to App Insights. This is configured to re
 
 Connecting to App Insights locally is possible, although a bit fiddly. The easiest way is to get the connection string from Azure, set it as an environment variable (`APPLICATIONINSIGHTS_CONNECTION_STRING`), and add the Java agent as a VM argument. You'll also need to remove or comment out the connection string line in the config file.
 
-
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
