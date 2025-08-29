@@ -10,7 +10,7 @@ locals {
   env_to_deploy    = 1
   env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
-  api_revision     = "118"
+  api_revision     = "120"
 }
 
 data "azurerm_client_config" "current" {}
@@ -42,7 +42,7 @@ module "pre_api" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API"
-  revision              = local.api_revision
+  revision              = local.api_revision"120
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url
@@ -184,7 +184,7 @@ module "pre_api_b2c" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API B2C"
-  revision              = local.api_revision
+  revision              = local.api_revision"120
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api-b2c"
   service_url           = local.apim_service_url
