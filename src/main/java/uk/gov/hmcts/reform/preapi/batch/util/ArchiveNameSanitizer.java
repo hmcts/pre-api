@@ -33,7 +33,8 @@ public class ArchiveNameSanitizer {
             .replaceAll("Seeurn-", "")
             .replaceAll("Cp-", "")
             .replaceAll("Cpp-","")
-            .replaceAll("Urn-","")
+            .replaceAll("Cm-","")
+            .replaceAll("(?i)Urn-","")
             .replaceAll("[\\.]+[-_\\s]*[\\.]+", "-")
             .trim();
     }

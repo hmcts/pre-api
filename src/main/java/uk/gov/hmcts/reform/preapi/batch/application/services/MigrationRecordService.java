@@ -452,7 +452,13 @@ public class MigrationRecordService {
             .collect(Collectors.groupingBy(MigrationRecord::getParentTempId));
 
         for (List<MigrationRecord> copies : copiesGroupedByParent.values()) {
-            MigrationRecord mostRecent = copies.stream()
+            List<MigrationRecord> copiesPreferred = copies.stream()
+                .filter(MigrationRecord::getIsPreferred)
+                .toList();
+
+            List<MigrationRecord> candidates = copiesPreferred.isEmpty() ? copies : copiesPreferred;
+
+            MigrationRecord mostRecent = candidates.stream()
                 .max((r1, r2) -> RecordingUtils.compareVersionStrings(
                     r1.getRecordingVersionNumber(),
                     r2.getRecordingVersionNumber()
