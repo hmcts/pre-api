@@ -81,6 +81,12 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
                 AND p.deletedAt IS NULL
             )
         )
+        AND (
+            :#{#searchParams.caseOpen} IS NULL
+            OR (:#{#searchParams.caseOpen} = TRUE
+                AND r.captureSession.booking.caseId.state IN ('OPEN', 'PENDING_CLOSURE'))
+            OR (:#{#searchParams.caseOpen} = FALSE
+                AND r.captureSession.booking.caseId.state = 'CLOSED'))
         """
     )
     Page<Recording> searchAllBy(
