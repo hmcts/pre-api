@@ -1,4 +1,5 @@
 java:
+  replicas: 2
   devmemoryLimits: '3Gi'
   devmemoryRequests: '3Gi'
   postgresql:
