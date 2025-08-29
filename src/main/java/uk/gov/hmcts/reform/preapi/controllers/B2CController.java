@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 @RestController
 @RequestMapping("/b2c")
-@ConditionalOnExpression("${feature-flags.enable-v2-b2c:true}")
 public class B2CController {
 
     private final UserService userService;
