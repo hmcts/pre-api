@@ -30,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.tasks.migration.BatchImportMissingMkAssets;
 import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
 import java.util.Date;
@@ -42,12 +43,15 @@ import java.util.UUID;
 public class VfMigrationController extends PreApiController {
     private final MigrationRecordService migrationRecordService;
     private final MigrateResolved migrateResolved;
+    private final BatchImportMissingMkAssets batchImportMissingMkAssets;
 
     @Autowired
     public VfMigrationController(final MigrationRecordService migrationRecordService,
-                                 final MigrateResolved migrateResolved) {
+                                 final MigrateResolved migrateResolved,
+                                 final BatchImportMissingMkAssets batchImportMissingMkAssets) {
         this.migrationRecordService = migrationRecordService;
         this.migrateResolved = migrateResolved;
+        this.batchImportMissingMkAssets = batchImportMissingMkAssets;
     }
 
     @GetMapping
@@ -134,6 +138,7 @@ public class VfMigrationController extends PreApiController {
     public ResponseEntity<Void> submitMigrationRecords() {
         if (migrationRecordService.markReadyAsSubmitted()) {
             migrateResolved.asyncMigrateResolved();
+            batchImportMissingMkAssets.asyncRun();
         }
 
         return ResponseEntity.noContent().build();

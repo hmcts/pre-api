@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.tasks.migration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -103,6 +104,15 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         );
 
         log.info("BatchImportMissingMkAssets completed");
+    }
+
+    @Async
+    public void asyncRun() {
+        try {
+            run();
+        } catch (RuntimeException e) {
+            log.error("Error while batch importing assets", e);
+        }
     }
 
     private boolean copyBlobBetweenContainers(RecordingDTO recording) {

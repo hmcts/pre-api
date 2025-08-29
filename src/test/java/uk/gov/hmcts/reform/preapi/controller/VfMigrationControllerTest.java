@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
+import uk.gov.hmcts.reform.preapi.tasks.migration.BatchImportMissingMkAssets;
 import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
 import java.sql.Timestamp;
@@ -62,6 +63,9 @@ public class VfMigrationControllerTest {
 
     @MockitoBean
     private MigrateResolved migrateResolved;
+
+    @MockitoBean
+    private BatchImportMissingMkAssets batchImportMissingMkAssets;
 
     @MockitoBean
     private ScheduledTaskRunner taskRunner;
@@ -549,6 +553,7 @@ public class VfMigrationControllerTest {
 
         verify(migrationRecordService, times(1)).markReadyAsSubmitted();
         verify(migrateResolved, times(1)).asyncMigrateResolved();
+        verify(batchImportMissingMkAssets, times(1)).asyncRun();
     }
 
     @Test
@@ -563,5 +568,6 @@ public class VfMigrationControllerTest {
 
         verify(migrationRecordService, times(1)).markReadyAsSubmitted();
         verifyNoInteractions(migrateResolved);
+        verifyNoInteractions(batchImportMissingMkAssets);
     }
 }
