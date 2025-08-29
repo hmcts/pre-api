@@ -33,6 +33,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -198,6 +199,7 @@ class BookingServiceTest {
         caseEntity.setId(caseId);
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
         var participantModel = new CreateParticipantDTO();
         participantModel.setId(UUID.randomUUID());
         participantModel.setParticipantType(ParticipantType.WITNESS);
@@ -229,6 +231,7 @@ class BookingServiceTest {
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
         bookingModel.setParticipants(Set.of());
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
 
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.empty());
         when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.empty());
@@ -248,11 +251,14 @@ class BookingServiceTest {
     @DisplayName("Create/update a booking when case is not OPEN")
     @Test
     void upsertCreateBookingCaseNotOpen() {
+        setAuthentication();
+
         var bookingModel = new CreateBookingDTO();
         var caseId = UUID.randomUUID();
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
         bookingModel.setParticipants(Set.of());
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
 
         var aCase = new Case();
         aCase.setId(UUID.randomUUID());
@@ -277,6 +283,36 @@ class BookingServiceTest {
         verify(bookingRepository, never()).save(any());
     }
 
+    @DisplayName("Create/update a booking when case is not OPEN but user is Super Admin")
+    @Test
+    void upsertCreateBookingCaseNotOpenWithSuperAdmin() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var bookingModel = new CreateBookingDTO();
+        var caseId = UUID.randomUUID();
+        bookingModel.setId(UUID.randomUUID());
+        bookingModel.setCaseId(caseId);
+        bookingModel.setParticipants(Set.of());
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.CLOSED);
+
+        var bookingEntity = new Booking();
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(aCase));
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
+        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
+        when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
+        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
+
+        assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);
+    }
+
     @DisplayName("Update a booking when case not found")
     @Test
     void upsertUpdateBookingCaseNotFound() {
@@ -285,6 +321,7 @@ class BookingServiceTest {
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
         bookingModel.setParticipants(Set.of());
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
 
         var bookingEntity = new Booking();
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.empty());
@@ -312,6 +349,7 @@ class BookingServiceTest {
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
         bookingModel.setParticipants(Set.of());
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
 
         var bookingEntity = new Booking();
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(caseEntity));
@@ -331,6 +369,7 @@ class BookingServiceTest {
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(UUID.randomUUID());
         bookingModel.setParticipants(Set.of());
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
 
         var bookingEntity = new Booking();
 
@@ -355,11 +394,12 @@ class BookingServiceTest {
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
         bookingModel.setParticipants(Set.of());
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
 
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(caseEntity));
         when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(true);
         assertThatExceptionOfType(ResourceInDeletedStateException.class)
-            .isThrownBy(() -> {
+                .isThrownBy(() -> {
                 bookingService.upsert(bookingModel);
             })
             .withMessage("Resource BookingDTO("
@@ -376,6 +416,7 @@ class BookingServiceTest {
         caseEntity.setId(caseId);
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
         var participantModel = new CreateParticipantDTO();
         participantModel.setId(UUID.randomUUID());
         participantModel.setParticipantType(ParticipantType.WITNESS);
@@ -424,6 +465,7 @@ class BookingServiceTest {
         participantModel.setLastName("Smith");
 
         bookingModel.setParticipants(Set.of(participantModel));
+        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
 
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(caseEntity));
         when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.empty());
@@ -676,6 +718,7 @@ class BookingServiceTest {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(false);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
     }
 }
