@@ -428,6 +428,7 @@ class ProcessorTest {
         return new ExtractedMetadata(
             "COURT123",
             UUID.randomUUID(),
+            null,
             "12345678901",
             "EXHIBIT123",
             "John Doe",

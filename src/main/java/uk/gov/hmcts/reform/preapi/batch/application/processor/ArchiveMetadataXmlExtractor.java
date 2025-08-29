@@ -293,65 +293,69 @@ public class ArchiveMetadataXmlExtractor {
         if (files.size() == 1) {
             return files.get(0);
         }
-
-        if (files.size() == 2) {
-            Element a = files.get(0);
-            Element b = files.get(1);
-
-            boolean aWatermarked = getBoolean(a, "watermark");
-            boolean bWatermarked = getBoolean(b, "watermark");
-
-            // (1) Prefer watermark = true when only one has it
-            if (aWatermarked ^ bWatermarked) {
-                return aWatermarked ? a : b;
+        
+        int bestIdx = 0;
+        for (int i = 1; i < files.size(); i++) {
+            Element currentBest = files.get(bestIdx);
+            Element challenger = files.get(i);
+            int cmp = compareMp4(challenger, currentBest);
+            if (cmp > 0 || cmp == 0) {
+                bestIdx = i;
             }
+        }
+        return files.get(bestIdx);
+    }
 
-            // (2) If neither or both have watermark=true, prefer name starting with "UGC" when only one has it;
-            String nameA = getName(a).toUpperCase();
-            String nameB = getName(b).toUpperCase();
-            boolean aUGC = nameA.contains("UGC");
-            boolean bUGC = nameB.contains("UGC");
-            if (aUGC && !bUGC) {
-                return a;
-            }
-
-            if (!aUGC && bUGC) {
-                return b;
-            }
-
-            // (3) Otherwise pick the largest mp4 file size
-            long aSize = getLong(a, "Size");  
-            long bSize = getLong(b, "Size");
-            if (aSize != bSize) {
-                return (aSize > bSize) ? a : b;
-            }
-
-            // (4) Duration should be equal or within 1s (sanity check / log only)
-            long aDur = getLong(a, "Duration");
-            long bDur = getLong(b, "Duration");
-
-            boolean aDurValid = aDur >= 0;
-            boolean bDurValid = bDur >= 0;
-
-            if (aDurValid && bDurValid && aDur != bDur) {
-                return (aDur > bDur) ? a : b;
-            }
-            if (aDurValid != bDurValid) {
-                return aDurValid ? a : b;
-            }
-
-            // (5) If duration ties (or both invalid), prefer longer filename
-            int lenA = nameA != null ? nameA.length() : 0;
-            int lenB = nameB != null ? nameB.length() : 0;
-            if (lenA != lenB) {
-                return (lenA > lenB) ? a : b;
-            }
-
-            // Fallback: pick the second file (as you had)
-            return b;
+    private int compareMp4(Element a, Element b) {
+        // (1) watermark
+        int wm = Boolean.compare(getBoolean(a, "watermark"), getBoolean(b, "watermark"));
+        if (wm != 0) {
+            return wm;
         }
 
-        return files.get(0);
+        String nameA = String.valueOf(getName(a)).toUpperCase();
+        String nameB = String.valueOf(getName(b)).toUpperCase();
+
+        // (2) UGC in name
+        int ugc = Boolean.compare(nameA.contains("UGC"), nameB.contains("UGC"));
+        if (ugc != 0) {
+            return ugc;
+        }
+
+        // (3) file size
+        long aSize = getLong(a, "Size");
+        long bSize = getLong(b, "Size");
+        int sizeCmp = Long.compare(aSize, bSize);
+        if (sizeCmp != 0) {
+            return sizeCmp;
+        }
+
+        // (4) duration validity then value
+        long aDur = getLong(a, "Duration");
+        long bDur = getLong(b, "Duration");
+        boolean aValid = aDur >= 0;
+        boolean bValid = bDur >= 0;
+
+        int validCmp = Boolean.compare(aValid, bValid); 
+        if (validCmp != 0) {
+            return validCmp;
+        }
+
+        if (aValid && bValid) {
+            int durCmp = Long.compare(aDur, bDur);
+            if (durCmp != 0) {
+                return durCmp;
+            }
+        }
+
+        // (5) longer filename
+        int lenCmp = Integer.compare(nameA.length(), nameB.length());
+        if (lenCmp != 0) {
+            return lenCmp;
+        }
+
+        // Tie 
+        return 0;
     }
 
     /**

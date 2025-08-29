@@ -124,6 +124,7 @@ public class DataExtractionService {
         return new ExtractedMetadata(
             getMatcherGroup(matcher, "court"),
             null,
+            getMatcherGroup(matcher, "date"),
             getMatcherGroup(matcher, "urn"),
             getMatcherGroup(matcher, "exhibitRef"),
             getMatcherGroup(matcher, "defendantLastName"),

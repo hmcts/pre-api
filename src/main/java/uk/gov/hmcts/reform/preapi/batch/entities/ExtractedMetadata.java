@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public class ExtractedMetadata implements IArchiveData {
     private String courtReference;
     private UUID courtId;
+    private String datePattern;
     private String urn;
     private String exhibitReference;
     private String defendantLastName;
@@ -34,6 +35,7 @@ public class ExtractedMetadata implements IArchiveData {
 
     public ExtractedMetadata(String courtReference,
                              UUID courtId,
+                             String datePattern,
                              String urn,
                              String exhibitReference,
                              String defendantLastName,
@@ -49,6 +51,7 @@ public class ExtractedMetadata implements IArchiveData {
                              String archiveName) {
         this.courtReference = courtReference;
         this.courtId = courtId;
+        this.datePattern = datePattern;
         this.urn = urn != null ? urn.toUpperCase() : null;
         this.exhibitReference = exhibitReference != null ? exhibitReference.toUpperCase() : null;
         this.defendantLastName = formatName(defendantLastName != null ? defendantLastName.toLowerCase() : "");
