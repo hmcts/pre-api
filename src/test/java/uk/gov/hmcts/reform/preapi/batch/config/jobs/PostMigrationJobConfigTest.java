@@ -46,6 +46,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -106,6 +107,10 @@ public class PostMigrationJobConfigTest {
         when(stepContext.getJobParameters()).thenReturn(Collections.emptyMap());
     }
 
+    // --------------------------------------------------
+    // existence
+    // --------------------------------------------------
+
     @Test
     void postMigrationJobShouldNotBeNull() {
         when(coreSteps.startLogging()).thenReturn(dummyStep);
@@ -124,6 +129,10 @@ public class PostMigrationJobConfigTest {
         Step step = config.createShareBookingsStep(postMigrationWriter);
         assertThat(step).isNotNull();
     }
+
+    // --------------------------------------------------
+    // markCasesClosedStep tests
+    // --------------------------------------------------
 
     @Test
     void markCasesClosedStep_handlesNoVodafoneCases() throws Exception {
@@ -191,6 +200,25 @@ public class PostMigrationJobConfigTest {
     }
 
     @Test
+    void markCasesClosedStep_logsErrorWhenUpsertFails() throws Exception {
+        CaseDTO caseDTO = createTestCase("REF_ERR", UUID.randomUUID());
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        when(cacheService.getAllChannelReferences()).thenReturn(Collections.emptyMap());
+        doThrow(new RuntimeException("fail")).when(caseService).upsert(any());
+
+        Tasklet tasklet = getTaskletFromStep(config.createMarkCasesClosedStep());
+        RepeatStatus result = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(result).isEqualTo(RepeatStatus.FINISHED);
+        verify(loggingService).logError("Failed to close case %s: %s", "REF_ERR", "fail");
+    }
+
+
+    // --------------------------------------------------
+    // shareBookings step tests
+    // --------------------------------------------------
+
+    @Test
     void shareBookingsStep_handlesNoBookings() throws Exception {
         when(migrationRecordService.findShareableOrigs()).thenReturn(Collections.emptyList());
         when(cacheService.getAllChannelReferences()).thenReturn(Collections.emptyMap());
@@ -202,6 +230,92 @@ public class PostMigrationJobConfigTest {
         verify(loggingService).logInfo("Share booking creation complete. Total created: %d", 0);
         verify(postMigrationWriter).write(any());
         verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
+    }
+
+    @Test
+    void shareBookingsStep_skipsWhenNoChannelMatch() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        MigrationRecord rec = new MigrationRecord();
+        rec.setArchiveId("ARCH_NO_MATCH");
+        rec.setRecordingGroupKey("REFX|john|doe|2024-01-01");
+        rec.setBookingId(bookingId);
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(rec));
+        when(cacheService.getAllChannelReferences()).thenReturn(
+            Map.of("some.other.key", List.<String[]>of(new String[]{"n/a","n/a"}))
+        );
+
+        Tasklet tasklet = getTaskletFromStep(config.createShareBookingsStep(postMigrationWriter));
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
+        verify(postMigrationWriter).write(any());
+    }
+
+    @Test
+    void shareBookingsStep_skipsWhenBookingIdNull() throws Exception {
+        MigrationRecord rec = new MigrationRecord();
+        rec.setArchiveId("ARCH_NULL_BOOKING");
+        rec.setRecordingGroupKey("REF1|john|doe|2024-01-01");
+        rec.setBookingId(null);
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(rec));
+        when(cacheService.getAllChannelReferences()).thenReturn(
+            Map.of("ref1.john.doe.20240101", List.<String[]>of(new String[] {"john.doe", "j@test.com"}))
+        );
+
+        Tasklet tasklet = getTaskletFromStep(config.createShareBookingsStep(postMigrationWriter));
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(bookingService, never()).findById(any());
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
+        verify(postMigrationWriter).write(any());
+    }
+
+    @Test
+    void shareBookingsStep_skipsWhenBookingLookupThrows() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        MigrationRecord rec = new MigrationRecord();
+        rec.setArchiveId("ARCH_THROW");
+        rec.setRecordingGroupKey("REF2|john|doe|2024-01-01");
+        rec.setBookingId(bookingId);
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(rec));
+        when(cacheService.getAllChannelReferences()).thenReturn(
+            Map.of("ref2.john.doe.240101", List.<String[]>of(new String[]{"john.doe","j@test.com"}))
+        );
+        when(bookingService.findById(bookingId)).thenThrow(new RuntimeException("boom"));
+
+        Tasklet tasklet = getTaskletFromStep(config.createShareBookingsStep(postMigrationWriter));
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
+        verify(postMigrationWriter).write(any());
+    }
+
+    @Test
+    void shareBookingsStep_skipsWhenBookingLookupReturnsNull() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        MigrationRecord rec = new MigrationRecord();
+        rec.setArchiveId("ARCH_NULL");
+        rec.setRecordingGroupKey("REF3|john|doe|2024-01-01");
+        rec.setBookingId(bookingId);
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(rec));
+        when(cacheService.getAllChannelReferences()).thenReturn(
+            Map.of("ref3.john.doe.2024-01-01", List.<String[]>of(new String[]{"john.doe","j@test.com"}))
+        );
+        when(bookingService.findById(bookingId)).thenReturn(null);
+
+        Tasklet tasklet = getTaskletFromStep(config.createShareBookingsStep(postMigrationWriter));
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
+        verify(postMigrationWriter).write(any());
     }
 
     @Test
