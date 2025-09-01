@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -195,10 +196,10 @@ public class MigrationTrackerService {
      */
     public void writeAllToCsv() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = OUTPUT_DIR + timestamp;
+        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
         new File(outputDir).mkdirs();
 
-        String failureDir = outputDir + "/Failure Reports";
+        String failureDir = Paths.get(outputDir, "Failure Reports").toString();
         new File(failureDir).mkdirs();
 
         File migratedFile = writeMigratedItemsToCsv("Migrated", outputDir);
@@ -247,7 +248,7 @@ public class MigrationTrackerService {
 
     public void writeNewUserReport() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = OUTPUT_DIR + timestamp;
+        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
         new File(outputDir).mkdirs();
 
         writeInvitedUsersToCsv("Invited_users", outputDir);
@@ -255,7 +256,7 @@ public class MigrationTrackerService {
 
     public void writeShareBookingsReport() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = OUTPUT_DIR + timestamp;
+        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
         new File(outputDir).mkdirs();
         writeShareBookingsToCsv("Share_bookings", outputDir);
     }
