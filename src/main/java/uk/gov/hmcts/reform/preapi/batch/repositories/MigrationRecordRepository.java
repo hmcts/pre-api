@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.batch.repositories;
 
-// import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,6 +33,15 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         """, nativeQuery = true)
     Optional<Boolean> getIsMostRecent(@Param("archiveId") String archiveId);
     
+
+    @Query("""
+        SELECT mr FROM MigrationRecord mr
+        WHERE UPPER(CAST(mr.status as string)) = 'SUCCESS'
+        AND UPPER(mr.recordingVersion) = 'ORIG'
+        AND mr.bookingId IS NOT null
+        AND mr.recordingGroupKey IS NOT null
+        """)
+    List<MigrationRecord> findShareableOrigs();
 
     @Query("""
         SELECT mr FROM MigrationRecord mr

@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.File;
@@ -57,11 +58,16 @@ public class MigrationTrackerService {
         "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant",
         "Extracted_witness", "Duration", "Date / Time migrated");
 
+    protected static final List<String> SHARE_BOOKINGS_HEADERS = List.of(
+        "Booking ID", "User ID", "User Email", "Date / Time"
+    );
+
     protected final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
     protected final List<PassItem> migratedItems = new ArrayList<>();
     protected final List<TestItem> testFailures = new ArrayList<>();
     protected final List<NotifyItem> notifyItems = new ArrayList<>();
     protected final List<CreateInviteDTO> invitedUsers = new ArrayList<>();
+    protected final List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
 
     private final LoggingService loggingService;
 
@@ -100,6 +106,10 @@ public class MigrationTrackerService {
 
     public void addInvitedUser(CreateInviteDTO user) {
         invitedUsers.add(user);
+    }
+
+    public void addShareBooking(CreateShareBookingDTO row) {
+        shareBookings.add(row);
     }
 
     public File writeMigratedItemsToCsv(String fileName, String outputDir) {
@@ -175,6 +185,7 @@ public class MigrationTrackerService {
             loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
         }
     }
+    
 
     /**
      * Writes both migrated and failed items to CSV files and logs the total counts,
@@ -238,6 +249,13 @@ public class MigrationTrackerService {
         new File(outputDir).mkdirs();
 
         writeInvitedUsersToCsv("Invited_users", outputDir);
+    }
+
+    public void writeShareBookingsReport() {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+        String outputDir = "Migration Reports/" + timestamp;
+        new File(outputDir).mkdirs();
+        writeShareBookingsToCsv("Share_bookings", outputDir);
     }
 
     // ==================================
@@ -391,6 +409,28 @@ public class MigrationTrackerService {
             );
         }
         return rows;
+    }
+
+    public List<List<String>> buildShareBookingsRows() {
+        List<List<String>> rows = new ArrayList<>();
+        String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+        for (CreateShareBookingDTO s : shareBookings) {
+            rows.add(List.of(
+                getValueOrEmpty(s.getBookingId()),
+                getValueOrEmpty(s.getSharedWithUser()),
+                migratedTime)
+            );
+        }
+        return rows;
+    }
+
+    public void writeShareBookingsToCsv(String fileName, String outputDir) {
+        List<List<String>> rows = buildShareBookingsRows();
+        try {
+            ReportCsvWriter.writeToCsv(SHARE_BOOKINGS_HEADERS, rows, fileName, outputDir, false);
+        } catch (IOException e) {
+            loggingService.logError("Failed to write share bookings CSV: %s", e.getMessage());
+        }
     }
 
     private String getValueOrEmpty(Object value) {

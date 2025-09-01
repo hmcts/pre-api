@@ -393,6 +393,11 @@ public class MigrationRecordService {
         return updated;
     }
 
+    @Transactional(readOnly = true)
+    public List<MigrationRecord> findShareableOrigs() {
+        return migrationRecordRepository.findShareableOrigs();
+    }
+
     public List<String> findOrigVersionsByBaseGroupKey(String baseGroupKey) {
         return migrationRecordRepository.findByRecordingGroupKeyStartingWith(baseGroupKey).stream()
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
