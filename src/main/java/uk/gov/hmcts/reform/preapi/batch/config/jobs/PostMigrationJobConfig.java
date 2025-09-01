@@ -145,40 +145,40 @@ public class PostMigrationJobConfig {
 
                 List<PostMigratedItemGroup> migratedItems = new ArrayList<>();
 
-                for (MigrationRecord record : shareableOrigs) {
+                for (MigrationRecord orig : shareableOrigs) {
                     loggingService.logDebug("========================================================");
                     loggingService.logDebug("Processing record: archiveId=%s, groupKey=%s",
-                        record.getArchiveId(), record.getRecordingGroupKey());
+                        orig.getArchiveId(), orig.getRecordingGroupKey());
 
                     // find matching channel users by checking the groupKey parts
                     List<String[]> matchedUsers = channelUsersMap.entrySet().stream()
-                        .filter(entry -> channelContainsAllGroupParts(record.getRecordingGroupKey(), entry.getKey()))
+                        .filter(entry -> channelContainsAllGroupParts(orig.getRecordingGroupKey(), entry.getKey()))
                         .flatMap(entry -> entry.getValue().stream())
                         .toList();
 
                     if (matchedUsers.isEmpty()) {
                         loggingService.logDebug("No matching channel users found for groupKey=%s",
-                            record.getRecordingGroupKey());
+                            orig.getRecordingGroupKey());
                         continue;
                     }
 
-                    if (record.getBookingId() == null) {
-                        loggingService.logWarning("Record %s has no bookingId", record.getArchiveId());
+                    if (orig.getBookingId() == null) {
+                        loggingService.logWarning("Record %s has no bookingId", orig.getArchiveId());
                         continue;
                     }
 
                     // fetch booking by booking_id  
                     BookingDTO booking;
                     try {
-                        booking = bookingService.findById(record.getBookingId()); 
+                        booking = bookingService.findById(orig.getBookingId()); 
                     } catch (Exception ex) {
                         loggingService.logWarning("No booking found for record %s (bookingId=%s) — %s",
-                            record.getArchiveId(), record.getBookingId(), ex.getMessage());
+                            orig.getArchiveId(), orig.getBookingId(), ex.getMessage());
                         continue;
                     }
                     if (booking == null) {
                         loggingService.logWarning("No booking found for record %s (bookingId=%s)",
-                            record.getArchiveId(), record.getBookingId());
+                            orig.getArchiveId(), orig.getBookingId());
                         continue;
                     }
 
