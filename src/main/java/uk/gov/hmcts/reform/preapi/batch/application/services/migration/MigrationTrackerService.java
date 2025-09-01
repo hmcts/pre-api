@@ -61,6 +61,8 @@ public class MigrationTrackerService {
     protected static final List<String> SHARE_BOOKINGS_HEADERS = List.of(
         "Booking ID", "User ID", "User Email", "Date / Time"
     );
+    
+    protected static final String OUTPUT_DIR = "Migration Reports";
 
     protected final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
     protected final List<PassItem> migratedItems = new ArrayList<>();
@@ -193,7 +195,7 @@ public class MigrationTrackerService {
      */
     public void writeAllToCsv() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = "Migration Reports/" + timestamp;
+        String outputDir = OUTPUT_DIR + timestamp;
         new File(outputDir).mkdirs();
 
         String failureDir = outputDir + "/Failure Reports";
@@ -245,7 +247,7 @@ public class MigrationTrackerService {
 
     public void writeNewUserReport() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = "Migration Reports/" + timestamp;
+        String outputDir = OUTPUT_DIR + timestamp;
         new File(outputDir).mkdirs();
 
         writeInvitedUsersToCsv("Invited_users", outputDir);
@@ -253,7 +255,7 @@ public class MigrationTrackerService {
 
     public void writeShareBookingsReport() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = "Migration Reports/" + timestamp;
+        String outputDir = OUTPUT_DIR + timestamp;
         new File(outputDir).mkdirs();
         writeShareBookingsToCsv("Share_bookings", outputDir);
     }
