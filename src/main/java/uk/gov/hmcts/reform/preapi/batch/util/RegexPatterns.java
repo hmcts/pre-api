@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @UtilityClass
-@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
+@SuppressWarnings({"java:S5843", "checkstyle:HideUtilityClassConstructor"})
 public final class RegexPatterns {
     public static final Pattern NO_DIGIT_PATTERN = Pattern.compile("^[^\\d]+\\.(mp4)$",
         Pattern.CASE_INSENSITIVE);
