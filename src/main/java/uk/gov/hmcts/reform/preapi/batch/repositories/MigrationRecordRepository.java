@@ -36,7 +36,7 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     @Query("""
         SELECT mr FROM MigrationRecord mr
-        WHERE UPPER(CAST(mr.status as string)) = 'SUCCESS'
+        WHERE CAST(mr.status as string) = 'SUCCESS'
         AND UPPER(mr.recordingVersion) = 'ORIG'
         AND mr.bookingId IS NOT null
         AND mr.recordingGroupKey IS NOT null
