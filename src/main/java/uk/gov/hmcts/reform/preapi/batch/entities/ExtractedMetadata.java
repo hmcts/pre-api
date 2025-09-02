@@ -29,7 +29,7 @@ public class ExtractedMetadata implements IArchiveData {
     private int duration;
     private String fileName;
     private String fileSize;
-    private String archiveId;
+    private String archiveId; 
     private String archiveName;
     private String sanitizedArchiveName = "";
 
