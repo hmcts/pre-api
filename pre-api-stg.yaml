@@ -249,6 +249,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -305,6 +306,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -664,6 +666,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -710,6 +713,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -1152,6 +1156,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -1209,6 +1214,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -2751,6 +2757,7 @@ paths:
           enum:
             - PRE
             - VODAFONE
+            - VODAFONE_VISIBLE
           in: query
           name: origin
           type: string
