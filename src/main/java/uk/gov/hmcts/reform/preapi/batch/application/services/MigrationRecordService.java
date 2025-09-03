@@ -24,12 +24,15 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -216,12 +219,13 @@ public class MigrationRecordService {
             record.setFileName(extracted.getFileName());
             record.setFileSizeMb(extracted.getFileSize());
 
-            String groupKey = String.join("|",
-                nullToEmpty(extracted.getUrn()),
-                nullToEmpty(extracted.getExhibitReference()),
-                nullToEmpty(extracted.getWitnessFirstName()),
-                nullToEmpty(extracted.getDefendantLastName())
-            ).toLowerCase().trim();
+            String groupKey = generateRecordingGroupKey(
+                extracted.getUrn(),
+                extracted.getExhibitReference(),
+                extracted.getWitnessFirstName(),
+                extracted.getDefendantLastName(),
+                extracted.getDatePattern()
+            );
 
             record.setRecordingGroupKey(groupKey);
             migrationRecordRepository.save(record);
@@ -389,6 +393,11 @@ public class MigrationRecordService {
         return updated;
     }
 
+    @Transactional(readOnly = true)
+    public List<MigrationRecord> findShareableOrigs() {
+        return migrationRecordRepository.findShareableOrigs();
+    }
+
     public List<String> findOrigVersionsByBaseGroupKey(String baseGroupKey) {
         return migrationRecordRepository.findByRecordingGroupKeyStartingWith(baseGroupKey).stream()
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
@@ -407,15 +416,28 @@ public class MigrationRecordService {
     }
 
     public static String generateRecordingGroupKey(
-        String urn, String exhibitRef, String witnessName, String defendantName) {
+        String urn, String exhibitRef, String witnessName, String defendantName, String datePattern) {
+        
+        String datePart = normaliseDate(datePattern);
 
-        return String.join("|",
-                           nullToEmpty(urn),
-                           nullToEmpty(exhibitRef),
-                           nullToEmpty(witnessName),
-                           nullToEmpty(defendantName))
-            .toLowerCase()
-            .trim();
+        return Stream.of(urn, exhibitRef, witnessName, defendantName, datePart)
+            .map(MigrationRecordService::nullToEmpty)
+            .map(String::trim)
+            .map(String::toLowerCase)
+            .filter(s -> !s.isEmpty())   
+            .collect(Collectors.joining("|"));
+     
+    }
+
+    private static String normaliseDate(String in) {
+        if (in == null || in.isBlank()) {
+            return "";
+        }
+        if (in.matches("\\d{6}")) {
+            DateTimeFormatter f = DateTimeFormatter.ofPattern("yyMMdd");
+            return LocalDate.parse(in, f).toString(); 
+        }
+        return in.trim();
     }
 
     private void setMostRecentFlag(String groupKey) {
@@ -435,7 +457,13 @@ public class MigrationRecordService {
             .collect(Collectors.groupingBy(MigrationRecord::getParentTempId));
 
         for (List<MigrationRecord> copies : copiesGroupedByParent.values()) {
-            MigrationRecord mostRecent = copies.stream()
+            List<MigrationRecord> copiesPreferred = copies.stream()
+                .filter(MigrationRecord::getIsPreferred)
+                .toList();
+
+            List<MigrationRecord> candidates = copiesPreferred.isEmpty() ? copies : copiesPreferred;
+
+            MigrationRecord mostRecent = candidates.stream()
                 .max((r1, r2) -> RecordingUtils.compareVersionStrings(
                     r1.getRecordingVersionNumber(),
                     r2.getRecordingVersionNumber()

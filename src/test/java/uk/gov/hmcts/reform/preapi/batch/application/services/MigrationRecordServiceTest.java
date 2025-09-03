@@ -73,25 +73,26 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should return lowercase combined string from non-null parameters")
     void generateRecordingGroupKeyShouldReturnLowercaseCombinedString() {
-        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe");
+        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe", "241211");
 
-        assertThat(result).isEqualTo("urn123|exhibit1|john|doe");
+        assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
 
     @Test
     @DisplayName("Should handle null values by replacing with empty strings")
     void generateRecordingGroupKeyShouldHandleNullValues() {
-        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe");
+        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe","241211");
 
-        assertThat(result).isEqualTo("|exhibit1||doe");
+        assertThat(result).isEqualTo("exhibit1|doe|2024-12-11");
     }
 
     @Test
     @DisplayName("Should trim leading and trailing whitespace")
     void generateRecordingGroupKeyShouldTrimWhitespace() {
-        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ", " John ", " Doe ");
+        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ", 
+            " John ", " Doe ","241211");
 
-        assertThat(result).isEqualTo("urn123 | exhibit1 | john | doe");
+        assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
 
     @Test
@@ -908,6 +909,7 @@ public class MigrationRecordServiceTest {
         copy.setRecordingGroupKey("urn|ex|wit|def");  
         copy.setRecordingVersionNumber("2");
         copy.setIsMostRecent(false);
+        copy.setIsPreferred(false);
         copy.setParentTempId(UUID.randomUUID());
 
         when(migrationRecordRepository.findByArchiveId("id2")).thenReturn(Optional.of(copy));
@@ -942,6 +944,7 @@ public class MigrationRecordServiceTest {
         copy1.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
         copy1.setRecordingVersionNumber("1");
         copy1.setIsMostRecent(false);
+        copy1.setIsPreferred(false);
         copy1.setParentTempId(parentId);
 
         MigrationRecord copy2 = new MigrationRecord();
@@ -950,6 +953,7 @@ public class MigrationRecordServiceTest {
         copy2.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
         copy2.setRecordingVersionNumber("2");
         copy2.setIsMostRecent(false);
+        copy2.setIsPreferred(false);
         copy2.setParentTempId(parentId);
 
         when(migrationRecordRepository.findByArchiveId("id4")).thenReturn(Optional.of(copy2));
