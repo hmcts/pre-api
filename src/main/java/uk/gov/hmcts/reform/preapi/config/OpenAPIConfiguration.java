@@ -11,6 +11,7 @@ import io.swagger.v3.oas.models.media.UUIDSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
@@ -30,14 +31,6 @@ public class OpenAPIConfiguration {
                       .description("PRE API - Used for managing courts, bookings, recordings and permissions.")
                       .version("v0.0.1")
                       .license(new License().name("MIT").url("https://opensource.org/licenses/MIT")))
-            .addSecurityItem(new SecurityRequirement().addList(APIM_SUBSCRIPTION_KEY_HEADER))
-            .components(new Components()
-                            .addSecuritySchemes(APIM_SUBSCRIPTION_KEY_HEADER,
-                                                new SecurityScheme()
-                                                    .type(SecurityScheme.Type.APIKEY)
-                                                    .in(SecurityScheme.In.HEADER)
-                                                    .name(APIM_SUBSCRIPTION_KEY_HEADER)
-                            ))
             .externalDocs(new ExternalDocumentation()
                               .description("README")
                               .url("https://github.com/hmcts/pre-api"));
@@ -46,7 +39,7 @@ public class OpenAPIConfiguration {
     @Bean
     public OperationCustomizer customGlobalHeaders() {
         return (Operation customOperation, HandlerMethod handlerMethod) -> {
-            Parameter serviceAuthorizationHeader = new Parameter()
+            var serviceAuthorizationHeader = new Parameter()
                 .in(ParameterIn.HEADER.toString())
                 .schema(new UUIDSchema())
                 .name(X_USER_ID_HEADER)
@@ -59,12 +52,36 @@ public class OpenAPIConfiguration {
     }
 
     @Bean
-    public GroupedOpenApi publicApi(OperationCustomizer customGlobalHeaders) {
+    public OpenApiCustomizer publicApiSecurityRequirement() {
+        return openApi -> {
+            var components = openApi.getComponents();
+            if (components == null) {
+                components = new Components();
+                openApi.setComponents(components);
+            }
+
+            components.addSecuritySchemes(APIM_SUBSCRIPTION_KEY_HEADER,
+                                          new SecurityScheme()
+                                              .type(SecurityScheme.Type.APIKEY)
+                                              .in(SecurityScheme.In.HEADER)
+                                              .name(APIM_SUBSCRIPTION_KEY_HEADER)
+            );
+
+            openApi.addSecurityItem(new SecurityRequirement().addList(APIM_SUBSCRIPTION_KEY_HEADER));
+        };
+    }
+
+    @Bean
+    public GroupedOpenApi publicApi(
+        OperationCustomizer customGlobalHeaders,
+        OpenApiCustomizer publicApiSecurityRequirement
+    ) {
         return GroupedOpenApi.builder()
             .group("pre-api")
             .pathsToMatch("/**")
             .pathsToExclude("/b2c/**")
             .addOperationCustomizer(customGlobalHeaders)
+            .addOpenApiCustomizer(publicApiSecurityRequirement)
             .build();
     }
 
