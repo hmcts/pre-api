@@ -10,6 +10,7 @@ public enum VfFailureReason {
     VALIDATION_FAILED("Validation_Failed"),
     ALTERNATIVE_AVAILABLE("Alternative_Available"),
     GENERAL_ERROR("General_Error"),
+    CASE_CLOSED("Case_Closed"),
     TEST("Test");
 
     private final String value;
