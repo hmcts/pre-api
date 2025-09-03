@@ -107,20 +107,6 @@ public class DataValidationService {
         }
 
 
-        if ("COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion())) {
-            boolean isMostRecent = migrationRecordRepository
-                .findByArchiveId(cleansedData.getArchiveId())
-                .map(mr -> Boolean.TRUE.equals(mr.getIsMostRecent()))
-                .orElse(false);
-
-            if (!isMostRecent) {
-                return ServiceResultUtil.failure(
-                    Constants.ErrorMessages.NOT_MOST_RECENT_VERSION,
-                    VfFailureReason.NOT_MOST_RECENT.toString()
-                );
-            }
-        }
-
         String caseReference = cleansedData.getCaseReference();
         if (caseReference == null || caseReference.length() < 9) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
