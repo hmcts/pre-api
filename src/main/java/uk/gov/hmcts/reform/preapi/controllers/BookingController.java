@@ -248,7 +248,6 @@ public class BookingController extends PreApiController {
         return ok().build();
     }
 
-
     private void validateRequestWithBody(UUID bookingId, CreateBookingDTO createBookingDTO) {
         if (!bookingId.equals(createBookingDTO.getId())) {
             throw new PathPayloadMismatchException("bookingId", "bookingDTO.id");
