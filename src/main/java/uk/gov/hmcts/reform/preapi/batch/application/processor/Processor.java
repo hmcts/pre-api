@@ -327,7 +327,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
             migrationRecordService.updateToFailed(extractedData.getArchiveId(), 
                 VfFailureReason.CASE_CLOSED.toString(), msg);
-            handleError(extractedData, msg, VfFailureReason.VALIDATION_FAILED.toString());   
+            handleError(extractedData, msg, VfFailureReason.CASE_CLOSED.toString());   
             loggingService.logError("Skipping item: %s", msg);
             return false;
         }
