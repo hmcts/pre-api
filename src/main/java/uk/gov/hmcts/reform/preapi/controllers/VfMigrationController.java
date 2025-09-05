@@ -138,8 +138,16 @@ public class VfMigrationController extends PreApiController {
     public ResponseEntity<Void> submitMigrationRecords() {
         if (migrationRecordService.markReadyAsSubmitted()) {
             migrateResolved.asyncMigrateResolved();
-            batchImportMissingMkAssets.asyncRun();
         }
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/import-assets")
+    @Operation(operationId = "importVodafoneAssets", summary = "Imports Vodafone for resolbed migration records")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> importVodafoneAssets() {
+        batchImportMissingMkAssets.asyncRun();
 
         return ResponseEntity.noContent().build();
     }

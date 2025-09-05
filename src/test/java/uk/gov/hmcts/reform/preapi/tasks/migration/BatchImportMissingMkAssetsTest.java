@@ -292,6 +292,6 @@ public class BatchImportMissingMkAssetsTest {
 
         spyBatchImport.asyncRun();
 
-        verify(spyBatchImport, org.mockito.Mockito.times(1)).run();
+        verify(spyBatchImport, times(1)).run();
     }
 }

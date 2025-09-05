@@ -553,7 +553,6 @@ public class VfMigrationControllerTest {
 
         verify(migrationRecordService, times(1)).markReadyAsSubmitted();
         verify(migrateResolved, times(1)).asyncMigrateResolved();
-        verify(batchImportMissingMkAssets, times(1)).asyncRun();
     }
 
     @Test
@@ -568,6 +567,18 @@ public class VfMigrationControllerTest {
 
         verify(migrationRecordService, times(1)).markReadyAsSubmitted();
         verifyNoInteractions(migrateResolved);
-        verifyNoInteractions(batchImportMissingMkAssets);
+    }
+
+    @Test
+    @DisplayName("Should trigger import of Vodafone assets")
+    public void importVodafoneAssets() throws Exception {
+        when(migrationRecordService.markReadyAsSubmitted()).thenReturn(false);
+
+        mockMvc.perform(post("/vf-migration-records/import-assets")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent());
+
+        verify(batchImportMissingMkAssets, times(1)).asyncRun();
     }
 }
