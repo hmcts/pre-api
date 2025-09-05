@@ -269,7 +269,8 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String filename = "migration_report_" + timestamp + ".csv";
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+        try {
+            PrintWriter writer = new PrintWriter(new FileWriter(filename));
             writer.println("RecordingId,CaseReference,Filename,Duration,MigrationStatus,ErrorMessage");
 
             for (ReportItem item : reportItems) {
@@ -286,6 +287,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             }
 
             log.info("CSV report written to {}", filename);
+            writer.close();
 
             azureFinalStorageService.uploadBlob(filename, "mk-import-reports", filename);
         } catch (IOException e) {
