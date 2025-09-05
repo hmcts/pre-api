@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.CacheManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,17 +20,14 @@ public class UserTermsAcceptedService {
     private final UserRepository userRepository;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
-    private final CacheManager cacheManager;
 
     @Autowired
     public UserTermsAcceptedService(UserRepository userRepository,
                                     TermsAndConditionsRepository termsAndConditionsRepository,
-                                    UserTermsAcceptedRepository userTermsAcceptedRepository,
-                                    CacheManager cacheManager) {
+                                    UserTermsAcceptedRepository userTermsAcceptedRepository) {
         this.userRepository = userRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
-        this.cacheManager = cacheManager;
     }
 
     /**
@@ -66,11 +62,5 @@ public class UserTermsAcceptedService {
         accepted.setTermsAndConditions(termsAndConditions);
         accepted.setAcceptedAt(Timestamp.from(Instant.now()));
         userTermsAcceptedRepository.save(accepted);
-
-        var userEmail = user.getEmail(); // needed for cache eviction
-        var cache = cacheManager.getCache("users");
-        if (cache != null) {
-            cache.evict(userEmail.toLowerCase());
-        }
     }
 }
