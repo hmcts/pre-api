@@ -996,6 +996,23 @@ public class AuthorisationServiceTest {
     }
 
     @Test
+    void hasCaseAccessNotSuperUserMigratedDataDisabledVodafoneVisible() {
+        UUID caseId = UUID.randomUUID();
+        Case caseEntity = new Case();
+        caseEntity.setId(caseId);
+        caseEntity.setOrigin(RecordingOrigin.VODAFONE_VISIBLE);
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        caseEntity.setCourt(court);
+
+        when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseEntity));
+        when(authenticationUser.getCourtId()).thenReturn(caseEntity.getCourt().getId());
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+
+        assertTrue(authorisationService.hasCaseAccess(authenticationUser, caseId));
+    }
+
+    @Test
     void canViewVodafoneDataTrueIsSuperUserMigratedDataDisabled() {
         when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
         AuthorisationService service = createAuthorisationServiceWithToggle(true);
