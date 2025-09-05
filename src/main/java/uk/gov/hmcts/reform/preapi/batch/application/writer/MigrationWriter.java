@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
-@Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
+@Transactional(propagation = Propagation.REQUIRES_NEW)
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final LoggingService loggingService;
     private final CaseService caseService;

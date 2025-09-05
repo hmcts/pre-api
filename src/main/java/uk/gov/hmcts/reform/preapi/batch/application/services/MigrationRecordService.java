@@ -64,7 +64,6 @@ public class MigrationRecordService {
             return Optional.empty();
         }
         Optional<MigrationRecord> result = migrationRecordRepository.findById(copy.getParentTempId());
-        log.info("ORIG::{}", result);
         return result;
     }
 

@@ -3,12 +3,14 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
-import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -18,21 +20,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LoggingServiceTest {
     private LoggingService loggingService;
-    private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
+    private Path logPath;
+
+    @TempDir
+    Path tmp;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         loggingService = new LoggingService();
-        new File(LOG_FILE_PATH).delete();
+        Path path = tmp.resolve("output.log");
+        this.logPath = path; 
+
+        Field f = LoggingService.class.getDeclaredField("configuredPath");
+        f.setAccessible(true);
+        f.set(loggingService, path.toString());
+
         loggingService.initializeLogFile();
+    }
+
+    private String readLog() throws IOException {
+        return Files.readString(logPath);
     }
 
     @Test
     @DisplayName("Should successfully initialise log file")
     void shouldInitialiseLogFile() throws IOException {
-        File logFile = new File(LOG_FILE_PATH);
-        assertTrue(logFile.exists());
-        String content = Files.readString(logFile.toPath());
+        assertTrue(Files.exists(logPath));
+        String content = readLog();
         assertTrue(content.contains("Vodafone ETL Job Started"));
     }
 
@@ -42,7 +56,7 @@ public class LoggingServiceTest {
         loggingService.logError("Something went wrong: %d", 500);
         loggingService.logWarning("Careful: %s", "disk space low");
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertTrue(content.contains("ERROR"));
         assertTrue(content.contains("WARN"));
     }
@@ -52,7 +66,7 @@ public class LoggingServiceTest {
     void shouldNotLogDebugWhenDisabled() throws IOException {
         loggingService.setDebugEnabled(false);
         loggingService.logDebug("Should not be logged");
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertFalse(content.contains("DEBUG"));
     }
 
@@ -61,7 +75,7 @@ public class LoggingServiceTest {
     void shouldLogDebugWhenEnabled() throws IOException {
         loggingService.setDebugEnabled(true);
         loggingService.logDebug("Debug test: %d", 123);
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertTrue(content.contains("DEBUG"));
     }
 
@@ -102,7 +116,7 @@ public class LoggingServiceTest {
 
         loggingService.logSummary();
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
 
         assertTrue(content.contains("Total Records Processed"));
         assertTrue(content.contains("Total Migrated Items"));
@@ -122,7 +136,7 @@ public class LoggingServiceTest {
         loggingService.startTime = null;
         loggingService.logSummary();
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
 
         assertTrue(content.contains("WARN"));
         assertTrue(content.contains("Start time was not set. Using current time as fallback."));
@@ -138,7 +152,7 @@ public class LoggingServiceTest {
 
         loggingService.logSummary();
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertTrue(content.contains("| Total Execution Time      |          2 sec"));
     }
 
@@ -149,7 +163,7 @@ public class LoggingServiceTest {
 
         loggingService.logSummary();
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertTrue(content.contains("| Total Records Processed   |          0"));
         assertTrue(content.contains("| Total Migrated Items      |          0"));
         assertTrue(content.contains("| Total Failed Items        |          0"));
@@ -160,7 +174,7 @@ public class LoggingServiceTest {
     void shouldLogInfoWithCorrectFormatAndCallerInfo() throws IOException {
         loggingService.logInfo("Informational message: %s", "Data processed");
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
 
         assertTrue(content.contains("INFO"));
         assertTrue(content.contains("Informational message: Data processed"));

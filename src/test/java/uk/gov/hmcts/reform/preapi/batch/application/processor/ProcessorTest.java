@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
@@ -23,6 +24,8 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -38,6 +41,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -241,6 +246,79 @@ class ProcessorTest {
         verify(migrationTrackerService).addFailedItem(any());
     }
 
+    @Test
+    void shouldSkipWhenCaseIsClosed_inPendingFlow() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        setupSuccessfulProcessingMocks();
+
+        CreateCaseDTO closedCase = mock(CreateCaseDTO.class);
+        when(closedCase.getState()).thenReturn(CaseState.CLOSED);
+        doReturn(Optional.of(closedCase)).when(cacheService).getCase("1234567890");
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNull(result);
+        verify(migrationRecordService).updateToFailed(
+            anyString(),
+            eq(VfFailureReason.CASE_CLOSED.toString()),
+            argThat(msg -> msg.contains("CLOSED") && msg.contains("1234567890"))
+        );
+        verify(migrationTrackerService).addFailedItem(any());
+        verify(migrationService, never()).createMigratedItemGroup(any(), any());
+    }
+
+    @Test
+    void shouldSkipWhenCaseIsClosed_inSubmittedFlow() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
+
+        when(transformationService.transformData(any(ExtractedMetadata.class)))
+            .thenReturn(ServiceResult.success(testProcessedRecording));
+        when(validationService.validateResolvedRecording(any(ProcessedRecording.class), anyString()))
+            .thenReturn(ServiceResult.success(testProcessedRecording));
+
+        CreateCaseDTO closedCase = mock(CreateCaseDTO.class);
+        when(closedCase.getState()).thenReturn(CaseState.CLOSED);
+        doReturn(Optional.of(closedCase)).when(cacheService).getCase("1234567890");
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNull(result);
+        verify(migrationRecordService).updateToFailed(
+            anyString(),
+            eq(VfFailureReason.CASE_CLOSED.toString()),
+            argThat(msg -> msg.contains("CLOSED") && msg.contains("1234567890"))
+        );
+        verify(migrationTrackerService).addFailedItem(any());
+        verify(migrationService, never()).createMigratedItemGroup(any(), any());
+    }
+
+    @Test
+    void shouldProceedWhenCaseIsOpen_inPendingFlow() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        setupSuccessfulProcessingMocks();
+
+        CreateCaseDTO openCase = mock(CreateCaseDTO.class);
+        when(openCase.getState()).thenReturn(CaseState.OPEN);
+        doReturn(Optional.of(openCase)).when(cacheService).getCase("1234567890");
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNotNull(result);
+        verify(migrationService).createMigratedItemGroup(any(ExtractedMetadata.class), any(ProcessedRecording.class));
+    }
+
+    @Test
+    void shouldProceedWhenCaseAbsent_inPendingFlow() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        setupSuccessfulProcessingMocks();
+
+        doReturn(Optional.empty()).when(cacheService).getCase("1234567890");
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNotNull(result);
+        verify(migrationService).createMigratedItemGroup(any(ExtractedMetadata.class), any(ProcessedRecording.class));
+    }
 
     // =========================
     // Resolved Status Processing Tests
