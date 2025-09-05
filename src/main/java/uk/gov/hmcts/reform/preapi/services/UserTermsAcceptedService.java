@@ -38,12 +38,6 @@ public class UserTermsAcceptedService {
      * and conditions then creates and persists a record of the user's acceptance of those terms.
      * </p>
      *
-     * <p>
-     * After persisting the acceptance, this method manually evicts the the cache populated by
-     * {@link uk.gov.hmcts.reform.preapi.services.UserService#findByEmail(String)}.
-     * This ensures that the user's updated terms acceptance is reflected in the cache on subsequent calls to
-     * {@link uk.gov.hmcts.reform.preapi.services.UserService#findByEmail(String)}.
-     * </p>
      * @param termsId the UUID of the terms and conditions to accept
      * @throws uk.gov.hmcts.reform.preapi.exception.NotFoundException if the user or terms and conditions are not found
      */
