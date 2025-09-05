@@ -28,6 +28,10 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -100,16 +104,18 @@ public class BatchImportMissingMkAssetsTest {
     }
 
     @Test
-    void runVodafoneRecordingsEmpty() {
+    void runVodafoneRecordingsEmpty() throws IOException {
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of());
         batchImportMissingMkAssets.run();
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
         verify(mediaService, never()).getAsset(any());
+        ArgumentCaptor<String> filenameCaptor =  ArgumentCaptor.forClass(String.class);
+        verify(azureFinalStorageService, never()).uploadBlob(filenameCaptor.capture(), any(), any());
     }
 
     @Test
-    void runNoRecordingsMissingAssets() {
+    void runNoRecordingsMissingAssets() throws IOException {
         RecordingDTO recording = new RecordingDTO();
         recording.setId(UUID.randomUUID());
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
@@ -122,9 +128,10 @@ public class BatchImportMissingMkAssetsTest {
     }
 
     @Test
-    void runErrorCopying() {
+    void runErrorCopying() throws IOException {
         RecordingDTO recording = new RecordingDTO();
         recording.setId(UUID.randomUUID());
+        recording.setCaseReference("REFERENCE");
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         doThrow(NotFoundException.class).when(azureVodafoneStorageService).getBlobUrlForCopy(any(), any());
@@ -140,13 +147,30 @@ public class BatchImportMissingMkAssetsTest {
         verify(azureVodafoneStorageService, times(1)).getStorageAccountName();
         verify(azureIngestStorageService, times(1)).getStorageAccountName();
         verifyNoInteractions(captureSessionService);
+
+        ArgumentCaptor<String> filenameCaptor =  ArgumentCaptor.forClass(String.class);
+        verify(azureFinalStorageService, times(1)).uploadBlob(filenameCaptor.capture(), any(), any());
+
+        String filename = filenameCaptor.getValue();
+        assertThat(filename).contains("migration_report_");
+
+        Path path = Paths.get(filename);
+        List<String> lines = Files.readAllLines(path);
+        assertThat(lines.size()).isEqualTo(2);
+        assertReportHeaders(lines.getFirst());
+        assertReportItem(lines.getLast(), recording, "0", RecordingStatus.FAILURE,
+                         "Failed to copy blob 'null' between containers: voda-sa/Video -> ingest-sa/"
+                             + recording.getId() + "-input");
+
+        Files.deleteIfExists(path);
     }
 
     @Test
-    void runErrorCreatingIngest() {
+    void runErrorCreatingIngest() throws IOException {
         RecordingDTO recording = new RecordingDTO();
         recording.setId(UUID.randomUUID());
         recording.setFilename("filename.mp4");
+        recording.setCaseReference("REFERENCE");
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
@@ -163,13 +187,28 @@ public class BatchImportMissingMkAssetsTest {
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(false));
         verify(mediaService, never()).importAsset(any(RecordingDTO.class), eq(true));
         verifyNoInteractions(captureSessionService);
+
+        ArgumentCaptor<String> filenameCaptor =  ArgumentCaptor.forClass(String.class);
+        verify(azureFinalStorageService, times(1)).uploadBlob(filenameCaptor.capture(), any(), any());
+
+        String filename = filenameCaptor.getValue();
+        assertThat(filename).contains("migration_report_");
+
+        Path path = Paths.get(filename);
+        List<String> lines = Files.readAllLines(path);
+        assertThat(lines.size()).isEqualTo(2);
+        assertReportHeaders(lines.getFirst());
+        assertReportItem(lines.getLast(), recording, "0", RecordingStatus.FAILURE, "Failed to create temporary asset");
+
+        Files.deleteIfExists(path);
     }
 
     @Test
-    void runErrorCreatingFinal() {
+    void runErrorCreatingFinal() throws IOException {
         RecordingDTO recording = new RecordingDTO();
         recording.setId(UUID.randomUUID());
         recording.setFilename("filename.mp4");
+        recording.setCaseReference("REFERENCE");
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
@@ -188,13 +227,28 @@ public class BatchImportMissingMkAssetsTest {
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(true));
         verify(mediaService, never()).triggerProcessingStep2(any(), anyBoolean());
         verifyNoInteractions(captureSessionService);
+
+        ArgumentCaptor<String> filenameCaptor =  ArgumentCaptor.forClass(String.class);
+        verify(azureFinalStorageService, times(1)).uploadBlob(filenameCaptor.capture(), any(), any());
+
+        String filename = filenameCaptor.getValue();
+        assertThat(filename).contains("migration_report_");
+
+        Path path = Paths.get(filename);
+        List<String> lines = Files.readAllLines(path);
+        assertThat(lines.size()).isEqualTo(2);
+        assertReportHeaders(lines.getFirst());
+        assertReportItem(lines.getLast(), recording, "0", RecordingStatus.FAILURE,  "Failed to create final asset");
+
+        Files.deleteIfExists(path);
     }
 
     @Test
-    void runFinalMp4NotFound() {
+    void runFinalMp4NotFound() throws IOException {
         RecordingDTO recording = new RecordingDTO();
         recording.setId(UUID.randomUUID());
         recording.setFilename("filename.mp4");
+        recording.setCaseReference("REFERENCE");
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
@@ -223,13 +277,29 @@ public class BatchImportMissingMkAssetsTest {
         verify(azureFinalStorageService, never()).getRecordingDuration(any());
         verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
         verifyNoInteractions(captureSessionService);
+
+        ArgumentCaptor<String> filenameCaptor =  ArgumentCaptor.forClass(String.class);
+        verify(azureFinalStorageService, times(1)).uploadBlob(filenameCaptor.capture(), any(), any());
+
+        String filename = filenameCaptor.getValue();
+        assertThat(filename).contains("migration_report_");
+
+        Path path = Paths.get(filename);
+        List<String> lines = Files.readAllLines(path);
+        assertThat(lines.size()).isEqualTo(2);
+        assertReportHeaders(lines.getFirst());
+        assertReportItem(lines.getLast(), recording, "0", RecordingStatus.FAILURE,
+                         "Final asset not found for recording after transform job");
+
+        Files.deleteIfExists(path);
     }
 
     @Test
-    void runSuccess() {
+    void runSuccess() throws IOException {
         RecordingDTO recording = new RecordingDTO();
         recording.setId(UUID.randomUUID());
         recording.setFilename("filename.mp4");
+        recording.setCaseReference("REFERENCE");
         CaptureSessionDTO captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
@@ -268,5 +338,42 @@ public class BatchImportMissingMkAssetsTest {
             ArgumentCaptor.forClass(CreateCaptureSessionDTO.class);
         verify(captureSessionService, times(1)).upsert(createCaptureSession.capture());
         assertThat(createCaptureSession.getValue().getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+
+
+        ArgumentCaptor<String> filenameCaptor =  ArgumentCaptor.forClass(String.class);
+        verify(azureFinalStorageService, times(1)).uploadBlob(filenameCaptor.capture(), any(), any());
+
+        String filename = filenameCaptor.getValue();
+        assertThat(filename).contains("migration_report_");
+
+        Path path = Paths.get(filename);
+        List<String> lines = Files.readAllLines(path);
+        assertThat(lines.size()).isEqualTo(2);
+        assertReportHeaders(lines.getFirst());
+        assertReportItem(lines.getLast(), recording, "180", RecordingStatus.RECORDING_AVAILABLE, null);
+
+        Files.deleteIfExists(path);
+    }
+
+    private void assertReportHeaders(String headerLine) {
+        assertThat(headerLine).isEqualTo("RecordingId,CaseReference,Filename,Duration,MigrationStatus,ErrorMessage");
+    }
+
+    private void assertReportItem(String reportLine,
+                                  RecordingDTO recording,
+                                  String duration,
+                                  RecordingStatus status,
+                                  String errorMessage) {
+        String[] reportItem =  reportLine.split(",");
+
+        assertThat(reportItem).hasSize(errorMessage != null ? 6 : 5);
+        assertThat(reportItem[0]).isEqualTo(recording.getId().toString());
+        assertThat(reportItem[1]).isEqualTo(recording.getCaseReference());
+        assertThat(reportItem[2]).isEqualTo(recording.getFilename() != null ? recording.getFilename() : "");
+        assertThat(reportItem[3]).isEqualTo(duration);
+        assertThat(reportItem[4]).isEqualTo(status.toString());
+        if (errorMessage != null) {
+            assertThat(reportItem[5]).isEqualTo(errorMessage);
+        }
     }
 }
