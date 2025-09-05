@@ -21,7 +21,7 @@ public class B2cControllerFT extends FunctionalTestBase {
             null);
 
         assertResponseCode(response, NOT_FOUND.value());
-        assertThat(response.body().jsonPath().getString("message"))
+        assertThat(response.body().jsonPath().getString("userMessage"))
             .isEqualTo("Not found: User: test@test.com");
     }
 }

@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
+import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -175,5 +176,43 @@ class B2CControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is4xxClientError())
             .andReturn();
+    }
+
+    @DisplayName("Should return errors formatted for B2C to understand")
+    @Test
+    void errorMessagesShouldBeFormattedCorrectlyForB2CToUnderstand() throws Exception {
+
+        var email = "test@test.com";
+        var accessDTO = mock(AccessDTO.class);
+        var user = mock(BaseUserDTO.class);
+        when(accessDTO.getUser()).thenReturn(user);
+        when(user.getFirstName()).thenReturn("Foo");
+        when(user.getLastName()).thenReturn("Bar");
+
+        var emailService = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService("GovNotify")).thenReturn(emailService);
+
+        when(userService.findByEmail(email)).thenReturn(accessDTO);
+        when(emailService.emailVerification(email, "Foo", "Bar", "123456"))
+            .thenThrow(new EmailFailedToSendException(email));
+
+        var request = new VerifyEmailRequestDTO();
+        request.setEmail(email);
+        request.setVerificationCode("123456");
+
+        var response = mockMvc.perform(post(TEST_URL + "/b2c/email-verification")
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(request))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is5xxServerError())
+            .andReturn();
+
+        var errorResponse = OBJECT_MAPPER.readTree(response.getResponse().getContentAsString());
+        assertThat(errorResponse.toString()).isEqualTo(
+            "{\"version\":\"1.0.0\",\"status\":500,\"userMessage\":\"Failed to send email to: test@test.com\"}"
+        );
+
+
     }
 }
