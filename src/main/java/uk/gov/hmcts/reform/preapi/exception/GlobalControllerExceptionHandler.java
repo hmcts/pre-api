@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import uk.gov.hmcts.reform.preapi.dto.B2CErrorDTO;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -215,14 +216,17 @@ public class GlobalControllerExceptionHandler {
         throws JsonProcessingException {
         log.error("B2C Controller exception: {}", e.getMessage());
 
-        HashMap<String, String> error = new HashMap<>();
+        var error = new B2CErrorDTO();
+        error.setUserMessage(e.getCause().getMessage());
+        var status = getStatus(e.getCause());
+        error.setStatus(status.value());
+
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, e.getCause().getMessage());
         return new ResponseEntity<>(
             new ObjectMapper().writeValueAsString(error),
             responseHeaders,
-            getStatus(e.getCause())
+            status
         );
     }
 
