@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks.migration;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,9 +43,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -375,5 +378,27 @@ public class BatchImportMissingMkAssetsTest {
         if (errorMessage != null) {
             assertThat(reportItem[5]).isEqualTo(errorMessage);
         }
+    }
+
+    @Test
+    @DisplayName("Should run async successfully")
+    void asyncRunExecutesSuccessfully() {
+        BatchImportMissingMkAssets spyBatchImport = spy(batchImportMissingMkAssets);
+        doNothing().when(spyBatchImport).run();
+
+        spyBatchImport.asyncRun();
+
+        verify(spyBatchImport, times(1)).run();
+    }
+
+    @Test
+    @DisplayName("Should catch any error from job running async")
+    void asyncRunCatchesRuntimeException() {
+        BatchImportMissingMkAssets spyBatchImport = spy(batchImportMissingMkAssets);
+        doThrow(new RuntimeException("Test exception")).when(spyBatchImport).run();
+
+        spyBatchImport.asyncRun();
+
+        verify(spyBatchImport, times(1)).run();
     }
 }
