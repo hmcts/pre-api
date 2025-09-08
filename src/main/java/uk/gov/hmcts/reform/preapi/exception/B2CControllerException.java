@@ -6,4 +6,8 @@ public class B2CControllerException extends RuntimeException {
     public B2CControllerException(String message, Throwable cause) {
         super(message, cause);
     }
+
+    public B2CControllerException(String message) {
+        super(message);
+    }
 }

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.exception.B2CControllerException;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 @RestController
@@ -49,6 +50,8 @@ public class B2CController {
                 user.getLastName(),
                 request.getVerificationCode()
             );
+        } catch (NotFoundException e) {
+            throw new B2CControllerException("Unable to send email verification");
         } catch (Exception e) {
             throw new B2CControllerException("Failed to send email verification", e);
         }

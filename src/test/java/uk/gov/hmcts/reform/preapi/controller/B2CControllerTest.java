@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -211,6 +212,37 @@ class B2CControllerTest {
         var errorResponse = OBJECT_MAPPER.readTree(response.getResponse().getContentAsString());
         assertThat(errorResponse.toString()).isEqualTo(
             "{\"version\":\"1.0.0\",\"status\":500,\"userMessage\":\"Failed to send email to: test@test.com\"}"
+        );
+
+
+    }
+
+    @DisplayName("Should return ambiguous error when user not found")
+    @Test
+    void userNotFoundAmbiguousError() throws Exception {
+
+        var email = "test@test.com";
+
+        var emailService = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService("GovNotify")).thenReturn(emailService);
+
+        when(userService.findByEmail(email)).thenThrow(new NotFoundException(email));
+
+        var request = new VerifyEmailRequestDTO();
+        request.setEmail(email);
+        request.setVerificationCode("123456");
+
+        var response = mockMvc.perform(post(TEST_URL + "/b2c/email-verification")
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(request))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is5xxServerError())
+            .andReturn();
+
+        var errorResponse = OBJECT_MAPPER.readTree(response.getResponse().getContentAsString());
+        assertThat(errorResponse.toString()).isEqualTo(
+            "{\"version\":\"1.0.0\",\"status\":500,\"userMessage\":\"Unable to send email verification\"}"
         );
 
 

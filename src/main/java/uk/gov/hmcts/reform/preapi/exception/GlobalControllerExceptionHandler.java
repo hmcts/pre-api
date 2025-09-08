@@ -217,8 +217,9 @@ public class GlobalControllerExceptionHandler {
         log.error("B2C Controller exception: {}", e.getMessage());
 
         var error = new B2CErrorDTO();
-        error.setUserMessage(e.getCause().getMessage());
-        var status = getStatus(e.getCause());
+        var cause = e.getCause() != null ? e.getCause() : e;
+        error.setUserMessage(cause.getMessage());
+        var status = getStatus(cause);
         error.setStatus(status.value());
 
         HttpHeaders responseHeaders = new HttpHeaders();
