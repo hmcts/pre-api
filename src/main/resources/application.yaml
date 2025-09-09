@@ -144,7 +144,7 @@ tasks:
     cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
     job-poll-interval: 10000 # 10 seconds
   batch-import-missing-mk-assets:
-    batch-size: ${TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE:20}
+    batch-size: ${TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE:50}
     poll-interval: ${TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL:10000}
     mp4-source-container: prod-migration-1
 
