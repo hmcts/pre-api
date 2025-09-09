@@ -111,7 +111,7 @@ class B2CControllerTest {
                             .content(OBJECT_MAPPER.writeValueAsString(request))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is5xxServerError())
+            .andExpect(status().is4xxClientError())
             .andReturn();
         assertThat(response.getResponse().getContentAsString())
             .contains("Unknown email service: GovNotify");
@@ -206,12 +206,12 @@ class B2CControllerTest {
                                            .content(OBJECT_MAPPER.writeValueAsString(request))
                                            .contentType(MediaType.APPLICATION_JSON_VALUE)
                                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is5xxServerError())
+            .andExpect(status().is4xxClientError())
             .andReturn();
 
         var errorResponse = OBJECT_MAPPER.readTree(response.getResponse().getContentAsString());
         assertThat(errorResponse.toString()).isEqualTo(
-            "{\"version\":\"1.0.0\",\"status\":500,\"userMessage\":\"Failed to send email to: test@test.com\"}"
+            "{\"version\":\"1.0.0\",\"status\":409,\"userMessage\":\"Failed to send email to: test@test.com\"}"
         );
 
 
@@ -237,12 +237,12 @@ class B2CControllerTest {
                                            .content(OBJECT_MAPPER.writeValueAsString(request))
                                            .contentType(MediaType.APPLICATION_JSON_VALUE)
                                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is5xxServerError())
+            .andExpect(status().is4xxClientError())
             .andReturn();
 
         var errorResponse = OBJECT_MAPPER.readTree(response.getResponse().getContentAsString());
         assertThat(errorResponse.toString()).isEqualTo(
-            "{\"version\":\"1.0.0\",\"status\":500,\"userMessage\":\"Unable to send email verification\"}"
+            "{\"version\":\"1.0.0\",\"status\":409,\"userMessage\":\"Unable to send email verification\"}"
         );
 
 
