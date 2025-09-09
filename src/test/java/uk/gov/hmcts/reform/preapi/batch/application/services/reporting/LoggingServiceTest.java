@@ -180,4 +180,29 @@ public class LoggingServiceTest {
         assertTrue(content.contains("Informational message: Data processed"));
         assertTrue(content.contains("[LoggingServiceTest.shouldLogInfoWithCorrectFormatAndCallerInfo]"));
     }
+
+    @Test
+    @DisplayName("Should disable file logging after write failure when path is a directory")
+    void shouldDisableFileLoggingAfterWriteFailure() throws Exception {
+        LoggingService service = new LoggingService();
+
+        Field configuredPath = LoggingService.class.getDeclaredField("configuredPath");
+        configuredPath.setAccessible(true);
+        configuredPath.set(service, "");
+        service.initializeLogFile();
+
+        Field logPath = LoggingService.class.getDeclaredField("logPath");
+        logPath.setAccessible(true);
+        logPath.set(service, tmp); 
+
+        Field fileLoggingEnabled = LoggingService.class.getDeclaredField("fileLoggingEnabled");
+        fileLoggingEnabled.setAccessible(true);
+        fileLoggingEnabled.set(service, true);
+
+        service.setDebugEnabled(true);
+        service.logError("This will fail to write");
+
+        assertFalse((boolean) fileLoggingEnabled.get(service),
+            "file logging should be disabled after write failure");
+    }
 }
