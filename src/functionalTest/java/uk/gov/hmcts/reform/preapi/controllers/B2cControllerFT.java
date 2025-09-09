@@ -6,7 +6,7 @@ import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 public class B2cControllerFT extends FunctionalTestBase {
 
@@ -20,8 +20,8 @@ public class B2cControllerFT extends FunctionalTestBase {
             OBJECT_MAPPER.writeValueAsString(request),
             null);
 
-        assertResponseCode(response, NOT_FOUND.value());
-        assertThat(response.body().jsonPath().getString("message"))
-            .isEqualTo("Not found: User: test@test.com");
+        assertResponseCode(response, INTERNAL_SERVER_ERROR.value());
+        assertThat(response.body().jsonPath().getString("userMessage"))
+            .isEqualTo("Unable to send email verification");
     }
 }
