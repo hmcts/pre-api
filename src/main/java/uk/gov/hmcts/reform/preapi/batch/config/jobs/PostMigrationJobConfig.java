@@ -11,14 +11,15 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.PostMigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -49,6 +50,7 @@ public class PostMigrationJobConfig {
     private final InMemoryCacheService cacheService;
     private final EntityCreationService entityCreationService;
     private final MigrationTrackerService migrationTrackerService;
+    private final MigrationRecordService migrationRecordService;
     private final CaseService caseService;
     private final BookingService bookingService;
 
@@ -59,6 +61,7 @@ public class PostMigrationJobConfig {
                                   final InMemoryCacheService cacheService,
                                   final EntityCreationService entityCreationService,
                                   final MigrationTrackerService migrationTrackerService,
+                                  final MigrationRecordService migrationRecordService,
                                   final CaseService caseService,
                                   final BookingService bookingService) {
         this.jobRepository = jobRepository;
@@ -68,6 +71,7 @@ public class PostMigrationJobConfig {
         this.cacheService = cacheService;
         this.entityCreationService = entityCreationService;
         this.migrationTrackerService = migrationTrackerService;
+        this.migrationRecordService = migrationRecordService;
         this.caseService = caseService;
         this.bookingService = bookingService;
     }
@@ -135,77 +139,122 @@ public class PostMigrationJobConfig {
                         .orElse("false")
                 );
 
-                List<CaseDTO> vodafoneCases = fetchVodafoneCases();
+                // fetch sucessful ORIGs with booking + group key
+                List<MigrationRecord> shareableOrigs = migrationRecordService.findShareableOrigs();
                 Map<String, List<String[]>> channelUsersMap = cacheService.getAllChannelReferences();
 
                 List<PostMigratedItemGroup> migratedItems = new ArrayList<>();
 
-                for (CaseDTO caseDTO : vodafoneCases) {
+                for (MigrationRecord orig : shareableOrigs) {
                     loggingService.logDebug("========================================================");
+                    loggingService.logDebug("Processing record: archiveId=%s, groupKey=%s",
+                        orig.getArchiveId(), orig.getRecordingGroupKey());
 
+                    // find matching channel users by checking the groupKey parts
                     List<String[]> matchedUsers = channelUsersMap.entrySet().stream()
-                        .filter(entry -> entry.getKey().contains(caseDTO.getReference())
-                            && caseDTO.getParticipants().stream().anyMatch(p ->
-                                entry.getKey().toLowerCase().contains(Optional.ofNullable(p.getFirstName())
-                                    .orElse("").toLowerCase())
-                                || entry.getKey().toLowerCase().contains(Optional.ofNullable(p.getLastName())
-                                .orElse("").toLowerCase())
-                            )
-                        )
+                        .filter(entry -> channelContainsAllGroupParts(orig.getRecordingGroupKey(), entry.getKey()))
                         .flatMap(entry -> entry.getValue().stream())
                         .toList();
 
-                    List<BookingDTO> bookings = bookingService
-                        .findAllByCaseId(caseDTO.getId(), Pageable.unpaged())
-                        .getContent();
-
-                    if (bookings.isEmpty()) {
-                        loggingService.logWarning("No bookings found for case %s (%s)",
-                            caseDTO.getReference(), caseDTO.getId());
-                    } else {
-                        loggingService.logInfo("Successfully fetched %d bookings for case %s", bookings.size(),
-                            caseDTO.getReference(), caseDTO.getParticipants());
+                    if (matchedUsers.isEmpty()) {
+                        loggingService.logDebug("No matching channel users found for groupKey=%s",
+                            orig.getRecordingGroupKey());
+                        continue;
                     }
 
-                    for (BookingDTO booking : bookings) {
-                        var participants = booking.getParticipants();
-                        participants.forEach(participant -> loggingService.logDebug(
-                            "Booking participant: %s , first name: %s, last name: %s",
-                            participant.getParticipantType(), participant.getFirstName(), participant.getLastName()));
+                    if (orig.getBookingId() == null) {
+                        loggingService.logWarning("Record %s has no bookingId", orig.getArchiveId());
+                        continue;
+                    }
 
-                        for (String[] user : matchedUsers) {
-                            String email = user[1];
+                    // fetch booking by booking_id  
+                    BookingDTO booking;
+                    try {
+                        booking = bookingService.findById(orig.getBookingId()); 
+                    } catch (Exception ex) {
+                        loggingService.logWarning("No booking found for record %s (bookingId=%s) — %s",
+                            orig.getArchiveId(), orig.getBookingId(), ex.getMessage());
+                        continue;
+                    }
+                    if (booking == null) {
+                        loggingService.logWarning("No booking found for record %s (bookingId=%s)",
+                            orig.getArchiveId(), orig.getBookingId());
+                        continue;
+                    }
 
-                            String fullName = user[0];
-                            String[] nameParts = fullName.split("\\.");
-                            String firstName = nameParts.length > 0 ? nameParts[0] : "Unknown";
-                            String lastName = nameParts.length > 1 ? nameParts[1] : "Unknown";
+                    for (String[] user : matchedUsers) {
+                        String email = user[1];
+                        String fullName = user[0];
+                        String[] nameParts = fullName.split("\\.");
+                        String firstName = nameParts.length > 0 ? nameParts[0] : "Unknown";
+                        String lastName  = nameParts.length > 1 ? nameParts[1] : "Unknown";
 
-                            if (dryRun) {
-                                loggingService.logInfo("[DRY RUN] Would invite and share booking with %s", email);
-                                continue;
+                        if (dryRun) {
+                            loggingService.logInfo("[DRY RUN] Would invite and share booking with %s", email);
+                            continue;
+                        }
+
+                        var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+                            booking, email, firstName, lastName
+                        );
+
+                        if (result != null) {
+                            migratedItems.add(result);
+                            if (result.getInvites() != null) {
+                                result.getInvites().forEach(migrationTrackerService::addInvitedUser);
                             }
-                            var result = entityCreationService.createShareBookingAndInviteIfNotExists(
-                                booking, email, firstName, lastName);
-                            if (result != null) {
-                                migratedItems.add(result);
-                                if (result.getInvites() != null) {
-                                    for (var invite : result.getInvites()) {
-                                        migrationTrackerService.addInvitedUser(invite);
-                                    }
-                                }
-                                loggingService.logDebug("MigratedItemGroup added for user: %s", email);
+                            if (result.getShareBookings() != null) {  
+                                result.getShareBookings().forEach(migrationTrackerService::addShareBooking);
                             }
+
+                            loggingService.logDebug("MigratedItemGroup added for user: %s", email);
                         }
                     }
                 }
+
                 postMigrationWriter.write(new Chunk<>(migratedItems));
                 migrationTrackerService.writeNewUserReport();
+                migrationTrackerService.writeShareBookingsReport();
                 loggingService.logInfo("Share booking creation complete. Total created: %d", migratedItems.size());
 
                 return RepeatStatus.FINISHED;
             }, transactionManager)
             .build();
+    }
+
+    //=======================
+    // Helpers
+    //=======================
+    private static boolean channelContainsAllGroupParts(String recordingGroupKey, String channelName) {
+        if (recordingGroupKey == null || channelName == null) {
+            return false;
+        }
+
+        String lowerChannel = channelName.toLowerCase();
+
+        for (String rawPart : recordingGroupKey.split("\\|")) {
+            if (rawPart == null || rawPart.isBlank()) {
+                continue;
+            }
+
+            String part = rawPart.toLowerCase().trim();
+
+            if (part.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                String yymmdd =
+                    part.substring(2, 4) + part.substring(5, 7) + part.substring(8, 10);
+
+                if (lowerChannel.contains(part) || lowerChannel.contains(yymmdd)) {
+                    continue; 
+                }
+                return false;
+            }
+
+            if (!lowerChannel.contains(part)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private List<CaseDTO> fetchVodafoneCases() {

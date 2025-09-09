@@ -459,7 +459,7 @@ public class DataValidationServiceTest {
     }
 
     @Test
-    @DisplayName("Should return failure for resolved COPY when not most recent")
+    @DisplayName("Resolved COPY should succeed even if not most recent")
     void validateResolvedRecordingCopyNotMostRecent() {
         ProcessedRecording data = new ProcessedRecording();
         data.setCourt(new Court());
@@ -480,12 +480,11 @@ public class DataValidationServiceTest {
             dataValidationService.validateResolvedRecording(data, "ARCH123");
 
         assertThat(result).isNotNull();
-        assertThat(result.getData()).isNull();
-        assertThat(result.getErrorMessage())
-            .isEqualTo(Constants.ErrorMessages.NOT_MOST_RECENT_VERSION);
-        assertThat(result.getCategory())
-            .isEqualTo(VfFailureReason.NOT_MOST_RECENT.toString());
-        assertThat(result.isSuccess()).isFalse();
+        assertThat(result).isNotNull();
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isEqualTo(data);
+        assertThat(result.getErrorMessage()).isNull();
+        assertThat(result.getCategory()).isNull();
     }
 
     @Test
