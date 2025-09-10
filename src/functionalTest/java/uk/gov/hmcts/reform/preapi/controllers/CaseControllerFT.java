@@ -822,6 +822,24 @@ class CaseControllerFT extends FunctionalTestBase {
             assertThat(getCases.body().jsonPath().getInt("page.totalElements")).isEqualTo(0);
         }
 
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class,
+            names = {"SUPER_USER", "LEVEL_3"},
+            mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to VODAFONE_VISIBLE cases to non super user requests")
+        void findAllCasesShowVodafoneVisibleCasesForNonSuperUser(TestingSupportRoles role)
+            throws JsonProcessingException {
+            CreateCaseDTO dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE_VISIBLE);
+            dto.setCourtId(authenticatedUserIds.get(role).courtId());
+            Response putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+
+            Response getCases = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), role);
+            assertResponseCode(getCases, 200);
+            assertThat(getCases.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+        }
+
         @Test
         @DisplayName("Should not hide VODAFONE cases for super users")
         void findAllCasesNotHideVodafoneCasesForSuperUser() throws JsonProcessingException {
