@@ -6,7 +6,7 @@ import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 public class B2cControllerFT extends FunctionalTestBase {
 
@@ -20,7 +20,7 @@ public class B2cControllerFT extends FunctionalTestBase {
             OBJECT_MAPPER.writeValueAsString(request),
             null);
 
-        assertResponseCode(response, INTERNAL_SERVER_ERROR.value());
+        assertResponseCode(response, BAD_REQUEST.value());
         assertThat(response.body().jsonPath().getString("userMessage"))
             .isEqualTo("Unable to send email verification");
     }
