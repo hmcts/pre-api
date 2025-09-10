@@ -112,7 +112,6 @@ class ProcessorTest {
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
         assertNotNull(result);
-        verify(loggingService).incrementProgress();
         verify(cacheService).dumpToFile();
     }
 
@@ -341,7 +340,6 @@ class ProcessorTest {
         assertNotNull(result);
         verify(validationService).validateResolvedRecording(
             testProcessedRecording, testMigrationRecord.getArchiveName());
-        verify(loggingService).incrementProgress();
         verify(cacheService).dumpToFile();
     }
 
@@ -479,7 +477,6 @@ class ProcessorTest {
             .thenReturn(testMigratedItemGroup);
         
         doNothing().when(migrationRecordService).updateMetadataFields(anyString(), any(ExtractedMetadata.class));
-        doNothing().when(loggingService).incrementProgress();
         doNothing().when(cacheService).dumpToFile();
     }
 

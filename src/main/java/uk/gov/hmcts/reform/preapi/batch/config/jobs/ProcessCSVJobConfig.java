@@ -91,6 +91,8 @@ public class ProcessCSVJobConfig {
     public ListItemReader<MigrationRecord> pendingMigrationRecordReader(MigrationRecordRepository repository,
                                                                         LoggingService loggingService) {
         List<MigrationRecord> pending = repository.findAllByStatus(VfMigrationStatus.PENDING);
+        loggingService.startRun("pending migration records", pending.size());
+        
         if (pending.isEmpty()) {
             loggingService.logInfo("No pending migration records found.");
         } else {

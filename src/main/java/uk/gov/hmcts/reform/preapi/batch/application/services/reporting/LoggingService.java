@@ -51,6 +51,9 @@ public class LoggingService {
     protected LocalDateTime startTime;
     protected final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
+    private int handled = 0;
+    private static final int LOG_EVERY_N = 10; 
+
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void initializeLogFile() {
@@ -150,22 +153,32 @@ public class LoggingService {
     // ==============================
     // PROGRESS TRACKING
     // ==============================
-
-    public void incrementProgress() {
-        processedRecords++;
-        refreshProgressBar();
+    
+    public synchronized void startRun(String label, int total) {
+        this.totalRecords = Math.max(total, 0);
+        this.processedRecords = 0; 
+        this.startTime = LocalDateTime.now();
+        logInfo("Found %,d %s to process", totalRecords, label == null ? "items" : label);
     }
 
-    private synchronized void refreshProgressBar() {
-        int progressWidth = 40;
-        double percentage = Math.min((processedRecords * 100.0) / totalRecords, 100.0);
-        int filledLength = Math.max((int) (progressWidth * (percentage / 100)), 0);
+    public synchronized void markHandled() {
+        handled++;
+        if (handled % LOG_EVERY_N == 0 || handled == totalRecords) {
+            double pct = totalRecords > 0 ? (handled * 100.0) / totalRecords : 0.0;
+            logInfo("Handled %,d of %,d (%.1f%%)", handled, totalRecords, pct);
+        }
+    }
 
-        String progressBar = "[" + "=".repeat(filledLength) + " ".repeat(progressWidth - filledLength) + "]";
-        String progressText = String.format("Processing: %d/%d (%.1f%%)", processedRecords, totalRecords, percentage);
+    public synchronized void markSuccess() {
+        processedRecords++;
+        if (processedRecords % LOG_EVERY_N == 0 || processedRecords == totalRecords) {
+            logInfo("PROGRESS - Processed %,d of %,d (%.1f%%)%s",
+                processedRecords, totalRecords, progressPercentage());
+        }
+    }
 
-        System.out.print("\r\033[K" + progressBar + " " + progressText);
-        System.out.flush();
+    private double progressPercentage() {
+        return totalRecords > 0 ? Math.min((processedRecords * 100.0) / totalRecords, 100.0) : 0.0;
     }
 
     // ==============================

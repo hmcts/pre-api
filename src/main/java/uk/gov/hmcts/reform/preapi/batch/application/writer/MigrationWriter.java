@@ -90,8 +90,10 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 boolean isSuccess = processItem(item);
                 if (isSuccess) {
                     successCount.incrementAndGet();
+                    loggingService.markSuccess();
                 } else {
                     failureCount.incrementAndGet();
+                    loggingService.markHandled();
                 }
             } catch (Exception e) {
                 failureCount.incrementAndGet();

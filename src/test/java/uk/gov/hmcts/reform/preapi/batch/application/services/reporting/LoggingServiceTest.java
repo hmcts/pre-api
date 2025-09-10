@@ -80,11 +80,13 @@ public class LoggingServiceTest {
     }
 
     @Test
-    void shouldTrackAndDisplayProgress() {
-        loggingService.setTotalRecords(10);
-        for (int i = 0; i < 10; i++) {
-            loggingService.incrementProgress();
-        }
+    @DisplayName("startRun should initialise totals and log header")
+    void startRunShouldInitialiseAndLog() throws IOException {
+        loggingService.startRun("pending migration records", 23);
+
+        String content = readLog();
+        assertTrue(content.contains("Found 23 pending migration records to process")
+            || content.contains("Found 23 items to process")); 
     }
 
     @Test

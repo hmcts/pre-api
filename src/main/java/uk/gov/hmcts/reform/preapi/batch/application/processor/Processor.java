@@ -103,6 +103,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             try {
                 ExtractedMetadata extractedData = extractData(migrationRecord);
                 if (extractedData == null) {
+                    loggingService.markHandled();
                     return null;
                 }
 
@@ -111,24 +112,28 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 // Transformation
                 ProcessedRecording cleansedData = transformData(extractedData);
                 if (cleansedData == null) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 // Check if already migrated
                 if (isMigrated(migrationRecord)) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 // Validation
                 if (!isValidated(cleansedData, migrationRecord)) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 if (!isCaseOpen(cleansedData, extractedData)) {
+                    loggingService.markHandled();
                     return null; 
                 }
 
-                loggingService.incrementProgress();
+                // loggingService.incrementProgress();
                 cacheService.dumpToFile();
 
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
@@ -156,9 +161,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null; 
                 }
 
-                loggingService.incrementProgress();
                 cacheService.dumpToFile();
-
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
             } catch (Exception e) {
