@@ -89,6 +89,7 @@ dbMigration:
   # When true, the app will run DB migration on startup.
   # Otherwise, it will just check if all migrations have been applied (and fail to start if not).
   runOnStartup: ${RUN_DB_MIGRATION_ON_STARTUP:true}
+  
 
 testing-support-endpoints:
   enabled: ${TESTING_SUPPORT_ENDPOINTS_ENABLED:false}
@@ -128,6 +129,7 @@ migration:
   debug: ${MIGRATION_DEBUG:false}
   type: ${MIGRATION_TYPE:FULL}
   dryRun: ${DRY_RUN:false}
+  loggingFile: ${LOGGING_MIGRATION_FILE:}
   enableMigratedData: ${ENABLE_MIGRATED_DATA:false}
 
 editing:
