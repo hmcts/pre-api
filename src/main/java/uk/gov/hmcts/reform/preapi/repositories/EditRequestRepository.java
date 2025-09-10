@@ -50,4 +50,11 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
 
     @Query("select e from EditRequest e where e.id = ?1")
     Optional<EditRequest> findByIdNotLocked(@NotNull UUID id);
+
+    @Query("""
+        SELECT (COUNT(e) > 0) from EditRequest e
+        WHERE e.sourceRecording.captureSession.booking.caseId.id = :caseId
+        AND (e.status = 'ERROR' OR e.status = 'COMPLETE')
+        """)
+    boolean existsByCaseIdAndIsIncomplete(@Param("caseId") UUID caseId);
 }
