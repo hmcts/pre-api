@@ -122,7 +122,7 @@ portal:
 
 slack:
   webhook: ${SLACK_WEBHOOK_URL:}
-  infobot: ${SLACK_INFOBOT_URL:${SLACK_WEBHOOK_URL}}
+  infobot: ${SLACK_INFOBOT_URL:}
 
 migration:
   debug: ${MIGRATION_DEBUG:false}
