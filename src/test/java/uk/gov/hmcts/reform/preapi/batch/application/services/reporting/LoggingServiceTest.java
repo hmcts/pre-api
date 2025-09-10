@@ -90,6 +90,71 @@ public class LoggingServiceTest {
     }
 
     @Test
+    @DisplayName("markHandled should log every N and at completion")
+    void markHandledShouldLogEveryNAndCompletion() throws IOException {
+        loggingService.initializeLogFile();
+        loggingService.startRun("items", 20); 
+
+        for (int i = 0; i < 9; i++) {
+            loggingService.markHandled();
+        }
+        String before10 = readLog();
+        assertFalse(before10.contains("Handled 10 of 20"));
+
+        loggingService.markHandled();
+        String at10 = readLog();
+        assertTrue(at10.contains("Handled 10 of 20 (50.0%)"));
+
+        for (int i = 0; i < 10; i++) {
+            loggingService.markHandled();
+        }
+        String at20 = readLog();
+        assertTrue(at20.contains("Handled 20 of 20 (100.0%)"));
+    }
+
+    @Test
+    @DisplayName("markSuccess should log every N and at completion")
+    void markSuccessShouldLogEveryNAndCompletion() throws IOException {
+        loggingService.initializeLogFile();
+        loggingService.startRun("items", 20);
+
+        for (int i = 0; i < 9; i++) {
+            loggingService.markSuccess();
+        }
+        String before10 = readLog();
+        assertFalse(before10.contains("PROGRESS - Processed 10 of 20"));
+
+        loggingService.markSuccess();
+        String at10 = readLog();
+        assertTrue(at10.contains("PROGRESS - Processed 10 of 20 (50.0%)"));
+
+        for (int i = 0; i < 10; i++) {
+            loggingService.markSuccess();
+        }
+        String at20 = readLog();
+        assertTrue(at20.contains("PROGRESS - Processed 20 of 20 (100.0%)"));
+    }
+
+    @Test
+    @DisplayName("progressPercentage should compute correctly and cap at 100")
+    void progressPercentageShouldComputeCorrectly() throws Exception {
+        loggingService.startRun("items", 8);
+
+        var pr = LoggingService.class.getDeclaredField("processedRecords");
+        pr.setAccessible(true);
+        pr.set(loggingService, 5);
+
+        var method = LoggingService.class.getDeclaredMethod("progressPercentage");
+        method.setAccessible(true);
+        double pct = (double) method.invoke(loggingService);
+        assertEquals(62.5, pct, 0.0001);
+
+        pr.set(loggingService, 99);
+        pct = (double) method.invoke(loggingService);
+        assertEquals(100.0, pct, 0.0001);
+    }
+
+    @Test
     @DisplayName("Should set total failures correctly")
     void shouldSetTotalFailedCorrectly() {
         Map<String, List<FailedItem>> categorizedFailures = Map.of(

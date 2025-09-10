@@ -153,7 +153,7 @@ public class LoggingService {
     // ==============================
     // PROGRESS TRACKING
     // ==============================
-    
+
     public synchronized void startRun(String label, int total) {
         this.totalRecords = Math.max(total, 0);
         this.processedRecords = 0; 
@@ -172,7 +172,7 @@ public class LoggingService {
     public synchronized void markSuccess() {
         processedRecords++;
         if (processedRecords % LOG_EVERY_N == 0 || processedRecords == totalRecords) {
-            logInfo("PROGRESS - Processed %,d of %,d (%.1f%%)%s",
+            logInfo("PROGRESS - Processed %,d of %,d (%.1f%%)",
                 processedRecords, totalRecords, progressPercentage());
         }
     }
