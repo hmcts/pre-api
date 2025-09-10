@@ -195,7 +195,7 @@ module "pre_api_b2c" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API B2C"
-  revision              = local.api_revision"120
+  revision              = local.api_revision"
   product_id            = module.pre_b2c_product[0].product_id
   path                  = "pre-api-b2c"
   service_url           = local.apim_service_url
