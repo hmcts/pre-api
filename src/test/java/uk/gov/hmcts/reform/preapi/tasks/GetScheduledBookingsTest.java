@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageImpl;
-import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
+import uk.gov.hmcts.reform.preapi.alerts.SlackInfoBot;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
@@ -40,7 +40,7 @@ public class GetScheduledBookingsTest {
     private UserService userService;
     private UserAuthenticationService userAuthenticationService;
     private BookingService bookingService;
-    private SlackClient slackClient;
+    private SlackInfoBot slackClient;
     private static final String ROBOT_USER_EMAIL = "example@example.com";
     private static final String SLACK_MESSAGE_HEADER = "*Bookings scheduled for today:*\\n";
     private Court court1;
@@ -54,7 +54,7 @@ public class GetScheduledBookingsTest {
         userAuthenticationService = mock(UserAuthenticationService.class);
         setUpAuthentication();
         bookingService = mock(BookingService.class);
-        slackClient = mock(SlackClient.class);
+        slackClient = mock(SlackInfoBot.class);
         String platformEnv = "Local-Testing";
 
         getScheduledBookingsTask = new GetScheduledBookings(

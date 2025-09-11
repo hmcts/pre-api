@@ -3,7 +3,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
+import uk.gov.hmcts.reform.preapi.alerts.SlackInfoBot;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessage;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessageJsonOptions;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessageSection;
@@ -22,13 +22,13 @@ import java.util.List;
 @Slf4j
 public class GetScheduledBookings extends RobotUserTask {
     private final BookingService bookingService;
-    private final SlackClient slackClient;
+    private final SlackInfoBot slackClient;
     private final String platformEnv;
 
     public GetScheduledBookings(UserService userService,
                                 UserAuthenticationService userAuthenticationService,
                                 BookingService bookingService,
-                                SlackClient slackClient,
+                                SlackInfoBot slackClient,
                                 @Value("${cron-user-email}") String cronUserEmail,
                                 @Value("${platform-env}") String platformEnv) {
         super(userService, userAuthenticationService, cronUserEmail);

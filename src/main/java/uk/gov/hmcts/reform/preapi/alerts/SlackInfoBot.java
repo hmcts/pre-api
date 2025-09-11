@@ -5,11 +5,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 /**
- * Connects to PRE Alerts app.
- * Posts to Reform #dts-pre-rec-evidence-tech https://moj.enterprise.slack.com/archives/C02F3N771U7.
+ * Connects to Pre-Recorded Evidence (DTS) https://api.slack.com/apps/A09EA7KK6KX.
+ * Posts to DTS #pre-incident-chat https://moj.enterprise.slack.com/archives/C091E43CGPQ.
  */
-@FeignClient(name = "slackClient", url = "${slack.webhook}")
-public interface SlackClient {
+@FeignClient(name = "slackInfoBot", url = "${slack.infobot}")
+public interface SlackInfoBot {
 
     @PostMapping
     void postSlackMessage(@RequestBody String slackMessage);
