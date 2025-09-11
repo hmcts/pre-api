@@ -52,6 +52,7 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     AZURE_VF_SA: "prevodasa{{ .Values.global.environment }}"
     PLATFORM_ENV_TAG: Production
     CRON_USER_EMAIL: "dts-pre-app-{{ .Values.global.environment }}@hmcts.net"
+    VODAFONE_MIGRATION_USER: "dts-pre-vodafone-migration@hmcts.net"
     ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
     EMAIL_SERVICE: GovNotify
     ENABLE_AUTOMATED_EDITING: false

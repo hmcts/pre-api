@@ -20,7 +20,7 @@ public class MigrateResolved extends BaseTask {
 
     public MigrateResolved(UserService userService,
                            UserAuthenticationService userAuthenticationService,
-                           @Value("${cron-user-email}") String cronUserEmail,
+                           @Value("${vodafone-user-email}") String cronUserEmail,
                            JobLauncher jobLauncher,
                            LoggingService loggingService,
                            @Value("${migration.debug}") boolean debug,

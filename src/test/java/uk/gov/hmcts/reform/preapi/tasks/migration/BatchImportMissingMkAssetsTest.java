@@ -88,7 +88,7 @@ public class BatchImportMissingMkAssetsTest {
     @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    private static final String CRON_USER_EMAIL = "test@test.com";
+    private static final String CRON_USER_EMAIL = "vodafone@test.com";
 
     @Autowired
     private BatchImportMissingMkAssets batchImportMissingMkAssets;
