@@ -22,7 +22,7 @@ public abstract class BaseTask extends RobotUserTask {
     @Autowired
     public BaseTask(UserService userService,
                     UserAuthenticationService userAuthenticationService,
-                    @Value("${cron-user-email}") String cronUserEmail,
+                    @Value("${vodafone-user-email}") String cronUserEmail,
                     JobLauncher jobLauncher, LoggingService loggingService,
                     @Value("${migration.debug}") boolean debug,
                     @Value("${migration.dry-run:false}") boolean dryRun) {
