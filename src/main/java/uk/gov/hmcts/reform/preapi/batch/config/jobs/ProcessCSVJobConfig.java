@@ -1,7 +1,10 @@
 package uk.gov.hmcts.reform.preapi.batch.config.jobs;
 
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -83,6 +86,25 @@ public class ProcessCSVJobConfig {
             .faultTolerant()
             .skipLimit(BatchConfiguration.SKIP_LIMIT)
             .skip(Exception.class)
+            .listener(new StepExecutionListener() {
+                @Override
+                public void beforeStep(StepExecution stepExecution) {
+                    System.out.println("[STEP-START] pendingMigrationRecordStep");
+                }
+
+                @Override
+                public ExitStatus afterStep(StepExecution stepExecution) {
+                    System.out.println(
+                        String.format("[STEP-END] pendingMigrationRecordStep status=%s read=%d write=%d skips=%d",
+                            stepExecution.getExitStatus(),
+                            stepExecution.getReadCount(),
+                            stepExecution.getWriteCount(),
+                            stepExecution.getSkipCount()
+                        )
+                    );
+                    return stepExecution.getExitStatus();
+                }
+            })
             .build();
     }
 

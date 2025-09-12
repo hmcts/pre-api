@@ -268,8 +268,8 @@ public class ArchiveMetadataXmlExtractor {
                     String formattedFileSize = formatFileSize(fileSizeKb);
 
                     String fullPath = (blobPrefix == null || blobPrefix.isBlank())
-                        ? archiveId + "/" + fileName
-                        : blobPrefix + "/" + archiveId + "/" + fileName;
+                        ? archiveId + "/mp4/" + fileName
+                        : blobPrefix + "/" + archiveId + "/mp4/" + fileName;
 
                     fileRows.add(List.of(archiveId, displayName, createTime, duration, fullPath, formattedFileSize));
                 }
