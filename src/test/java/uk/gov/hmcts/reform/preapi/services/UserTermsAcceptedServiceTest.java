@@ -4,7 +4,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cache.CacheManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
@@ -39,9 +38,6 @@ public class UserTermsAcceptedServiceTest {
     @MockitoBean
     private UserTermsAcceptedRepository userTermsAcceptedRepository;
 
-    @MockitoBean
-    CacheManager cacheManager;
-
     @Autowired
     private UserTermsAcceptedService userTermsAcceptedService;
 
@@ -62,7 +58,6 @@ public class UserTermsAcceptedServiceTest {
         verify(userRepository, times(1)).findById(user.getId());
         verify(termsAndConditionsRepository, times(1)).findById(terms.getId());
         verify(userTermsAcceptedRepository, times(1)).save(any(UserTermsAccepted.class));
-        verify(cacheManager, times(1)).getCache("users");
     }
 
     @Test
@@ -85,7 +80,6 @@ public class UserTermsAcceptedServiceTest {
         verify(userRepository, times(1)).findById(user.getId());
         verify(termsAndConditionsRepository, never()).findById(any());
         verify(userTermsAcceptedRepository, never()).save(any());
-        verify(cacheManager, never()).getCache("users");
     }
 
     @Test
@@ -109,7 +103,6 @@ public class UserTermsAcceptedServiceTest {
         verify(userRepository, times(1)).findById(user.getId());
         verify(termsAndConditionsRepository, times(1)).findById(terms.getId());
         verify(userTermsAcceptedRepository, never()).save(any());
-        verify(cacheManager, never()).getCache("users");
     }
 
     private void mockUser(User user) {

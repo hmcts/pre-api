@@ -3,8 +3,6 @@ package uk.gov.hmcts.reform.preapi.services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -22,9 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 public class InviteServiceIT extends IntegrationTestBase {
-
-    @Autowired
-    private CacheManager cacheManager;
 
     @Autowired
     private InviteService inviteService;
@@ -80,13 +75,9 @@ public class InviteServiceIT extends IntegrationTestBase {
         var mockedUser = mockAdminUser();
         when(mockedUser.getUserId()).thenReturn(user.getId());
 
-        userService.findByEmail(user.getEmail());
-        assertThat(getUserByCache(user.getEmail())).isNotNull();
-
         inviteService.redeemInvite(user.getEmail());
         entityManager.flush();
         entityManager.refresh(user);
-        assertThat(getUserByCache(user.getEmail())).isNull();
 
         Set<PortalAccess> portalAccessResult = user.getPortalAccess()
             .stream()
@@ -100,9 +91,5 @@ public class InviteServiceIT extends IntegrationTestBase {
         assertThat(acceptedPortalAccess.getUser().getId()).isEqualTo(user.getId());
         assertThat(acceptedPortalAccess.getId()).isEqualTo(portalAccess.getId());
         assertThat(acceptedPortalAccess.getRegisteredAt()).isAfter(Instant.now().minusSeconds(5));
-    }
-
-    private Cache.ValueWrapper getUserByCache(String email) {
-        return cacheManager.getCache("users").get(email);
     }
 }
