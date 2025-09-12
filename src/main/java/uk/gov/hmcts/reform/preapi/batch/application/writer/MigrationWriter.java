@@ -6,8 +6,6 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -33,7 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
-@Transactional(propagation = Propagation.REQUIRES_NEW)
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final LoggingService loggingService;
     private final CaseService caseService;
@@ -248,12 +245,6 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
             }
         }
 
-        
-        Map<String, CreateParticipantDTO> clientMap = new HashMap<>();
-        for (var p : booking.getParticipants()) {
-            clientMap.put(participantKey(p), p);
-        }
-
         Set<CreateParticipantDTO> remapped = booking.getParticipants().stream()
             .map(p -> {
                 String key = participantKey(p);
@@ -266,11 +257,6 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                     cp.setLastName(match.getLastName());
                     return cp;
                 }
-                var client = clientMap.get(key);
-                if (client != null) {
-                    return client;
-                }    
-
                 loggingService.logWarning("Booking participant not in persisted case, skipping: %s", key);
                 return null;
             })

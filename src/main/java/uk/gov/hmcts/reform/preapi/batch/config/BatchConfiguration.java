@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.batch.config;
 
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
@@ -89,6 +91,19 @@ public class BatchConfiguration implements StepExecutionListener {
                     preProcessor.initialize();
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
+            .listener(new StepExecutionListener() {
+                @Override
+                public void beforeStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
+                }
+
+                @Override
+                public ExitStatus afterStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
+                        stepExecution.getExitStatus());
+                    return stepExecution.getExitStatus();
+                }
+            })
             .build();
     }
 
@@ -110,6 +125,19 @@ public class BatchConfiguration implements StepExecutionListener {
 
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
+            .listener(new StepExecutionListener() {
+                @Override
+                public void beforeStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
+                }
+
+                @Override
+                public ExitStatus afterStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
+                        stepExecution.getExitStatus());
+                    return stepExecution.getExitStatus();
+                }
+            })
             .build();
     }
 
@@ -121,6 +149,19 @@ public class BatchConfiguration implements StepExecutionListener {
                     migrationTrackerService.writeAllToCsv();
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
+            .listener(new StepExecutionListener() {
+                @Override
+                public void beforeStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
+                }
+
+                @Override
+                public ExitStatus afterStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
+                        stepExecution.getExitStatus());
+                    return stepExecution.getExitStatus();
+                }
+            })
             .build();
     }
 
@@ -132,6 +173,19 @@ public class BatchConfiguration implements StepExecutionListener {
                     robotUserTask.signIn();
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
+            .listener(new StepExecutionListener() {
+                @Override
+                public void beforeStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
+                }
+
+                @Override
+                public ExitStatus afterStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
+                        stepExecution.getExitStatus());
+                    return stepExecution.getExitStatus();
+                }
+            })
             .build();
     }
 

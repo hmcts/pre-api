@@ -1,6 +1,9 @@
 package uk.gov.hmcts.reform.preapi.batch.config.steps;
 
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.JobSynchronizationManager;
@@ -93,6 +96,19 @@ public class CoreStepsConfig {
 
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
+            .listener(new StepExecutionListener() {
+                @Override
+                public void beforeStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
+                }
+
+                @Override
+                public ExitStatus afterStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
+                        stepExecution.getExitStatus());
+                    return stepExecution.getExitStatus();
+                }
+            })
             .build();
     }
 
@@ -125,6 +141,25 @@ public class CoreStepsConfig {
             .faultTolerant()
             .skipLimit(BatchConfiguration.SKIP_LIMIT)
             .skip(Exception.class)
+            .listener(new StepExecutionListener() {
+                @Override
+                public void beforeStep(StepExecution stepExecution) {
+                    loggingService.logInfo("[STEP-START] %s", stepName);
+                }
+
+                @Override
+                public ExitStatus afterStep(StepExecution stepExecution) {
+                    loggingService.logInfo(
+                        "[STEP-END] %s status=%s read=%d write=%d skips=%d",
+                        stepName,
+                        stepExecution.getExitStatus(),
+                        stepExecution.getReadCount(),
+                        stepExecution.getWriteCount(),
+                        stepExecution.getSkipCount()
+                    );
+                    return stepExecution.getExitStatus();
+                }
+            })
             .build();
     }
 
