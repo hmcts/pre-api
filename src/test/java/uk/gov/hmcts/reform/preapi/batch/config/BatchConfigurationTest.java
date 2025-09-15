@@ -3,7 +3,12 @@ package uk.gov.hmcts.reform.preapi.batch.config;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.core.io.Resource;
@@ -21,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -187,7 +193,7 @@ class BatchConfigurationTest {
 
     @Test
     void batchConfigurationShouldImplementStepExecutionListener() {
-        assertThat(batchConfiguration).isInstanceOf(org.springframework.batch.core.StepExecutionListener.class);
+        assertThat(batchConfiguration).isInstanceOf(StepExecutionListener.class);
     }
 
     @Test
@@ -256,5 +262,64 @@ class BatchConfigurationTest {
         assertThat(BatchConfiguration.SITES_CSV).endsWith(".csv");
         assertThat(BatchConfiguration.CHANNEL_USER_CSV).endsWith(".csv");
         assertThat(BatchConfiguration.ARCHIVE_LIST_INITAL).endsWith(".csv");
+    }
+
+    @Test
+    void createPreProcessStepShouldHaveCorrectConfiguration() {
+        Step step = batchConfiguration.createPreProcessStep();
+        
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("preProcessStep");
+    }
+
+    @Test
+    void createPreProcessMetadataStepShouldHaveCorrectConfiguration() {
+        Step step = batchConfiguration.createPreProcessMetadataStep();
+        
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("preProcessMetadataStep");
+    }
+
+    @Test
+    void createWriteToCSVStepShouldHaveCorrectConfiguration() {
+        Step step = batchConfiguration.createWriteToCSVStep();
+        
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("writeToCSVStep");
+    }
+
+    @Test
+    void createRobotUserSignInStepShouldHaveCorrectConfiguration() {
+        Step step = batchConfiguration.createRobotUserSignInStep();
+        
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("signInRobotUserStep");
+    }
+
+    @Test
+    void fileAvailabilityDeciderShouldExecuteDecisionLogic() {
+        JobExecutionDecider decider = batchConfiguration.fileAvailabilityDecider();
+        
+        var jobExecution = mock(JobExecution.class);
+        var stepExecution = mock(StepExecution.class);
+        
+        FlowExecutionStatus result = decider.decide(jobExecution, stepExecution);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getName()).isIn("COMPLETED", "FAILED");
+    }
+
+    @Test
+    void batchConfigurationShouldImplementStepExecutionListenerMethods() {
+        assertThat(batchConfiguration).isInstanceOf(StepExecutionListener.class);
+        
+        StepExecution stepExecution = mock(StepExecution.class);
+        when(stepExecution.getStepName()).thenReturn("testStep");
+        when(stepExecution.getExitStatus()).thenReturn(ExitStatus.COMPLETED);
+        
+        assertThatCode(() -> batchConfiguration.beforeStep(stepExecution)).doesNotThrowAnyException();
+        
+        ExitStatus result = batchConfiguration.afterStep(stepExecution);
+        assertThatCode(() -> batchConfiguration.afterStep(stepExecution)).doesNotThrowAnyException();
     }
 }

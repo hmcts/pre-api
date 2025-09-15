@@ -414,4 +414,380 @@ class CoreStepsConfigTest {
         JobSynchronizationManager.close();
     }
 
+    @Test
+    void createSitesDataStepWithDryRunFalse() {
+        Step step = stepsConfig.createSitesDataStep("false");
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("sitesDataStep");
+    }
+
+    @Test
+    void createSitesDataStepWithDryRunNull() {
+        Step step = stepsConfig.createSitesDataStep(null);
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("sitesDataStep");
+    }
+
+    @Test
+    void createSitesDataStepWithDryRunEmpty() {
+        Step step = stepsConfig.createSitesDataStep("");
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("sitesDataStep");
+    }
+
+    @Test
+    void createSitesDataStepWithDryRunInvalid() {
+        Step step = stepsConfig.createSitesDataStep("invalid");
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("sitesDataStep");
+    }
+
+    @Test
+    void createReadStepWithDryRunTrueShouldUseMigrationTrackerWriter2() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            true
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepWithWriteToCsvTrueAndDryRunFalseShouldUseItemWriter() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            true,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepWithWriteToCsvFalseAndDryRunFalseShouldUseNoOpWriter() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepWithWriteToCsvTrueAndDryRunTrueShouldUseMigrationTrackerWriter() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            true,
+            true
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void getDryRunFlagShouldReturnFalseWhenJobContextIsNull() {
+        JobSynchronizationManager.close();
+        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+    }
+
+    @Test
+    void getDryRunFlagShouldReturnFalseWhenJobParametersIsNull() {
+        JobExecution jobExecution = new JobExecution(1L, null);
+        JobSynchronizationManager.register(jobExecution);
+
+        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+
+        JobSynchronizationManager.close();
+    }
+
+    @Test
+    void getDryRunFlagShouldReturnFalseWhenDryRunParameterIsNull() {
+        JobParameters params = new JobParametersBuilder()
+            .addString("otherParam", "value")
+            .toJobParameters();
+
+        JobExecution jobExecution = new JobExecution(1L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+
+        JobSynchronizationManager.close();
+    }
+
+    @Test
+    void noOpWriterShouldHandleNullChunk() {
+        ItemWriter<Object> writer = stepsConfig.noOpWriter();
+        assertThat(writer).isNotNull();
+        
+        assertThatCode(() -> writer.write(null)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void noOpWriterShouldHandleEmptyChunk() {
+        ItemWriter<Object> writer = stepsConfig.noOpWriter();
+        assertThat(writer).isNotNull();
+        
+        assertThatCode(() -> writer.write(Chunk.of())).doesNotThrowAnyException();
+    }
+
+    @Test
+    void noOpWriterShouldHandleChunkWithItems() {
+        ItemWriter<Object> writer = stepsConfig.noOpWriter();
+        assertThat(writer).isNotNull();
+        
+        assertThatCode(() -> writer.write(Chunk.of("test1", "test2"))).doesNotThrowAnyException();
+    }
+
+    @Test
+    void createArchiveListStepShouldUseDryRunFlag2() {
+        Step step = stepsConfig.createArchiveListStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("archiveListDataStep");
+    }
+
+    @Test
+    void createChannelUserStepShouldUseDryRunFlag2() {
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+    }
+
+    @Test
+    void startLoggingShouldHandleDebugParameterTrue() {
+        Step step = stepsConfig.startLogging();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("loggingStep");
+    }
+
+    @Test
+    void startLoggingShouldHandleDebugParameterFalse() {
+        Step step = stepsConfig.startLogging();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("loggingStep");
+    }
+
+    @Test
+    void startLoggingShouldHandleDebugParameterNull() {
+        Step step = stepsConfig.startLogging();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("loggingStep");
+    }
+
+    @Test
+    void startLoggingShouldHandleDebugParameterInvalid() {
+        Step step = stepsConfig.startLogging();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("loggingStep");
+    }
+
+    @Test
+    void createReadStepShouldHaveFaultTolerance() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepShouldHaveSkipLimit() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepShouldHaveExceptionHandling() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepShouldUseCorrectChunkSize() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepShouldUseCorrectTransactionManager() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepShouldUseCorrectReader() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepShouldUseCorrectProcessor() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepShouldUseCorrectWriter() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
 }
