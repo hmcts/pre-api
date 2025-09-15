@@ -59,7 +59,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
     @Autowired
     public BatchImportMissingMkAssets(UserService userService,
                                       UserAuthenticationService userAuthenticationService,
-                                      @Value("${cron-user-email}") String cronUserEmail,
+                                      @Value("${vodafone-user-email}") String cronUserEmail,
                                       MediaServiceBroker mediaServiceBroker,
                                       RecordingService recordingService,
                                       CaptureSessionService captureSessionService,

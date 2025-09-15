@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
@@ -23,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.util.Optional;
 
@@ -101,6 +103,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             try {
                 ExtractedMetadata extractedData = extractData(migrationRecord);
                 if (extractedData == null) {
+                    loggingService.markHandled();
                     return null;
                 }
 
@@ -109,20 +112,28 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 // Transformation
                 ProcessedRecording cleansedData = transformData(extractedData);
                 if (cleansedData == null) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 // Check if already migrated
                 if (isMigrated(migrationRecord)) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 // Validation
                 if (!isValidated(cleansedData, migrationRecord)) {
+                    loggingService.markHandled();
                     return null;
                 }
 
-                loggingService.incrementProgress();
+                if (!isCaseOpen(cleansedData, extractedData)) {
+                    loggingService.markHandled();
+                    return null; 
+                }
+
+                // loggingService.incrementProgress();
                 cacheService.dumpToFile();
 
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
@@ -146,9 +157,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                loggingService.incrementProgress();
-                cacheService.dumpToFile();
+                if (!isCaseOpen(cleansedData, extractedData)) {
+                    return null; 
+                }
 
+                cacheService.dumpToFile();
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
             } catch (Exception e) {
@@ -306,6 +319,22 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationRecord.getArchiveId(),
             migrationRecord.getArchiveName()
         );
+    }
+
+    private boolean isCaseOpen(ProcessedRecording recording, ExtractedMetadata extractedData) {
+        String caseRef = recording.getCaseReference();
+        var maybeCase = cacheService.getCase(caseRef);
+
+        if (maybeCase.isPresent() && maybeCase.get().getState() != CaseState.OPEN) {
+            String msg = "Case %s is CLOSED; cannot create bookings/capture sessions/recordings".formatted(caseRef);
+
+            migrationRecordService.updateToFailed(extractedData.getArchiveId(), 
+                VfFailureReason.CASE_CLOSED.toString(), msg);
+            handleError(extractedData, msg, VfFailureReason.CASE_CLOSED.toString());   
+            loggingService.logError("Skipping item: %s", msg);
+            return false;
+        }
+        return true;
     }
 
     // =========================

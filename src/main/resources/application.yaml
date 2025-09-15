@@ -86,6 +86,7 @@ dbMigration:
   # Otherwise, it will just check if all migrations have been applied (and fail to start if not).
   runOnStartup: ${RUN_DB_MIGRATION_ON_STARTUP:true}
 
+
 testing-support-endpoints:
   enabled: ${TESTING_SUPPORT_ENDPOINTS_ENABLED:false}
 
@@ -103,7 +104,7 @@ media-service: ${MEDIA_SERVICE:MediaKind}
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
 cron-user-email: ${CRON_USER_EMAIL:test@test.com}
-vodafone-user-email: ${CRON_USER_EMAIL:vodafone@test.com}
+vodafone-user-email: ${VODAFONE_MIGRATION_USER:vodafone@test.com}
 
 nroUsersFilePath: src/integrationTest/resources/Test_NRO_User_Import.csv
 
@@ -124,6 +125,7 @@ migration:
   debug: ${MIGRATION_DEBUG:false}
   type: ${MIGRATION_TYPE:FULL}
   dryRun: ${DRY_RUN:false}
+  loggingFile: ${LOGGING_MIGRATION_FILE:}
   enableMigratedData: ${ENABLE_MIGRATED_DATA:false}
 
 editing:

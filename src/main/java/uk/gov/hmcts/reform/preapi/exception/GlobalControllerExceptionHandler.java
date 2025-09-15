@@ -219,15 +219,15 @@ public class GlobalControllerExceptionHandler {
         var error = new B2CErrorDTO();
         var cause = e.getCause() != null ? e.getCause() : e;
         error.setUserMessage(cause.getMessage());
-        var status = getStatus(cause);
-        error.setStatus(status.value());
+        // https://learn.microsoft.com/en-us/azure/active-directory-b2c/restful-technical-profile#returning-validation-error-message
+        error.setStatus(HttpStatus.CONFLICT.value()); // Has to be 409...
 
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
         return new ResponseEntity<>(
             new ObjectMapper().writeValueAsString(error),
             responseHeaders,
-            status
+            HttpStatus.BAD_REQUEST // needs to be 4xx for B2C to render properly
         );
     }
 
@@ -266,9 +266,9 @@ public class GlobalControllerExceptionHandler {
             case MethodArgumentNotValidException ignored -> HttpStatus.BAD_REQUEST;
             case MethodArgumentTypeMismatchException ignored -> HttpStatus.BAD_REQUEST;
             case ResourceInWrongStateException ignored -> HttpStatus.BAD_REQUEST;
+            case B2CControllerException ignored -> HttpStatus.BAD_REQUEST;
 
             case IllegalArgumentException ignored -> HttpStatus.INTERNAL_SERVER_ERROR;
-            case B2CControllerException ignored -> HttpStatus.INTERNAL_SERVER_ERROR;
             case ManagementException ignored -> HttpStatus.INTERNAL_SERVER_ERROR;
             case FeignException ignored -> HttpStatus.INTERNAL_SERVER_ERROR;
 
