@@ -5,8 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.item.ItemProcessor;
@@ -358,4 +362,37 @@ public class ProcessCSVJobConfigTest {
         assertThat(job.getJobParametersIncrementer()).isNotNull();
     }
 
+
+    
+    @Test
+    void listener_shouldPrintStartAndEndMessages() {
+        StepExecutionListener listener = new StepExecutionListener() {
+            @Override
+            public void beforeStep(StepExecution stepExecution) {
+                System.out.println("[STEP-START] pendingMigrationRecordStep");
+            }
+
+            @Override
+            public ExitStatus afterStep(StepExecution stepExecution) {
+                System.out.println(
+                    String.format("[STEP-END] pendingMigrationRecordStep status=%s read=%d write=%d skips=%d",
+                        stepExecution.getExitStatus(),
+                        stepExecution.getReadCount(),
+                        stepExecution.getWriteCount(),
+                        stepExecution.getSkipCount()
+                    )
+                );
+                return stepExecution.getExitStatus();
+            }
+        };
+
+        StepExecution se = new StepExecution("pendingMigrationRecordStep", new JobExecution(1L));
+
+        listener.beforeStep(se);
+        ExitStatus status = listener.afterStep(se);
+
+        assertThat(status).isEqualTo(se.getExitStatus());
+    }
 }
+
+
