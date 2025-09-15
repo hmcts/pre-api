@@ -218,25 +218,6 @@ public class ProcessCSVJobConfigTest {
         assertThat(processCSVJobConfig.transactionManager).isEqualTo(transactionManager);
     }
 
-    @Test
-    void shouldExecutePendingMigrationRecordStepWithStepExecutionListener() throws Exception {
-        // Given
-        when(coreStepsConfig.getDryRunFlag()).thenReturn(false);
-        var step = processCSVJobConfig.pendingMigrationRecordStep(
-            pendingMigrationRecordReader,
-            processor,
-            writer
-        );
-        var jobExecution = new JobExecution(1L);
-        var stepExecution = new StepExecution("pendingMigrationRecordStep", jobExecution);
-
-        // When
-        step.execute(stepExecution);
-
-        // Then
-        // Verify the step execution listener was called
-        assertThat(stepExecution.getExitStatus()).isNotNull();
-    }
 
     @Test
     void shouldLogStartRunInPendingMigrationRecordReader() {

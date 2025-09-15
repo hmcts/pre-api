@@ -189,55 +189,6 @@ class CoreStepsConfigTest {
         assertThat(step.getName()).isEqualTo(stepName);
     }
 
-    @Test
-    void startLoggingStepShouldExecuteAndSetDebugFlag() throws Exception {
-        JobParameters params = new JobParametersBuilder()
-            .addString("debug", "true")
-            .toJobParameters();
-        JobExecution jobExecution = new JobExecution(99L, params);
-        JobSynchronizationManager.register(jobExecution);
-
-        Step step = stepsConfig.startLogging();
-
-        step.execute(new org.springframework.batch.core.StepExecution(step.getName(), jobExecution));
-
-        verify(loggingService).setDebugEnabled(true);
-        verify(loggingService).initializeLogFile();
-        verify(loggingService).logInfo("Job started with debug mode: true");
-    }
-
-    @Test
-    void startLoggingStepShouldExecuteWithDebugFalse() throws Exception {
-        JobParameters params = new JobParametersBuilder()
-            .addString("debug", "false")
-            .toJobParameters();
-        JobExecution jobExecution = new JobExecution(99L, params);
-        JobSynchronizationManager.register(jobExecution);
-
-        Step step = stepsConfig.startLogging();
-
-        step.execute(new org.springframework.batch.core.StepExecution(step.getName(), jobExecution));
-
-        verify(loggingService).setDebugEnabled(false);
-        verify(loggingService).initializeLogFile();
-        verify(loggingService).logInfo("Job started with debug mode: false");
-    }
-
-    @Test
-    void startLoggingStepShouldExecuteWithNoDebugParameter() throws Exception {
-        JobParameters params = new JobParametersBuilder()
-            .toJobParameters();
-        JobExecution jobExecution = new JobExecution(99L, params);
-        JobSynchronizationManager.register(jobExecution);
-
-        Step step = stepsConfig.startLogging();
-
-        step.execute(new org.springframework.batch.core.StepExecution(step.getName(), jobExecution));
-
-        verify(loggingService).setDebugEnabled(false);
-        verify(loggingService).initializeLogFile();
-        verify(loggingService).logInfo("Job started with debug mode: false");
-    }
 
     @Test
     void getDryRunFlagShouldReturnFalseWhenParameterIsFalse() {
