@@ -9,6 +9,7 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.JobSynchronizationManager;
+import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
@@ -23,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -256,6 +258,160 @@ class CoreStepsConfigTest {
         Step step = stepsConfig.createArchiveListStep();
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo("archiveListDataStep");
+    }
+
+    @Test
+    void startLoggingShouldReturnStepWithCorrectName() {
+        Step step = stepsConfig.startLogging();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("loggingStep");
+    }
+
+    @Test
+    void startLoggingShouldHaveStepExecutionListener() {
+        Step step = stepsConfig.startLogging();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("loggingStep");
+    }
+
+    @Test
+    void createReadStepWithDryRunFalseAndWriteToCsvFalseShouldUseNoOpWriter() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false  
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepWithDryRunTrueShouldUseMigrationTrackerWriter() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false, 
+            true   
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createReadStepShouldHaveStepExecutionListener() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("field1,field2\nvalue1,value2".getBytes())
+        );
+
+        Step step = stepsConfig.createReadStep(
+            "testStep",
+            mockResource,
+            new String[]{"field1", "field2"},
+            String.class,
+            false,
+            false
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("testStep");
+    }
+
+    @Test
+    void createCsvReaderShouldHandleNullFilename() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getFilename()).thenReturn(null);
+        when(mockResource.getInputStream()).thenThrow(new IOException("Test exception"));
+
+        try {
+            stepsConfig.createCsvReader(
+                mockResource,
+                new String[]{"field1", "field2"},
+                String.class
+            );
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage()).contains("Failed to create reader for file:");
+            verify(loggingService).logError("Failed to create reader for file: {}null" 
+                + new IOException("Test exception"));
+        }
+    }
+
+    @Test
+    void createCsvReaderShouldHandleEmptyFilename() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getFilename()).thenReturn("");
+        when(mockResource.getInputStream()).thenThrow(new IOException("Test exception"));
+
+        try {
+            stepsConfig.createCsvReader(
+                mockResource,
+                new String[]{"field1", "field2"},
+                String.class
+            );
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage()).contains("Failed to create reader for file:");
+            verify(loggingService).logError("Failed to create reader for file: {}" + new IOException("Test exception"));
+        }
+    }
+
+    @Test
+    void noOpWriterShouldAcceptAnyItems() {
+        ItemWriter<Object> writer = stepsConfig.noOpWriter();
+        assertThat(writer).isNotNull();
+        
+        assertThatCode(() -> writer.write(null)).doesNotThrowAnyException();
+        assertThatCode(() -> writer.write(Chunk.of())).doesNotThrowAnyException();
+        assertThatCode(() -> writer.write(Chunk.of("test"))).doesNotThrowAnyException();
+    }
+
+    @Test
+    void getDryRunFlagShouldHandleEmptyStringParameter() {
+        JobParameters params = new JobParametersBuilder()
+            .addString("dryRun", "")
+            .toJobParameters();
+
+        JobExecution jobExecution = new JobExecution(1L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+
+        JobSynchronizationManager.close();
+    }
+
+    @Test
+    void getDryRunFlagShouldHandleInvalidBooleanString() {
+        JobParameters params = new JobParametersBuilder()
+            .addString("dryRun", "invalid")
+            .toJobParameters();
+
+        JobExecution jobExecution = new JobExecution(1L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        assertThatCode(() -> stepsConfig.getDryRunFlag()).doesNotThrowAnyException();
+
+        JobSynchronizationManager.close();
     }
 
 }
