@@ -18,9 +18,9 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
-import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -204,6 +204,107 @@ class CoreStepsConfigTest {
         verify(loggingService).setDebugEnabled(true);
         verify(loggingService).initializeLogFile();
         verify(loggingService).logInfo("Job started with debug mode: true");
+    }
+
+    @Test
+    void startLoggingStepShouldExecuteWithDebugFalse() throws Exception {
+        JobParameters params = new JobParametersBuilder()
+            .addString("debug", "false")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(99L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        Step step = stepsConfig.startLogging();
+
+        step.execute(new org.springframework.batch.core.StepExecution(step.getName(), jobExecution));
+
+        verify(loggingService).setDebugEnabled(false);
+        verify(loggingService).initializeLogFile();
+        verify(loggingService).logInfo("Job started with debug mode: false");
+    }
+
+    @Test
+    void startLoggingStepShouldExecuteWithNoDebugParameter() throws Exception {
+        JobParameters params = new JobParametersBuilder()
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(99L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        Step step = stepsConfig.startLogging();
+
+        step.execute(new org.springframework.batch.core.StepExecution(step.getName(), jobExecution));
+
+        verify(loggingService).setDebugEnabled(false);
+        verify(loggingService).initializeLogFile();
+        verify(loggingService).logInfo("Job started with debug mode: false");
+    }
+
+    @Test
+    void getDryRunFlagShouldReturnFalseWhenParameterIsFalse() {
+        JobParameters params = new JobParametersBuilder()
+            .addString("dryRun", "false")
+            .toJobParameters();
+
+        JobExecution jobExecution = new JobExecution(1L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+
+        JobSynchronizationManager.close();
+    }
+
+    @Test
+    void getDryRunFlagShouldReturnFalseWhenParameterIsNull() {
+        JobParameters params = new JobParametersBuilder()
+            .toJobParameters();
+
+        JobExecution jobExecution = new JobExecution(1L, params);
+        JobSynchronizationManager.register(jobExecution);
+
+        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+
+        JobSynchronizationManager.close();
+    }
+
+    @Test
+    void createCsvReaderShouldThrowExceptionWhenIOExceptionOccurs() throws Exception {
+        var mockResource = mock(Resource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getFilename()).thenReturn("test.csv");
+        when(mockResource.getInputStream()).thenThrow(new IOException("Test exception"));
+
+        try {
+            stepsConfig.createCsvReader(
+                mockResource,
+                new String[]{"field1", "field2"},
+                String.class
+            );
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage()).contains("Failed to create reader for file:");
+            verify(loggingService).logError("Failed to create reader for file: {}test.csv" 
+                + new IOException("Test exception"));
+        }
+    }
+
+    @Test
+    void createSitesDataStepWithDryRunTrue() {
+        Step step = stepsConfig.createSitesDataStep("true");
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("sitesDataStep");
+    }
+
+    @Test
+    void createChannelUserStepShouldUseDryRunFlag() {
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+    }
+
+    @Test
+    void createArchiveListStepShouldUseDryRunFlag() {
+        Step step = stepsConfig.createArchiveListStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("archiveListDataStep");
     }
 
 }

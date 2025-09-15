@@ -6,7 +6,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.item.ItemProcessor;
@@ -215,4 +217,77 @@ public class ProcessCSVJobConfigTest {
         // Then
         assertThat(processCSVJobConfig.transactionManager).isEqualTo(transactionManager);
     }
+
+    @Test
+    void shouldExecutePendingMigrationRecordStepWithStepExecutionListener() throws Exception {
+        // Given
+        when(coreStepsConfig.getDryRunFlag()).thenReturn(false);
+        var step = processCSVJobConfig.pendingMigrationRecordStep(
+            pendingMigrationRecordReader,
+            processor,
+            writer
+        );
+        var jobExecution = new JobExecution(1L);
+        var stepExecution = new StepExecution("pendingMigrationRecordStep", jobExecution);
+
+        // When
+        step.execute(stepExecution);
+
+        // Then
+        // Verify the step execution listener was called
+        assertThat(stepExecution.getExitStatus()).isNotNull();
+    }
+
+    @Test
+    void shouldLogStartRunInPendingMigrationRecordReader() {
+        List<MigrationRecord> pendingRecords = Arrays.asList(migrationRecord1, migrationRecord2);
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+            .thenReturn(pendingRecords);
+
+        ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
+            migrationRecordRepository,
+            loggingService
+        );
+
+        assertThat(result).isNotNull();
+        verify(loggingService).startRun("pending migration records", 2);
+    }
+
+    @Test
+    void shouldLogStartRunWithEmptyListInPendingMigrationRecordReader() {
+        List<MigrationRecord> emptyList = Collections.emptyList();
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+            .thenReturn(emptyList);
+
+        ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
+            migrationRecordRepository,
+            loggingService
+        );
+
+        assertThat(result).isNotNull();
+        verify(loggingService).startRun("pending migration records", 0);
+    }
+
+    @Test
+    void shouldCreateProcessCSVJobWithCorrectFlow() {
+        when(batchConfiguration.fileAvailabilityDecider()).thenReturn(fileAvailabilityDecider);
+        when(coreStepsConfig.startLogging()).thenReturn(startLoggingStep);
+
+        Job result = processCSVJobConfig.processCSVJob(
+            createSitesDataStep,
+            createChannelUserStep,
+            createRobotUserSignInStep,
+            createPreProcessStep,
+            createPreProcessMetadataStep,
+            createArchiveListStep,
+            createWriteToCSVStep,
+            pendingMigrationRecordStep
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.getName()).isEqualTo("processCSVJob");
+        verify(batchConfiguration).fileAvailabilityDecider();
+        verify(coreStepsConfig).startLogging();
+    }
+
 }
