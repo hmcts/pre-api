@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
@@ -23,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.util.Optional;
 
@@ -73,8 +75,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 return null;
             }
 
-            loggingService.logDebug("Processor - Processing item of type: %s", item.getClass().getSimpleName());
-
             if (item instanceof MigrationRecord migrationRecord) {
                 return processRecording(migrationRecord);
             }
@@ -103,6 +103,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             try {
                 ExtractedMetadata extractedData = extractData(migrationRecord);
                 if (extractedData == null) {
+                    loggingService.markHandled();
                     return null;
                 }
 
@@ -111,20 +112,28 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 // Transformation
                 ProcessedRecording cleansedData = transformData(extractedData);
                 if (cleansedData == null) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 // Check if already migrated
                 if (isMigrated(migrationRecord)) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 // Validation
                 if (!isValidated(cleansedData, migrationRecord)) {
+                    loggingService.markHandled();
                     return null;
                 }
 
-                loggingService.incrementProgress();
+                if (!isCaseOpen(cleansedData, extractedData)) {
+                    loggingService.markHandled();
+                    return null; 
+                }
+
+                // loggingService.incrementProgress();
                 cacheService.dumpToFile();
 
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
@@ -148,9 +157,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                loggingService.incrementProgress();
-                cacheService.dumpToFile();
+                if (!isCaseOpen(cleansedData, extractedData)) {
+                    return null; 
+                }
 
+                cacheService.dumpToFile();
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
             } catch (Exception e) {
@@ -212,7 +223,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logError("Failed to transform archive: %s", extractedData.getSanitizedArchiveName());
             return null;
         }
-        checkAndCreateNotifyItem(result.getData());
+        
         loggingService.logDebug("Transformed data: %s", result.getData());
         return result.getData();
     }
@@ -224,7 +235,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (checkForError(result, archiveItem)) {
             return false;
         }
-
+        checkAndCreateNotifyItem(result.getData());
         loggingService.logDebug("All validation rules passed");
         return true;
     }
@@ -291,6 +302,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return new ExtractedMetadata(
             migrationRecord.getCourtReference(),
             migrationRecord.getCourtId(),
+            null,
             migrationRecord.getUrn(),
             migrationRecord.getExhibitReference(),
             migrationRecord.getDefendantName(),
@@ -307,6 +319,22 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationRecord.getArchiveId(),
             migrationRecord.getArchiveName()
         );
+    }
+
+    private boolean isCaseOpen(ProcessedRecording recording, ExtractedMetadata extractedData) {
+        String caseRef = recording.getCaseReference();
+        var maybeCase = cacheService.getCase(caseRef);
+
+        if (maybeCase.isPresent() && maybeCase.get().getState() != CaseState.OPEN) {
+            String msg = "Case %s is CLOSED; cannot create bookings/capture sessions/recordings".formatted(caseRef);
+
+            migrationRecordService.updateToFailed(extractedData.getArchiveId(), 
+                VfFailureReason.CASE_CLOSED.toString(), msg);
+            handleError(extractedData, msg, VfFailureReason.CASE_CLOSED.toString());   
+            loggingService.logError("Skipping item: %s", msg);
+            return false;
+        }
+        return true;
     }
 
     // =========================
@@ -333,16 +361,33 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         String exhibitRef = recording.getExhibitReference();
         String caseRef = recording.getCaseReference();
 
-        if (caseRef.length() > 9 || caseRef.length() < 20) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference length",recording));
+        if (caseRef == null || caseRef.isBlank()) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference", recording));
+            return;
         }
 
-        if (caseRef.equalsIgnoreCase(exhibitRef)) {
-            migrationTrackerService.addNotifyItem(new NotifyItem(
-                    "Used Xhibit reference as URN did not meet requirements",recording));
+        boolean exhibitBased = exhibitRef != null && caseRef.equalsIgnoreCase(exhibitRef);
+        int len = caseRef.length();
+
+        String reason = null;
+        if (exhibitBased) {
+            reason = "Used Xhibit reference as URN did not meet requirements";
+
+            if (len < 9 || len > 20) {
+                reason += " (length outside 9–20)";
+            }
+        } else if (len < 9 || len > 20) {
+            reason = "Invalid case reference length";
+        }
+
+        if (reason != null) {
+            migrationTrackerService.addNotifyItem(new NotifyItem(reason, recording));
         }
 
     }
+
+
+    
 
 }
 

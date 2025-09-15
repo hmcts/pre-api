@@ -42,14 +42,19 @@ public class DataExtractionService {
             return preExistingValidation;
         }
         
-        String archiveName = archiveItem.getArchiveName();
-        
         // -- 1. TEST validation (validate for pre-go-live, duration check and test keywords)
-        ServiceResult<?> validationResult = validator.validateTest(archiveItem);
-        loggingService.logDebug("Validation result in extraction %s", validationResult.isSuccess());
-        if (!validationResult.isSuccess()) {
-            return validationResult;
+        ServiceResult<?> testValidationResult = validator.validateTest(archiveItem);
+        loggingService.logDebug("Validation result in extraction %s", testValidationResult.isSuccess());
+        if (!testValidationResult.isSuccess()) {
+            return testValidationResult;
         }
+        
+        ServiceResult<?> testValidationExtensionResult = validator.validateRawFile(archiveItem);
+        if (!testValidationExtensionResult.isSuccess()) {
+            return testValidationExtensionResult;
+        }
+        
+        String archiveName = archiveItem.getArchiveName();
 
         // -- 2. Pattern matching for legitimate and test scenarios
         String sanitisedName = archiveItem.getSanitizedArchiveName();
@@ -119,6 +124,7 @@ public class DataExtractionService {
         return new ExtractedMetadata(
             getMatcherGroup(matcher, "court"),
             null,
+            getMatcherGroup(matcher, "date"),
             getMatcherGroup(matcher, "urn"),
             getMatcherGroup(matcher, "exhibitRef"),
             getMatcherGroup(matcher, "defendantLastName"),

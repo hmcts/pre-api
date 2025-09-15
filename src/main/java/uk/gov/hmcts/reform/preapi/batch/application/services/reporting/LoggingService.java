@@ -3,13 +3,17 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -22,6 +26,12 @@ import java.util.Map;
 public class LoggingService {
     @Getter
     private boolean debugEnabled = false;
+
+    @Value("${migration.loggingFile:}") 
+    private String configuredPath;
+
+    private volatile boolean fileLoggingEnabled = false;
+    private Path logPath;
 
     @Setter
     private int totalMigrated = 0;
@@ -41,30 +51,54 @@ public class LoggingService {
     protected LocalDateTime startTime;
     protected final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
-    private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
+    private int handled = 0;
+    private static final int LOG_EVERY_N = 10; 
+
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void initializeLogFile() {
         startTime = LocalDateTime.now();
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE_PATH, false))) {
-            writer.println("=====================================================");
-            writer.println(LocalDateTime.now().format(FORMATTER) + " |  Vodafone ETL Job Started");
-            writer.println("=====================================================");
-        } catch (IOException e) {
-            log.error("Failed to initialize output.log: {}", e.getMessage());
+        // file logging disabled in cron
+        if (configuredPath == null || configuredPath.isBlank()) {
+            log.info("Migration file logging disabled (no path configured).");
+            return;
+        }
+
+        try {
+            logPath = Paths.get(configuredPath);
+            Files.createDirectories(logPath.getParent());
+
+            try (PrintWriter writer = new PrintWriter(
+                        Files.newBufferedWriter(logPath,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING))) {
+                writer.println("=====================================================");
+                writer.println(LocalDateTime.now().format(FORMATTER) + " |  Vodafone ETL Job Started");
+                writer.println("=====================================================");
+            }
+            fileLoggingEnabled = true;
+            log.info("Migration file logging enabled at {}", logPath);
+        } catch (Exception e) {
+            fileLoggingEnabled = false;
+            log.warn("Migration file logging unavailable ({}). Proceeding without file.", e.getMessage());
         }
     }
 
     public synchronized void log(String level, String message) {
+        if (!fileLoggingEnabled) {
+            return; 
+        }
+
         String timestamp = LocalDateTime.now().format(FORMATTER);
         String logMessage = String.format("%s [%s] %s", timestamp, level, message);
 
-        try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
-             PrintWriter printWriter = new PrintWriter(fileWriter)) {
-            printWriter.println(logMessage);
+        try (PrintWriter out = new PrintWriter(
+                Files.newBufferedWriter(logPath, StandardOpenOption.CREATE, StandardOpenOption.APPEND))) {
+            out.println(logMessage);
         } catch (IOException e) {
-            log.error("Failed to initialize output.log: {}", e.getMessage());
+            fileLoggingEnabled = false;
+            log.warn("Disabling migration file logging (write failed: {}).", e.getMessage());
         }
     }
 
@@ -120,21 +154,31 @@ public class LoggingService {
     // PROGRESS TRACKING
     // ==============================
 
-    public void incrementProgress() {
-        processedRecords++;
-        refreshProgressBar();
+    public synchronized void startRun(String label, int total) {
+        this.totalRecords = Math.max(total, 0);
+        this.processedRecords = 0; 
+        this.startTime = LocalDateTime.now();
+        logInfo("Found %,d %s to process", totalRecords, label == null ? "items" : label);
     }
 
-    private synchronized void refreshProgressBar() {
-        int progressWidth = 40;
-        double percentage = Math.min((processedRecords * 100.0) / totalRecords, 100.0);
-        int filledLength = Math.max((int) (progressWidth * (percentage / 100)), 0);
+    public synchronized void markHandled() {
+        handled++;
+        if (handled % LOG_EVERY_N == 0 || handled == totalRecords) {
+            double pct = totalRecords > 0 ? (handled * 100.0) / totalRecords : 0.0;
+            logInfo("Handled %,d of %,d (%.1f%%)", handled, totalRecords, pct);
+        }
+    }
 
-        String progressBar = "[" + "=".repeat(filledLength) + " ".repeat(progressWidth - filledLength) + "]";
-        String progressText = String.format("Processing: %d/%d (%.1f%%)", processedRecords, totalRecords, percentage);
+    public synchronized void markSuccess() {
+        processedRecords++;
+        if (processedRecords % LOG_EVERY_N == 0 || processedRecords == totalRecords) {
+            logInfo("PROGRESS - Processed %,d of %,d (%.1f%%)",
+                processedRecords, totalRecords, progressPercentage());
+        }
+    }
 
-        System.out.print("\r\033[K" + progressBar + " " + progressText);
-        System.out.flush();
+    private double progressPercentage() {
+        return totalRecords > 0 ? Math.min((processedRecords * 100.0) / totalRecords, 100.0) : 0.0;
     }
 
     // ==============================
@@ -149,6 +193,11 @@ public class LoggingService {
     }
 
     public void logSummary() {
+        if (!fileLoggingEnabled) {
+            log.info("Batch summary logging skipped (file logging disabled).");
+            return;
+        }
+
         if (startTime == null) {
             logWarning("Start time was not set. Using current time as fallback.");
             startTime = LocalDateTime.now();
@@ -175,11 +224,12 @@ public class LoggingService {
             "Total Execution Time", seconds
         );
 
-        try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
-             PrintWriter printWriter = new PrintWriter(fileWriter)) {
-            printWriter.println(summary);
+        try (PrintWriter out = new PrintWriter(
+            Files.newBufferedWriter(logPath, StandardOpenOption.CREATE, StandardOpenOption.APPEND))) {
+            out.println(summary);
         } catch (IOException e) {
-            log.error("Failed to write summary to output.log: {}", e.getMessage());
+            fileLoggingEnabled = false;
+            log.warn("Failed to write summary to migration log ({}). Disabling file logging.", e.getMessage());
         }
     }
 }

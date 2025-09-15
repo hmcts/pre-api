@@ -1,10 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
@@ -17,14 +14,10 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 
@@ -33,43 +26,25 @@ public class MigrationGroupBuilderService {
     private final LoggingService loggingService;
     private final EntityCreationService entityCreationService;
     private final InMemoryCacheService cacheService;
-    private final CaseRepository caseRepository;
     private final MigrationRecordService migrationRecordService;
+    private final MigrationTrackerService migrationTrackerService;
 
     protected static final String BOOKING_FIELD = "booking";
     protected static final String CAPTURE_SESSION_FIELD = "captureSession";
     protected static final String RECORDING_FIELD = "recordingField";
 
-    protected final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
 
     @Autowired
     public MigrationGroupBuilderService(final LoggingService loggingService,
                                         final EntityCreationService entityCreationService,
                                         final InMemoryCacheService cacheService,
                                         final MigrationRecordService migrationRecordService,
-                                        final CaseRepository caseRepository) {
+                                        final MigrationTrackerService migrationTrackerService) {
         this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
         this.cacheService = cacheService;
         this.migrationRecordService = migrationRecordService;
-        this.caseRepository = caseRepository;
-    }
-
-    // =========================
-    // Initialization
-    // =========================
-    @EventListener(ContextRefreshedEvent.class)
-    @Transactional
-    public void init() {
-        loadCaseCache();
-    }
-
-    private void loadCaseCache() {
-        List<Case> cases = caseRepository.findAll();
-        for (Case acase : cases) {
-            CreateCaseDTO createCaseDTO = new CreateCaseDTO(acase);
-            caseCache.put(acase.getReference(), createCaseDTO);
-        }
+        this.migrationTrackerService = migrationTrackerService;
     }
 
     // =========================
@@ -77,17 +52,15 @@ public class MigrationGroupBuilderService {
     // =========================
     public MigratedItemGroup createMigratedItemGroup(ExtractedMetadata item, ProcessedRecording cleansedData) {
         CreateCaseDTO aCase = createCaseIfOrig(cleansedData);
-        String version = cleansedData.getExtractedRecordingVersion();
-        if (aCase == null && (version == null || !version.toUpperCase().contains("COPY"))) {
-            return null;
-        }
-
+        
         if (aCase == null) {
-            aCase = caseCache.get(cleansedData.getCaseReference());
-            if (aCase == null) {
-                loggingService.logError("COPY file with missing case in cache: %s", cleansedData.getFileName());
+            String version = cleansedData.getExtractedRecordingVersion();
+            if (version == null || !version.toUpperCase().contains("COPY")) {
+                loggingService.logError("Failed to find or create case for file: %s", cleansedData.getFileName());
                 return null;
             }
+            loggingService.logError("COPY file with missing case in cache: %s", cleansedData.getFileName());
+            return null;
         }
 
         String baseKey = cacheService.generateEntityCacheKey(
@@ -112,21 +85,29 @@ public class MigrationGroupBuilderService {
             passItem
         );
         loggingService.logDebug("Migrating group: %s", migrationGroup);
-
+        migrationTrackerService.addMigratedItem(passItem);
         migrationRecordService.updateToSuccess(item.getArchiveId());
         return migrationGroup;
     }
 
     protected CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
+        
         if (isInvalidCaseReference(caseReference)) {
+            loggingService.logDebug("Invalid case reference: '%s'", caseReference);
             return null;
         }
 
-        if (caseCache.containsKey(caseReference)) {
-            return updateExistingCase(caseReference, cleansedData);
+        Optional<CreateCaseDTO> existingCaseOpt = cacheService.getCase(caseReference);
+        if (existingCaseOpt.isPresent()) {
+            CreateCaseDTO existingCase = existingCaseOpt.get();
+            loggingService.logDebug("Existing case ID: %s, Reference: %s", 
+                                existingCase.getId(), existingCase.getReference());
+            return updateExistingCase(caseReference, cleansedData, existingCase);
         }
 
+        loggingService.logDebug("Case not found in cache, creating new case for reference: '%s'", caseReference);
+        
         return createNewCase(caseReference, cleansedData);
     }
 
@@ -134,11 +115,8 @@ public class MigrationGroupBuilderService {
         return caseReference == null || caseReference.isBlank();
     }
 
-    private CreateCaseDTO updateExistingCase(String caseReference, ProcessedRecording cleansedData) {
-        CreateCaseDTO existingCase = caseCache.get(caseReference);
-        if (existingCase == null) {
-            return null;
-        }
+    private CreateCaseDTO updateExistingCase(
+        String caseReference, ProcessedRecording cleansedData, CreateCaseDTO existingCase) {
 
         Set<CreateParticipantDTO> currentParticipants = existingCase.getParticipants() != null
             ? existingCase.getParticipants()
@@ -151,6 +129,7 @@ public class MigrationGroupBuilderService {
 
         if (changed) {
             existingCase.setParticipants(updatedParticipants);
+            cacheService.saveCase(caseReference, existingCase);
         }
         return existingCase;
     }
@@ -183,7 +162,7 @@ public class MigrationGroupBuilderService {
         if (newCase == null) {
             return null;
         }
-        caseCache.put(caseReference, newCase);
+        cacheService.saveCase(caseReference, newCase);
         return newCase;
     }
 

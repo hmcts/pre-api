@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 public class EntityCreationService {
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
+    private final RecordingService recordingService;
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
 
@@ -127,7 +129,7 @@ public class EntityCreationService {
         captureSessionDTO.setStartedByUserId(vodafoneUser);
         captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
         captureSessionDTO.setFinishedByUserId(vodafoneUser);
-        captureSessionDTO.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        captureSessionDTO.setStatus(RecordingStatus.NO_RECORDING);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
         migrationRecordService.updateCaptureSessionId(cleansedData.getArchiveId(), captureSessionId);
@@ -136,44 +138,55 @@ public class EntityCreationService {
     }
 
     public CreateRecordingDTO createRecording(ProcessedRecording cleansedData, CreateCaptureSessionDTO captureSession) {
+        String version = cleansedData.getExtractedRecordingVersion();
+        boolean isCopy = "COPY".equalsIgnoreCase(version);
+        UUID parentRecordingId = null;
+
+        if (isCopy) {
+            Optional<MigrationRecord> currentRecordOpt = 
+                migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
+
+            if (currentRecordOpt.isPresent()) {
+                Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecordOpt.get());
+
+                if (maybeOrig.isEmpty()) {
+                    loggingService.logWarning("No ORIG found for COPY archiveId: %s", cleansedData.getArchiveId());
+                    return null;
+                }
+
+                parentRecordingId = maybeOrig.get().getRecordingId();
+                if (parentRecordingId == null) {
+                    loggingService.logWarning("Parent ORIG found but has no recording ID (archiveId: %s)",
+                                            maybeOrig.get().getArchiveId());
+                    return null;
+                }
+            } else {
+                loggingService.logWarning(
+                    "No migration record found for COPY archiveId: %s", cleansedData.getArchiveId());
+                return null;
+            }
+        }
+
         var recordingDTO = new CreateRecordingDTO();
         UUID recordingId = UUID.randomUUID();
         recordingDTO.setId(recordingId);
         recordingDTO.setCaptureSessionId(captureSession.getId());
-        recordingDTO.setDuration(cleansedData.getDuration());
+        recordingDTO.setDuration(null);
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
-
-        String version = cleansedData.getExtractedRecordingVersion();
-        boolean isCopy = "COPY".equalsIgnoreCase(version);
-
-        Optional<MigrationRecord> currentRecordOpt = migrationRecordService.findByArchiveId(
-            cleansedData.getArchiveId());
-
-        if (isCopy && currentRecordOpt.isPresent()) {
-            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(currentRecordOpt.get());
-
-            maybeOrig.ifPresent(orig -> {
-                UUID parentRecordingId = orig.getRecordingId();
-                if (parentRecordingId != null) {
-                    recordingDTO.setParentRecordingId(parentRecordingId);
-                } else {
-                    loggingService.logWarning(
-                        "Parent ORIG found but has no recording ID (archiveId: %s)", orig.getArchiveId());
-                }
-            });
-
-            if (maybeOrig.isEmpty()) {
-                loggingService.logWarning("No ORIG found for COPY archiveId: %s", cleansedData.getArchiveId());
-            }
+        recordingDTO.setFilename(cleansedData.getFileName());
+        
+        if (isCopy) {
+            recordingDTO.setParentRecordingId(parentRecordingId);
+            recordingDTO.setVersion(recordingService.getNextVersionNumber(parentRecordingId));
         }
 
-        recordingDTO.setFilename(cleansedData.getFileName());
         migrationRecordService.updateRecordingId(cleansedData.getArchiveId(), recordingId);
 
         return recordingDTO;
     }
 
+   
     public Set<CreateParticipantDTO> createParticipants(ProcessedRecording cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
 
@@ -319,5 +332,15 @@ public class EntityCreationService {
         result.setInvites(invites);
         result.setShareBookings(shareBookings);
         return result;
+    }
+
+    private boolean isOrigRecordingPersisted(String archiveId) {
+        Optional<MigrationRecord> maybeRecord = migrationRecordService.findByArchiveId(archiveId);
+
+        if (maybeRecord.isPresent()) {
+            Optional<MigrationRecord> maybeOrig = migrationRecordService.getOrigFromCopy(maybeRecord.get());
+            return maybeOrig.isPresent() && maybeOrig.get().getRecordingId() != null;
+        }
+        return false;
     }
 }

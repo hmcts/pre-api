@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.ExcludeSuperclassListeners;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@ExcludeSuperclassListeners 
 @Entity
 @Table(name = "vf_migration_records")
 public class MigrationRecord extends BaseEntity implements IArchiveData {

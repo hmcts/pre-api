@@ -16,7 +16,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
-import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -38,6 +37,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
+import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.service.notify.NotificationClient;
@@ -55,7 +55,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -88,13 +87,13 @@ class CaseServiceTest {
     private ShareBookingService shareBookingService;
 
     @MockitoBean
-    private CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
-
-    @MockitoBean
     private BookingRepository bookingRepository;
 
     @MockitoBean
     private EmailServiceFactory emailServiceFactory;
+
+    @MockitoBean
+    private EditRequestRepository editRequestRepository;
 
     @MockitoBean
     private NotificationClient notificationClient;
@@ -206,7 +205,7 @@ class CaseServiceTest {
         assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
 
-        verify(caseRepository, times(1)).searchCasesBy(null, null, false, courtId, false,null);
+        verify(caseRepository, times(1)).searchCasesBy(null, null, false, courtId, false, null);
     }
 
     @DisplayName("Find all cases and return list of models where reference is in list")
@@ -363,9 +362,9 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).deleteCascade(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(govNotify, times(1)).caseClosed(any(), any());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(0)).save(any());
+        verify(caseRepository, never()).save(any());
     }
 
     @Test
@@ -381,16 +380,16 @@ class CaseServiceTest {
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
         when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
-        doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
+        doThrow(FeignException.class).when(govNotify).caseClosed(any(), any());
 
         caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).deleteCascade(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(govNotify, times(1)).caseClosed(any(), any());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(0)).save(any());
+        verify(caseRepository, never()).save(any());
     }
 
     @Test
@@ -413,9 +412,9 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(govNotify, times(1)).caseClosureCancelled(any(), any());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(0)).save(any());
+        verify(caseRepository, never()).save(any());
     }
 
     @Test
@@ -438,9 +437,9 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
+        verify(govNotify, never()).caseClosureCancelled(any(), any());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(0)).save(any());
+        verify(caseRepository, never()).save(any());
     }
 
     @Test
@@ -457,16 +456,16 @@ class CaseServiceTest {
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
         when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
-        doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
+        doThrow(FeignException.class).when(govNotify).caseClosureCancelled(any(), any());
 
         caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(govNotify, times(1)).caseClosureCancelled(any(), any());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(0)).save(any());
+        verify(caseRepository, never()).save(any());
     }
 
     @Test
@@ -489,9 +488,9 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(govNotify, times(1)).casePendingClosure(any(), any(), any());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(0)).save(any());
+        verify(caseRepository, never()).save(any());
     }
 
     @Test
@@ -508,16 +507,16 @@ class CaseServiceTest {
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
         when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
-        doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
+        doThrow(FeignException.class).when(govNotify).casePendingClosure(any(), any(), any());
 
         caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
+        verify(govNotify, never()).casePendingClosure(any(), any(), any());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(0)).save(any());
+        verify(caseRepository, never()).save(any());
     }
 
     @Test
@@ -601,6 +600,32 @@ class CaseServiceTest {
             () -> caseService.upsert(caseDTOModel)
         ).getMessage();
         assertThat(message2).isEqualTo(expectedErrorMessage);
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceInWrongState when setting state to PENDING_CLOSURE with incomplete edits")
+    void updateCasePendingClosureWithIncompleteEdits() {
+        caseEntity.setState(CaseState.OPEN);
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+        caseDTOModel.setState(CaseState.PENDING_CLOSURE);
+        caseDTOModel.setClosedAt(Timestamp.from(Instant.now().plusSeconds(86400))); // +1 day
+
+        when(editRequestRepository.existsByCaseIdAndIsIncomplete(caseDTOModel.getId())).thenReturn(true);
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.of(caseEntity));
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(caseEntity)).thenReturn(List.of());
+
+        String message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> caseService.upsert(caseDTOModel)
+        ).getMessage();
+        assertThat(message)
+            .isEqualTo("Resource Case("
+                           + caseDTOModel.getId()
+                           + ") has incomplete edits which must be completed before updating state to PENDING_CLOSURE");
+
+        verify(editRequestRepository, times(1)).existsByCaseIdAndIsIncomplete(caseDTOModel.getId());
+        verify(caseRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -805,7 +830,8 @@ class CaseServiceTest {
         verify(caseRepository).findAllByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
         verify(caseRepository).save(pendingCase);
         verify(shareBookingService).deleteCascade(pendingCase);
-        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(any());
+        verify(govNotify, never()).casePendingClosure(any(), any(), any());
+        verify(govNotify, never()).caseClosed(any(), any());
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(pendingCase);
     }
 
@@ -885,72 +911,6 @@ class CaseServiceTest {
 
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
         verify(bookingService, never()).markAsDeleted(any());
-    }
-
-    @DisplayName("New email service should be used on case closed when enabled")
-    @Test
-    void caseClosedNewEmailServiceSuccess() {
-
-        var caseDTOModel = new CreateCaseDTO(caseEntity);
-        var share = createShare();
-        share.setId(UUID.randomUUID());
-        caseDTOModel.setState(CaseState.CLOSED);
-        caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
-
-        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
-            Optional.of(caseEntity.getCourt()));
-        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
-        when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
-        when(emailServiceFactory.isEnabled()).thenReturn(true);
-
-        caseService.upsert(caseDTOModel);
-
-        verify(govNotify, times(1)).caseClosed(any(), any());
-        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
-    }
-
-    @DisplayName("New email service should be used on case pending closure when enabled")
-    @Test
-    void casePendingClosureNewEmailServiceSuccess() {
-        caseEntity.setState(CaseState.OPEN);
-        var caseDTOModel = new CreateCaseDTO(caseEntity);
-        var share = createShare();
-        share.setId(UUID.randomUUID());
-        caseDTOModel.setState(CaseState.PENDING_CLOSURE);
-        caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
-
-        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
-            Optional.of(caseEntity.getCourt()));
-        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
-        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
-        when(emailServiceFactory.isEnabled()).thenReturn(true);
-
-        caseService.upsert(caseDTOModel);
-
-        verify(govNotify, times(1)).casePendingClosure(any(), any(), any());
-        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
-    }
-
-    @DisplayName("New email service should be used on case closure cancelled when enabled")
-    @Test
-    void caseClosureCancelledNewEmailServiceSuccess() {
-        caseEntity.setState(CaseState.PENDING_CLOSURE);
-        var caseDTOModel = new CreateCaseDTO(caseEntity);
-        var share = createShare();
-        share.setId(UUID.randomUUID());
-        caseDTOModel.setState(CaseState.OPEN);
-        caseDTOModel.setClosedAt(null);
-
-        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
-            Optional.of(caseEntity.getCourt()));
-        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
-        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
-        when(emailServiceFactory.isEnabled()).thenReturn(true);
-
-        caseService.upsert(caseDTOModel);
-
-        verify(govNotify, times(1)).caseClosureCancelled(any(), any());
-        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
     }
 
     private Case createTestingCase() {

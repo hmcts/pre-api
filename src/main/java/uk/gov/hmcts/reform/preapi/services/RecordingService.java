@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -71,7 +72,12 @@ public class RecordingService {
     }
 
     @Transactional
-    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
+    @PreAuthorize(
+        """
+        (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
+        and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
+        """
+    )
     public Page<RecordingDTO> findAll(
         SearchRecordings params,
         boolean includeDeleted,
@@ -229,6 +235,10 @@ public class RecordingService {
         if (filenameChanged || durationChanged) {
             recordingRepository.saveAndFlush(recording);
         }
+
+        if (recording.getParentRecording() != null) {
+            syncRecordingMetadataWithStorage(recording.getParentRecording().getId());
+        }
     }
 
     @Transactional
@@ -237,5 +247,13 @@ public class RecordingService {
             .stream()
             .map(RecordingDTO::new)
             .toList();
+    }
+
+
+    @Transactional
+    public List<RecordingDTO> findAllVodafoneRecordings() {
+        return recordingRepository.findAllOriginVodafone().stream()
+            .map(RecordingDTO::new)
+            .collect(Collectors.toList());
     }
 }

@@ -249,6 +249,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -305,6 +306,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -664,6 +666,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -710,6 +713,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -1152,6 +1156,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -1209,6 +1214,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -2751,6 +2757,7 @@ paths:
           enum:
             - PRE
             - VODAFONE
+            - VODAFONE_VISIBLE
           in: query
           name: origin
           type: string
@@ -3177,7 +3184,7 @@ paths:
         - court-controller
   /edits:
     get:
-      operationId: searchRecordings
+      operationId: searchEdits
       parameters:
         - description: The source recording's id to search by
           format: uuid
@@ -3197,6 +3204,11 @@ paths:
           name: lastModifiedBefore
           type: string
           x-example: '2024-04-27'
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
         - description: The page number of search result to return
           format: int32
           in: query
@@ -3851,6 +3863,10 @@ paths:
           in: query
           name: version
           type: integer
+        - description: The case status to search by
+          in: query
+          name: caseOpen
+          type: boolean
         - description: Sort by
           in: query
           name: sort

@@ -24,7 +24,24 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     List<MigrationRecord> findByRecordingGroupKeyStartingWith(String baseGroupKey);
 
-    boolean existsByArchiveIdAndIsMostRecentTrue(String archiveId);
+    @Query(value = """
+        select is_most_recent
+        from vf_migration_records
+        where archive_id = :archiveId
+        order by created_at desc
+        limit 1
+        """, nativeQuery = true)
+    Optional<Boolean> getIsMostRecent(@Param("archiveId") String archiveId);
+    
+
+    @Query("""
+        SELECT mr FROM MigrationRecord mr
+        WHERE CAST(mr.status as string) = 'SUCCESS'
+        AND UPPER(mr.recordingVersion) = 'ORIG'
+        AND mr.bookingId IS NOT null
+        AND mr.recordingGroupKey IS NOT null
+        """)
+    List<MigrationRecord> findShareableOrigs();
 
     @Query("""
         SELECT mr FROM MigrationRecord mr

@@ -16,18 +16,20 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 public class MigrateResolved extends BaseTask {
 
     private final Job resolvedMigrationRecordJob;
+    private final BatchImportMissingMkAssets batchImportMissingMkAssets;
 
     public MigrateResolved(UserService userService,
-                             UserAuthenticationService userAuthenticationService,
-                             @Value("${cron-user-email}") String cronUserEmail,
-                             JobLauncher jobLauncher,
-                             LoggingService loggingService,
-                             @Value("${migration.debug}") boolean debug,
-                             @Value("${migration.dry-run:false}") boolean dryRun,
-                             @Qualifier("resolvedMigrationRecordJob") Job resolvedMigrationRecordJob
-    ) {
+                           UserAuthenticationService userAuthenticationService,
+                           @Value("${vodafone-user-email}") String cronUserEmail,
+                           JobLauncher jobLauncher,
+                           LoggingService loggingService,
+                           @Value("${migration.debug}") boolean debug,
+                           @Value("${migration.dry-run:false}") boolean dryRun,
+                           @Qualifier("resolvedMigrationRecordJob") Job resolvedMigrationRecordJob,
+                           BatchImportMissingMkAssets batchImportMissingMkAssets) {
         super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug, dryRun);
         this.resolvedMigrationRecordJob = resolvedMigrationRecordJob;
+        this.batchImportMissingMkAssets = batchImportMissingMkAssets;
     }
 
     @Override
@@ -39,6 +41,7 @@ public class MigrateResolved extends BaseTask {
     public void asyncMigrateResolved() {
         try {
             run();
+            batchImportMissingMkAssets.asyncRun();
         } catch (RuntimeException e) {
             log.error("Error while migrating exclusions", e);
         }

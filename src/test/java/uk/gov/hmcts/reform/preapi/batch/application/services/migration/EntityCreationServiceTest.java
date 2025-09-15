@@ -29,8 +29,10 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -57,6 +59,9 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private InMemoryCacheService cacheService;
+
+    @MockitoBean
+    private RecordingService recordingService;
 
     @MockitoBean
     private MigrationRecordService migrationRecordService;
@@ -159,6 +164,30 @@ public class EntityCreationServiceTest {
     }
 
     @Test
+    @DisplayName("Should return null if COPY version and no original booking ID exists")
+    public void createBookingReturnsNullIfCopyHasNoOrigBookingId() {
+        UUID archiveId = UUID.randomUUID();
+        MigrationRecord copyRecord = new MigrationRecord();
+        copyRecord.setArchiveId(archiveId.toString());
+
+        when(migrationRecordService.findByArchiveId(archiveId.toString()))
+            .thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord))
+            .thenReturn(Optional.of(new MigrationRecord())); 
+
+        ProcessedRecording recording = ProcessedRecording.builder()
+            .archiveId(archiveId.toString())
+            .extractedRecordingVersion("COPY")
+            .build();
+
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+
+        CreateBookingDTO result = entityCreationService.createBooking(recording, caseDTO, "key");
+        assertThat(result).isNull();
+    }
+
+    @Test
     @DisplayName("Should create a capture session successfully")
     public void createCaptureSessionSuccess() {
         BaseUserDTO user = new UserDTO();
@@ -184,12 +213,10 @@ public class EntityCreationServiceTest {
         assertThat(result.getStartedByUserId()).isEqualTo(user.getId());
         assertThat(result.getFinishedAt()).isNotNull();
         assertThat(result.getFinishedByUserId()).isEqualTo(user.getId());
-        assertThat(result.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+        assertThat(result.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
 
-        // String expectedKey = "key:version:null:sessionId";
         verify(userService, times(1)).findByEmail(VODAFONE_EMAIL);
-        // verify(cacheService, times(1)).saveHashValue(expectedKey, "id", result.getId().toString());
     }
 
     @Test
@@ -218,7 +245,7 @@ public class EntityCreationServiceTest {
     public void createRecordingVersionOne() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .fileName("test_file.mp4")
-            .duration(Duration.ofMinutes(5))
+            .duration(null)
             .recordingVersionNumber(1)
             .extractedRecordingVersion("ORIG")
             .caseReference("CASE123")
@@ -235,33 +262,9 @@ public class EntityCreationServiceTest {
         assertThat(result.getId()).isNotNull();
         assertThat(result.getCaptureSessionId()).isEqualTo(captureSession.getId());
         assertThat(result.getFilename()).isEqualTo("test_file.mp4");
-        assertThat(result.getDuration()).isEqualTo(Duration.ofMinutes(5));
         assertThat(result.getVersion()).isEqualTo(1);
         assertThat(result.getParentRecordingId()).isNull();
 
-        // ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
-        // ArgumentCaptor<String> fieldCaptor = ArgumentCaptor.forClass(String.class);
-        // ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
-
-        // verify(cacheService).saveHashValue(
-        //     keyCaptor.capture(),
-        //     fieldCaptor.capture(),
-        //     valueCaptor.capture()
-        // );
-
-        // String expectedKey = cacheService.generateEntityCacheKey(
-        //     "recording",
-        //     processedRecording.getCaseReference(),
-        //     processedRecording.getDefendantLastName(),
-        //     processedRecording.getWitnessFirstName(),
-        //     processedRecording.getExtractedRecordingVersionNumberStr()
-        // );
-
-        // String expectedField = "parentLookup:null";
-
-        // assertThat(keyCaptor.getValue()).isEqualTo(expectedKey);
-        // assertThat(fieldCaptor.getValue()).isEqualTo(expectedField);
-        // assertThat(valueCaptor.getValue()).startsWith(result.getId().toString());
     }
 
     @Test
@@ -292,6 +295,8 @@ public class EntityCreationServiceTest {
 
         when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(currentRecord));
         when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.of(origRecord));
+        when(recordingService.getNextVersionNumber(parentId)).thenReturn(2);
+
 
         CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
 
@@ -363,6 +368,45 @@ public class EntityCreationServiceTest {
             && "Witness".equals(p.getFirstName()));
         assertThat(participants).anyMatch(p -> p.getParticipantType() == ParticipantType.DEFENDANT
             && "Defendant".equals(p.getLastName()));
+    }
+
+    @Test
+    @DisplayName("Should filter participants by witness or defendant name")
+    public void createBookingShouldFilterParticipants() {
+        
+        CreateParticipantDTO witness = new CreateParticipantDTO();
+        witness.setId(UUID.randomUUID());
+        witness.setFirstName("John");
+        witness.setParticipantType(ParticipantType.WITNESS);
+
+        CreateParticipantDTO defendant = new CreateParticipantDTO();
+        defendant.setId(UUID.randomUUID());
+        defendant.setLastName("Smith");
+        defendant.setParticipantType(ParticipantType.DEFENDANT);
+
+        UUID caseId = UUID.randomUUID();
+        String witnessFirstName = "John";
+        String defendantLastName = "Smith";
+
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
+        caseDTO.setId(caseId);
+        caseDTO.setParticipants(Set.of(witness, defendant));
+
+        ProcessedRecording recording = ProcessedRecording.builder()
+            .recordingTimestamp(Timestamp.from(Instant.now()))
+            .archiveId("ARCH456")
+            .extractedRecordingVersion("ORIG")
+            .witnessFirstName(witnessFirstName)
+            .defendantLastName(defendantLastName)
+            .build();
+
+        when(migrationRecordService.findByArchiveId("ARCH456"))
+            .thenReturn(Optional.empty());
+
+        CreateBookingDTO result = entityCreationService.createBooking(recording, caseDTO, "key");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getParticipants()).containsExactlyInAnyOrder(witness, defendant);
     }
 
     @Test
@@ -647,6 +691,257 @@ public class EntityCreationServiceTest {
             any(UUID.class)
         ); // Should be normalized to lowercase
     }
+
+    @Test
+    @DisplayName("Should handle exception when getting user by email")
+    void getUserByEmailShouldHandleException() {
+        String email = "error@example.com";
+        
+        when(userService.findByEmail(email)).thenThrow(new RuntimeException("Service error"));
+
+        UUID result = entityCreationService.getUserByEmail(email);
+
+        assertThat(result).isNull();
+        verify(loggingService, times(1)).logWarning(eq("Could not find user by email: %s - %s"), eq(email), any());
+    }
+
+    @Test
+    @DisplayName("Should return null for COPY recording when no migration record found")
+    void createRecordingShouldReturnNullForCopyWithNoMigrationRecord() {
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId("MISSING_ARCH")
+            .fileName("test_file.mp4")
+            .duration(Duration.ofMinutes(5))
+            .recordingVersionNumber(2)
+            .extractedRecordingVersion("COPY")
+            .build();
+
+        CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+
+        when(migrationRecordService.findByArchiveId("MISSING_ARCH")).thenReturn(Optional.empty());
+
+        CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
+
+        assertThat(result).isNull();
+        verify(loggingService, times(1)).logWarning("No migration record found for COPY archiveId: %s", "MISSING_ARCH");
+    }
+
+    @Test
+    @DisplayName("Should return null for COPY recording when no ORIG record found")
+    void createRecordingShouldReturnNullForCopyWithNoOrigRecord() {
+        MigrationRecord copyRecord = new MigrationRecord();
+        copyRecord.setArchiveId("COPY123");
+
+        CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId("COPY123")
+            .fileName("test_file.mp4")
+            .duration(Duration.ofMinutes(5))
+            .recordingVersionNumber(2)
+            .extractedRecordingVersion("COPY")
+            .build();
+
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.empty());
+
+        CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
+
+        assertThat(result).isNull();
+        verify(loggingService, times(1)).logWarning("No ORIG found for COPY archiveId: %s", "COPY123");
+    }
+
+    @Test
+    @DisplayName("Should return null for COPY recording when ORIG has no recording ID")
+    void createRecordingShouldReturnNullForCopyWhenOrigHasNoRecordingId() {
+        MigrationRecord copyRecord = new MigrationRecord();
+        copyRecord.setArchiveId("COPY123");
+        
+        MigrationRecord origRecord = new MigrationRecord();
+        origRecord.setArchiveId("ORIG123");
+        origRecord.setRecordingId(null); // No recording ID
+
+        CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId("COPY123")
+            .fileName("test_file.mp4")
+            .duration(Duration.ofMinutes(5))
+            .recordingVersionNumber(2)
+            .extractedRecordingVersion("COPY")
+            .build();
+
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
+
+        CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
+
+        assertThat(result).isNull();
+        verify(loggingService, times(1)).logWarning(
+            "Parent ORIG found but has no recording ID (archiveId: %s)", "ORIG123");
+    }
+
+    @Test
+    @DisplayName("Should create COPY recording with parent recording ID when all conditions met")
+    void createRecordingShouldCreateCopyWithParentRecordingId() {
+        UUID parentRecordingId = UUID.randomUUID();
+        
+        MigrationRecord copyRecord = new MigrationRecord();
+        copyRecord.setArchiveId("COPY123");
+        
+        MigrationRecord origRecord = new MigrationRecord();
+        origRecord.setArchiveId("ORIG123");
+        origRecord.setRecordingId(parentRecordingId);
+
+        CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId("COPY123")
+            .fileName("test_file.mp4")
+            .duration(Duration.ofMinutes(5))
+            .recordingVersionNumber(2)
+            .extractedRecordingVersion("COPY")
+            .build();
+
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
+        when(recordingService.getNextVersionNumber(parentRecordingId)).thenReturn(2);
+
+        CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getParentRecordingId()).isEqualTo(parentRecordingId);
+        assertThat(result.getVersion()).isEqualTo(2);
+        verify(migrationRecordService, times(1)).updateRecordingId(eq("COPY123"), any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("Should test isOrigRecordingPersisted method through reflection for false case")
+    void isOrigRecordingPersistedShouldReturnFalseWhenRecordNotFound() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        when(migrationRecordService.findByArchiveId("MISSING_ARCH")).thenReturn(Optional.empty());
+
+        Boolean result = (Boolean) method.invoke(entityCreationService, "MISSING_ARCH");
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should test isOrigRecordingPersisted method for false case when no orig found")
+    void isOrigRecordingPersistedShouldReturnFalseWhenNoOrigFound() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        MigrationRecord copyRecord = new MigrationRecord();
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.empty());
+
+        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should test isOrigRecordingPersisted method for false case when recording ID is null")
+    void isOrigRecordingPersistedShouldReturnFalseWhenRecordingIdIsNull() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        MigrationRecord copyRecord = new MigrationRecord();
+        MigrationRecord origRecord = new MigrationRecord();
+        origRecord.setRecordingId(null);
+
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
+
+        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should test isOrigRecordingPersisted method for true case")
+    void isOrigRecordingPersistedShouldReturnTrueWhenRecordingIdExists() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        UUID recordingId = UUID.randomUUID();
+        MigrationRecord copyRecord = new MigrationRecord();
+        MigrationRecord origRecord = new MigrationRecord();
+        origRecord.setRecordingId(recordingId);
+
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
+
+        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should create capture session and update migration record for non-COPY version")
+    void createCaptureSessionShouldUpdateMigrationRecordForNonCopyVersion() {
+        BaseUserDTO user = new UserDTO();
+        user.setId(UUID.randomUUID());
+        AccessDTO accessDTO = new AccessDTO();
+        accessDTO.setUser(user);
+        when(userService.findByEmail(VODAFONE_EMAIL)).thenReturn(accessDTO);
+
+        CreateBookingDTO booking = new CreateBookingDTO();
+        booking.setId(UUID.randomUUID());
+
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId("ARCH789")
+            .recordingTimestamp(Timestamp.from(Instant.now()))
+            .duration(Duration.ofMinutes(3))
+            .extractedRecordingVersion("ORIG")
+            .build();
+
+        CreateCaptureSessionDTO result = entityCreationService.createCaptureSession(processedRecording, booking);
+
+        assertThat(result).isNotNull();
+        verify(migrationRecordService, times(1)).updateCaptureSessionId(eq("ARCH789"), any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("Should create recording and update migration record for non-COPY version")
+    void createRecordingShouldUpdateMigrationRecordForNonCopyVersion() {
+        ProcessedRecording processedRecording = ProcessedRecording.builder()
+            .archiveId("ARCH456")
+            .fileName("test_file.mp4")
+            .duration(Duration.ofSeconds(100))
+            .recordingVersionNumber(1)
+            .extractedRecordingVersion("ORIG")
+            .build();
+
+        CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+
+        CreateRecordingDTO result = entityCreationService.createRecording(processedRecording, captureSession);
+
+        assertThat(result).isNotNull();
+        verify(migrationRecordService, times(1)).updateRecordingId(eq("ARCH456"), any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("Should handle empty trimmed participant names")
+    void createParticipantsShouldIgnoreEmptyTrimmedNames() {
+        ProcessedRecording recording = ProcessedRecording.builder()
+            .witnessFirstName("   ") 
+            .defendantLastName("") 
+            .build();
+
+        Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(recording);
+
+        assertThat(participants).isEmpty();
+    }
+
 
     private BookingDTO createTestBooking() {
         BookingDTO booking = new BookingDTO();

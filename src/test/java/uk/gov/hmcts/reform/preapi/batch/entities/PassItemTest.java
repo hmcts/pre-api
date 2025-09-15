@@ -17,6 +17,7 @@ class PassItemTest {
         ExtractedMetadata metadata = new ExtractedMetadata(
             "CourtRef",
             UUID.randomUUID(),
+            null,
             "urn456",
             "ex456",
             "brown",

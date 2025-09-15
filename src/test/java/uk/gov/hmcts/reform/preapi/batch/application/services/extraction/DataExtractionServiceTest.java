@@ -48,24 +48,6 @@ public class DataExtractionServiceTest {
         assertThat(result.isSuccess()).isFalse();
     }
 
-
-    // @Test
-    // @SuppressWarnings("unchecked")
-    // void processTestValidationIsNotMp4() {
-    //     MigrationRecord data = new MigrationRecord();
-    //     data.setSanitizedArchiveName("sanitizedArchiveName.exe");
-    //     var testResult = mock(ServiceResult.class);
-    //     when(testResult.isSuccess()).thenReturn(true);
-    //     when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
-    //     when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("");
-
-    //     ServiceResult<?> result = dataExtractionService.process(data);
-
-    //     assertThat(result.isSuccess()).isFalse();
-    //     assertThat(result.getErrorMessage()).isEqualTo(INVALID_FILE_EXTENSION);
-    //     assertThat(result.getCategory()).isEqualTo(FILE_INVALID_FORMAT);
-    // }
-
     @Test
     @SuppressWarnings("unchecked")
     void processTestValidationFailsPatternMatch() {
@@ -74,6 +56,8 @@ public class DataExtractionServiceTest {
         var testResult = mock(ServiceResult.class);
         doReturn(ServiceResultUtil.success(data))
             .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validateRawFile(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
@@ -95,6 +79,8 @@ public class DataExtractionServiceTest {
         var testResult = mock(ServiceResult.class);
         doReturn(ServiceResultUtil.success(data))
             .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validateRawFile(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
@@ -124,6 +110,8 @@ public class DataExtractionServiceTest {
         var testResult = mock(ServiceResult.class);
         doReturn(ServiceResultUtil.success(data))
             .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validateRawFile(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
@@ -159,6 +147,8 @@ public class DataExtractionServiceTest {
         var testResult = mock(ServiceResult.class);
         doReturn(ServiceResultUtil.success(data))
             .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validateRawFile(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
@@ -193,6 +183,8 @@ public class DataExtractionServiceTest {
         var testResult = mock(ServiceResult.class);
         doReturn(ServiceResultUtil.success(data))
             .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validateRawFile(any(MigrationRecord.class));
         when(testResult.isSuccess()).thenReturn(true);
         when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
         when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");

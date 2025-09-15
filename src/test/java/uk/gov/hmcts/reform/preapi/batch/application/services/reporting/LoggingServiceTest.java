@@ -3,12 +3,14 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
-import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -18,21 +20,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LoggingServiceTest {
     private LoggingService loggingService;
-    private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
+    private Path logPath;
+
+    @TempDir
+    Path tmp;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         loggingService = new LoggingService();
-        new File(LOG_FILE_PATH).delete();
+        Path path = tmp.resolve("output.log");
+        this.logPath = path; 
+
+        Field f = LoggingService.class.getDeclaredField("configuredPath");
+        f.setAccessible(true);
+        f.set(loggingService, path.toString());
+
         loggingService.initializeLogFile();
+    }
+
+    private String readLog() throws IOException {
+        return Files.readString(logPath);
     }
 
     @Test
     @DisplayName("Should successfully initialise log file")
     void shouldInitialiseLogFile() throws IOException {
-        File logFile = new File(LOG_FILE_PATH);
-        assertTrue(logFile.exists());
-        String content = Files.readString(logFile.toPath());
+        assertTrue(Files.exists(logPath));
+        String content = readLog();
         assertTrue(content.contains("Vodafone ETL Job Started"));
     }
 
@@ -42,7 +56,7 @@ public class LoggingServiceTest {
         loggingService.logError("Something went wrong: %d", 500);
         loggingService.logWarning("Careful: %s", "disk space low");
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertTrue(content.contains("ERROR"));
         assertTrue(content.contains("WARN"));
     }
@@ -52,7 +66,7 @@ public class LoggingServiceTest {
     void shouldNotLogDebugWhenDisabled() throws IOException {
         loggingService.setDebugEnabled(false);
         loggingService.logDebug("Should not be logged");
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertFalse(content.contains("DEBUG"));
     }
 
@@ -61,16 +75,83 @@ public class LoggingServiceTest {
     void shouldLogDebugWhenEnabled() throws IOException {
         loggingService.setDebugEnabled(true);
         loggingService.logDebug("Debug test: %d", 123);
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertTrue(content.contains("DEBUG"));
     }
 
     @Test
-    void shouldTrackAndDisplayProgress() {
-        loggingService.setTotalRecords(10);
-        for (int i = 0; i < 10; i++) {
-            loggingService.incrementProgress();
+    @DisplayName("startRun should initialise totals and log header")
+    void startRunShouldInitialiseAndLog() throws IOException {
+        loggingService.startRun("pending migration records", 23);
+
+        String content = readLog();
+        assertTrue(content.contains("Found 23 pending migration records to process")
+            || content.contains("Found 23 items to process")); 
+    }
+
+    @Test
+    @DisplayName("markHandled should log every N and at completion")
+    void markHandledShouldLogEveryNAndCompletion() throws IOException {
+        loggingService.initializeLogFile();
+        loggingService.startRun("items", 20); 
+
+        for (int i = 0; i < 9; i++) {
+            loggingService.markHandled();
         }
+        String before10 = readLog();
+        assertFalse(before10.contains("Handled 10 of 20"));
+
+        loggingService.markHandled();
+        String at10 = readLog();
+        assertTrue(at10.contains("Handled 10 of 20 (50.0%)"));
+
+        for (int i = 0; i < 10; i++) {
+            loggingService.markHandled();
+        }
+        String at20 = readLog();
+        assertTrue(at20.contains("Handled 20 of 20 (100.0%)"));
+    }
+
+    @Test
+    @DisplayName("markSuccess should log every N and at completion")
+    void markSuccessShouldLogEveryNAndCompletion() throws IOException {
+        loggingService.initializeLogFile();
+        loggingService.startRun("items", 20);
+
+        for (int i = 0; i < 9; i++) {
+            loggingService.markSuccess();
+        }
+        String before10 = readLog();
+        assertFalse(before10.contains("PROGRESS - Processed 10 of 20"));
+
+        loggingService.markSuccess();
+        String at10 = readLog();
+        assertTrue(at10.contains("PROGRESS - Processed 10 of 20 (50.0%)"));
+
+        for (int i = 0; i < 10; i++) {
+            loggingService.markSuccess();
+        }
+        String at20 = readLog();
+        assertTrue(at20.contains("PROGRESS - Processed 20 of 20 (100.0%)"));
+    }
+
+    @Test
+    @DisplayName("progressPercentage should compute correctly and cap at 100")
+    void progressPercentageShouldComputeCorrectly() throws Exception {
+        loggingService.startRun("items", 8);
+
+        var pr = LoggingService.class.getDeclaredField("processedRecords");
+        pr.setAccessible(true);
+        pr.set(loggingService, 5);
+
+        var method = LoggingService.class.getDeclaredMethod("progressPercentage");
+        method.setAccessible(true);
+        double pct = (double) method.invoke(loggingService);
+        assertEquals(62.5, pct, 0.0001);
+
+        pr.set(loggingService, 99);
+        pct = (double) method.invoke(loggingService);
+        assertEquals(100.0, pct, 0.0001);
     }
 
     @Test
@@ -102,7 +183,7 @@ public class LoggingServiceTest {
 
         loggingService.logSummary();
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
 
         assertTrue(content.contains("Total Records Processed"));
         assertTrue(content.contains("Total Migrated Items"));
@@ -122,7 +203,7 @@ public class LoggingServiceTest {
         loggingService.startTime = null;
         loggingService.logSummary();
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
 
         assertTrue(content.contains("WARN"));
         assertTrue(content.contains("Start time was not set. Using current time as fallback."));
@@ -138,7 +219,7 @@ public class LoggingServiceTest {
 
         loggingService.logSummary();
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertTrue(content.contains("| Total Execution Time      |          2 sec"));
     }
 
@@ -149,7 +230,7 @@ public class LoggingServiceTest {
 
         loggingService.logSummary();
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
         assertTrue(content.contains("| Total Records Processed   |          0"));
         assertTrue(content.contains("| Total Migrated Items      |          0"));
         assertTrue(content.contains("| Total Failed Items        |          0"));
@@ -160,10 +241,35 @@ public class LoggingServiceTest {
     void shouldLogInfoWithCorrectFormatAndCallerInfo() throws IOException {
         loggingService.logInfo("Informational message: %s", "Data processed");
 
-        String content = Files.readString(new File(LOG_FILE_PATH).toPath());
+        String content = readLog();
 
         assertTrue(content.contains("INFO"));
         assertTrue(content.contains("Informational message: Data processed"));
         assertTrue(content.contains("[LoggingServiceTest.shouldLogInfoWithCorrectFormatAndCallerInfo]"));
+    }
+
+    @Test
+    @DisplayName("Should disable file logging after write failure when path is a directory")
+    void shouldDisableFileLoggingAfterWriteFailure() throws Exception {
+        LoggingService service = new LoggingService();
+
+        Field configuredPath = LoggingService.class.getDeclaredField("configuredPath");
+        configuredPath.setAccessible(true);
+        configuredPath.set(service, "");
+        service.initializeLogFile();
+
+        Field logPath = LoggingService.class.getDeclaredField("logPath");
+        logPath.setAccessible(true);
+        logPath.set(service, tmp); 
+
+        Field fileLoggingEnabled = LoggingService.class.getDeclaredField("fileLoggingEnabled");
+        fileLoggingEnabled.setAccessible(true);
+        fileLoggingEnabled.set(service, true);
+
+        service.setDebugEnabled(true);
+        service.logError("This will fail to write");
+
+        assertFalse((boolean) fileLoggingEnabled.get(service),
+            "file logging should be disabled after write failure");
     }
 }

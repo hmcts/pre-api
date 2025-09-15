@@ -5,8 +5,8 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ public class InMemoryCacheService {
     private final Map<String, Map<String, Object>> hashStore = new ConcurrentHashMap<>();
 
     private final Map<String, CourtDTO> courtCache = new ConcurrentHashMap<>();
-    private final Map<String, CaseDTO> caseCache = new ConcurrentHashMap<>();
+    private final Map<String, CreateCaseDTO> caseCache = new ConcurrentHashMap<>();
     private final Map<String, CreateShareBookingDTO> shareBookingCache = new ConcurrentHashMap<>();
     private final Map<String, UUID> userCache = new ConcurrentHashMap<>();
 
@@ -49,8 +49,47 @@ public class InMemoryCacheService {
         return Optional.ofNullable(courtCache.get(courtName));
     }
 
-    public void saveCase(String caseRef, CaseDTO caseDTO) {
-        caseCache.put(caseRef, caseDTO);
+    public Optional<CreateCaseDTO> getCase(String caseRef) {
+        if (caseRef == null || caseRef.trim().isEmpty()) {
+            loggingService.logDebug("Attempted to get case with null or empty reference");
+            return Optional.empty();
+        }
+
+        String normalizedRef = normalizeCaseReference(caseRef);
+        loggingService.logInfo("Getting case from cache - Original: '%s', Normalized: '%s'", caseRef, normalizedRef);
+        CreateCaseDTO result = caseCache.get(normalizedRef);
+        if (result != null) {
+            loggingService.logInfo("Found case in cache: %s", result.getId());
+        } else {
+            loggingService.logInfo("Case not found in cache for reference: '%s'", normalizedRef);
+        }
+        
+
+        return Optional.ofNullable(result);
+    }
+
+    public void saveCase(String caseRef, CreateCaseDTO caseDTO) {
+        if (caseRef == null || caseRef.trim().isEmpty()) {
+            loggingService.logInfo("Case ref is null or empty: %s", caseRef);
+            return;
+        }
+        if (caseDTO == null) {
+            loggingService.logInfo("CaseDTO is null");
+            return;
+        }
+        
+        String normalizedRef = normalizeCaseReference(caseRef);
+        loggingService.logInfo("Saving case to cache - Original: '%s', Normalized: '%s', Case ID: %s", 
+                          caseRef, normalizedRef, caseDTO.getId());
+        caseCache.put(normalizedRef, caseDTO);
+    }
+
+
+    private String normalizeCaseReference(String caseRef) {
+        if (caseRef == null) {
+            return null;
+        }
+        return caseRef.trim().toUpperCase().replaceAll("\\s+", " ");  
     }
 
     public void saveShareBooking(String cacheKey, CreateShareBookingDTO dto) {
@@ -62,6 +101,10 @@ public class InMemoryCacheService {
     }
 
     public void saveUser(String email, UUID userID) {
+        if (email == null || email.isBlank() || userID == null) {
+            loggingService.logWarning("Skipping saveUser: email or userID missing");
+            return;
+        }
         String lowerEmail = email.toLowerCase();
         userCache.put(lowerEmail, userID);
         saveHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, userID.toString());
@@ -143,7 +186,7 @@ public class InMemoryCacheService {
         }
 
         //  caseCache
-        for (Map.Entry<String, CaseDTO> entry : caseCache.entrySet()) {
+        for (Map.Entry<String, CreateCaseDTO> entry : caseCache.entrySet()) {
             rows.add(List.of("db:cases", entry.getKey(), entry.getValue().toString()));
         }
 

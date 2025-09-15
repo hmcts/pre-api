@@ -10,6 +10,7 @@ locals {
   env_to_deploy    = 1
   env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
+  api_revision     = "121"
 }
 
 data "azurerm_client_config" "current" {}
@@ -41,7 +42,7 @@ module "pre_api" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API"
-  revision              = "115"
+  revision              = local.api_revision
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url
@@ -174,4 +175,32 @@ module "pre-api-mgmt-api-policy" {
     </on-error>
 </policies>
 XML
+}
+
+module "pre_b2c_product" {
+  count                 = var.env == "prod" ? 0 : 1
+  source                = "git@github.com:hmcts/cnp-module-api-mgmt-product?ref=master"
+  api_mgmt_name         = "sds-api-mgmt-${var.env}"
+  api_mgmt_rg           = "ss-${var.env}-network-rg"
+  approval_required     = false
+  name                  = "pre-api-b2c"
+  published             = true
+  subscription_required = false
+}
+
+module "pre_api_b2c" {
+  count                 = var.env == "prod" ? 0 : 1
+  source                = "git@github.com:hmcts/cnp-module-api-mgmt-api?ref=master"
+  name                  = "pre-api-b2c"
+  api_mgmt_rg           = "ss-${var.env}-network-rg"
+  api_mgmt_name         = "sds-api-mgmt-${var.env}"
+  display_name          = "Pre Recorded Evidence API B2C"
+  revision              = local.api_revision
+  product_id            = module.pre_b2c_product[0].product_id
+  path                  = "pre-api-b2c"
+  service_url           = local.apim_service_url
+  swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api-b2c.json"
+  content_format        = "openapi+json-link"
+  protocols             = ["http", "https"]
+  subscription_required = false
 }
