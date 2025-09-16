@@ -82,7 +82,6 @@ public class ProcessCSVJobConfig {
             .writer(coreSteps.getDryRunFlag() ? coreSteps.noOpWriter() : writer)
             .faultTolerant()
             .skipLimit(BatchConfiguration.SKIP_LIMIT)
-            .skip(Exception.class)
             .build();
     }
 
@@ -92,7 +91,7 @@ public class ProcessCSVJobConfig {
                                                                         LoggingService loggingService) {
         List<MigrationRecord> pending = repository.findAllByStatus(VfMigrationStatus.PENDING);
         loggingService.startRun("pending migration records", pending.size());
-        
+
         if (pending.isEmpty()) {
             loggingService.logInfo("No pending migration records found.");
         } else {
