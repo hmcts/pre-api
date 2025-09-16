@@ -6,6 +6,8 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -31,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
+@Transactional(propagation = Propagation.REQUIRES_NEW)
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final LoggingService loggingService;
     private final CaseService caseService;
@@ -148,7 +151,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         Map<String, CreateParticipantDTO> union = new HashMap<>();
         if (persisted.getParticipants() != null) {
             for (ParticipantDTO p : persisted.getParticipants()) {
-                union.put(p.getParticipantType() + "|" + normalize(p.getFirstName()) 
+                union.put(p.getParticipantType() + "|" + normalize(p.getFirstName())
                     + "|" + normalize(p.getLastName()), toCreate(p));
             }
         }
@@ -239,7 +242,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         Map<String, ParticipantDTO> persistedMap = new HashMap<>();
         if (persistedCase.getParticipants() != null) {
             for (ParticipantDTO p : persistedCase.getParticipants()) {
-                String key = p.getParticipantType() + "|" + normalize(p.getFirstName()) 
+                String key = p.getParticipantType() + "|" + normalize(p.getFirstName())
                     + "|" + normalize(p.getLastName());
                 persistedMap.put(key, p);
             }
@@ -251,7 +254,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 ParticipantDTO match = persistedMap.get(key);
                 if (match != null) {
                     var cp = new CreateParticipantDTO();
-                    cp.setId(match.getId()); 
+                    cp.setId(match.getId());
                     cp.setParticipantType(match.getParticipantType());
                     cp.setFirstName(match.getFirstName());
                     cp.setLastName(match.getLastName());
@@ -266,8 +269,8 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         booking.setParticipants(remapped);
     }
 
-    private static String normalize(String s) { 
-        return s == null ? "" : s.trim().toLowerCase(); 
+    private static String normalize(String s) {
+        return s == null ? "" : s.trim().toLowerCase();
     }
 
     private static String participantKey(CreateParticipantDTO p) {
