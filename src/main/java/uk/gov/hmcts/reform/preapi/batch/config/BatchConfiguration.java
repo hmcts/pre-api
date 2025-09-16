@@ -91,19 +91,6 @@ public class BatchConfiguration implements StepExecutionListener {
                     preProcessor.initialize();
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
-            .listener(new StepExecutionListener() {
-                @Override
-                public void beforeStep(StepExecution stepExecution) {
-                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
-                }
-
-                @Override
-                public ExitStatus afterStep(StepExecution stepExecution) {
-                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
-                        stepExecution.getExitStatus());
-                    return stepExecution.getExitStatus();
-                }
-            })
             .build();
     }
 
@@ -125,19 +112,6 @@ public class BatchConfiguration implements StepExecutionListener {
 
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
-            .listener(new StepExecutionListener() {
-                @Override
-                public void beforeStep(StepExecution stepExecution) {
-                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
-                }
-
-                @Override
-                public ExitStatus afterStep(StepExecution stepExecution) {
-                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
-                        stepExecution.getExitStatus());
-                    return stepExecution.getExitStatus();
-                }
-            })
             .build();
     }
 
@@ -149,19 +123,6 @@ public class BatchConfiguration implements StepExecutionListener {
                     migrationTrackerService.writeAllToCsv();
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
-            .listener(new StepExecutionListener() {
-                @Override
-                public void beforeStep(StepExecution stepExecution) {
-                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
-                }
-
-                @Override
-                public ExitStatus afterStep(StepExecution stepExecution) {
-                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
-                        stepExecution.getExitStatus());
-                    return stepExecution.getExitStatus();
-                }
-            })
             .build();
     }
 
@@ -173,19 +134,6 @@ public class BatchConfiguration implements StepExecutionListener {
                     robotUserTask.signIn();
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
-            .listener(new StepExecutionListener() {
-                @Override
-                public void beforeStep(StepExecution stepExecution) {
-                    loggingService.logInfo("[STEP-START] %s", stepExecution.getStepName());
-                }
-
-                @Override
-                public ExitStatus afterStep(StepExecution stepExecution) {
-                    loggingService.logInfo("[STEP-END] %s status=%s", stepExecution.getStepName(),
-                        stepExecution.getExitStatus());
-                    return stepExecution.getExitStatus();
-                }
-            })
             .build();
     }
 
