@@ -1,8 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.config;
 
-import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
