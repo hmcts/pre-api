@@ -98,8 +98,11 @@ public class PostProcessMigrationTest {
         JobParametersInvalidException,
         JobRestartException {
 
+        var causeException = new RuntimeException("Test");
+        var jobException = new JobExecutionAlreadyRunningException("Test", causeException);
+
         when(jobLauncher.run(eq(postMigrationJob), any()))
-            .thenThrow(new JobExecutionAlreadyRunningException("Test"));
+            .thenThrow(jobException);
 
         var postProcessMigration = new PostProcessMigration(
             userService,
