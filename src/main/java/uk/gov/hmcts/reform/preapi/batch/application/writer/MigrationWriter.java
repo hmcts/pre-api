@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
-@Transactional(propagation = Propagation.REQUIRES_NEW)
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
     private final LoggingService loggingService;
     private final CaseService caseService;
@@ -105,7 +104,8 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         }
     }
 
-    private boolean processItem(MigratedItemGroup item) {
+    @Transactional(propagation = Propagation.REQUIRED)
+    protected boolean processItem(MigratedItemGroup item) {
         try {
             CaseDTO persistedCase = processCaseData(item.getCase());
             if (persistedCase == null) {
