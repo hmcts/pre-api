@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,7 +49,7 @@ public class FetchDataTest {
 
         var baseAppAccessDTO = new BaseAppAccessDTO();
         baseAppAccessDTO.setId(UUID.randomUUID());
-        
+
         var accessDto = new AccessDTO();
         accessDto.setAppAccess(Set.of(baseAppAccessDTO));
 
@@ -141,7 +142,7 @@ public class FetchDataTest {
         fetchData.run();
 
         verify(loggingService, times(1))
-            .logError(eq("Error starting Fetch Data batch job"),
+            .logError(startsWith("Error starting Fetch Data batch job"),
                       any(JobExecutionAlreadyRunningException.class));
     }
 }

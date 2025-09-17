@@ -25,6 +25,7 @@ import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -114,7 +115,7 @@ public class PostProcessMigrationTest {
 
         verify(loggingService, times(1))
             .logError(
-                eq("Error starting Post Migration batch job"),
+                startsWith("Error starting Post Migration batch job"),
                 any(JobExecutionAlreadyRunningException.class)
             );
     }

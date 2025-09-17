@@ -54,9 +54,11 @@ public abstract class BaseTask extends RobotUserTask {
 
         } catch (Exception e) {
             var rootCause = e.getCause() != null ? e.getCause() : e;
-            loggingService.logError("Error starting " + jobName + " batch job." +
-                                        " Root Cause: " + rootCause.getMessage() +
-                                        " Stack trace: " + Arrays.toString(rootCause.getStackTrace()), e);
+            loggingService.logError(
+                "Error starting " + jobName + " batch job."
+                    + " Root Cause: " + rootCause.getMessage()
+                    + " Stack trace: " + Arrays.toString(rootCause.getStackTrace()), e
+            );
         }
     }
 }
