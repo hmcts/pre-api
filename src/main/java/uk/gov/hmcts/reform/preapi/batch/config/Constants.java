@@ -78,7 +78,11 @@ public final class Constants {
 
         // Pattern match errors
         public static final String PATTERN_MATCH = "The filename does not match any known or supported format.";
+
+        public static final String CASE_HAS_DELETED_PARTICIPANTS =
+            "Case contains deleted participants; migration cannot proceed.";
     }
+
 
     public static final class XmlFields {
         public static final String DISPLAY_NAME = "Display Name";
