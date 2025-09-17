@@ -17,7 +17,7 @@ import java.util.Arrays;
 public abstract class BaseTask extends RobotUserTask {
 
     private final JobLauncher jobLauncher;
-    protected final LoggingService loggingService;
+    private final LoggingService loggingService;
     private final boolean debug;
     private final boolean dryRun;
 
