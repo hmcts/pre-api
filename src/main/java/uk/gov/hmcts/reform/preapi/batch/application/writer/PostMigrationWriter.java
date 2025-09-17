@@ -13,7 +13,7 @@ import uk.gov.hmcts.reform.preapi.services.InviteService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 @Component
-@Transactional(propagation = Propagation.REQUIRED)
+@Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
 public class PostMigrationWriter implements ItemWriter<PostMigratedItemGroup> {
     private final InviteService inviteService;
     private final ShareBookingService shareBookingService;
