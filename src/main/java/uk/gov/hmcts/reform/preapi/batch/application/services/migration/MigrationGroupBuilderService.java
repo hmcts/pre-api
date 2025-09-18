@@ -77,6 +77,8 @@ public class MigrationGroupBuilderService {
                 item.getArchiveId(), CASE_HAS_DELETED_PARTICIPANTS);
             migrationTrackerService.addFailedItem(new FailedItem(item, 
                 CASE_HAS_DELETED_PARTICIPANTS,  VfFailureReason.INCOMPLETE_DATA.toString()));
+            migrationRecordService.updateToFailed(cleansedData.getArchiveId(), 
+                VfFailureReason.INCOMPLETE_DATA.toString(), CASE_HAS_DELETED_PARTICIPANTS);
             return null;
         }
 
