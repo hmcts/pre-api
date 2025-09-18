@@ -115,7 +115,9 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
             CreateBookingDTO booking = item.getBooking();
             if (booking != null) {
                 booking.setCaseId(persistedCase.getId());
-                remapBookingParticipantsToPersisted(booking, persistedCase);
+                if (persistedCase.getParticipants() != null && !persistedCase.getParticipants().isEmpty()) {
+                    remapBookingParticipantsToPersisted(booking, persistedCase);
+                }
             }
             boolean bookingOk = processBookingData(item.getBooking());
             boolean captureOk = processCaptureSessionData(item.getCaptureSession());
@@ -259,9 +261,12 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                     cp.setFirstName(match.getFirstName());
                     cp.setLastName(match.getLastName());
                     return cp;
+                } else {
+                    loggingService.logInfo(
+                        "Booking participant not in persisted case, will create: %s", key
+                    );
+                    return p; 
                 }
-                loggingService.logWarning("Booking participant not in persisted case, skipping: %s", key);
-                return null;
             })
             .filter(Objects::nonNull)
             .collect(java.util.stream.Collectors.toSet());
