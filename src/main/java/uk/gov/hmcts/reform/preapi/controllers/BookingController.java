@@ -51,7 +51,6 @@ import static org.springframework.http.ResponseEntity.ok;
 public class BookingController extends PreApiController {
 
     private final BookingService bookingService;
-
     private final ShareBookingService shareBookingService;
 
     @Autowired
