@@ -11,6 +11,8 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.tasks.RobotUserTask;
 
+import java.util.Arrays;
+
 @Component
 public abstract class BaseTask extends RobotUserTask {
 
@@ -51,7 +53,12 @@ public abstract class BaseTask extends RobotUserTask {
             loggingService.logInfo("Successfully completed " + jobName + " batch job");
 
         } catch (Exception e) {
-            loggingService.logError("Error starting " + jobName + " batch job", e);
+            var rootCause = e.getCause() != null ? e.getCause() : e;
+            loggingService.logError(
+                "Error starting " + jobName + " batch job."
+                    + " Root Cause: " + rootCause.getMessage()
+                    + " Stack trace: " + Arrays.toString(rootCause.getStackTrace()), e
+            );
         }
     }
 }

@@ -62,6 +62,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 failureCount.incrementAndGet();
                 loggingService.logError("Failed to process migrated item: %s | %s",
                     item.getCase().getReference(), e.getMessage());
+
             }
         }
 
