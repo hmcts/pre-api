@@ -26,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -63,6 +64,9 @@ class ProcessorTest {
 
     @MockitoBean
     private MigrationTrackerService migrationTrackerService;
+
+    @MockitoBean
+    private CaseRepository caseRepository;
 
     @MockitoBean
     private ReferenceDataProcessor referenceDataProcessor;
@@ -260,7 +264,7 @@ class ProcessorTest {
         verify(migrationRecordService).updateToFailed(
             anyString(),
             eq(VfFailureReason.CASE_CLOSED.toString()),
-            argThat(msg -> msg.contains("CLOSED") && msg.contains("1234567890"))
+            argThat(msg -> msg.contains("closed") && msg.contains("1234567890"))
         );
         verify(migrationTrackerService).addFailedItem(any());
         verify(migrationService, never()).createMigratedItemGroup(any(), any());
@@ -285,7 +289,7 @@ class ProcessorTest {
         verify(migrationRecordService).updateToFailed(
             anyString(),
             eq(VfFailureReason.CASE_CLOSED.toString()),
-            argThat(msg -> msg.contains("CLOSED") && msg.contains("1234567890"))
+            argThat(msg -> msg.contains("closed") && msg.contains("1234567890"))
         );
         verify(migrationTrackerService).addFailedItem(any());
         verify(migrationService, never()).createMigratedItemGroup(any(), any());
