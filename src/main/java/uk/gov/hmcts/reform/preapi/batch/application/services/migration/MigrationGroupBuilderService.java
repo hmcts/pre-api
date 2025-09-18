@@ -86,7 +86,7 @@ public class MigrationGroupBuilderService {
         );
         loggingService.logDebug("Migrating group: %s", migrationGroup);
         migrationTrackerService.addMigratedItem(passItem);
-        migrationRecordService.updateToSuccess(item.getArchiveId());
+        // migrationRecordService.updateToSuccess(item.getArchiveId());
         return migrationGroup;
     }
 
