@@ -180,9 +180,10 @@ public class MigrationItemExecutor {
                     cp.setFirstName(match.getFirstName());
                     cp.setLastName(match.getLastName());
                     return cp;
+                } else {
+                    loggingService.logInfo("Booking participant not in persisted case, will create: %s", key);
+                    return p; 
                 }
-                loggingService.logWarning("Booking participant not in persisted case, skipping: %s", key);
-                return null;
             })
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
