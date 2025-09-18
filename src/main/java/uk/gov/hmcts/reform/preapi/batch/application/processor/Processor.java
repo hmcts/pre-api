@@ -132,7 +132,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                if (!isCaseOpen(cleansedData, extractedData)) {
+                if (!isCaseOpenAndNotDeleted(cleansedData, extractedData)) {
                     loggingService.markHandled();
                     return null; 
                 }
@@ -161,7 +161,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                if (!isCaseOpen(cleansedData, extractedData)) {
+                if (!isCaseOpenAndNotDeleted(cleansedData, extractedData)) {
                     return null; 
                 }
 
@@ -333,7 +333,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         boolean isDeleted = caseRepository.findAllByReference(caseRef).stream().anyMatch(c -> c.getDeletedAt() != null);
 
         if (isClosed || isDeleted) {
-            String msg = "Case %s is in a closed or deleted state; cannot create bookings/capture sessions/recordings".formatted(caseRef);
+            String msg = "Case %s is in a closed or deleted state; cannot create bookings/capture sessions/recordings"
+                .formatted(caseRef);
 
             migrationRecordService.updateToFailed(extractedData.getArchiveId(), 
                 VfFailureReason.CASE_CLOSED.toString(), msg);
