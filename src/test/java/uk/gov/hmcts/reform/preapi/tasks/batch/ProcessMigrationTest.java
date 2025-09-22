@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -147,7 +148,7 @@ public class ProcessMigrationTest {
 
         verify(loggingService, times(1))
             .logError(
-                eq("Error starting Transform batch job"),
+                startsWith("Error starting Transform batch job"),
                 any(JobExecutionAlreadyRunningException.class)
             );
     }

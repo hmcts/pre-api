@@ -815,6 +815,39 @@ class BookingControllerFT extends FunctionalTestBase {
         @EnumSource(value = TestingSupportRoles.class,
             names = {"SUPER_USER", "LEVEL_3"},
             mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to VODAFONE_VISIBLE bookings to non super user requests")
+        void findAllBookingsVodafoneVisibleCasesForNonSuperUser(TestingSupportRoles role)
+            throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.VODAFONE_VISIBLE);
+            caseDto.setCourtId(authenticatedUserIds.get(role).courtId());
+
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = doPutRequest(
+                CASES_ENDPOINT + "/" + caseDto.getId(),
+                OBJECT_MAPPER.writeValueAsString(caseDto),
+                TestingSupportRoles.SUPER_USER
+            );
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+
+            var getBookings = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
+            assertResponseCode(getBookings, 200);
+            assertThat(getBookings.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class,
+            names = {"SUPER_USER", "LEVEL_3"},
+            mode = EnumSource.Mode.EXCLUDE)
         @DisplayName("Should not hide bookings with VODAFONE capture session in non super user requests")
         void findAllBookingsHideVodafoneCasesForNonSuperUserWhereCaptureSessionIsVf(TestingSupportRoles role)
             throws JsonProcessingException {

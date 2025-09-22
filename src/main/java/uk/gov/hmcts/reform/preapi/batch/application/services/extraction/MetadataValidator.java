@@ -18,6 +18,7 @@ import java.util.Locale;
 
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.NOT_PREFERRED;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PREDATES_GO_LIVE;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.RAW_FILE;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_DURATION;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_ITEM_NAME;
 
@@ -59,6 +60,15 @@ public class MetadataValidator {
         return !isValidExtension(extension)
             ? ServiceResultUtil.failure(NOT_PREFERRED, VfFailureReason.INVALID_FORMAT.toString())
             : ServiceResultUtil.success(extension);
+    }
+
+    public ServiceResult<?> validateRawFile(MigrationRecord archiveItem) {
+        if (archiveItem.getArchiveName().toLowerCase().contains(".raw") 
+            || archiveItem.getArchiveName().toLowerCase().contains(".r")) {
+            return ServiceResultUtil.failure(RAW_FILE, VfFailureReason.RAW_FILES.toString());
+        }
+
+        return ServiceResultUtil.success(archiveItem);
     }
 
     public ServiceResult<?> validateExtractedMetadata(ExtractedMetadata extractedData) {

@@ -835,6 +835,41 @@ public class AuthorisationServiceTest {
     }
 
     @Test
+    @DisplayName("Should grant access when caseOpen param is null")
+    void canSearchByCaseClosedCaseOpenNull() {
+        assertTrue(authorisationService.canSearchByCaseClosed(authenticationUser, null));
+    }
+
+    @Test
+    @DisplayName("Should grant access when caseOpen param is true")
+    void canSearchByCaseClosedCaseOpenTrue() {
+        assertTrue(authorisationService.canSearchByCaseClosed(authenticationUser, true));
+    }
+
+    @Test
+    @DisplayName("Should grant access when caseOpen param is false and user is admin")
+    void canSearchByCaseClosedCaseOpenFalseIsAdmin() {
+        when(authenticationUser.isAdmin()).thenReturn(true);
+        assertTrue(authorisationService.canSearchByCaseClosed(authenticationUser, false));
+    }
+
+    @Test
+    @DisplayName("Should grant access when caseOpen param is false and user is level 2")
+    void canSearchByCaseClosedCaseOpenFalseIsLevel2() {
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getAuthorities()).thenReturn(List.of(new SimpleGrantedAuthority("ROLE_LEVEL_2")));
+        assertTrue(authorisationService.canSearchByCaseClosed(authenticationUser, false));
+    }
+
+    @Test
+    @DisplayName("Should not grant access when caseOpen param is false and user is not admin or level 2")
+    void canSearchByCaseClosedCaseOpenFalseIsNotAdminOrLevel2() {
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getAuthorities()).thenReturn(List.of(new SimpleGrantedAuthority("ROLE_LEVEL_3")));
+        assertFalse(authorisationService.canSearchByCaseClosed(authenticationUser, false));
+    }
+
+    @Test
     @DisplayName("Should grant upsert access when the user has access to recording for edit requests")
     void hasUpsertAccessEditRequest() {
         var dto = new CreateEditRequestDTO();
@@ -973,6 +1008,23 @@ public class AuthorisationServiceTest {
         when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
 
         assertFalse(authorisationService.hasCaseAccess(authenticationUser, caseId));
+    }
+
+    @Test
+    void hasCaseAccessNotSuperUserMigratedDataDisabledVodafoneVisible() {
+        UUID caseId = UUID.randomUUID();
+        Case caseEntity = new Case();
+        caseEntity.setId(caseId);
+        caseEntity.setOrigin(RecordingOrigin.VODAFONE_VISIBLE);
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        caseEntity.setCourt(court);
+
+        when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseEntity));
+        when(authenticationUser.getCourtId()).thenReturn(caseEntity.getCourt().getId());
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+
+        assertTrue(authorisationService.hasCaseAccess(authenticationUser, caseId));
     }
 
     @Test

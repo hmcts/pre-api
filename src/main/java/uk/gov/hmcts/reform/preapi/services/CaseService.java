@@ -30,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
+import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
@@ -53,18 +54,20 @@ public class CaseService {
     private final ShareBookingService shareBookingService;
     private final BookingRepository bookingRepository;
     private final EmailServiceFactory emailServiceFactory;
+    private final EditRequestRepository editRequestRepository;
 
     private final boolean enableMigratedData;
 
     @Autowired
-    public CaseService(CaseRepository caseRepository,
-                       CourtRepository courtRepository,
-                       ParticipantRepository participantRepository,
-                       BookingService bookingService,
-                       ShareBookingService shareBookingService,
-                       @Lazy BookingRepository bookingRepository,
-                       EmailServiceFactory emailServiceFactory,
-                       @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
+    public CaseService(final CaseRepository caseRepository,
+                       final CourtRepository courtRepository,
+                       final ParticipantRepository participantRepository,
+                       final BookingService bookingService,
+                       final ShareBookingService shareBookingService,
+                       final @Lazy BookingRepository bookingRepository,
+                       final EmailServiceFactory emailServiceFactory,
+                       final EditRequestRepository editRequestRepository,
+                       final @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
@@ -72,6 +75,7 @@ public class CaseService {
         this.shareBookingService = shareBookingService;
         this.bookingRepository = bookingRepository;
         this.emailServiceFactory = emailServiceFactory;
+        this.editRequestRepository = editRequestRepository;
         this.enableMigratedData = enableMigratedData;
     }
 
@@ -143,23 +147,28 @@ public class CaseService {
             isCasePendingClosure = foundCase.get().getState() == CaseState.OPEN
                 && createCaseDTO.getState() == CaseState.PENDING_CLOSURE;
 
-            if ((isCasePendingClosure || isCaseClosure) && bookingRepository
-                .findAllByCaseIdAndDeletedAtIsNull(foundCase.get())
-                .stream()
-                .anyMatch(b -> b.getCaptureSessions().isEmpty()
-                    || b.getCaptureSessions()
-                    .stream()
-                    .map(CaptureSession::getStatus)
-                    .anyMatch(s -> s != RecordingStatus.FAILURE
-                        && s != RecordingStatus.NO_RECORDING
-                        && s != RecordingStatus.RECORDING_AVAILABLE)
-                )
-            ) {
-                throw new ResourceInWrongStateException(
-                    "Resource Case("
-                        + createCaseDTO.getId()
-                        + ") has open bookings which must not be present when updating state to "
-                        + createCaseDTO.getState());
+            if (isCasePendingClosure || isCaseClosure) {
+                if (bookingRepository.findAllByCaseIdAndDeletedAtIsNull(foundCase.get()).stream()
+                    .anyMatch(b -> b.getCaptureSessions().isEmpty() || b.getCaptureSessions().stream()
+                        .map(CaptureSession::getStatus)
+                        .anyMatch(s -> s != RecordingStatus.FAILURE
+                            && s != RecordingStatus.NO_RECORDING
+                            && s != RecordingStatus.RECORDING_AVAILABLE))) {
+
+                    throw new ResourceInWrongStateException(
+                        "Resource Case("
+                            + createCaseDTO.getId()
+                            + ") has open bookings which must not be present when updating state to "
+                            + createCaseDTO.getState());
+                }
+
+                if (editRequestRepository.existsByCaseIdAndIsIncomplete(createCaseDTO.getId())) {
+                    throw new ResourceInWrongStateException(
+                        "Resource Case("
+                            + createCaseDTO.getId()
+                            + ") has incomplete edits which must be completed before updating state to "
+                            + createCaseDTO.getState());
+                }
             }
         }
 

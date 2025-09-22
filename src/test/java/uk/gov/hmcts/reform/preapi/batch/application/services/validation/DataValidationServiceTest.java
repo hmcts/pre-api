@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -97,7 +98,7 @@ public class DataValidationServiceTest {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
             .isMostRecentVersion(true)
-            .caseReference("SHORTREF")
+            .caseReference("SHORT")
             .build();
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
@@ -134,6 +135,10 @@ public class DataValidationServiceTest {
     @Test
     @DisplayName("Should return failure when no parent recording found")
     void validateProcessedRecordingVersionGT1NoExistingMetadata() {
+        MigrationRecord currentRecord = new MigrationRecord();
+        
+        when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
+
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
             .isMostRecentVersion(true)
@@ -146,11 +151,6 @@ public class DataValidationServiceTest {
             .archiveId("ARCHIVE123")
             .build();
 
-        MigrationRecord currentRecord = new MigrationRecord();
-        when(migrationRecordService.findByArchiveId("ARCHIVE123")).thenReturn(Optional.of(currentRecord));
-        when(migrationRecordRepository.existsByArchiveIdAndIsMostRecentTrue("ARCHIVE123"))
-            .thenReturn(true);
-        when(migrationRecordService.getOrigFromCopy(currentRecord)).thenReturn(Optional.empty());
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
             processedRecording
@@ -164,8 +164,33 @@ public class DataValidationServiceTest {
     }
 
     @Test
+    @DisplayName("Should succeed for COPY in processed when parent exists and most recent")
+    void validateProcessedRecordingCopySuccessWhenParentAndMostRecent() {
+        MigrationRecord current = new MigrationRecord();
+        current.setParentTempId(UUID.randomUUID());
+        
+        when(migrationRecordService.findByArchiveId("ARCH123")).thenReturn(Optional.of(current));
+        when(migrationRecordRepository.getIsMostRecent("ARCH123")).thenReturn(Optional.of(true));
+
+        ProcessedRecording pr = ProcessedRecording.builder()
+            .court(new Court())
+            .archiveId("ARCH123")
+            .extractedRecordingVersion("COPY")
+            .caseReference("123456789")
+            .isPreferred(true)
+            .build();
+
+        ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(pr);
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isEqualTo(pr);
+        assertThat(result.getErrorMessage()).isNull();
+    }
+
+    @Test
     @DisplayName("Should return failure when recording is not preferred")
     void validateProcessedRecordingNonPreferred() {
+
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
             .archiveId("ARCH123")
@@ -175,8 +200,11 @@ public class DataValidationServiceTest {
             .isPreferred(false)
             .build();
 
-        when(migrationRecordRepository.existsByArchiveIdAndIsMostRecentTrue("ARCH123"))
-            .thenReturn(true);
+        when(migrationRecordService.findByArchiveId("ARCH123"))
+            .thenReturn(Optional.empty());
+
+        when(migrationRecordRepository.getIsMostRecent("ARCH123"))
+            .thenReturn(Optional.of(true));
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
             processedRecording
@@ -428,5 +456,62 @@ public class DataValidationServiceTest {
         assertThat(result.getErrorMessage()).isNull();
         assertThat(result.getCategory()).isNull();
         assertThat(result.isSuccess()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Resolved COPY should succeed even if not most recent")
+    void validateResolvedRecordingCopyNotMostRecent() {
+        ProcessedRecording data = new ProcessedRecording();
+        data.setCourt(new Court());
+        data.setArchiveId("ARCH123");
+        data.setExtractedRecordingVersion("COPY");
+        data.setCaseReference("0123456789");
+        data.setWitnessFirstName("witness");
+        data.setDefendantLastName("defendant");
+        data.setRecordingVersionNumber(1);
+        data.setFileName("file.mp4");
+
+        MigrationRecord mr = new MigrationRecord();
+        mr.setIsMostRecent(false);
+        when(migrationRecordRepository.findByArchiveId("ARCH123"))
+            .thenReturn(Optional.of(mr));
+
+        ServiceResult<ProcessedRecording> result =
+            dataValidationService.validateResolvedRecording(data, "ARCH123");
+
+        assertThat(result).isNotNull();
+        assertThat(result).isNotNull();
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isEqualTo(data);
+        assertThat(result.getErrorMessage()).isNull();
+        assertThat(result.getCategory()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should succeed for resolved COPY when most recent")
+    void validateResolvedRecordingCopyMostRecentSuccess() {
+        ProcessedRecording data = new ProcessedRecording();
+        data.setCourt(new Court());
+        data.setArchiveId("ARCH123");
+        data.setExtractedRecordingVersion("COPY");
+        data.setCaseReference("0123456789");
+        data.setWitnessFirstName("witness");
+        data.setDefendantLastName("defendant");
+        data.setRecordingVersionNumber(1);
+        data.setFileName("file.mp4");
+
+        MigrationRecord mr = new MigrationRecord();
+        mr.setIsMostRecent(true);
+        when(migrationRecordRepository.findByArchiveId("ARCH123"))
+            .thenReturn(Optional.of(mr));
+
+        ServiceResult<ProcessedRecording> result =
+            dataValidationService.validateResolvedRecording(data, "ARCH123");
+
+        assertThat(result).isNotNull();
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isEqualTo(data);
+        assertThat(result.getErrorMessage()).isNull();
+        assertThat(result.getCategory()).isNull();
     }
 }

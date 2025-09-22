@@ -20,10 +20,14 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,6 +35,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -483,4 +488,46 @@ public class MigrationGroupBuilderServiceTest {
         aCase.setTest(false);
         return aCase;
     }
+
+    @Test
+    @DisplayName("Should skip migration and add failed item when case has deleted participants")
+    void createMigratedItemGroup_skips_whenCaseHasDeletedParticipants() {
+        CreateCaseDTO cachedCase = new CreateCaseDTO(); //pre-existing case
+        cachedCase.setReference(CASE_REFERENCE);
+        when(inMemoryCacheService.getCase(CASE_REFERENCE)).thenReturn(Optional.of(cachedCase));
+        
+        Participant deletedP = new Participant();
+        deletedP.setParticipantType(ParticipantType.WITNESS);
+        deletedP.setFirstName("Deleted");
+        deletedP.setLastName("Person");
+        deletedP.setDeletedAt(Timestamp.from(Instant.now()));
+
+        Case dbCase = createCase();
+        dbCase.setParticipants(Set.of(deletedP));
+        when(caseRepository.findAllByReference(CASE_REFERENCE)).thenReturn(List.of(dbCase));
+
+        ProcessedRecording cleansedData = ProcessedRecording.builder()
+            .caseReference(CASE_REFERENCE)
+            .extractedRecordingVersion("ORIG")
+            .build();
+        ExtractedMetadata metadata = new ExtractedMetadata();
+        metadata.setArchiveId("ARCH-1");
+        metadata.setFileName("file.mp4");
+
+        MigratedItemGroup result = migrationGroupBuilderService.createMigratedItemGroup(metadata, cleansedData);
+
+        assertThat(result).isNull();
+        verify(loggingService, times(1)).logWarning(
+            eq("Skipping migration for archiveId=%s: %s"),
+            eq("ARCH-1"),
+            anyString()
+        );
+        verify(migrationTrackerService, times(1)).addFailedItem(any());
+        verify(entityCreationService, never()).createBooking(any(), any(), any());
+        verify(entityCreationService, never()).createCaptureSession(any(), any());
+        verify(entityCreationService, never()).createRecording(any(), any());
+        verify(migrationRecordService, never()).updateToSuccess(any());
+    }
+
+    
 }

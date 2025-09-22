@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
@@ -78,6 +79,7 @@ public class MigrationTrackerServiceTest {
         Field reportContainerField = MigrationTrackerService.class.getDeclaredField("reportContainer");
         reportContainerField.setAccessible(true);
         reportContainerField.set(migrationTrackerService, "test-container");
+        reportCsvWriter.reset();
     }
 
     @AfterEach
@@ -87,6 +89,7 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.testFailures.clear();
         migrationTrackerService.notifyItems.clear();
         migrationTrackerService.invitedUsers.clear();
+        migrationTrackerService.shareBookings.clear();
     }
 
     @AfterAll
@@ -370,6 +373,27 @@ public class MigrationTrackerServiceTest {
 
     @Test
     void writeAllToCsv() {
+        Path mockMigratedPath = tempDir.resolve("Migrated.csv");
+        Path mockSummaryPath  = tempDir.resolve("Summary.csv");
+        Path mockTestPath     = tempDir.resolve("Test.csv");
+        Path mockNotifyPath   = tempDir.resolve("Notify.csv");
+
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(any(), any(), eq("Migrated"), any(), anyBoolean())
+        ).thenReturn(mockMigratedPath);
+
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(any(), any(), eq("Summary"), any(), anyBoolean())
+        ).thenReturn(mockSummaryPath);
+
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(any(), any(), eq("Test"), any(), anyBoolean())
+        ).thenReturn(mockTestPath);
+
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(any(), any(), eq("Notify"), any(), anyBoolean())
+        ).thenReturn(mockNotifyPath);
+
         migrationTrackerService.writeAllToCsv();
 
         verify(loggingService, times(1)).setTotalMigrated(0);
@@ -378,7 +402,7 @@ public class MigrationTrackerServiceTest {
     }
 
     @Test
-    void writeFailureSummarySuccess() {
+    void writeSummarySuccess() {
         ExtractedMetadata metadata1 = new ExtractedMetadata();
         metadata1.setFileName("test1.csv");
         metadata1.setFileSize("10");
@@ -394,26 +418,26 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.addTestItem(createMockTestItem());
 
         String outputDir = tempDir.toString();
-        Path mockPath = tempDir.resolve("Failures.csv");
-        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Failures"), any(), anyBoolean()))
+        Path mockPath = tempDir.resolve("Summary.csv");
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Summary"), any(), anyBoolean()))
             .thenReturn(mockPath);
 
         try {
-            Method writeFailureSummaryMethod = MigrationTrackerService.class.getDeclaredMethod(
-                "writeFailureSummary", String.class);
-            writeFailureSummaryMethod.setAccessible(true);
-            File result = (File) writeFailureSummaryMethod.invoke(migrationTrackerService, outputDir);
+            Method writeSummaryMethod = MigrationTrackerService.class.getDeclaredMethod(
+                "writeSummary", String.class);
+            writeSummaryMethod.setAccessible(true);
+            File result = (File) writeSummaryMethod.invoke(migrationTrackerService, outputDir);
             
             assertThat(result).isNotNull();
             verify(loggingService, never()).logError(anyString(), anyString());
         } catch (Exception e) {
-            fail("Failed to invoke writeFailureSummary method: " + e.getMessage());
+            fail("Failed to invoke writeSummary method: " + e.getMessage());
         }
     }
 
 
     @Test
-    void writeFailureSummaryFailure() {
+    void writeSummaryFailure() {
         String outputDir = tempDir.toString();
         
         ExtractedMetadata metadata = new ExtractedMetadata();
@@ -422,19 +446,19 @@ public class MigrationTrackerServiceTest {
         FailedItem failedItem = new FailedItem(metadata, "ReasonA", "CategoryA");
         migrationTrackerService.addFailedItem(failedItem);
         
-        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Failures"), any(), anyBoolean()))
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Summary"), any(), anyBoolean()))
             .thenThrow(new IOException("Test exception"));
 
         try {
-            Method writeFailureSummaryMethod = MigrationTrackerService.class.getDeclaredMethod(
-                "writeFailureSummary", String.class);
-            writeFailureSummaryMethod.setAccessible(true);
-            File result = (File) writeFailureSummaryMethod.invoke(migrationTrackerService, outputDir);
+            Method writeSummary = MigrationTrackerService.class.getDeclaredMethod(
+                "writeSummary", String.class);
+            writeSummary.setAccessible(true);
+            File result = (File) writeSummary.invoke(migrationTrackerService, outputDir);
             
             assertThat(result).isNull();
             verify(loggingService, times(1)).logError(anyString(), anyString());
         } catch (Exception e) {
-            fail("Failed to invoke writeFailureSummary method: " + e.getMessage());
+            fail("Failed to invoke writeSummary method: " + e.getMessage());
         }
     }
 
@@ -465,13 +489,13 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.addNotifyItem(createMockNotifyItem());
         
         Path mockMigratedPath = tempDir.resolve("Migrated.csv");
-        Path mockFailurePath = tempDir.resolve("Failures.csv");
+        Path mockFailurePath = tempDir.resolve("Summary.csv");
         Path mockTestPath = tempDir.resolve("Test.csv");
         Path mockNotifyPath = tempDir.resolve("Notify.csv");
         
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Migrated"), any(), anyBoolean()))
             .thenReturn(mockMigratedPath);
-        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Failures"), any(), anyBoolean()))
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Summary"), any(), anyBoolean()))
             .thenReturn(mockFailurePath);
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), eq("Test"), any(), anyBoolean()))
             .thenReturn(mockTestPath);
@@ -622,5 +646,148 @@ public class MigrationTrackerServiceTest {
         return testItem;
     }
 
-    
+    @Test
+    void addShareBooking_addsOne() {
+        CreateShareBookingDTO row = new CreateShareBookingDTO();
+        row.setBookingId(UUID.randomUUID());
+        row.setSharedWithUser(UUID.randomUUID());
+
+        migrationTrackerService.addShareBooking(row);
+
+        assertThat(migrationTrackerService.shareBookings).hasSize(1);
+    }
+
+    @Test
+    void buildShareBookingsRows_withData() {
+        UUID bookingId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        CreateShareBookingDTO row = new CreateShareBookingDTO();
+        row.setBookingId(bookingId);
+        row.setSharedWithUser(userId);
+
+        migrationTrackerService.addShareBooking(row);
+
+        List<List<String>> rows = migrationTrackerService.buildShareBookingsRows();
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0)).hasSize(3); 
+        assertThat(rows.get(0).get(0)).isEqualTo(bookingId.toString());
+        assertThat(rows.get(0).get(1)).isEqualTo(userId.toString());
+        assertThat(rows.get(0).get(2)).isNotBlank(); 
+    }
+
+    @Test
+    void writeShareBookingsToCsv_success() {
+        CreateShareBookingDTO row = new CreateShareBookingDTO();
+        row.setBookingId(UUID.randomUUID());
+        row.setSharedWithUser(UUID.randomUUID());
+        migrationTrackerService.addShareBooking(row);
+
+        Path mockPath = tempDir.resolve("Share_bookings.csv");
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(any(), any(), anyString(), anyString(), anyBoolean())
+        ).thenReturn(mockPath);
+
+        migrationTrackerService.writeShareBookingsToCsv("Share_bookings", tempDir.toString());
+
+        reportCsvWriter.verify(() ->
+            ReportCsvWriter.writeToCsv(
+                eq(MigrationTrackerService.SHARE_BOOKINGS_HEADERS),
+                anyList(),
+                eq("Share_bookings"),
+                anyString(),
+                eq(false)
+            ), times(1)
+        );
+        verify(loggingService, never()).logError(anyString(), anyString());
+    }
+
+    @Test
+    void writeShareBookingsToCsv_failure_logsError() {
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(any(), any(), anyString(), anyString(), anyBoolean())
+        ).thenThrow(new IOException("boom"));
+
+        migrationTrackerService.writeShareBookingsToCsv("Share_bookings", tempDir.toString());
+
+        verify(loggingService, times(1))
+            .logError(eq("Failed to write share bookings CSV: %s"), anyString());
+    }
+
+    @Test
+    void writeShareBookingsReport_writesCsv() {
+        CreateShareBookingDTO row = new CreateShareBookingDTO();
+        row.setBookingId(UUID.randomUUID());
+        row.setSharedWithUser(UUID.randomUUID());
+        migrationTrackerService.addShareBooking(row);
+
+        Path mockPath = tempDir.resolve("Share_bookings.csv");
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(any(), any(), eq("Share_bookings"), anyString(), anyBoolean())
+        ).thenReturn(mockPath);
+
+        migrationTrackerService.writeShareBookingsReport();
+
+        reportCsvWriter.verify(() ->
+            ReportCsvWriter.writeToCsv(
+                eq(MigrationTrackerService.SHARE_BOOKINGS_HEADERS),
+                anyList(),
+                eq("Share_bookings"),
+                anyString(), 
+                eq(false)
+            ), times(1)
+        );
+    }
+
+    @Test
+    void buildFailedItemsRows_withMigrationRecord() {
+        MigrationRecord migrationRecord = new MigrationRecord();
+        migrationRecord.setArchiveName("Arc");
+        migrationRecord.setCreateTime(Timestamp.from(Instant.now()));
+        migrationRecord.setFileName("file.mp4");
+        migrationRecord.setFileSizeMb("25");
+
+        FailedItem failed = new FailedItem(migrationRecord, "ReasonX", "CatX");
+
+        List<List<String>> rows = migrationTrackerService.buildFailedItemsRows(List.of(failed));
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0)).hasSize(6);
+        assertThat(rows.get(0).get(0)).isEqualTo("ReasonX"); 
+        assertThat(rows.get(0).get(1)).isEqualTo("Arc");     
+        assertThat(rows.get(0).get(3)).isEqualTo("file.mp4"); 
+        assertThat(rows.get(0).get(4)).isEqualTo("25");      
+    }
+
+    @Test
+    void formatDuration_nullReturnsEmpty() throws Exception {
+        Method m = MigrationTrackerService.class.getDeclaredMethod("formatDuration", Duration.class);
+        m.setAccessible(true);
+        String s = (String) m.invoke(migrationTrackerService, new Object[]{ null });
+        assertThat(s).isEqualTo("");
+    }
+
+    @Test
+    void formatDuration_formatsCorrectly() throws Exception {
+        Method m = MigrationTrackerService.class.getDeclaredMethod("formatDuration", Duration.class);
+        m.setAccessible(true);
+        String s = (String) m.invoke(migrationTrackerService, Duration.ofHours(1).plusMinutes(2).plusSeconds(3));
+        assertThat(s).isEqualTo("01:02:03");
+    }
+
+    @Test
+    void getValueOrEmpty_handlesNullAndNonNull() throws Exception {
+        Method m = MigrationTrackerService.class.getDeclaredMethod("getValueOrEmpty", Object.class);
+        m.setAccessible(true);
+
+        String empty = (String) m.invoke(migrationTrackerService, new Object[]{ null });
+        assertThat(empty).isEqualTo("");
+
+        UUID id = UUID.randomUUID();
+        String str = (String) m.invoke(migrationTrackerService, id);
+        assertThat(str).isEqualTo(id.toString());
+    }
+
+        
 }
