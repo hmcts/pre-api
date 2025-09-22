@@ -131,7 +131,8 @@ public class BookingService {
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
 
-        var localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(), ZoneId.of("Europe/London")).toLocalDate();
+        var localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(),
+                                                     ZoneId.of("Europe/London")).toLocalDate();
         var today = LocalDate.now();
 
         if (localDateField.isBefore(today)

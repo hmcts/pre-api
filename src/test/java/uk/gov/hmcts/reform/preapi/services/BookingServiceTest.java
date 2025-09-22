@@ -400,8 +400,8 @@ class BookingServiceTest {
         when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(true);
         assertThatExceptionOfType(ResourceInDeletedStateException.class)
                 .isThrownBy(() -> {
-                bookingService.upsert(bookingModel);
-            })
+                    bookingService.upsert(bookingModel);
+                })
             .withMessage("Resource BookingDTO("
                              + bookingModel.getId().toString()
                              + ") is in a deleted state and cannot be updated");

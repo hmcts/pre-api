@@ -413,7 +413,7 @@ class BookingControllerTest {
             .isEqualTo("{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}");
     }
 
-    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is before today")
+    @DisplayName("Should succeed in creating a booking as admin with scheduledFor is before today")
     @Test
     void createBookingEndpoint400ScheduledForInThePast() throws Exception {
 
@@ -422,27 +422,22 @@ class BookingControllerTest {
         var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
+        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
         booking.setParticipants(getCreateParticipantDTOs());
-        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusWeeks(1).toInstant()));
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
 
-        MvcResult response = mockMvc.perform(put(getPath(bookingId))
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-                                    .andExpect(status().isBadRequest())
-                                    .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"scheduledFor\":\"must not be before today\"}"
-            );
+        mockMvc.perform(put(getPath(bookingId))
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(booking))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated());
     }
 
-    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is in the past same day")
+    @DisplayName("Should succeed in creating a booking as admin with scheduledFor is in the past same day")
     @Test
     void createBookingEndpointScheduledForInThePastButToday() throws Exception {
 
@@ -451,7 +446,6 @@ class BookingControllerTest {
         var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
-        booking.setParticipants(getCreateParticipantDTOs());
         booking.setScheduledFor(
             Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS))
         );
