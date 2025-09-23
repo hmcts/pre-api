@@ -106,8 +106,6 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                 // Step 6: Await batch completion
                 awaitBatchComplete(jobs, mediaService);
                 // Step 7: Update recordings with mp4 filename and duration
-                log.info("number of recordings in batch: {}", recordings.size());
-                log.info("number of recordings in job: {}", jobs.size());
                 jobs.forEach(job -> {
                     var r = recordingsMap.get(UUID.fromString(job.split("_")[0]));
                     if (r == null) {
