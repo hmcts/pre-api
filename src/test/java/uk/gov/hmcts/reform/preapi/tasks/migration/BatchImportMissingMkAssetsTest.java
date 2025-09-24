@@ -14,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
@@ -118,23 +117,14 @@ public class BatchImportMissingMkAssetsTest {
     }
 
     @Test
-    void runNoRecordingsMissingAssets() throws IOException {
-        RecordingDTO recording = new RecordingDTO();
-        recording.setId(UUID.randomUUID());
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
-        when(mediaService.getAsset(any())).thenReturn(new AssetDTO());
-        batchImportMissingMkAssets.run();
-
-        verify(recordingService, times(1)).findAllVodafoneRecordings();
-        verify(mediaService, times(1)).getAsset(any());
-        verify(azureVodafoneStorageService, never()).getBlobUrlForCopy(any(), any());
-    }
-
-    @Test
     void runErrorCopying() throws IOException {
         RecordingDTO recording = new RecordingDTO();
         recording.setId(UUID.randomUUID());
         recording.setCaseReference("REFERENCE");
+        CaptureSessionDTO captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         doThrow(NotFoundException.class).when(azureVodafoneStorageService).getBlobUrlForCopy(any(), any());
@@ -144,9 +134,9 @@ public class BatchImportMissingMkAssetsTest {
         batchImportMissingMkAssets.run();
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
-        verify(mediaService, times(1)).getAsset(any());
+        verify(mediaService, times(0)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
-        verify(azureVodafoneStorageService, never()).copyBlob(any(), any(), any());
+        verify(azureVodafoneStorageService, never()).copyBlobOverwritable(any(), any(), any(), eq(false));
         verify(azureVodafoneStorageService, times(1)).getStorageAccountName();
         verify(azureIngestStorageService, times(1)).getStorageAccountName();
         verifyNoInteractions(captureSessionService);
@@ -174,6 +164,10 @@ public class BatchImportMissingMkAssetsTest {
         recording.setId(UUID.randomUUID());
         recording.setFilename("filename.mp4");
         recording.setCaseReference("REFERENCE");
+        CaptureSessionDTO captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
@@ -184,7 +178,7 @@ public class BatchImportMissingMkAssetsTest {
         verify(recordingService, times(1)).findAllVodafoneRecordings();
         verify(mediaService, times(1)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
-        verify(azureIngestStorageService, times(1)).copyBlob(any(), any(), any());
+        verify(azureIngestStorageService, times(1)).copyBlobOverwritable(any(), any(), any(), eq(false));
         verify(azureVodafoneStorageService, never()).getStorageAccountName();
         verify(azureIngestStorageService, never()).getStorageAccountName();
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(false));
@@ -212,6 +206,10 @@ public class BatchImportMissingMkAssetsTest {
         recording.setId(UUID.randomUUID());
         recording.setFilename("filename.mp4");
         recording.setCaseReference("REFERENCE");
+        CaptureSessionDTO captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
@@ -221,9 +219,9 @@ public class BatchImportMissingMkAssetsTest {
         batchImportMissingMkAssets.run();
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
-        verify(mediaService, times(1)).getAsset(any());
+        verify(mediaService, times(2)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
-        verify(azureIngestStorageService, times(1)).copyBlob(any(), any(), any());
+        verify(azureIngestStorageService, times(1)).copyBlobOverwritable(any(), any(), any(), eq(false));
         verify(azureVodafoneStorageService, never()).getStorageAccountName();
         verify(azureIngestStorageService, never()).getStorageAccountName();
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(false));
@@ -252,6 +250,10 @@ public class BatchImportMissingMkAssetsTest {
         recording.setId(UUID.randomUUID());
         recording.setFilename("filename.mp4");
         recording.setCaseReference("REFERENCE");
+        CaptureSessionDTO captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
@@ -266,9 +268,9 @@ public class BatchImportMissingMkAssetsTest {
         batchImportMissingMkAssets.run();
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
-        verify(mediaService, times(1)).getAsset(any());
+        verify(mediaService, times(2)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
-        verify(azureIngestStorageService, times(1)).copyBlob(any(), any(), any());
+        verify(azureIngestStorageService, times(1)).copyBlobOverwritable(any(), any(), any(), eq(false));
         verify(azureVodafoneStorageService, never()).getStorageAccountName();
         verify(azureIngestStorageService, never()).getStorageAccountName();
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(false));
@@ -323,9 +325,9 @@ public class BatchImportMissingMkAssetsTest {
         batchImportMissingMkAssets.run();
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
-        verify(mediaService, times(1)).getAsset(any());
+        verify(mediaService, times(2)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
-        verify(azureIngestStorageService, times(1)).copyBlob(any(), any(), any());
+        verify(azureIngestStorageService, times(1)).copyBlobOverwritable(any(), any(), any(), eq(false));
         verify(azureVodafoneStorageService, never()).getStorageAccountName();
         verify(azureIngestStorageService, never()).getStorageAccountName();
         verify(mediaService, times(1)).importAsset(any(RecordingDTO.class), eq(false));

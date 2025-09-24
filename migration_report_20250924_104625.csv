@@ -1,0 +1,2 @@
+RecordingId,CaseReference,Filename,Duration,MigrationStatus,ErrorMessage
+52a1d723-68b1-416c-bfcd-326ea583c4aa,REFERENCE,filename.mp4,0,FAILURE,Failed to create final asset

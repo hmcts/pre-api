@@ -84,12 +84,19 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
 
         // Step 1: Find all VF recordings missing final asset
         List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings().stream()
-            .filter(recording ->
-                        mediaService.getAsset(recording.getId().toString().replace("-", "") + "_output") == null)
             // Step 2: Copy blob from Vodafone to Ingest
             .filter(this::copyBlobBetweenContainers)
             // Step 3: Create Temp Asset
             .filter(recording -> {
+                // check if temp asset already exists, if so skip
+                if (mediaService.getAsset(recording
+                                              .getCaptureSession()
+                                              .getId()
+                                              .toString()
+                                              .replace("-", "") + "_temp") != null) {
+                    log.info("Temporary asset already exists for recording: {}", recording.getId());
+                    return true;
+                }
                 boolean result = mediaService.importAsset(recording, false);
                 if (!result) {
                     addFailure(recording, "Failed to create temporary asset");
@@ -98,6 +105,11 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             })
             // Step 4: Create Final Asset
             .filter(recording -> {
+                // check if final asset already exists, if so skip
+                if (mediaService.getAsset(recording.getId().toString().replace("-", "") + "_output") != null) {
+                    log.info("Final asset already exists for recording: {}", recording.getId());
+                    return true;
+                }
                 boolean result = mediaService.importAsset(recording, true);
                 if (!result) {
                     addFailure(recording, "Failed to create final asset");
@@ -147,10 +159,11 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         String blobName = recording.getFilename();
 
         try {
-            azureIngestStorageService.copyBlob(
+            azureIngestStorageService.copyBlobOverwritable(
                 destinationContainer,
                 blobName,
-                azureVodafoneStorageService.getBlobUrlForCopy(vfSourceContainer, blobName)
+                azureVodafoneStorageService.getBlobUrlForCopy(vfSourceContainer, blobName),
+                false
             );
             return true;
         } catch (Exception e) {
