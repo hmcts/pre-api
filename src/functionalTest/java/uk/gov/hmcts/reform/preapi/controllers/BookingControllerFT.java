@@ -121,7 +121,12 @@ class BookingControllerFT extends FunctionalTestBase {
         // set scheduledFor to yesterday
         createBooking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusDays(1).toInstant()));
 
-        var putResponse = putBooking(createBooking);
+         putBooking(createBooking);
+        var putResponse = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + createBooking.getId(),
+            OBJECT_MAPPER.writeValueAsString(createBooking),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putResponse, 400);
     }
 
@@ -447,14 +452,18 @@ class BookingControllerFT extends FunctionalTestBase {
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity),
-            TestingSupportRoles.SUPER_USER
+            TestingSupportRoles.LEVEL_1
         );
         assertResponseCode(putCase, 201);
 
-        var putBooking = putBooking(booking);
+        var putBooking = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putBooking, 400);
-        assertThat(putBooking.body().jsonPath().getString("scheduledFor"))
-            .isEqualTo("must not be before today");
+        assertThat(putBooking.body().jsonPath().getString("message"))
+            .isEqualTo("Scheduled date must not be in the past");
     }
 
     @DisplayName("Create a booking with a participant that is not part of the case")
@@ -607,7 +616,12 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // attempt update
         booking.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay().plusDays(1)));
-        var putBooking2 = putBooking(booking);
+        var putBooking2 = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            TestingSupportRoles.LEVEL_1
+        );
+
         assertResponseCode(putBooking2, 400);
         assertThat(putBooking2.body().jsonPath().getString("message"))
             .isEqualTo(
@@ -617,7 +631,11 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // attempt create
         var booking2 = createBooking(caseEntity.getId(), participants);
-        var putBooking3 = putBooking(booking2);
+        var putBooking3 = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking2.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking2),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putBooking3, 400);
         assertThat(putBooking3.body().jsonPath().getString("message"))
             .isEqualTo(
@@ -654,12 +672,20 @@ class BookingControllerFT extends FunctionalTestBase {
         // close case
         caseEntity.setState(CaseState.PENDING_CLOSURE);
         caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
-        var putCase2 = putCase(caseEntity);
+        var putCase2 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putCase2, 204);
 
         // attempt update
         booking.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay().plusDays(1)));
-        var putBooking2 = putBooking(booking);
+        var putBooking2 = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putBooking2, 400);
         assertThat(putBooking2.body().jsonPath().getString("message"))
             .isEqualTo(
@@ -669,7 +695,11 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // attempt create
         var booking2 = createBooking(caseEntity.getId(), participants);
-        var putBooking3 = putBooking(booking2);
+        var putBooking3 = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking2.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking2),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putBooking3, 400);
         assertThat(putBooking3.body().jsonPath().getString("message"))
             .isEqualTo(
