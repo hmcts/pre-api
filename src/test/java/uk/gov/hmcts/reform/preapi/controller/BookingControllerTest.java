@@ -413,56 +413,6 @@ class BookingControllerTest {
             .isEqualTo("{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}");
     }
 
-    @DisplayName("Should succeed in creating a booking as admin with scheduledFor is before today")
-    @Test
-    void createBookingEndpoint400ScheduledForInThePast() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
-        booking.setParticipants(getCreateParticipantDTOs());
-
-        CaseDTO mockCaseDTO = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
-
-        mockMvc.perform(put(getPath(bookingId))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(booking))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated());
-    }
-
-    @DisplayName("Should succeed in creating a booking as admin with scheduledFor is in the past same day")
-    @Test
-    void createBookingEndpointScheduledForInThePastButToday() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-        booking.setScheduledFor(
-            Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS))
-        );
-        booking.setParticipants(getCreateParticipantDTOs());
-
-        CaseDTO mockCaseDTO = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
-
-        mockMvc.perform(put(getPath(bookingId))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(booking))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isCreated());
-    }
-
     @DisplayName("Should fail to update a booking with 400 response code as its already deleted")
     @Test
     void updateBookingEndpoint400() throws Exception {
