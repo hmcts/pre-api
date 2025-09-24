@@ -26,7 +26,8 @@ public class UserTermsAcceptedServiceIT extends IntegrationTestBase {
 
     @BeforeEach
     void setUp() {
-        user = HelperFactory.createDefaultTestUser();
+        user = HelperFactory.createUser("firstName",
+                                        "lastName", "example@example.com", null, null, null);
         user.setId(UUID.randomUUID());
         entityManager.persist(user);
 
@@ -55,5 +56,27 @@ public class UserTermsAcceptedServiceIT extends IntegrationTestBase {
         assertThat(termsAccepted.getTermsAndConditions().getId()).isEqualTo(termsAndConditions.getId());
         // very recently created
         assertThat(termsAccepted.getAcceptedAt()).isAfter(Instant.now().minusSeconds(5));
+    }
+
+    @Test
+    @Transactional
+    public void acceptTermsAndConditionsMultipleTimes() {
+        var mockedUser = mockAdminUser();
+        when(mockedUser.getUserId()).thenReturn(user.getId());
+        userTermsAcceptedService.acceptTermsAndConditions(termsAndConditions.getId());
+        userTermsAcceptedService.acceptTermsAndConditions(termsAndConditions.getId());
+        userTermsAcceptedService.acceptTermsAndConditions(termsAndConditions.getId());
+
+        entityManager.flush();
+        entityManager.refresh(user);
+
+        assertThat(user.getUserTermsAccepted()).isNotNull();
+        assertThat(user.getUserTermsAccepted()).hasSize(3);
+
+        var termsAccepted = user.getUserTermsAccepted();
+        assertThat(termsAccepted).isNotNull();
+        assertThat(termsAccepted.stream()
+                       .allMatch(t -> t.getTermsAndConditions().getId()
+                           .equals(termsAndConditions.getId()))).isTrue();
     }
 }

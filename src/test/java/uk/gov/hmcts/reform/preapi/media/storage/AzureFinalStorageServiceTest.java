@@ -7,16 +7,19 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.specialized.BlobInputStream;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.io.InputStream;
@@ -45,6 +48,9 @@ public class AzureFinalStorageServiceTest {
     @MockitoBean
     private BlobServiceClient finalStorageClient;
 
+    @MockitoBean
+    private AzureConfiguration azureConfiguration;
+
     @Mock
     private BlobContainerClient blobContainerClient;
 
@@ -54,6 +60,8 @@ public class AzureFinalStorageServiceTest {
     @Autowired
     private AzureFinalStorageService azureFinalStorageService;
 
+    private static MockedStatic<DocumentBuilderFactory> documentBuilderFactoryMock;
+
     @BeforeEach
     void setUp() {
         when(finalStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
@@ -62,7 +70,14 @@ public class AzureFinalStorageServiceTest {
 
     @BeforeAll
     static void setUpAll() {
-        mockStatic(DocumentBuilderFactory.class);
+        documentBuilderFactoryMock = mockStatic(DocumentBuilderFactory.class);
+    }
+
+    @AfterAll
+    static void tearDownAll() {
+        if (documentBuilderFactoryMock != null) {
+            documentBuilderFactoryMock.close();
+        }
     }
 
     @Test
@@ -366,5 +381,40 @@ public class AzureFinalStorageServiceTest {
         azureFinalStorageService.createContainerIfNotExists(containerName);
 
         verify(finalStorageClient, times(1)).createBlobContainerIfNotExists(containerName);
+    }
+
+    @Test
+    void generateReadSasUrlSuccess() {
+        String containerName = "test-container";
+        String blobName = "video.mp4";
+        BlobItem blobItem = mock(BlobItem.class);
+
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(blobItem.getName()).thenReturn(blobName);
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+        BlobClient blobClient = mock(BlobClient.class);
+        when(blobContainerClient.getBlobClient(blobName)).thenReturn(blobClient);
+        when(blobClient.getBlobUrl()).thenReturn("https://example.com/" + blobName);
+
+        String expectedSasUrl = "https://example.com/" + blobName;
+        when(blobClient.getBlobUrl()).thenReturn(expectedSasUrl);
+        when(blobClient.generateSas(any())).thenReturn("sasToken=token");
+
+        String actualSasUrl = azureFinalStorageService.generateReadSasUrl(containerName, blobName);
+
+        assertThat(actualSasUrl).isEqualTo(expectedSasUrl + "?sasToken=token");
+    }
+
+    @Test
+    void generateReadSasUrlBlobDoesNotExist() {
+        var containerName = "test-container";
+        var blobName = "nonexistent.mp4";
+
+        when(blobContainerClient.exists()).thenReturn(false);
+
+        assertThrows(
+            NotFoundException.class,
+            () -> azureFinalStorageService.generateReadSasUrl(containerName, blobName)
+        );
     }
 }

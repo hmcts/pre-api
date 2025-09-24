@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
@@ -44,20 +45,20 @@ public class ReportController {
     @GetMapping("/recordings-per-case")
     @Operation(
         operationId = "reportRecordingsPerCase",
-        summary = "Get the number of completed capture sessions for each case"
+        summary = "Get the number of completed capture sessions for each case v2"
     )
     public ResponseEntity<List<RecordingsPerCaseReportDTOV2>> reportRecordingsPerCase() {
         return ResponseEntity.ok(reportService.reportRecordingsPerCase());
     }
 
     @GetMapping("/edits")
-    @Operation(operationId = "reportEdits", summary = "Get a report on recordings edits")
+    @Operation(operationId = "reportEdits", summary = "Get a report on recordings edits v2")
     public ResponseEntity<List<EditReportDTOV2>> reportEdits() {
         return ResponseEntity.ok(reportService.reportEdits());
     }
 
     @GetMapping("/shared-bookings")
-    @Operation(operationId = "reportBookingsShared", summary = "Get a report on the bookings that have been shared")
+    @Operation(operationId = "reportBookingsShared", summary = "Get a report on the bookings that have been shared v2")
     @Parameter(
         name = "courtId",
         description = "The court id to search by",
@@ -103,17 +104,16 @@ public class ReportController {
     @GetMapping("/schedules")
     @Operation(
         operationId = "reportSchedules",
-        summary = "Get a list of completed capture sessions with booking details"
+        summary = "Get a list of completed capture sessions with booking details v2"
     )
     public ResponseEntity<List<ScheduleReportDTOV2>> reportSchedules() {
         return ResponseEntity.ok(reportService.reportScheduled());
     }
 
-
     @GetMapping("/playback")
     @Operation(
         operationId = "reportPlayback",
-        summary = "Get report on playback by playback source (PORTAL, APPLICATION)"
+        summary = "Get report on playback by playback source (PORTAL, APPLICATION) v2"
     )
     @Parameter(
         name = "source",
@@ -126,10 +126,19 @@ public class ReportController {
         return ResponseEntity.ok(reportService.reportPlayback(source));
     }
 
+    @GetMapping("/user-recording-playback")
+    @Operation(
+        operationId = "userRecordingPlaybackReport",
+        summary = "Get report on playback by playback for all sources v2"
+    )
+    public ResponseEntity<List<UserRecordingPlaybackReportDTOV2>> userRecordingPlaybackReport() {
+        return ResponseEntity.ok(reportService.userRecordingPlaybackReport());
+    }
+
     @GetMapping("/completed-capture-sessions")
     @Operation(
         operationId = "reportCompletedCaptureSessions",
-        summary = "Get a report on capture sessions with available recordings"
+        summary = "Get a report on capture sessions with available recordings v2"
     )
     public ResponseEntity<List<CompletedCaptureSessionReportDTOV2>> reportCompletedCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCompletedCaptureSessions());
@@ -138,7 +147,7 @@ public class ReportController {
     @GetMapping("/share-bookings-removed")
     @Operation(
         operationId = "reportShareBookingRemoved",
-        summary = "Get report on booking share removal"
+        summary = "Get report on booking share removal v2"
     )
     public ResponseEntity<List<AccessRemovedReportDTOV2>> reportShareBookingRemoved() {
         return ResponseEntity.ok(reportService.reportAccessRemoved());
@@ -147,7 +156,7 @@ public class ReportController {
     @GetMapping("/recording-participants")
     @Operation(
         operationId = "reportRecordingParticipants",
-        summary = "Get report on participants and the recordings they are part of"
+        summary = "Get report on participants and the recordings they are part of v2"
     )
     public ResponseEntity<List<RecordingParticipantsReportDTO>> reportRecordingParticipants() {
         return ResponseEntity.ok(reportService.reportRecordingParticipants());
@@ -156,7 +165,7 @@ public class ReportController {
     @GetMapping("/user-primary-courts")
     @Operation(
         operationId = "reportUserPrimaryCourts",
-        summary = "Get report on app users and their primary courts")
+        summary = "Get report on app users and their primary courts v2")
     public ResponseEntity<List<UserPrimaryCourtReportDTO>> reportUserPrimaryCourts() {
         return ResponseEntity.ok(reportService.reportUserPrimaryCourts());
     }

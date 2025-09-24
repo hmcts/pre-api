@@ -249,6 +249,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -305,6 +306,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -659,6 +661,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -705,6 +708,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -1014,6 +1018,38 @@ definitions:
         format: int32
         type: integer
     type: object
+  EditRequestDTO:
+    properties:
+      created_at:
+        format: date-time
+        type: string
+      created_by_id:
+        format: uuid
+        type: string
+      edit_instruction:
+        type: string
+      finished_at:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      modified_at:
+        format: date-time
+        type: string
+      source_recording:
+        $ref: '#/definitions/RecordingDTO'
+      started_at:
+        format: date-time
+        type: string
+      status:
+        enum:
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+    type: object
   EntityModelBookingDTO:
     properties:
       _links:
@@ -1105,6 +1141,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -1162,6 +1199,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -1214,6 +1252,40 @@ definitions:
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
+    type: object
+  EntityModelEditRequestDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      created_at:
+        format: date-time
+        type: string
+      created_by_id:
+        format: uuid
+        type: string
+      edit_instruction:
+        type: string
+      finished_at:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      modified_at:
+        format: date-time
+        type: string
+      source_recording:
+        $ref: '#/definitions/RecordingDTO'
+      started_at:
+        format: date-time
+        type: string
+      status:
+        enum:
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
     type: object
   EntityModelInviteDTO:
     properties:
@@ -1559,6 +1631,20 @@ definitions:
           courtDTOList:
             items:
               $ref: '#/definitions/EntityModelCourtDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelEditRequestDTO:
+    properties:
+      _embedded:
+        properties:
+          editRequestDTOList:
+            items:
+              $ref: '#/definitions/EntityModelEditRequestDTO'
             type: array
         type: object
       _links:
@@ -2182,6 +2268,66 @@ definitions:
         description: UserPrimaryCourtReportRoleName
         type: string
     type: object
+  UserRecordingPlaybackReportDTOV2:
+    description: UserRecordingPlaybackReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
+      region:
+        description: ReportRegion
+        type: string
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
+        type: string
+    type: object
+  VerifyEmailRequestDTO:
+    description: VerifyEmailRequestDTO
+    properties:
+      email:
+        description: Email
+        minLength: 1
+        type: string
+      verification_code:
+        description: VerificationCode
+        minLength: 1
+        pattern: '^[0-9]{6}$'
+        type: string
+    required:
+      - email
+      - verification_code
+    type: object
 externalDocs:
   description: README
   url: 'https://github.com/hmcts/pre-api'
@@ -2266,6 +2412,30 @@ paths:
       summary: Create an Audit Entry
       tags:
         - audit-controller
+  /b2c/email-verification:
+    post:
+      consumes:
+        - application/json
+      operationId: postEmailVerification
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/VerifyEmailRequestDTO'
+      responses:
+        '204':
+          description: No Content
+      summary: Trigger an email verification email to be sent out via gov notify
+      tags:
+        - b-2-c-controller
   /bookings:
     get:
       operationId: searchBookings
@@ -2556,6 +2726,7 @@ paths:
           enum:
             - PRE
             - VODAFONE
+            - VODAFONE_VISIBLE
           in: query
           name: origin
           type: string
@@ -2980,6 +3151,118 @@ paths:
       summary: Create or Update a Court
       tags:
         - court-controller
+  /edits:
+    get:
+      operationId: searchEdits
+      parameters:
+        - description: The source recording's id to search by
+          format: uuid
+          in: query
+          name: sourceRecordingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The date of last modification to search after
+          format: date
+          in: query
+          name: lastModifiedAfter
+          type: string
+          x-example: '2024-04-27'
+        - description: The date of last modification to search before
+          format: date
+          in: query
+          name: lastModifiedBefore
+          type: string
+          x-example: '2024-04-27'
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelEditRequestDTO'
+      tags:
+        - edit-controller
+  '/edits/from-csv/{sourceRecordingId}':
+    post:
+      consumes:
+        - multipart/form-data
+      operationId: createEditFromCsv
+      parameters:
+        - format: uuid
+          in: path
+          name: sourceRecordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - format: binary
+          in: formData
+          name: file
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
+  '/edits/{id}':
+    get:
+      operationId: getEditRequestById
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
   /health:
     get:
       operationId: health
@@ -3544,6 +3827,15 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: The version number to search by
+          format: int32
+          in: query
+          name: version
+          type: integer
+        - description: The case status to search by
+          in: query
+          name: caseOpen
+          type: boolean
         - description: Sort by
           in: query
           name: sort
@@ -3717,7 +4009,7 @@ paths:
             items:
               $ref: '#/definitions/CompletedCaptureSessionReportDTOV2'
             type: array
-      summary: Get a report on capture sessions with available recordings
+      summary: Get a report on capture sessions with available recordings v2
       tags:
         - report-controller
   /reports-v2/edits:
@@ -3740,7 +4032,7 @@ paths:
             items:
               $ref: '#/definitions/EditReportDTOV2'
             type: array
-      summary: Get a report on recordings edits
+      summary: Get a report on recordings edits v2
       tags:
         - report-controller
   /reports-v2/playback:
@@ -3773,7 +4065,7 @@ paths:
             items:
               $ref: '#/definitions/PlaybackReportDTOV2'
             type: array
-      summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION) v2'
       tags:
         - report-controller
   /reports-v2/recording-participants:
@@ -3796,7 +4088,7 @@ paths:
             items:
               $ref: '#/definitions/RecordingParticipantsReportDTO'
             type: array
-      summary: Get report on participants and the recordings they are part of
+      summary: Get report on participants and the recordings they are part of v2
       tags:
         - report-controller
   /reports-v2/recordings-per-case:
@@ -3819,7 +4111,7 @@ paths:
             items:
               $ref: '#/definitions/RecordingsPerCaseReportDTOV2'
             type: array
-      summary: Get the number of completed capture sessions for each case
+      summary: Get the number of completed capture sessions for each case v2
       tags:
         - report-controller
   /reports-v2/schedules:
@@ -3842,7 +4134,7 @@ paths:
             items:
               $ref: '#/definitions/ScheduleReportDTOV2'
             type: array
-      summary: Get a list of completed capture sessions with booking details
+      summary: Get a list of completed capture sessions with booking details v2
       tags:
         - report-controller
   /reports-v2/share-bookings-removed:
@@ -3865,7 +4157,7 @@ paths:
             items:
               $ref: '#/definitions/AccessRemovedReportDTOV2'
             type: array
-      summary: Get report on booking share removal
+      summary: Get report on booking share removal v2
       tags:
         - report-controller
   /reports-v2/shared-bookings:
@@ -3916,7 +4208,7 @@ paths:
             items:
               $ref: '#/definitions/SharedReportDTOV2'
             type: array
-      summary: Get a report on the bookings that have been shared
+      summary: Get a report on the bookings that have been shared v2
       tags:
         - report-controller
   /reports-v2/user-primary-courts:
@@ -3939,7 +4231,30 @@ paths:
             items:
               $ref: '#/definitions/UserPrimaryCourtReportDTO'
             type: array
-      summary: Get report on app users and their primary courts
+      summary: Get report on app users and their primary courts v2
+      tags:
+        - report-controller
+  /reports-v2/user-recording-playback:
+    get:
+      operationId: userRecordingPlaybackReport
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserRecordingPlaybackReportDTOV2'
+            type: array
+      summary: Get report on playback by playback for all sources v2
       tags:
         - report-controller
   /reports/capture-sessions-concurrent:

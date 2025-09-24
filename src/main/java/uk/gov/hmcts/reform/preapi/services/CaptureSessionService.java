@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +52,9 @@ public class CaptureSessionService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final AuditService auditService;
 
+    @Setter
+    private boolean enableMigratedData;
+
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
@@ -57,7 +62,8 @@ public class CaptureSessionService {
                                  UserRepository userRepository,
                                  @Lazy BookingService bookingService,
                                  AzureFinalStorageService azureFinalStorageService,
-                                 AuditService auditService) {
+                                 AuditService auditService,
+                                 @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
@@ -65,6 +71,7 @@ public class CaptureSessionService {
         this.bookingService = bookingService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.auditService = auditService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @Transactional
@@ -118,6 +125,7 @@ public class CaptureSessionService {
                 until,
                 authorisedBookings,
                 authorisedCourt,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
             .map(CaptureSessionDTO::new);
@@ -145,12 +153,13 @@ public class CaptureSessionService {
             throw new ResourceInWrongStateException(
                 "Capture Session ("
                     + id
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is "
                     + captureSession.getStatus()
             );
         }
 
-        recordingService.deleteCascade(captureSession);
+        recordingService.checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         captureSession.setDeleteOperation(true);
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
         captureSessionRepository.saveAndFlush(captureSession);
@@ -167,11 +176,12 @@ public class CaptureSessionService {
                     throw new ResourceInWrongStateException(
                         "Capture Session ("
                             + captureSession.getId()
-                            + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                            + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                            + "Current state is "
                             + captureSession.getStatus()
                     );
                 }
-                recordingService.deleteCascade(captureSession);
+                recordingService.checkIfCaptureSessionHasAssociatedRecordings(captureSession);
                 captureSession.setDeleteOperation(true);
                 captureSession.setDeletedAt(Timestamp.from(Instant.now()));
                 captureSessionRepository.save(captureSession);
@@ -263,7 +273,7 @@ public class CaptureSessionService {
         return new CaptureSessionDTO(captureSession);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     public CaptureSessionDTO stopCaptureSession(UUID captureSessionId,
                                                 RecordingStatus status,
                                                 UUID recordingId) {
@@ -296,8 +306,7 @@ public class CaptureSessionService {
                 recordingService.upsert(recording);
                 auditService.upsert(createStopAudit(captureSessionId), userId);
             }
-            case NO_RECORDING, FAILURE ->
-                auditService.upsert(createStopAudit(captureSessionId), userId);
+            case NO_RECORDING, FAILURE -> auditService.upsert(createStopAudit(captureSessionId), userId);
             default -> {
             }
         }
