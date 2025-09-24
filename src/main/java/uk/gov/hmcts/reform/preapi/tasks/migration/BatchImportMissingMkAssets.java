@@ -32,8 +32,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -118,6 +120,9 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             })
             .toList();
 
+        Map<UUID, RecordingDTO> recordingsMap = recordings.stream()
+            .collect(Collectors.toMap(r -> r.getCaptureSession().getId(), r -> r));
+
         if (recordings.isEmpty()) {
             log.info("No recordings missing asset found");
             writeCsvReport();
@@ -135,7 +140,14 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                 // Step 6: Await batch completion
                 awaitBatchComplete(jobs, mediaService);
                 // Step 7: Update recordings with mp4 filename and duration
-                recordings.forEach(recording -> updateRecording(recording, mediaService));
+                jobs.forEach(job -> {
+                    var r = recordingsMap.get(UUID.fromString(job.split("_")[0]));
+                    if (r == null) {
+                        log.error("recording not found for job: {}", job);
+                        return;
+                    }
+                    updateRecording(r, mediaService);
+                });
             }
         );
 
@@ -258,7 +270,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
     }
 
     protected void addSuccess(RecordingDTO recording) {
-        log.info("Adding success for recording: {}", recording.getId());
+        log.info("Adding success for recording (duration and filename already set): {}", recording.getId());
 
         reportItems.add(new ReportItem(
             recording.getId(),
