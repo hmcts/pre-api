@@ -83,7 +83,28 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
 
         // Step 1: Find all VF recordings missing final asset
-        List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings();
+        List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings().stream()
+            .filter(recording ->
+                        mediaService.getAsset(recording.getId().toString().replace("-", "") + "_output") == null)
+            // Step 2: Copy blob from Vodafone to Ingest
+            .filter(this::copyBlobBetweenContainers)
+            // Step 3: Create Temp Asset
+            .filter(recording -> {
+                boolean result = mediaService.importAsset(recording, false);
+                if (!result) {
+                    addFailure(recording, "Failed to create temporary asset");
+                }
+                return result;
+            })
+            // Step 4: Create Final Asset
+            .filter(recording -> {
+                boolean result = mediaService.importAsset(recording, true);
+                if (!result) {
+                    addFailure(recording, "Failed to create final asset");
+                }
+                return result;
+            })
+            .toList();
 
         if (recordings.isEmpty()) {
             log.info("No recordings missing asset found");
@@ -102,8 +123,6 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                 // Step 6: Await batch completion
                 awaitBatchComplete(jobs, mediaService);
                 // Step 7: Update recordings with mp4 filename and duration
-                log.info("number of recordings in batch: {}", recordings.size());
-                log.info("number of recordings in job: {}", jobs.size());
                 recordings.forEach(recording -> updateRecording(recording, mediaService));
             }
         );
@@ -186,10 +205,6 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         if (originalRecording.getFilename().equals(mp4FileName)
             && Objects.equals(originalRecording.getDuration(), duration)) {
             updateCaptureSessionToAvailable(originalRecording.getCaptureSession());
-            log.info("Recording id: {} | Original duration: {} | MK duration: {}",
-                     originalRecording.getId(),
-                     originalRecording.getDuration(),
-                     duration);
             addSuccess(originalRecording);
             return;
         }
@@ -230,7 +245,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
     }
 
     protected void addSuccess(RecordingDTO recording) {
-        log.info("Adding success for recording (already matching filename and duration): {}", recording.getId());
+        log.info("Adding success for recording: {}", recording.getId());
 
         reportItems.add(new ReportItem(
             recording.getId(),
