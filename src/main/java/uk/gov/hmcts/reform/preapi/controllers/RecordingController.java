@@ -47,7 +47,7 @@ public class RecordingController extends PreApiController {
 
     @GetMapping("/{recordingId}")
     @Operation(operationId = "getRecordingById", summary = "Get a Recording by Id")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3')")
     public ResponseEntity<RecordingDTO> getRecordingById(
         @PathVariable UUID recordingId
     ) {
@@ -114,6 +114,16 @@ public class RecordingController extends PreApiController {
         schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
+        name = "version",
+        description = "The version number to search by",
+        schema = @Schema(implementation = Integer.class)
+    )
+    @Parameter(
+        name = "caseOpen",
+        description = "The case status to search by",
+        schema = @Schema(implementation = Boolean.class)
+    )
+    @Parameter(
         name = "sort",
         description = "Sort by",
         schema = @Schema(implementation = String.class),
@@ -131,7 +141,7 @@ public class RecordingController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3')")
     public HttpEntity<PagedModel<EntityModel<RecordingDTO>>> searchRecordings(
         @Parameter(hidden = true) @ModelAttribute SearchRecordings params,
         @SortDefault.SortDefaults(
@@ -150,7 +160,6 @@ public class RecordingController extends PreApiController {
         }
 
         return ResponseEntity.ok(assembler.toModel(resultPage));
-
     }
 
     @PutMapping("/{recordingId}")

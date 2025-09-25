@@ -6,23 +6,26 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
-import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.util.Batcher;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,12 +36,10 @@ import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitised
 @Slf4j
 @Component
 public class CleanupLiveEvents extends RobotUserTask {
-
-    private final BookingService bookingService;
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
-    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
-    private final EmailServiceFactory emailServiceFactory;
+    private final BookingService bookingService;
+    private final AzureIngestStorageService azureIngestStorageService;
 
     private final String platformEnv;
 
@@ -49,28 +50,26 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final ConcurrentHashMap<UUID, CleanupTask> liveEventCleanupMap = new ConcurrentHashMap<>();
 
     @Autowired
-    CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
-                      CaptureSessionService captureSessionService,
-                      BookingService bookingService,
-                      UserService userService,
-                      UserAuthenticationService userAuthenticationService,
-                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient,
-                      EmailServiceFactory emailServiceFactory,
-                      @Value("${cron-user-email}") String cronUserEmail,
-                      @Value("${platform-env}") String platformEnv,
-                      @Value("${tasks.cleanup-live-events.batch-size}") int batchSize,
-                      @Value("${tasks.cleanup-live-events.cooldown}") int batchCooldownTime,
-                      @Value("${tasks.cleanup-live-events.job-poll-interval}") int jobPollingInterval) {
+    CleanupLiveEvents(final MediaServiceBroker mediaServiceBroker,
+                      final CaptureSessionService captureSessionService,
+                      final BookingService bookingService,
+                      final UserService userService,
+                      final UserAuthenticationService userAuthenticationService,
+                      final AzureIngestStorageService azureIngestStorageService,
+                      final @Value("${cron-user-email}") String cronUserEmail,
+                      final @Value("${platform-env}") String platformEnv,
+                      final @Value("${tasks.cleanup-live-events.batch-size}") int batchSize,
+                      final @Value("${tasks.cleanup-live-events.cooldown}") int batchCooldownTime,
+                      final @Value("${tasks.cleanup-live-events.job-poll-interval}") int jobPollingInterval) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
+        this.azureIngestStorageService = azureIngestStorageService;
         this.platformEnv = platformEnv;
-        this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
         this.batchSize = batchSize;
         this.batchCooldownTime = batchCooldownTime;
         this.jobPollingInterval = jobPollingInterval;
-        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Override
@@ -133,15 +132,50 @@ public class CleanupLiveEvents extends RobotUserTask {
             throw new RuntimeException(e);
         }
 
-        // Notify
-        log.info("Notifying shares for new recordings");
-        liveEventCleanupMap.entrySet().stream()
-            .filter(entry -> entry.getValue().getStatus() == CleanupTaskStatus.RECORDING_AVAILABLE)
-            .map(Map.Entry::getKey)
-            .map(captureSessionService::findById)
-            .forEach(this::notify);
+        // Delete live events that remain
+        mediaService.getLiveEvents().stream()
+            .map(LiveEventDTO::getName)
+            .forEach(liveEvent -> {
+                log.info("Cleaning up remaining live event: {}", liveEvent);
+                mediaService.stopLiveEvent(liveEvent);
+            });
+
+        // Handle past bookings that are unused
+        handlePastBookings();
 
         log.info("Completed CleanupLiveEvents task");
+    }
+
+    private void handlePastBookings() {
+        bookingService.findAllPastBookings()
+            .forEach(booking -> {
+                CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+                captureSession.setId(UUID.randomUUID());
+                captureSession.setBookingId(booking.getId());
+                captureSession.setOrigin(RecordingOrigin.PRE);
+                captureSession.setStatus(RecordingStatus.NO_RECORDING);
+                log.info("Found old booking: {}. Creating NO_RECORDING capture session: {}",
+                         booking.getId(), captureSession.getId());
+                captureSessionService.upsert(captureSession);
+            });
+
+        UUID cronUserId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+        captureSessionService.findAllPastIncompleteCaptureSessions()
+            .forEach(captureSession -> {
+                CreateCaptureSessionDTO dto = new CreateCaptureSessionDTO();
+                dto.setId(captureSession.getId());
+                dto.setBookingId(captureSession.getBookingId());
+                dto.setOrigin(captureSession.getOrigin());
+                dto.setIngestAddress(captureSession.getIngestAddress());
+                dto.setLiveOutputUrl(captureSession.getLiveOutputUrl());
+                dto.setStartedAt(captureSession.getStartedAt());
+                dto.setStartedByUserId(captureSession.getStartedByUserId());
+                dto.setFinishedAt(Timestamp.from(Instant.now()));
+                dto.setFinishedByUserId(cronUserId);
+                dto.setStatus(RecordingStatus.NO_RECORDING);
+                log.info("Found old capture session: {}. Updating to NO_RECORDING.", dto.getId());
+                captureSessionService.upsert(dto);
+            });
     }
 
     private void processLiveEvents() {
@@ -224,7 +258,7 @@ public class CleanupLiveEvents extends RobotUserTask {
         switch (mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, currentTask.getCurrentJobName())) {
             case RECORDING_AVAILABLE -> {
                 // trigger processing step 2
-                var jobName = mediaService.triggerProcessingStep2(currentTask.getRecordingId());
+                var jobName = mediaService.triggerProcessingStep2(currentTask.getRecordingId(), false);
 
                 if (jobName == null) {
                     log.error("Failed to trigger processing step 2 for capture session {}", captureSessionId);
@@ -274,11 +308,13 @@ public class CleanupLiveEvents extends RobotUserTask {
                     return;
                 }
                 log.info("Final asset found for capture session {}", captureSessionId);
-                captureSessionService.stopCaptureSession(
+                var captureSession = captureSessionService.stopCaptureSession(
                     captureSessionId,
                     RecordingStatus.RECORDING_AVAILABLE,
                     currentTask.getRecordingId()
                 );
+                azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+                azureIngestStorageService.markContainerAsSafeToDelete(currentTask.getRecordingId().toString());
                 currentTask.setStatus(CleanupTaskStatus.RECORDING_AVAILABLE);
             }
             case FAILURE -> {
@@ -343,38 +379,6 @@ public class CleanupLiveEvents extends RobotUserTask {
             }
         } catch (Exception e) {
             log.error("Error stopping live event {}", liveEventName, e);
-        }
-    }
-
-    private void notify(CaptureSessionDTO captureSession) {
-        try {
-            var booking = bookingService.findById(captureSession.getBookingId());
-
-            var shares = booking.getShares();
-            // @todo simplify this after 4.3 goes live S28-3692
-            var toNotify = shares.stream()
-                .map(shareBooking -> userService.findById(shareBooking.getSharedWithUser().getId()))
-                .map(u -> StoppedLiveEventsNotificationDTO
-                    .builder()
-                    .email(u.getEmail())
-                    .firstName(u.getFirstName())
-                    .lastName(u.getLastName())
-                    .caseReference(booking.getCaseDTO().getReference())
-                    .courtName(booking.getCaseDTO().getCourt().getName())
-                    .build())
-                .toList();
-            if (!toNotify.isEmpty()) {
-                if (!emailServiceFactory.isEnabled()) {
-                    log.info("Sending email notifications to {} user(s)", toNotify.size());
-                    stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
-                }
-                // if GovNotify is enabled, users are notified via the
-                // RecordingListener.onRecordingCreated method
-            } else {
-                log.info("No users to notify for capture session {}", captureSession.getId());
-            }
-        } catch (NotFoundException e) {
-            log.error(e.getMessage());
         }
     }
 

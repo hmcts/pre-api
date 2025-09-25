@@ -140,13 +140,13 @@ public class GovNotifyFT {
 
             ---
 
-            [Counsel and Judiciary User Guide.pdf](http://localhost:8080/assets/files/user-guide.pdf)
+            [Training Guide - External Users.pdf](http://localhost:8080/assets/files/user-guide.pdf)
 
             [PRE Editing Recording Process Quick Guide.pdf](http://localhost:8080/assets/files/process-guide.pdf)
 
-            [PRE FAQs - External.pdf](http://localhost:8080/assets/files/faqs.pdf)
+            [PRE Portal FAQs (External Users).pdf](http://localhost:8080/assets/files/faqs.pdf)
 
-            [PRE Editing Request Form.xlsx](http://localhost:8080/assets/files/pre-editing-request-form.xlsx)""", response);
+            [PRE Editing Request Form v3.1.xlsx](http://localhost:8080/assets/files/pre-editing-request-form.xlsx)""", response);
     }
 
     @DisplayName("Should send case pending closure email")
@@ -214,6 +214,29 @@ public class GovNotifyFT {
             Dear John Doe,
 
             Case 123456 will no longer be closed and access to recordings will remain available.
+
+            Kind regards,
+            Pre-Recorded Evidence Team""", response);
+    }
+
+    @DisplayName("Should send verify email email")
+    @Test
+    @SuppressWarnings("LineLength")
+    void verifyEmail() {
+
+        var verificationCode = "123456";
+
+        var response = client.emailVerification(toEmailAddress, userFirstName, userLastName, verificationCode);
+        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(
+            "[Do Not Reply] Pre-recorded Evidence: Account Email Verification Code",
+            response.getSubject()
+        );
+        compareBody(
+            """
+            Dear John Doe,
+
+            Your code is: 123456
 
             Kind regards,
             Pre-Recorded Evidence Team""", response);

@@ -181,10 +181,6 @@ public class CheckForMissingRecordingsTest {
                           + ": not in database\\n");
 
         assertThat(slackCaptor.getValue())
-            .contains("\\nCapture session " + captureSessionNoLiveOutputUrl.getId()
-                          + " missing live output url\\n");
-
-        assertThat(slackCaptor.getValue())
             .contains("Missing recording for capture session " + captureSessionRecNotInSA.getId()
                           + ": not in final SA\\n");
     }
@@ -222,7 +218,7 @@ public class CheckForMissingRecordingsTest {
         verify(slackClient).postSlackMessage(slackCaptor.capture());
 
         assertThat(slackCaptor.getValue())
-            .contains("\\n\\n:warning: *Capture sessions with NO_RECORDING status:*\\n" + noRecording.getId());
+            .doesNotContain("NO_RECORDING");
 
         assertThat(slackCaptor.getValue())
             .contains("\\n\\n:warning: *Capture sessions with FAILURE status:*\\n" + failedStatus.getId());
@@ -292,7 +288,7 @@ public class CheckForMissingRecordingsTest {
         verify(azureFinalStorageService, times(1)).getRecordingDuration(rec1.getId()); // Version 2
         verify(captureSessionService, times(1))
             .findSessionsByDate(any(LocalDate.class));
-        verify(slackClient, times(1)).postSlackMessage(anyString());
+        verify(slackClient, times(0)).postSlackMessage(anyString());
     }
 
     private CaptureSession createCaptureSessionForStatus(RecordingStatus recordingStatus) {

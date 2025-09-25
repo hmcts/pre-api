@@ -59,7 +59,8 @@ public class FunctionalTestBase {
     protected static final String USERS_ENDPOINT = "/users";
     protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
-    protected static final String REPORTS_ENDPOINT = "/reports";
+    protected static final String LEGACY_REPORTS_ENDPOINT = "/reports";
+    protected static final String REPORTS_ENDPOINT = "/reports-v2";
 
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -105,15 +106,13 @@ public class FunctionalTestBase {
         if (authenticatedUserIds == null) {
             authenticatedUserIds = new HashMap<>();
             Arrays.stream(TestingSupportRoles.values())
-                .forEach(role -> {
-                    authenticatedUserIds.put(
-                        role,
-                        doPostRequest("/testing-support/create-authenticated-user/" + role, null)
-                            .body()
-                            .jsonPath()
-                            .getObject("", AuthUserDetails.class)
-                    );
-                });
+                .forEach(role -> authenticatedUserIds.put(
+                    role,
+                    doPostRequest("/testing-support/create-authenticated-user/" + role, null)
+                        .body()
+                        .jsonPath()
+                        .getObject("", AuthUserDetails.class)
+                ));
         }
     }
 
@@ -233,8 +232,6 @@ public class FunctionalTestBase {
     }
 
     protected CreateCourtDTO createCourt() {
-        var roomId = doPostRequest("/testing-support/create-room", null)
-            .body().jsonPath().getUUID("roomId");
         var regionId = doPostRequest("/testing-support/create-region", null)
             .body().jsonPath().getUUID("regionId");
 
@@ -242,7 +239,7 @@ public class FunctionalTestBase {
         dto.setId(UUID.randomUUID());
         dto.setName("Example Court");
         dto.setCourtType(CourtType.CROWN);
-        dto.setRooms(List.of(roomId));
+        dto.setRooms(List.of(UUID.randomUUID()));
         dto.setRegions(List.of(regionId));
         dto.setLocationCode("123456789");
         return dto;
@@ -354,8 +351,7 @@ public class FunctionalTestBase {
         create.setTest(dto.isTest());
         create.setState(dto.getState());
         create.setClosedAt(dto.getClosedAt());
-        create.setParticipants(dto
-                                   .getParticipants()
+        create.setParticipants(dto.getParticipants()
                                    .stream()
                                    .map(this::convertDtoToCreateDto)
                                    .collect(Collectors.toSet()));
@@ -435,6 +431,24 @@ public class FunctionalTestBase {
         var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
         assertResponseCode(response, 200);
         return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
+    }
+
+    protected CreateCaptureSessionDTO setupCaptureSessionWithOrigins(RecordingOrigin caseOrigin,
+                                                                     RecordingOrigin captureSessionOrigin,
+                                                                     UUID courtId) throws JsonProcessingException {
+        CreateCaseDTO dto = createCase();
+        dto.setOrigin(caseOrigin);
+        dto.setCourtId(courtId);
+        Response putCase = putCase(dto);
+        assertResponseCode(putCase, 201);
+
+        CreateBookingDTO bookingDTO = createBooking(dto.getId(), dto.getParticipants());
+        Response putBooking = putBooking(bookingDTO);
+        assertResponseCode(putBooking, 201);
+
+        CreateCaptureSessionDTO createCaptureSessionDTO = createCaptureSession(bookingDTO.getId());
+        createCaptureSessionDTO.setOrigin(captureSessionOrigin);
+        return createCaptureSessionDTO;
     }
 
     protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
