@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
 import java.util.Optional;
 
@@ -41,6 +42,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
     private final MigrationRecordService migrationRecordService;
+    private final CaseRepository caseRepository;
     private final LoggingService loggingService;
 
     @Autowired
@@ -52,6 +54,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                      final MigrationGroupBuilderService migrationService,
                      final MigrationTrackerService migrationTrackerService,
                      final MigrationRecordService migrationRecordService,
+                     final CaseRepository caseRepository,
                      final LoggingService loggingService) {
         this.cacheService = cacheService;
         this.extractionService = extractionService;
@@ -61,6 +64,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         this.migrationService = migrationService;
         this.migrationTrackerService = migrationTrackerService;
         this.migrationRecordService = migrationRecordService;
+        this.caseRepository = caseRepository;
         this.loggingService = loggingService;
     }
 
@@ -128,7 +132,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                if (!isCaseOpen(cleansedData, extractedData)) {
+                if (!isCaseOpenAndNotDeleted(cleansedData, extractedData)) {
                     loggingService.markHandled();
                     return null; 
                 }
@@ -157,7 +161,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                if (!isCaseOpen(cleansedData, extractedData)) {
+                if (!isCaseOpenAndNotDeleted(cleansedData, extractedData)) {
                     return null; 
                 }
 
@@ -321,12 +325,16 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         );
     }
 
-    private boolean isCaseOpen(ProcessedRecording recording, ExtractedMetadata extractedData) {
+    private boolean isCaseOpenAndNotDeleted(ProcessedRecording recording, ExtractedMetadata extractedData) {
         String caseRef = recording.getCaseReference();
         var maybeCase = cacheService.getCase(caseRef);
 
-        if (maybeCase.isPresent() && maybeCase.get().getState() != CaseState.OPEN) {
-            String msg = "Case %s is CLOSED; cannot create bookings/capture sessions/recordings".formatted(caseRef);
+        boolean isClosed = maybeCase.isPresent() && maybeCase.get().getState() != CaseState.OPEN;
+        boolean isDeleted = caseRepository.findAllByReference(caseRef).stream().anyMatch(c -> c.getDeletedAt() != null);
+
+        if (isClosed || isDeleted) {
+            String msg = "Case %s is in a closed or deleted state; cannot create bookings/capture sessions/recordings"
+                .formatted(caseRef);
 
             migrationRecordService.updateToFailed(extractedData.getArchiveId(), 
                 VfFailureReason.CASE_CLOSED.toString(), msg);

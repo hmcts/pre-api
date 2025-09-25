@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
@@ -43,7 +44,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = { MigrationWriter.class })
+@SpringBootTest(classes = { MigrationWriter.class, MigrationItemExecutor.class  })
 public class WriterTest {
     @MockitoBean
     private LoggingService loggingService;
@@ -56,6 +57,9 @@ public class WriterTest {
 
     @MockitoBean
     private RecordingService recordingService;
+
+    @MockitoBean
+    private MigrationRecordService migrationRecordService;
 
     @MockitoBean
     private CaptureSessionService captureSessionService;
@@ -266,13 +270,12 @@ public class WriterTest {
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
         doThrow(NotFoundException.class).when(bookingService).upsert(any(CreateBookingDTO.class));
-
         writer.write(Chunk.of(itemGroup));
 
         verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(loggingService, times(1))
-            .logError(eq("Failed to upsert booking. Booking id: %s | %s"), eq(createBookingDTO.getId()), any());
+            .logError(eq("Failed to process migrated item: %s | %s"), eq("REFERENCE"), any());
     }
 
     @Test
@@ -309,11 +312,7 @@ public class WriterTest {
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(loggingService, times(1))
-            .logError(
-                eq("Failed to upsert capture session. Capture Session id: %s | %s"),
-                eq(createCaptureSessionDTO.getId()),
-                any()
-            );
+            .logError(eq("Failed to process migrated item: %s | %s"), eq("REFERENCE"), any());
     }
 
     @Test
@@ -396,11 +395,7 @@ public class WriterTest {
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(loggingService, times(1))
-            .logError(
-                eq("Failed to upsert recording. Recording id: %s | %s"),
-                eq(createRecordingDTO.getId()),
-                any()
-            );
+            .logError(eq("Failed to process migrated item: %s | %s"), eq("REFERENCE"), any());
     }
 
     @Test
