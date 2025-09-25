@@ -32,8 +32,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -84,6 +86,11 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
 
         // Step 1: Find all VF recordings missing final asset
         List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings();
+        Map<String, RecordingDTO> recordingsMap = recordings.stream()
+            .collect(Collectors.toMap(r -> r.getCaptureSession()
+                .getId()
+                .toString()
+                .replace("-", ""), r -> r));
 
         if (recordings.isEmpty()) {
             log.info("No recordings missing asset found");
@@ -102,9 +109,14 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                 // Step 6: Await batch completion
                 awaitBatchComplete(jobs, mediaService);
                 // Step 7: Update recordings with mp4 filename and duration
-                log.info("number of recordings in batch: {}", recordings.size());
-                log.info("number of recordings in job: {}", jobs.size());
-                recordings.forEach(recording -> updateRecording(recording, mediaService));
+                jobs.forEach(job -> {
+                    var r = recordingsMap.get(job.split("_")[0]);
+                    if (r == null) {
+                        log.error("recording not found for job: {}", job);
+                        return;
+                    }
+                    updateRecording(r, mediaService);
+                });
             }
         );
 
