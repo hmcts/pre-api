@@ -119,7 +119,7 @@ checkstyle {
 }
 
 pmd {
-  toolVersion = "7.15.0"
+  toolVersion = "7.17.0"
   sourceSets = [sourceSets.main]
   reportsDir = file("$project.buildDir/reports/pmd")
   // https://github.com/pmd/pmd/issues/876
@@ -243,7 +243,7 @@ repositories {
 }
 
 ext {
-  log4JVersion = "2.24.3"
+  log4JVersion = "2.25.2"
   reformLoggingVersion = "6.1.9"
 }
 
@@ -280,8 +280,8 @@ dependencies {
   implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.5.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-batch'
-  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.22.0'
-  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.20.0'
+  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.23.0'
+  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.23.0'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: reformLoggingVersion
   implementation group: 'com.github.hmcts.java-logging', name: 'logging-appinsights', version: reformLoggingVersion
@@ -312,8 +312,8 @@ dependencies {
 
   implementation group: 'com.opencsv', name: 'opencsv', version: '5.12.0'
 
-  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.30.0'
-  implementation group: 'com.azure', name: 'azure-core-serializer-json-jackson', version: '1.5.10'
+  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.31.2'
+  implementation group: 'com.azure', name: 'azure-core-serializer-json-jackson', version: '1.6.1'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0'
 
   implementation group: 'org.testcontainers', name: 'postgresql', version: '1.21.3'
@@ -327,7 +327,7 @@ dependencies {
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.23.Final')
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
-  testImplementation 'com.github.hmcts:fortify-client:1.4.9:all'
+  testImplementation 'com.github.hmcts:fortify-client:1.4.10:all'
   testImplementation 'org.springframework.security:spring-security-test:6.5.0'
   testRuntimeOnly('org.springframework.security:spring-security-web:6.5.0')
   testImplementation libraries.junit5
