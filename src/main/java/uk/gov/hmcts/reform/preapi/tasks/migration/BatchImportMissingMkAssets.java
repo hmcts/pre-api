@@ -87,8 +87,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         // Step 1: Find all VF recordings missing final asset
         List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings();
         Map<String, RecordingDTO> recordingsMap = recordings.stream()
-            .collect(Collectors.toMap(r -> r.getCaptureSession()
-                .getId()
+            .collect(Collectors.toMap(r -> r.getId()
                 .toString()
                 .replace("-", ""), r -> r));
 
