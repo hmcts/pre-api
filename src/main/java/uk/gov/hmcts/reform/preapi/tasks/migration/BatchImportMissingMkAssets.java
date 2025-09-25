@@ -86,8 +86,11 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
 
         // Step 1: Find all VF recordings missing final asset
         List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings();
-        Map<UUID, RecordingDTO> recordingsMap = recordings.stream()
-            .collect(Collectors.toMap(r -> r.getCaptureSession().getId(), r -> r));
+        Map<String, RecordingDTO> recordingsMap = recordings.stream()
+            .collect(Collectors.toMap(r -> r.getCaptureSession()
+                .getId()
+                .toString()
+                .replace("-", ""), r -> r));
 
         if (recordings.isEmpty()) {
             log.info("No recordings missing asset found");
@@ -107,7 +110,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                 awaitBatchComplete(jobs, mediaService);
                 // Step 7: Update recordings with mp4 filename and duration
                 jobs.forEach(job -> {
-                    var r = recordingsMap.get(UUID.fromString(job.split("_")[0]));
+                    var r = recordingsMap.get(job.split("_")[0]);
                     if (r == null) {
                         log.error("recording not found for job: {}", job);
                         return;
