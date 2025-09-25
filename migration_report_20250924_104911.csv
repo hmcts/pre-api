@@ -1,2 +1,0 @@
-RecordingId,CaseReference,Filename,Duration,MigrationStatus,ErrorMessage
-81d553ce-4df1-4428-8034-caf56d02a7c2,REFERENCE,,0,FAILURE,Failed to copy blob 'null' between containers: voda-sa/Video -> ingest-sa/81d553ce-4df1-4428-8034-caf56d02a7c2-input

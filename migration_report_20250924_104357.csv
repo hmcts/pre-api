@@ -1,2 +1,0 @@
-RecordingId,CaseReference,Filename,Duration,MigrationStatus,ErrorMessage
-8f10f106-48ca-4574-9082-12017c99e514,REFERENCE,filename.mp4,0,FAILURE,Failed to create temporary asset
