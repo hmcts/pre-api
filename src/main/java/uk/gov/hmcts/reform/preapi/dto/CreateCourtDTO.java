@@ -45,9 +45,4 @@ public class CreateCourtDTO {
     @Size(min = 1, message = "must contain at least 1")
     @NotNull(message = "regions is required and must contain at least 1")
     private List<UUID> regions = List.of();
-
-    @Schema(description = "CreateCourtRoomIds")
-    @Size(min = 1, message = "must contain at least 1")
-    @NotNull(message = "rooms is required and must contain at least 1")
-    private List<UUID> rooms = List.of();
 }

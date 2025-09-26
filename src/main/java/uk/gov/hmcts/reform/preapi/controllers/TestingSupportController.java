@@ -618,13 +618,4 @@ class TestingSupportController {
 
         return role;
     }
-
-    public enum AuthLevel {
-        NONE,
-        SUPER_USER,
-        LEVEL_1,
-        LEVEL_2,
-        LEVEL_3,
-        LEVEL_4
-    }
 }
