@@ -259,7 +259,7 @@ public class BatchImportMissingMkAssetsTest {
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
         when(mediaService.importAsset(recording, true)).thenReturn(true);
-        String jobName = recording.getCaptureSession().getId() + "_output";
+        String jobName = recording.getId().toString().replace("-", "") + "_output";
         when(mediaService.triggerProcessingStep2(recording.getId(), true)).thenReturn(jobName);
         when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName))
             .thenReturn(RecordingStatus.PROCESSING, RecordingStatus.PROCESSING, RecordingStatus.RECORDING_AVAILABLE);
@@ -314,7 +314,7 @@ public class BatchImportMissingMkAssetsTest {
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
         when(mediaService.importAsset(recording, true)).thenReturn(true);
-        String jobName = recording.getCaptureSession().getId() + "_output";
+        String jobName = recording.getId().toString().replace("-", "") + "_output";
         when(mediaService.triggerProcessingStep2(recording.getId(), true)).thenReturn(jobName);
         when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName))
             .thenReturn(RecordingStatus.PROCESSING, RecordingStatus.PROCESSING, RecordingStatus.RECORDING_AVAILABLE);
@@ -402,5 +402,33 @@ public class BatchImportMissingMkAssetsTest {
         spyBatchImport.asyncRun();
 
         verify(spyBatchImport, times(1)).run();
+    }
+
+    @Test
+    void runFailureCantFindRecordingByJobId() {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+        recording.setFilename("filename.mp4");
+        recording.setCaseReference("REFERENCE");
+        CaptureSessionDTO captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+        recording.setVersion(1);
+        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(mediaService.getAsset(any())).thenReturn(null);
+        when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
+        when(mediaService.importAsset(recording, false)).thenReturn(true);
+        when(mediaService.importAsset(recording, true)).thenReturn(true);
+        String jobName = recording.getId().toString() + "_output";
+        when(mediaService.triggerProcessingStep2(recording.getId(), true)).thenReturn(jobName);
+        when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName))
+            .thenReturn(RecordingStatus.PROCESSING, RecordingStatus.PROCESSING, RecordingStatus.RECORDING_AVAILABLE);
+        when(mediaService.verifyFinalAssetExists(recording.getId())).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+        when(azureFinalStorageService.getMp4FileName(recording.getId().toString())).thenReturn("filename.mp4");
+        when(azureFinalStorageService.getRecordingDuration(recording.getId())).thenReturn(Duration.ofMinutes(3));
+
+        batchImportMissingMkAssets.run();
+
+        verify(mediaService, times(0)).verifyFinalAssetExists(recording.getId());
     }
 }
