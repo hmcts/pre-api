@@ -778,11 +778,6 @@ public class MediaKind implements IMediaService {
         }).map(MkGetListResponse::getValue).flatMap(List::stream);
     }
 
-    @FunctionalInterface
-    protected interface GetListFunction<E> {
-        MkGetListResponse<E> get(int skip);
-    }
-
     private void assertLiveEventExists(UUID liveEventId) {
         var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
         try {
@@ -893,5 +888,10 @@ public class MediaKind implements IMediaService {
 
     private String getLiveEventNotFoundExceptionMessage(String liveEventName) {
         return "Live Event: " + liveEventName;
+    }
+
+    @FunctionalInterface
+    protected interface GetListFunction<E> {
+        MkGetListResponse<E> get(int skip);
     }
 }
