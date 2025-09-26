@@ -128,7 +128,7 @@ public class BatchImportMissingMkAssetsTest {
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
         when(mediaService.importAsset(recording, true)).thenReturn(true);
-        String jobName = recording.getCaptureSession().getId().toString().replace("-", "") + "_output";
+        String jobName = recording.getId().toString().replace("-", "") + "_output";
         when(mediaService.triggerProcessingStep2(recording.getId(), true)).thenReturn(jobName);
         when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName))
             .thenReturn(RecordingStatus.PROCESSING, RecordingStatus.PROCESSING, RecordingStatus.RECORDING_AVAILABLE);
@@ -178,7 +178,7 @@ public class BatchImportMissingMkAssetsTest {
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
         when(mediaService.importAsset(recording, true)).thenReturn(true);
-        String jobName = recording.getCaptureSession().getId().toString().replace("-", "") + "_output";
+        String jobName = recording.getId().toString().replace("-", "") + "_output";
         when(mediaService.triggerProcessingStep2(recording.getId(), true)).thenReturn(jobName);
         when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName))
             .thenReturn(RecordingStatus.PROCESSING, RecordingStatus.PROCESSING, RecordingStatus.RECORDING_AVAILABLE);
@@ -278,7 +278,7 @@ public class BatchImportMissingMkAssetsTest {
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
         when(mediaService.importAsset(recording, true)).thenReturn(true);
-        String jobName = recording.getCaptureSession().getId().toString() + "_output";
+        String jobName = recording.getId().toString() + "_output";
         when(mediaService.triggerProcessingStep2(recording.getId(), true)).thenReturn(jobName);
         when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName))
             .thenReturn(RecordingStatus.PROCESSING, RecordingStatus.PROCESSING, RecordingStatus.RECORDING_AVAILABLE);

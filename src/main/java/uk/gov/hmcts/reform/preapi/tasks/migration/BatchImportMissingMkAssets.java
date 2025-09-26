@@ -22,7 +22,7 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.tasks.RobotUserTask;
-import uk.gov.hmcts.reform.preapi.util.Batcher;
+import uk.gov.hmcts.reform.preapi.utils.Batcher;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -87,8 +87,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         // Step 1: Find all VF recordings missing final asset
         List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings();
         Map<String, RecordingDTO> recordingsMap = recordings.stream()
-            .collect(Collectors.toMap(r -> r.getCaptureSession()
-                .getId()
+            .collect(Collectors.toMap(r -> r.getId()
                 .toString()
                 .replace("-", ""), r -> r));
 
