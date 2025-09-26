@@ -90,6 +90,9 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.notifyItems.clear();
         migrationTrackerService.invitedUsers.clear();
         migrationTrackerService.shareBookings.clear();
+        migrationTrackerService.shareBookingReportEntries.clear();
+        migrationTrackerService.caseClosureEntries.clear();
+        migrationTrackerService.shareInviteFailures.clear();
     }
 
     @AfterAll
@@ -604,6 +607,15 @@ public class MigrationTrackerServiceTest {
         return passItem;
     }
 
+    private CreateShareBookingDTO createShareBooking(UUID shareId) {
+        CreateShareBookingDTO dto = new CreateShareBookingDTO();
+        dto.setId(shareId);
+        dto.setBookingId(UUID.randomUUID());
+        dto.setSharedWithUser(UUID.randomUUID());
+        dto.setSharedByUser(UUID.randomUUID());
+        return dto;
+    }
+
     private FailedItem createMockFailedItem() {
         ExtractedMetadata metadata = new ExtractedMetadata();
         metadata.setFileName("test.mp4");
@@ -684,6 +696,25 @@ public class MigrationTrackerServiceTest {
     }
 
     @Test
+    void buildShareBookingsRows_usesReportEntriesWhenPresent() {
+        UUID shareId = UUID.randomUUID();
+        migrationTrackerService.addShareBookingReport(
+            createShareBooking(shareId),
+            "share@example.com",
+            "by@example.com"
+        );
+
+        List<List<String>> rows = migrationTrackerService.buildShareBookingsRows();
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0)).hasSize(7);
+        assertThat(rows.get(0).get(0)).isEqualTo(shareId.toString());
+        assertThat(rows.get(0).get(3)).isEqualTo("share@example.com");
+        assertThat(rows.get(0).get(4)).isNotBlank();
+        assertThat(rows.get(0).get(5)).isEqualTo("by@example.com");
+    }
+
+    @Test
     void writeShareBookingsToCsv_success() {
         CreateShareBookingDTO row = new CreateShareBookingDTO();
         row.setBookingId(UUID.randomUUID());
@@ -707,6 +738,98 @@ public class MigrationTrackerServiceTest {
             ), times(1)
         );
         verify(loggingService, never()).logError(anyString(), anyString());
+    }
+
+    @Test
+    void writeCaseClosureReport_returnsFileWhenEntriesExist() {
+        migrationTrackerService.addCaseClosureEntry(
+            new MigrationTrackerService.CaseClosureReportEntry(
+                "case-id",
+                "REF123",
+                "CLOSED",
+                5,
+                4,
+                ""
+            )
+        );
+
+        Path mockPath = tempDir.resolve("Case_closure.csv");
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(
+                eq(MigrationTrackerService.CASE_CLOSURE_HEADERS),
+                anyList(),
+                eq("Case_closure"),
+                anyString(),
+                eq(false)
+            )
+        ).thenReturn(mockPath);
+
+        File result = migrationTrackerService.writeCaseClosureReport("Case_closure", tempDir.toString());
+
+        assertThat(result).isNotNull();
+        reportCsvWriter.verify(() ->
+            ReportCsvWriter.writeToCsv(
+                eq(MigrationTrackerService.CASE_CLOSURE_HEADERS),
+                anyList(),
+                eq("Case_closure"),
+                anyString(),
+                eq(false)
+            ), times(1)
+        );
+    }
+
+    @Test
+    void writeCaseClosureReport_returnsNullWhenNoEntries() {
+        File result = migrationTrackerService.writeCaseClosureReport("Case_closure", tempDir.toString());
+        assertThat(result).isNull();
+        reportCsvWriter.verifyNoInteractions();
+    }
+
+    @Test
+    void writeShareInviteFailureReport_returnsFileWhenEntriesExist() {
+        migrationTrackerService.addShareInviteFailure(
+            new MigrationTrackerService.ShareInviteFailureEntry(
+                "Invite",
+                "identifier",
+                "user@example.com",
+                "UPSERT",
+                "reason",
+                "timestamp"
+            )
+        );
+
+        Path mockPath = tempDir.resolve("Share_invite_failures.csv");
+        reportCsvWriter.when(() ->
+            ReportCsvWriter.writeToCsv(
+                eq(MigrationTrackerService.SHARE_INVITE_FAILURE_HEADERS),
+                anyList(),
+                eq("Share_invite_failures"),
+                anyString(),
+                eq(false)
+            )
+        ).thenReturn(mockPath);
+
+        File result = migrationTrackerService.writeShareInviteFailureReport(
+            "Share_invite_failures", tempDir.toString());
+
+        assertThat(result).isNotNull();
+        reportCsvWriter.verify(() ->
+            ReportCsvWriter.writeToCsv(
+                eq(MigrationTrackerService.SHARE_INVITE_FAILURE_HEADERS),
+                anyList(),
+                eq("Share_invite_failures"),
+                anyString(),
+                eq(false)
+            ), times(1)
+        );
+    }
+
+    @Test
+    void writeShareInviteFailureReport_returnsNullWhenNoEntries() {
+        File result = migrationTrackerService.writeShareInviteFailureReport(
+            "Share_invite_failures", tempDir.toString());
+        assertThat(result).isNull();
+        reportCsvWriter.verifyNoInteractions();
     }
 
     @Test

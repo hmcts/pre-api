@@ -29,6 +29,8 @@ import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -362,6 +364,41 @@ public class PostMigrationJobConfigTest {
             Map.of("ref3.john.doe.2024-01-01", List.<String[]>of(new String[]{"john.doe","j@test.com"}))
         );
         when(bookingService.findById(bookingId)).thenReturn(null);
+
+        Tasklet tasklet = getTaskletFromStep(config.createShareBookingsStep(postMigrationWriter));
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
+        verify(postMigrationWriter).write(any());
+        verify(migrationTrackerService).writeShareInviteFailureReport();
+    }
+
+    @Test
+    void shareBookingsStep_skipsWhenShareAlreadyExistsOnBooking() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        MigrationRecord rec = new MigrationRecord();
+        rec.setArchiveId("ARCH_SHARED");
+        rec.setRecordingGroupKey("REF6|john|doe|2024-01-01");
+        rec.setBookingId(bookingId);
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(rec));
+        when(cacheService.getAllChannelReferences()).thenReturn(
+            Map.of("ref6.john.doe.2024-01-01", List.<String[]>of(new String[]{"john.doe", "john.doe@test.com"}))
+        );
+
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("john.doe@test.com");
+        sharedWith.setFirstName("John");
+        sharedWith.setLastName("Doe");
+        
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setSharedWithUser(sharedWith);
+        BookingDTO booking = createTestBooking();
+        booking.setShares(List.of(existingShare));
+
+        when(bookingService.findById(bookingId)).thenReturn(booking);
 
         Tasklet tasklet = getTaskletFromStep(config.createShareBookingsStep(postMigrationWriter));
         RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
