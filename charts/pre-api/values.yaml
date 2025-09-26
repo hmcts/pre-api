@@ -69,6 +69,7 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     ENABLE_MIGRATED_DATA: false
     TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE: 50
     TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL: 10000
+    TASK_BATCH_IMPORT_MISSING_ASSETS_MAX_SLEEP_TIME: "1800000"
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues
