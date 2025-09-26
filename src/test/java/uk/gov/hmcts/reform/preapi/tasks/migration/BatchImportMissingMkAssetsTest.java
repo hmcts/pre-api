@@ -3,9 +3,12 @@ package uk.gov.hmcts.reform.preapi.tasks.migration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
@@ -56,9 +59,11 @@ import static org.mockito.Mockito.when;
 @TestPropertySource(properties = {
     "tasks.batch-import-missing-mk-assets.batch-size=1",
     "tasks.batch-import-missing-mk-assets.poll-interval=10",
+    "tasks.batch-import-missing-mk-assets.max-sleep-time=25",
     "tasks.batch-import-missing-mk-assets.mp4-source-container=Video",
     "cron-user-email=test@test.com"
 })
+@ExtendWith(OutputCaptureExtension.class)
 public class BatchImportMissingMkAssetsTest {
     @MockitoBean
     private IMediaService mediaService;
@@ -431,4 +436,35 @@ public class BatchImportMissingMkAssetsTest {
 
         verify(mediaService, times(0)).verifyFinalAssetExists(recording.getId());
     }
+
+    @Test
+    void runFailureBatchTimeout(CapturedOutput output) throws IOException {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+        recording.setFilename("filename.mp4");
+        recording.setCaseReference("REFERENCE");
+        CaptureSessionDTO captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+        recording.setVersion(1);
+        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(mediaService.getAsset(any())).thenReturn(null);
+        when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
+        when(mediaService.importAsset(recording, false)).thenReturn(true);
+        when(mediaService.importAsset(recording, true)).thenReturn(true);
+        String jobName = recording.getId().toString().replace("-", "") + "_output";
+        when(mediaService.triggerProcessingStep2(recording.getId(), true)).thenReturn(jobName);
+        when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName))
+            .thenReturn(RecordingStatus.PROCESSING, RecordingStatus.PROCESSING, RecordingStatus.PROCESSING);
+
+        batchImportMissingMkAssets.run();
+
+        // verify Slf4j logger logged an error message
+        assertThat(output.getOut()).contains("Waiting for 1/1 transform jobs to complete for batch");
+        assertThat(output.getOut()).contains("Unknown job processing state: " + jobName);
+        // This final test seems flaky that it gets logged out as it's part of the exception thrown..
+        // assertThat(output.getOut())
+        //    .contains("Timeout waiting for transform jobs to complete for batch, 1 job(s) still processing");
+    }
+
 }

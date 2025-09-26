@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.BatchTimeoutException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -41,8 +42,6 @@ import java.util.stream.Collectors;
 @Component
 public class BatchImportMissingMkAssets extends RobotUserTask {
 
-    private static final Long MAX_SLEEP_TIME = 1800000L; // 30 minutes
-
     private final MediaServiceBroker mediaServiceBroker;
     private final RecordingService recordingService;
     private final CaptureSessionService captureSessionService;
@@ -55,6 +54,9 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
 
     @Value("${tasks.batch-import-missing-mk-assets.poll-interval}")
     private long pollInterval;
+
+    @Value("${tasks.batch-import-missing-mk-assets.max-sleep-time}")
+    private long maxSleepTime;
 
     @Value("${tasks.batch-import-missing-mk-assets.mp4-source-container}")
     private String vfSourceContainer;
@@ -142,17 +144,21 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             // Step 5: Start jobs for batch processing
             recording -> startTransformJob(recording, mediaService),
             jobs -> {
-                // Step 6: Await batch completion
-                awaitBatchComplete(jobs, mediaService);
-                // Step 7: Update recordings with mp4 filename and duration
-                jobs.forEach(job -> {
-                    var r = recordingsMap.get(job.split("_")[0]);
-                    if (r == null) {
-                        log.error("recording not found for job: {}", job);
-                        return;
-                    }
-                    updateRecording(r, mediaService);
-                });
+                try {
+                    // Step 6: Await batch completion
+                    awaitBatchComplete(jobs, mediaService);
+                    // Step 7: Update recordings with mp4 filename and duration
+                    jobs.forEach(job -> {
+                        var r = recordingsMap.get(job.split("_")[0]);
+                        if (r == null) {
+                            log.error("recording not found for job: {}", job);
+                            return;
+                        }
+                        updateRecording(r, mediaService);
+                    });
+                } catch (BatchTimeoutException e) {
+                    log.error(e.getMessage(), e);
+                }
             }
         );
 
@@ -218,12 +224,10 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                             mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName)
                                 .equals(RecordingStatus.PROCESSING))
                 .toList();
-        } while (!jobs.isEmpty() && sleptFor < MAX_SLEEP_TIME);
+        } while (!jobs.isEmpty() && sleptFor < maxSleepTime);
         if (!jobs.isEmpty()) {
-            log.error("Timeout waiting for transform jobs to complete for batch, {} job(s) still processing",
-                      jobs.size());
             jobs.forEach(job -> log.error("Unknown job processing state: {}", job));
-            return;
+            throw new BatchTimeoutException(jobs.size());
         }
         log.info("Transform jobs completed for batch");
     }
