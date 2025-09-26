@@ -6,7 +6,6 @@ import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -16,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import uk.gov.hmcts.reform.preapi.enums.AuditAction;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.exception.UnauditableTableException;
-import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
@@ -27,17 +25,17 @@ import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_H
 @Component
 public class AuditListener {
 
-    @Lazy
-    @Autowired
-    private AuditRepository auditRepository;
+    private final AuditRepository auditRepository;
+    private final HttpServletRequest request;
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    @Lazy
-    @Autowired
-    private AppAccessRepository appAccessRepository;
-
-    @Lazy
-    @Autowired
-    private HttpServletRequest request;
+    public AuditListener(
+        @Lazy AuditRepository auditRepository,
+        @Lazy HttpServletRequest request
+    ) {
+        this.auditRepository = auditRepository;
+        this.request = request;
+    }
 
     @PrePersist
     public void prePersist(BaseEntity entity) {
@@ -57,8 +55,6 @@ public class AuditListener {
     public void preRemove(BaseEntity entity) {
         audit(entity, AuditAction.DELETE);
     }
-
-    ObjectMapper mapper = new ObjectMapper();
 
     private void audit(BaseEntity entity, AuditAction action) {
         if (entity.getClass() == Audit.class) {

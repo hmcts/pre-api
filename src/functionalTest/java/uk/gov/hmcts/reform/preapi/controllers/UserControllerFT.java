@@ -265,7 +265,6 @@ public class UserControllerFT extends FunctionalTestBase {
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveTrueForDeletedCourtAccess, 200);
-        responseActiveTrueForDeletedCourtAccess.prettyPrint();
         assertThat(responseActiveTrueForDeletedCourtAccess.body().jsonPath().getInt("page.totalElements"))
             .isEqualTo(0);
     }
