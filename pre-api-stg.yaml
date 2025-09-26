@@ -134,6 +134,7 @@ definitions:
     properties:
       email:
         description: UserEmail
+        format: email
         minLength: 1
         type: string
       first_name:
@@ -782,6 +783,7 @@ definitions:
     properties:
       email:
         description: InviteEmail
+        format: email
         minLength: 1
         type: string
       first_name:
@@ -924,6 +926,7 @@ definitions:
         uniqueItems: true
       email:
         description: UserEmail
+        format: email
         minLength: 1
         type: string
       first_name:
@@ -1416,6 +1419,7 @@ definitions:
         type: string
       email:
         description: UserEmail
+        format: email
         minLength: 1
         type: string
       first_name:
@@ -2204,6 +2208,7 @@ definitions:
         type: string
       email:
         description: UserEmail
+        format: email
         minLength: 1
         type: string
       first_name:
@@ -2317,6 +2322,7 @@ definitions:
     properties:
       email:
         description: Email
+        format: email
         minLength: 1
         type: string
       verification_code:
