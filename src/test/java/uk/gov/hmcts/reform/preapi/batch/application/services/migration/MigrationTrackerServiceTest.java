@@ -659,10 +659,12 @@ public class MigrationTrackerServiceTest {
 
     @Test
     void buildShareBookingsRows_withData() {
+        UUID shareId = UUID.randomUUID();
         UUID bookingId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
 
         CreateShareBookingDTO row = new CreateShareBookingDTO();
+        row.setId(shareId);
         row.setBookingId(bookingId);
         row.setSharedWithUser(userId);
 
@@ -671,10 +673,14 @@ public class MigrationTrackerServiceTest {
         List<List<String>> rows = migrationTrackerService.buildShareBookingsRows();
 
         assertThat(rows).hasSize(1);
-        assertThat(rows.get(0)).hasSize(3); 
-        assertThat(rows.get(0).get(0)).isEqualTo(bookingId.toString());
-        assertThat(rows.get(0).get(1)).isEqualTo(userId.toString());
-        assertThat(rows.get(0).get(2)).isNotBlank(); 
+        assertThat(rows.get(0)).hasSize(7);
+        assertThat(rows.get(0).get(0)).isEqualTo(shareId.toString());
+        assertThat(rows.get(0).get(1)).isEqualTo(bookingId.toString());
+        assertThat(rows.get(0).get(2)).isEqualTo(userId.toString());
+        assertThat(rows.get(0).get(3)).isEmpty();
+        assertThat(rows.get(0).get(4)).isEmpty();
+        assertThat(rows.get(0).get(5)).isEmpty();
+        assertThat(rows.get(0).get(6)).isNotBlank();
     }
 
     @Test

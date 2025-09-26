@@ -12,6 +12,7 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
@@ -33,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -75,6 +77,8 @@ public class PostMigrationJobConfigTest {
     @Mock
     private BookingService bookingService;
     @Mock
+    private RecordingService recordingService;
+    @Mock
     private Step dummyStep;
     @Mock
     private PostMigrationWriter postMigrationWriter;
@@ -100,7 +104,8 @@ public class PostMigrationJobConfigTest {
             migrationTrackerService,
             migrationRecordService,
             caseService,
-            bookingService
+            bookingService,
+            recordingService
         );
 
         when(chunkContext.getStepContext()).thenReturn(stepContext);
@@ -143,6 +148,7 @@ public class PostMigrationJobConfigTest {
 
         assertThat(result).isEqualTo(RepeatStatus.FINISHED);
         verify(loggingService).logInfo("No Vodafone-origin cases found.");
+        verify(migrationTrackerService, never()).writeCaseClosureReport();
     }
 
     @Test
@@ -150,13 +156,21 @@ public class PostMigrationJobConfigTest {
         CaseDTO caseDTO = createTestCase("REF1", UUID.randomUUID());
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         when(cacheService.getAllChannelReferences()).thenReturn(Collections.emptyMap());
+        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any()))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
 
         Tasklet tasklet = getTaskletFromStep(config.createMarkCasesClosedStep());
         RepeatStatus result = tasklet.execute(stepContribution, chunkContext);
 
         assertThat(result).isEqualTo(RepeatStatus.FINISHED);
         verify(caseService).upsert(any(CreateCaseDTO.class));
-        verify(loggingService).logInfo("Successfully closed Vodafone case: %s", "REF1");
+        verify(loggingService).logInfo(
+            "Closed Vodafone case: %s (%s). Removed %d recording(s).",
+            "REF1",
+            caseDTO.getId(),
+            0
+        );
+        verify(migrationTrackerService).writeCaseClosureReport();
     }
 
     @Test
@@ -180,6 +194,24 @@ public class PostMigrationJobConfigTest {
         assertThat(result).isEqualTo(RepeatStatus.FINISHED);
         verify(caseService, never()).upsert(any());
         verify(loggingService).logInfo("Skipping case %s — matching channel user data found.", "REF2");
+        verify(migrationTrackerService).writeCaseClosureReport();
+    }
+
+    @Test
+    void markCasesClosedStep_skipsCaseAlreadyClosed() throws Exception {
+        CaseDTO caseDTO = createTestCase("REF_CLOSED", UUID.randomUUID());
+        caseDTO.setState(CaseState.CLOSED);
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        when(cacheService.getAllChannelReferences()).thenReturn(Collections.emptyMap());
+
+        Tasklet tasklet = getTaskletFromStep(config.createMarkCasesClosedStep());
+        RepeatStatus result = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(result).isEqualTo(RepeatStatus.FINISHED);
+        verify(caseService, never()).upsert(any());
+        verify(loggingService).logInfo("Skipping case %s — already closed.", "REF_CLOSED");
+        verify(migrationTrackerService).addCaseClosureEntry(any());
+        verify(migrationTrackerService).writeCaseClosureReport();
     }
 
     @Test
@@ -190,13 +222,21 @@ public class PostMigrationJobConfigTest {
         CaseDTO caseDTO = createTestCase("REF3", UUID.randomUUID());
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         when(cacheService.getAllChannelReferences()).thenReturn(Collections.emptyMap());
+        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any()))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
 
         Tasklet tasklet = getTaskletFromStep(config.createMarkCasesClosedStep());
         RepeatStatus result = tasklet.execute(stepContribution, chunkContext);
 
         assertThat(result).isEqualTo(RepeatStatus.FINISHED);
         verify(caseService, never()).upsert(any());
-        verify(loggingService).logInfo("[DRY RUN] Would close Vodafone case: %s", "REF3");
+        verify(loggingService).logInfo(
+            "[DRY RUN] Would close Vodafone case: %s (%s). Would remove %d recording(s).",
+            "REF3",
+            caseDTO.getId(),
+            0
+        );
+        verify(migrationTrackerService).writeCaseClosureReport();
     }
 
     @Test
@@ -204,13 +244,22 @@ public class PostMigrationJobConfigTest {
         CaseDTO caseDTO = createTestCase("REF_ERR", UUID.randomUUID());
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         when(cacheService.getAllChannelReferences()).thenReturn(Collections.emptyMap());
+        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any()))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
         doThrow(new RuntimeException("fail")).when(caseService).upsert(any());
 
         Tasklet tasklet = getTaskletFromStep(config.createMarkCasesClosedStep());
         RepeatStatus result = tasklet.execute(stepContribution, chunkContext);
 
         assertThat(result).isEqualTo(RepeatStatus.FINISHED);
-        verify(loggingService).logError("Failed to close case %s: %s", "REF_ERR", "fail");
+        verify(loggingService).logError(
+            "Failed to close case %s (%s): %s — %s",
+            "REF_ERR",
+            caseDTO.getId(),
+            "RuntimeException",
+            "fail"
+        );
+        verify(migrationTrackerService).writeCaseClosureReport();
     }
 
 
@@ -230,6 +279,7 @@ public class PostMigrationJobConfigTest {
         verify(loggingService).logInfo("Share booking creation complete. Total created: %d", 0);
         verify(postMigrationWriter).write(any());
         verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
+        verify(migrationTrackerService).writeShareInviteFailureReport();
     }
 
     @Test
@@ -251,6 +301,7 @@ public class PostMigrationJobConfigTest {
         assertThat(status).isEqualTo(RepeatStatus.FINISHED);
         verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
         verify(postMigrationWriter).write(any());
+        verify(migrationTrackerService).writeShareInviteFailureReport();
     }
 
     @Test
@@ -272,6 +323,7 @@ public class PostMigrationJobConfigTest {
         verify(bookingService, never()).findById(any());
         verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
         verify(postMigrationWriter).write(any());
+        verify(migrationTrackerService).writeShareInviteFailureReport();
     }
 
     @Test
@@ -294,6 +346,7 @@ public class PostMigrationJobConfigTest {
         assertThat(status).isEqualTo(RepeatStatus.FINISHED);
         verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
         verify(postMigrationWriter).write(any());
+        verify(migrationTrackerService).writeShareInviteFailureReport();
     }
 
     @Test
@@ -316,6 +369,7 @@ public class PostMigrationJobConfigTest {
         assertThat(status).isEqualTo(RepeatStatus.FINISHED);
         verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(any(), any(), any(), any());
         verify(postMigrationWriter).write(any());
+        verify(migrationTrackerService).writeShareInviteFailureReport();
     }
 
     @Test
@@ -353,6 +407,7 @@ public class PostMigrationJobConfigTest {
         verify(postMigrationWriter).write(any()); 
         verify(migrationTrackerService).writeNewUserReport();
         verify(migrationTrackerService).writeShareBookingsReport();
+        verify(migrationTrackerService).writeShareInviteFailureReport();
     }
 
     @Test
@@ -440,6 +495,7 @@ public class PostMigrationJobConfigTest {
         caseDTO.setOrigin(RecordingOrigin.VODAFONE);
         caseDTO.setTest(false);
         caseDTO.setParticipants(new ArrayList<>());
+        caseDTO.setState(CaseState.OPEN);
 
         CourtDTO court = new CourtDTO();
         court.setId(UUID.randomUUID());
