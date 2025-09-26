@@ -460,11 +460,10 @@ public class BatchImportMissingMkAssetsTest {
         batchImportMissingMkAssets.run();
 
         // verify Slf4j logger logged an error message
+        assertThat(output.getOut())
+            .contains("Timeout waiting for transform jobs to complete for batch, 1 job(s) still processing");
         assertThat(output.getOut()).contains("Waiting for 1/1 transform jobs to complete for batch");
         assertThat(output.getOut()).contains("Unknown job processing state: " + jobName);
-        // This final test seems flaky that it gets logged out as it's part of the exception thrown..
-        // assertThat(output.getOut())
-        //    .contains("Timeout waiting for transform jobs to complete for batch, 1 job(s) still processing");
     }
 
 }

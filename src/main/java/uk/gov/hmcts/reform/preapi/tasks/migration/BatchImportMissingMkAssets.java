@@ -11,7 +11,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
-import uk.gov.hmcts.reform.preapi.exception.BatchTimeoutException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -144,21 +143,17 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             // Step 5: Start jobs for batch processing
             recording -> startTransformJob(recording, mediaService),
             jobs -> {
-                try {
-                    // Step 6: Await batch completion
-                    awaitBatchComplete(jobs, mediaService);
-                    // Step 7: Update recordings with mp4 filename and duration
-                    jobs.forEach(job -> {
-                        var r = recordingsMap.get(job.split("_")[0]);
-                        if (r == null) {
-                            log.error("recording not found for job: {}", job);
-                            return;
-                        }
-                        updateRecording(r, mediaService);
-                    });
-                } catch (BatchTimeoutException e) {
-                    log.error(e.getMessage(), e);
-                }
+                // Step 6: Await batch completion
+                var processedJobs = awaitBatchComplete(jobs, mediaService);
+                // Step 7: Update recordings with mp4 filename and duration
+                processedJobs.forEach(job -> {
+                    var r = recordingsMap.get(job.split("_")[0]);
+                    if (r == null) {
+                        log.error("recording not found for job: {}", job);
+                        return;
+                    }
+                    updateRecording(r, mediaService);
+                });
             }
         );
 
@@ -206,7 +201,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         return mediaService.triggerProcessingStep2(recording.getId(), true);
     }
 
-    private void awaitBatchComplete(List<String> jobNames, IMediaService mediaService) {
+    private List<String> awaitBatchComplete(List<String> jobNames, IMediaService mediaService) {
         log.info("Waiting for transform jobs to complete for batch...");
         var jobs = List.copyOf(jobNames);
         var initialJobCount = jobs.size();
@@ -226,10 +221,17 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                 .toList();
         } while (!jobs.isEmpty() && sleptFor < maxSleepTime);
         if (!jobs.isEmpty()) {
-            jobs.forEach(job -> log.error("Unknown job processing state: {}", job));
-            throw new BatchTimeoutException(jobs.size());
+            log.error(
+                "Timeout waiting for transform jobs to complete for batch, {} job(s) still processing", jobs.size());
+            jobs.forEach(job -> {
+                log.error("Unknown job processing state: {}", job);
+            });
+            var unknownJobs = jobs;
+            return jobNames.stream().filter(name -> !unknownJobs.contains(name)).toList();
+        } else {
+            log.info("Transform jobs completed for batch");
         }
-        log.info("Transform jobs completed for batch");
+        return jobNames;
     }
 
     private void updateRecording(RecordingDTO recording, IMediaService mediaService) {
