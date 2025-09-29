@@ -394,9 +394,8 @@ public class MediaKind implements IMediaService {
 
     @Override
     public String triggerProcessingStep2(UUID recordingId, boolean isImport) {
-        String filename = azureIngestStorageService.tryGetMp4FileName(
-            recordingId.toString()
-                + (isImport ? "-input" : ""));
+        var containerName = recordingId.toString() + (isImport ? "-input" : "");
+        String filename = azureIngestStorageService.tryGetMp4FileName(containerName);
         if (filename == null) {
             log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
             return null;
@@ -406,7 +405,7 @@ public class MediaKind implements IMediaService {
         var recordingTempAssetName = recordingNoHyphen + "_temp";
         var recordingAssetName = recordingNoHyphen + "_output";
 
-        azureIngestStorageService.markContainerAsProcessing(recordingId.toString());
+        azureIngestStorageService.markContainerAsProcessing(containerName);
         return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
     }
 

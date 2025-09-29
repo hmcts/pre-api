@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class BatchImportMissingMkAssets extends RobotUserTask {
+
     private final MediaServiceBroker mediaServiceBroker;
     private final RecordingService recordingService;
     private final CaptureSessionService captureSessionService;
@@ -52,6 +53,9 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
 
     @Value("${tasks.batch-import-missing-mk-assets.poll-interval}")
     private long pollInterval;
+
+    @Value("${tasks.batch-import-missing-mk-assets.max-sleep-time}")
+    private long maxSleepTime;
 
     @Value("${tasks.batch-import-missing-mk-assets.mp4-source-container}")
     private String vfSourceContainer;
@@ -85,7 +89,41 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
 
         // Step 1: Find all VF recordings missing final asset
-        List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings();
+        List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings().stream()
+            // Step 2: Copy blob from Vodafone to Ingest
+            .filter(this::copyBlobBetweenContainers)
+            // Step 3: Create Temp Asset
+            .filter(recording -> {
+                // check if temp asset already exists, if so skip
+                if (mediaService.getAsset(recording
+                                              .getCaptureSession()
+                                              .getId()
+                                              .toString()
+                                              .replace("-", "") + "_temp") != null) {
+                    log.info("Temporary asset already exists for recording: {}", recording.getId());
+                    return true;
+                }
+                boolean result = mediaService.importAsset(recording, false);
+                if (!result) {
+                    addFailure(recording, "Failed to create temporary asset");
+                }
+                return result;
+            })
+            // Step 4: Create Final Asset
+            .filter(recording -> {
+                // check if final asset already exists, if so skip
+                if (mediaService.getAsset(recording.getId().toString().replace("-", "") + "_output") != null) {
+                    log.info("Final asset already exists for recording: {}", recording.getId());
+                    return true;
+                }
+                boolean result = mediaService.importAsset(recording, true);
+                if (!result) {
+                    addFailure(recording, "Failed to create final asset");
+                }
+                return result;
+            })
+            .toList();
+
         Map<String, RecordingDTO> recordingsMap = recordings.stream()
             .collect(Collectors.toMap(r -> r.getId()
                 .toString()
@@ -106,9 +144,9 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             recording -> startTransformJob(recording, mediaService),
             jobs -> {
                 // Step 6: Await batch completion
-                awaitBatchComplete(jobs, mediaService);
+                var processedJobs = awaitBatchComplete(jobs, mediaService);
                 // Step 7: Update recordings with mp4 filename and duration
-                jobs.forEach(job -> {
+                processedJobs.forEach(job -> {
                     var r = recordingsMap.get(job.split("_")[0]);
                     if (r == null) {
                         log.error("recording not found for job: {}", job);
@@ -139,10 +177,11 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         String blobName = recording.getFilename();
 
         try {
-            azureIngestStorageService.copyBlob(
+            azureIngestStorageService.copyBlobOverwritable(
                 destinationContainer,
                 blobName,
-                azureVodafoneStorageService.getBlobUrlForCopy(vfSourceContainer, blobName)
+                azureVodafoneStorageService.getBlobUrlForCopy(vfSourceContainer, blobName),
+                false
             );
             return true;
         } catch (Exception e) {
@@ -162,12 +201,16 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         return mediaService.triggerProcessingStep2(recording.getId(), true);
     }
 
-    private void awaitBatchComplete(List<String> jobNames, IMediaService mediaService) {
+    private List<String> awaitBatchComplete(List<String> jobNames, IMediaService mediaService) {
         log.info("Waiting for transform jobs to complete for batch...");
-        List<String> jobs = List.copyOf(jobNames);
+        var jobs = List.copyOf(jobNames);
+        var initialJobCount = jobs.size();
+        var sleptFor = 0L;
         do {
             try {
+                log.info("Waiting for {}/{} transform jobs to complete for batch...", jobs.size(), initialJobCount);
                 Thread.sleep(pollInterval);
+                sleptFor += pollInterval;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -176,8 +219,19 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                             mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName)
                                 .equals(RecordingStatus.PROCESSING))
                 .toList();
-        } while (!jobs.isEmpty());
-        log.info("Transform jobs completed for batch");
+        } while (!jobs.isEmpty() && sleptFor < maxSleepTime);
+        if (!jobs.isEmpty()) {
+            log.error(
+                "Timeout waiting for transform jobs to complete for batch, {} job(s) still processing", jobs.size());
+            jobs.forEach(job -> {
+                log.error("Unknown job processing state: {}", job);
+            });
+            var unknownJobs = jobs;
+            return jobNames.stream().filter(name -> !unknownJobs.contains(name)).toList();
+        } else {
+            log.info("Transform jobs completed for batch");
+        }
+        return jobNames;
     }
 
     private void updateRecording(RecordingDTO recording, IMediaService mediaService) {
@@ -197,10 +251,6 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         if (originalRecording.getFilename().equals(mp4FileName)
             && Objects.equals(originalRecording.getDuration(), duration)) {
             updateCaptureSessionToAvailable(originalRecording.getCaptureSession());
-            log.info("Recording id: {} | Original duration: {} | MK duration: {}",
-                     originalRecording.getId(),
-                     originalRecording.getDuration(),
-                     duration);
             addSuccess(originalRecording);
             return;
         }
@@ -241,7 +291,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
     }
 
     protected void addSuccess(RecordingDTO recording) {
-        log.info("Adding success for recording (already matching filename and duration): {}", recording.getId());
+        log.info("Adding success for recording (duration and filename already set): {}", recording.getId());
 
         reportItems.add(new ReportItem(
             recording.getId(),
