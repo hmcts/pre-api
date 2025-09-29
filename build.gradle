@@ -281,8 +281,8 @@ dependencies {
   implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.5.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-batch'
-  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.23.0'
-  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.23.0'
+  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '6.0.0'
+  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '6.0.0'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: reformLoggingVersion
   implementation group: 'com.github.hmcts.java-logging', name: 'logging-appinsights', version: reformLoggingVersion
