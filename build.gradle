@@ -119,7 +119,7 @@ checkstyle {
 }
 
 pmd {
-  toolVersion = "7.15.0"
+  toolVersion = "7.17.0"
   sourceSets = [sourceSets.main]
   reportsDir = file("$project.buildDir/reports/pmd")
   // https://github.com/pmd/pmd/issues/876
@@ -248,7 +248,8 @@ ext {
 }
 
 def versions = [
-  jackson         : '2.18.3',
+  jackson         : '2.20.0',
+  jacksonAnnot    : '2.20',
   junit           : '5.13.0',
   junitPlatform   : '1.13.0',
   reformLogging   : '5.1.5',
@@ -309,7 +310,7 @@ dependencies {
 
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: versions.jackson
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: versions.jackson
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jacksonAnnot
 
   implementation group: 'com.opencsv', name: 'opencsv', version: '5.12.0'
 

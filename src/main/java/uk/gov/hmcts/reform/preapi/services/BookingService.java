@@ -126,7 +126,6 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
-
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
