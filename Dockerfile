@@ -1,6 +1,6 @@
  # renovate: datasource=github-releases depName=microsoft/ApplicationInsights-Java
 ARG APP_INSIGHTS_AGENT_VERSION=3.7.3
-FROM openjdk:21-jdk-slim-bullseye AS build-env
+FROM openjdk:25-jdk-slim-bullseye AS build-env
 RUN apt-get update && apt-get install -y ffmpeg
 
 WORKDIR /usr/local/bin
