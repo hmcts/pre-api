@@ -69,7 +69,8 @@ public class RecordingMetadataProcessor {
                 extractedData.getUrn(),
                 extractedData.getExhibitReference(),
                 extractedData.getWitnessFirstName(),
-                extractedData.getDefendantLastName()
+                extractedData.getDefendantLastName(),
+                extractedData.getDatePattern()
             );
 
             if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {

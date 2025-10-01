@@ -16,7 +16,7 @@ public class ProcessMigration extends BaseTask {
 
     public ProcessMigration(UserService userService,
                             UserAuthenticationService userAuthenticationService,
-                            @Value("${cron-user-email}") String cronUserEmail,
+                            @Value("${vodafone-user-email}") String cronUserEmail,
                             JobLauncher jobLauncher,
                             LoggingService loggingService,
                             @Value("${migration.debug}") boolean debug,

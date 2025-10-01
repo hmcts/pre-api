@@ -215,7 +215,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference(RandomStringUtils.secure().nextAlphabetic(5));
+        caseEntity.setReference(RandomStringUtils.secure().nextAlphabetic(9));
         caseEntity.setCourt(court);
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
@@ -617,14 +617,5 @@ class TestingSupportController {
         roleRepository.save(role);
 
         return role;
-    }
-
-    public enum AuthLevel {
-        NONE,
-        SUPER_USER,
-        LEVEL_1,
-        LEVEL_2,
-        LEVEL_3,
-        LEVEL_4
     }
 }

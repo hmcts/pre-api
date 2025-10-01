@@ -18,6 +18,7 @@ class ExtractedMetadataTest {
         ExtractedMetadata metadata = new ExtractedMetadata(
             "CourtRef",
             UUID.randomUUID(),
+            "210101",
             "urn123",
             "ex123",
             "smith-jones",

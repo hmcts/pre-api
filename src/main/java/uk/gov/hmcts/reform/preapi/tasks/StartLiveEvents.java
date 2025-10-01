@@ -15,7 +15,7 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
-import uk.gov.hmcts.reform.preapi.util.Batcher;
+import uk.gov.hmcts.reform.preapi.utils.Batcher;
 
 import java.util.List;
 import java.util.Objects;
@@ -69,7 +69,6 @@ public class StartLiveEvents extends RobotUserTask {
             this::awaitIngestAddresses
         );
     }
-
 
     private UUID initCaptureSessionForBooking(UUID bookingId) {
         log.info("Creating capture session for booking {}", bookingId);
