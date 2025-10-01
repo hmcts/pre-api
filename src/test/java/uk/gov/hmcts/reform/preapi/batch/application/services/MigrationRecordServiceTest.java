@@ -983,7 +983,8 @@ public class MigrationRecordServiceTest {
     public void findAllBy() {
         final MigrationRecord migrationRecord = createMigrationRecord();
 
-        when(migrationRecordRepository.findAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(migrationRecordRepository.findAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                                                 any()))
             .thenReturn(new PageImpl<>(List.of(migrationRecord)));
 
         Page<VfMigrationRecordDTO> result = migrationRecordService.findAllBy(
