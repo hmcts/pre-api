@@ -69,6 +69,10 @@ public class VfMigrationController extends PreApiController {
         description = "The court id to search for",
         schema = @Schema(implementation = UUID.class))
     @Parameter(
+            name = "courtReference",
+            description = "The court reference to search for",
+            schema = @Schema(implementation = String.class))
+    @Parameter(
         name = "status",
         description = "The status to search for",
         schema = @Schema(implementation = VfMigrationStatus.class))

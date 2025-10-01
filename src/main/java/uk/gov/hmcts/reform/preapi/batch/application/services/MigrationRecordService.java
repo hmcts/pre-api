@@ -450,6 +450,7 @@ public class MigrationRecordService {
                 params.getCreateDateFromTimestamp(),
                 params.getCreateDateToTimestamp(),
                 params.getCourtId(),
+                params.getCourtReference(),
                 params.getReasonIn(),
                 params.getReasonNotIn(),
                 pageable)

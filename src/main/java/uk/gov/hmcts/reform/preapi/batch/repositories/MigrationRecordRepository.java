@@ -37,6 +37,7 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         AND (CAST(:createDateFrom as Timestamp) IS NULL OR mr.createTime >= :createDateFrom)
         AND (CAST(:createDateTo as Timestamp) IS NULL OR mr.createTime <= :createDateTo)
         AND (:courtId IS NULL OR mr.courtId = :courtId)
+        AND (:courtReference IS NULL OR mr.courtReference ILIKE %:courtReference%)
         AND (:reasonIn IS NULL OR mr.reason IN :reasonIn)
         AND (:reasonNotIn IS NULL OR mr.reason NOT IN :reasonNotIn)
         """)
@@ -47,6 +48,7 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
                                     @Param("createDateFrom") Timestamp createDateFrom,
                                     @Param("createDateTo") Timestamp createDateTo,
                                     @Param("courtId") UUID courtId,
+                                    @Param("courtReference") String courtReference,
                                     @Param("reasonIn") List<String> reasonIn,
                                     @Param("reasonNotIn") List<String> reasonNotIn,
                                     Pageable pageable);
