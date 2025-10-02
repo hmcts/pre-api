@@ -961,6 +961,67 @@ definitions:
       - last_name
       - portal_access
     type: object
+  CreateVfMigrationRecordDTO:
+    description: CreateVfMigrationRecordDTO
+    properties:
+      court_id:
+        description: CreateMigrationRecordCourtId
+        format: uuid
+        type: string
+      defendant_name:
+        description: CreateMigrationRecordDefendantName
+        minLength: 1
+        type: string
+      exhibit_reference:
+        description: CreateMigrationRecordExhibitReference
+        type: string
+      id:
+        description: CreateMigrationRecordId
+        format: uuid
+        type: string
+      recording_date:
+        description: CreateMigrationRecordRecordingDate
+        format: date-time
+        type: string
+      recording_version:
+        description: CreateMigrationRecordRecordingVersion
+        enum:
+          - ORIG
+          - COPY
+        type: string
+      recording_version_number:
+        description: CreateMigrationRecordRecordingVersion
+        format: double
+        minimum: 1
+        type: number
+      resolved_at:
+        description: CreateMigrationRecordResolvedAt
+        format: date-time
+        type: string
+      status:
+        description: CreateMigrationRecordStatus
+        enum:
+          - PENDING
+          - SUCCESS
+          - FAILED
+          - READY
+          - SUBMITTED
+        type: string
+      urn:
+        description: CreateMigrationRecordUrn
+        type: string
+      witness_name:
+        description: CreateMigrationRecordWitnessName
+        minLength: 1
+        type: string
+    required:
+      - court_id
+      - defendant_name
+      - id
+      - recording_version
+      - status
+      - witness_name
+    type: object
   EditReportDTO:
     description: EditReportDTO
     properties:
@@ -1461,6 +1522,105 @@ definitions:
       - id
       - last_name
     type: object
+  EntityModelVfMigrationRecordDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      archive_id:
+        description: MigrationRecordArchiveId
+        type: string
+      archive_name:
+        description: MigrationRecordArchiveName
+        type: string
+      booking_id:
+        description: MigrationRecordBookingId
+        format: uuid
+        type: string
+      capture_session_id:
+        description: MigrationRecordCaptureSessionId
+        format: uuid
+        type: string
+      court_id:
+        description: MigrationRecordCourtId
+        format: uuid
+        type: string
+      court_reference:
+        description: MigrationRecordCourtReference
+        type: string
+      create_time:
+        description: MigrationRecordCreateTime
+        format: date-time
+        type: string
+      created_at:
+        description: MigrationRecordCreatedAt
+        format: date-time
+        type: string
+      defendant_name:
+        description: MigrationRecordDefendantName
+        type: string
+      duration:
+        description: MigrationRecordDuration
+        format: int32
+        type: integer
+      error_message:
+        description: MigrationRecordErrorMessage
+        type: string
+      exhibit_reference:
+        description: MigrationRecordExhibitReference
+        type: string
+      file_size:
+        description: MigrationRecordFileSize
+        type: string
+      filename:
+        description: MigrationRecordFilename
+        type: string
+      id:
+        description: MigrationRecordId
+        format: uuid
+        type: string
+      is_most_recent:
+        description: MigrationRecordIsMostRecent
+        type: boolean
+      parent_temp_id:
+        description: MigrationRecordParentTempId
+        format: uuid
+        type: string
+      reason:
+        description: MigrationRecordReason
+        type: string
+      recording_group_key:
+        description: MigrationRecordRecordingGroupKey
+        type: string
+      recording_id:
+        description: MigrationRecordRecordingId
+        format: uuid
+        type: string
+      recording_version:
+        description: MigrationRecordRecordingVersion
+        type: string
+      recording_version_number:
+        description: MigrationRecordRecordingVersionNumber
+        type: string
+      resolved_at:
+        description: MigrationRecordResolvedAt
+        format: date-time
+        type: string
+      status:
+        description: MigrationRecordStatus
+        enum:
+          - PENDING
+          - SUCCESS
+          - FAILED
+          - READY
+          - SUBMITTED
+        type: string
+      urn:
+        description: MigrationRecordUrn
+        type: string
+      witness_name:
+        description: MigrationRecordWitnessName
+        type: string
+    type: object
   GenerateAssetDTO:
     description: GenerateAssetDTO
     properties:
@@ -1705,6 +1865,20 @@ definitions:
           userDTOList:
             items:
               $ref: '#/definitions/EntityModelUserDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelVfMigrationRecordDTO:
+    properties:
+      _embedded:
+        properties:
+          vfMigrationRecordDTOList:
+            items:
+              $ref: '#/definitions/EntityModelVfMigrationRecordDTO'
             type: array
         type: object
       _links:
@@ -4748,6 +4922,154 @@ paths:
       summary: Revert deletion of user
       tags:
         - user-controller
+  /vf-migration-records:
+    get:
+      operationId: getVfMigrationRecords
+      parameters:
+        - description: The case reference to search for
+          in: query
+          name: caseReference
+          type: string
+        - description: The witness name to search for
+          in: query
+          name: witnessName
+          type: string
+        - description: The defendant name to search for
+          in: query
+          name: defendantName
+          type: string
+        - description: The court id to search for
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+        - description: The status to search for
+          enum:
+            - PENDING
+            - SUCCESS
+            - FAILED
+            - READY
+            - SUBMITTED
+          in: query
+          name: status
+          type: string
+        - description: The date the record was created to search from
+          format: date
+          in: query
+          name: createDateFrom
+          type: string
+          x-example: '2024-04-27'
+        - description: The date the record was created to search to
+          format: date
+          in: query
+          name: createDateTo
+          type: string
+          x-example: '2024-04-27'
+        - description: Search by a list of reasons
+          in: query
+          name: reasonIn
+          type: string
+        - description: Search by a list of reasons that should not be included
+          in: query
+          name: reasonNotIn
+          type: string
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'archiveName,desc'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelVfMigrationRecordDTO'
+      summary: Search all migration records
+      tags:
+        - vf-migration-controller
+  /vf-migration-records/import-assets:
+    post:
+      operationId: importVodafoneAssets
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Imports Vodafone for resolbed migration records
+      tags:
+        - vf-migration-controller
+  /vf-migration-records/submit:
+    post:
+      operationId: submitMigrationRecords
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Submits resolved migration records and runs import
+      tags:
+        - vf-migration-controller
+  '/vf-migration-records/{id}':
+    put:
+      consumes:
+        - application/json
+      operationId: putVfMigrationRecord
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateVfMigrationRecordDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Update vf migration record
+      tags:
+        - vf-migration-controller
 schemes:
   - https
 security:
