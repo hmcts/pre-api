@@ -4943,6 +4943,10 @@ paths:
           in: query
           name: courtId
           type: string
+        - description: The court reference to search for
+          in: query
+          name: courtReference
+          type: string
         - description: The status to search for
           enum:
             - PENDING
