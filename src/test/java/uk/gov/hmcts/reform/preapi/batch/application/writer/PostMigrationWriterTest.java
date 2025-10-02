@@ -6,204 +6,81 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.item.Chunk;
-import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.services.InviteService;
-import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PostMigrationWriterTest {
 
     @Mock
-    private InviteService inviteService;
-
-    @Mock
-    private ShareBookingService shareBookingService;
-
-    @Mock
     private LoggingService loggingService;
 
     @Mock
-    private MigrationTrackerService migrationTrackerService;
+    private PostMigrationItemExecutor executor;
 
-    private PostMigrationWriter postMigrationWriter;
+    private PostMigrationWriter writer;
 
     @BeforeEach
     void setUp() {
-        postMigrationWriter = new PostMigrationWriter(
-            inviteService,
-            shareBookingService,
-            loggingService,
-            migrationTrackerService
-        );
+        writer = new PostMigrationWriter(loggingService, executor);
     }
 
     @Test
-    void write_shouldLogInfoAndProcessAllItems() {
-        PostMigratedItemGroup item1 = createItemGroup();
-        PostMigratedItemGroup item2 = createItemGroup();
-        Chunk<PostMigratedItemGroup> items = new Chunk<>(List.of(item1, item2));
+    void write_logsAndProcessesEachItem() throws Exception {
+        PostMigratedItemGroup first = new PostMigratedItemGroup();
+        PostMigratedItemGroup second = new PostMigratedItemGroup();
+        when(executor.processOneItem(any())).thenReturn(true);
 
-        postMigrationWriter.write(items);
+        writer.write(new Chunk<>(List.of(first, second)));
 
         verify(loggingService).logInfo("PostMigrationWriter triggered with %d item(s)", 2);
-        verify(loggingService, times(2)).logDebug(eq("Processing item group: %s"), any());
+        verify(loggingService, times(2)).logDebug(eq("Processing post-migration item group: %s"), any());
+        verify(loggingService, times(2)).logDebug("Successfully processed post-migration item");
+        verify(loggingService, never()).logWarning(any());
+        verify(loggingService, never()).logError(any(), any());
+        verify(executor).processOneItem(first);
+        verify(executor).processOneItem(second);
     }
 
     @Test
-    void processMigratedItem_withInvites_shouldCreateInvitesSuccessfully() throws Exception {
-        CreateInviteDTO invite1 = createInviteDTO("user1@example.com");
-        CreateInviteDTO invite2 = createInviteDTO("user2@example.com");
+    void write_logsWarningWhenExecutorReturnsFalse() throws Exception {
+        PostMigratedItemGroup first = new PostMigratedItemGroup();
+        PostMigratedItemGroup second = new PostMigratedItemGroup();
+        when(executor.processOneItem(any())).thenReturn(false, true);
+
+        writer.write(new Chunk<>(List.of(first, second)));
+
+        verify(loggingService, times(2)).logDebug(eq("Processing post-migration item group: %s"), any());
+        verify(loggingService, times(1)).logWarning("Failed to process post-migration item");
+        verify(loggingService, times(1)).logDebug("Successfully processed post-migration item");
+    }
+
+    @Test
+    void write_logsErrorWhenExecutorThrows() throws Exception {
         PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setInvites(List.of(invite1, invite2));
+        doThrow(new RuntimeException("boom")).when(executor).processOneItem(item);
 
-        postMigrationWriter.processMigratedItem(item);
+        writer.write(new Chunk<>(List.of(item)));
 
-        verify(inviteService).upsert(invite1);
-        verify(inviteService).upsert(invite2);
-        verify(loggingService).logInfo("Invite created: %s", "user1@example.com");
-        verify(loggingService).logInfo("Invite created: %s", "user2@example.com");
+        verify(loggingService).logDebug(eq("Processing post-migration item group: %s"), eq(item));
+        verify(loggingService).logError("Failed to process post-migration item: %s", "boom");
     }
 
     @Test
-    void processMigratedItem_withInviteFailure_shouldLogErrorAndContinue() throws Exception {
-        CreateInviteDTO invite = createInviteDTO("user@example.com");
-        PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setInvites(List.of(invite));
-
-        Exception exception = new RuntimeException("Database error");
-        doThrow(exception).when(inviteService).upsert(invite);
-
-        postMigrationWriter.processMigratedItem(item);
-
-        verify(inviteService).upsert(invite);
-        verify(loggingService).logError("Failed to create invite: %s | %s", "user@example.com", exception);
-        verify(migrationTrackerService).addShareInviteFailure(any());
-    }
-
-    @Test
-    void processMigratedItem_withShareBookings_shouldCreateShareBookingsSuccessfully() throws Exception {
-        CreateShareBookingDTO share1 = createShareBookingDTO();
-        CreateShareBookingDTO share2 = createShareBookingDTO();
-        PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setShareBookings(List.of(share1, share2));
-
-        postMigrationWriter.processMigratedItem(item);
-
-        verify(shareBookingService).shareBookingById(share1);
-        verify(shareBookingService).shareBookingById(share2);
-        verify(loggingService).logInfo("Share booking created: %s", share1.getId());
-        verify(loggingService).logInfo("Share booking created: %s", share2.getId());
-    }
-
-    @Test
-    void processMigratedItem_withShareBookingFailure_shouldLogErrorAndContinue() throws Exception {
-        CreateShareBookingDTO share = createShareBookingDTO();
-        PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setShareBookings(List.of(share));
-
-        Exception exception = new RuntimeException("Service error");
-        doThrow(exception).when(shareBookingService).shareBookingById(share);
-
-        postMigrationWriter.processMigratedItem(item);
-
-        verify(shareBookingService).shareBookingById(share);
-        verify(loggingService).logError("Failed to create share booking: %s | %s", share.getId(), exception);
-        verify(migrationTrackerService).addShareInviteFailure(any());
-    }
-
-    @Test
-    void processMigratedItem_withBothInvitesAndShareBookings_shouldProcessBoth() throws Exception {
-        CreateInviteDTO invite = createInviteDTO("user@example.com");
-        CreateShareBookingDTO share = createShareBookingDTO();
-        PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setInvites(List.of(invite));
-        item.setShareBookings(List.of(share));
-
-        postMigrationWriter.processMigratedItem(item);
-
-        verify(inviteService).upsert(invite);
-        verify(shareBookingService).shareBookingById(share);
-        verify(loggingService).logInfo("Invite created: %s", "user@example.com");
-        verify(loggingService).logInfo("Share booking created: %s", share.getId());
-    }
-
-    @Test
-    void processMigratedItem_withNullInvites_shouldNotProcessInvites() {
-        PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setInvites(null);
-
-        postMigrationWriter.processMigratedItem(item);
-
-        verify(inviteService, never()).upsert(any());
-        verify(loggingService).logDebug("Processing item group: %s", item);
-    }
-
-    @Test
-    void processMigratedItem_withNullShareBookings_shouldNotProcessShareBookings() {
-        PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setShareBookings(null);
-
-        postMigrationWriter.processMigratedItem(item);
-
-        verify(shareBookingService, never()).shareBookingById(any());
-        verify(loggingService).logDebug("Processing item group: %s", item);
-    }
-
-    @Test
-    void processMigratedItem_withEmptyCollections_shouldNotProcessAnyItems() {
-        PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setInvites(List.of());
-        item.setShareBookings(List.of());
-
-        postMigrationWriter.processMigratedItem(item);
-
-        verify(inviteService, never()).upsert(any());
-        verify(shareBookingService, never()).shareBookingById(any());
-        verify(loggingService).logDebug("Processing item group: %s", item);
-    }
-
-    @Test
-    void write_withEmptyChunk_shouldLogZeroItems() {
-        Chunk<PostMigratedItemGroup> emptyItems = new Chunk<>();
-
-        postMigrationWriter.write(emptyItems);
+    void write_withEmptyChunkLogsZeroItems() throws Exception {
+        writer.write(new Chunk<>());
 
         verify(loggingService).logInfo("PostMigrationWriter triggered with %d item(s)", 0);
-        verify(loggingService, never()).logDebug(anyString(), any());
-    }
-
-    private PostMigratedItemGroup createItemGroup() {
-        PostMigratedItemGroup item = new PostMigratedItemGroup();
-        item.setInvites(List.of(createInviteDTO("test@example.com")));
-        item.setShareBookings(List.of(createShareBookingDTO()));
-        return item;
-    }
-
-    private CreateInviteDTO createInviteDTO(String email) {
-        CreateInviteDTO invite = new CreateInviteDTO();
-        invite.setEmail(email);
-        invite.setUserId(UUID.randomUUID());
-        return invite;
-    }
-
-    private CreateShareBookingDTO createShareBookingDTO() {
-        CreateShareBookingDTO share = new CreateShareBookingDTO();
-        share.setId(UUID.randomUUID());
-        return share;
+        verify(executor, never()).processOneItem(any());
     }
 }

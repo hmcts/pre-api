@@ -87,6 +87,10 @@ public class MigrationTrackerService {
 
     private final LoggingService loggingService;
 
+    private String currentRunTimestamp;
+    private String currentOutputDir;
+    private String currentFailureDir;
+
     public MigrationTrackerService(
         final LoggingService loggingService, final AzureVodafoneStorageService azureVodafoneStorageService) {
         this.loggingService = loggingService;
@@ -226,13 +230,16 @@ public class MigrationTrackerService {
      * Writes both migrated and failed items to CSV files and logs the total counts,
      * and generates all reports at once.
      */
-    public void writeAllToCsv() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
-        new File(outputDir).mkdirs();
+    public void startNewReportRun() {
+        currentRunTimestamp = null;
+        currentOutputDir = null;
+        currentFailureDir = null;
+    }
 
-        String failureDir = Paths.get(outputDir, "Failure Reports").toString();
-        new File(failureDir).mkdirs();
+    public void writeAllToCsv() {
+        String timestamp = ensureRunTimestamp();
+        String outputDir = ensureOutputDir();
+        String failureDir = ensureFailureDir();
 
         File migratedFile = writeMigratedItemsToCsv("Migrated", outputDir);
         if (migratedFile != null && migratedFile.exists()) {
@@ -294,22 +301,17 @@ public class MigrationTrackerService {
     }
 
     public void writeNewUserReport() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
-        new File(outputDir).mkdirs();
-
+        String outputDir = ensureOutputDir();
         writeInvitedUsersToCsv("Invited_users", outputDir);
     }
 
     public void writeShareBookingsReport() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
-        new File(outputDir).mkdirs();
+        String outputDir = ensureOutputDir();
         writeShareBookingsToCsv("Share_bookings", outputDir);
     }
 
     public void writeCaseClosureReport() {
-        String outputDir = createTimestampedOutputDir();
+        String outputDir = ensureOutputDir();
         writeCaseClosureReport("Case_closure", outputDir);
     }
 
@@ -329,7 +331,7 @@ public class MigrationTrackerService {
     }
 
     public void writeShareInviteFailureReport() {
-        String outputDir = createTimestampedOutputDir();
+        String outputDir = ensureOutputDir();
         writeShareInviteFailureReport("Share_invite_failures", outputDir);
     }
 
@@ -613,11 +615,28 @@ public class MigrationTrackerService {
     ) {
     }
 
-    private String createTimestampedOutputDir() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
-        new File(outputDir).mkdirs();
-        return outputDir;
+    private String ensureRunTimestamp() {
+        if (currentRunTimestamp == null) {
+            currentRunTimestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+        }
+        return currentRunTimestamp;
+    }
+
+    private String ensureOutputDir() {
+        if (currentOutputDir == null) {
+            String timestamp = ensureRunTimestamp();
+            currentOutputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
+            new File(currentOutputDir).mkdirs();
+        }
+        return currentOutputDir;
+    }
+
+    private String ensureFailureDir() {
+        if (currentFailureDir == null) {
+            currentFailureDir = Paths.get(ensureOutputDir(), "Failure Reports").toString();
+            new File(currentFailureDir).mkdirs();
+        }
+        return currentFailureDir;
     }
 
     private String getValueOrEmpty(Object value) {

@@ -76,6 +76,7 @@ public class MigrationTrackerServiceTest {
 
     @BeforeEach
     void setUpReportContainer() throws Exception {
+        migrationTrackerService.startNewReportRun();
         Field reportContainerField = MigrationTrackerService.class.getDeclaredField("reportContainer");
         reportContainerField.setAccessible(true);
         reportContainerField.set(migrationTrackerService, "test-container");
@@ -84,6 +85,7 @@ public class MigrationTrackerServiceTest {
 
     @AfterEach
     void clear() {
+        migrationTrackerService.startNewReportRun();
         migrationTrackerService.categorizedFailures.clear();
         migrationTrackerService.migratedItems.clear();
         migrationTrackerService.testFailures.clear();

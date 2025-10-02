@@ -2,18 +2,22 @@ package uk.gov.hmcts.reform.preapi.batch.config.jobs;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
+import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
+import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
@@ -21,11 +25,10 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.migration.Migration
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.PostMigrationWriter;
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
-import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
-import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -38,8 +41,6 @@ import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +61,8 @@ public class PostMigrationJobConfig {
     private final CaseService caseService;
     private final BookingService bookingService;
     private final RecordingService recordingService;
+    private final PostMigrationItemReader postMigrationItemReader;
+    private final PostMigrationItemProcessor postMigrationItemProcessor;
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
@@ -74,7 +77,9 @@ public class PostMigrationJobConfig {
                                   final MigrationRecordService migrationRecordService,
                                   final CaseService caseService,
                                   final BookingService bookingService,
-                                  final RecordingService recordingService) {
+                                  final RecordingService recordingService,
+                                  final PostMigrationItemReader postMigrationItemReader,
+                                  final PostMigrationItemProcessor postMigrationItemProcessor) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.coreSteps = coreSteps;
@@ -86,6 +91,8 @@ public class PostMigrationJobConfig {
         this.caseService = caseService;
         this.bookingService = bookingService;
         this.recordingService = recordingService;
+        this.postMigrationItemReader = postMigrationItemReader;
+        this.postMigrationItemProcessor = postMigrationItemProcessor;
     }
 
     @Bean
@@ -94,6 +101,7 @@ public class PostMigrationJobConfig {
                                 @Qualifier("createMarkCasesClosedStep") Step createMarkCasesClosedStep,
                                 @Qualifier("createPreProcessStep") Step createPreProcessStep,
                                 @Qualifier("createShareBookingsStep") Step createShareBookingsStep,
+                                @Qualifier("createWriteReportsStep") Step createWriteReportsStep,
                                 @Qualifier("createWriteToCSVStep") Step createWriteToCSVStep) {
         return new JobBuilder("postMigrationJob", jobRepository)
             .incrementer(new RunIdIncrementer())
@@ -103,6 +111,7 @@ public class PostMigrationJobConfig {
             .next(createPreProcessStep)
             .next(createMarkCasesClosedStep)
             .next(createShareBookingsStep)
+            .next(createWriteReportsStep)
             .build();
     }
 
@@ -110,6 +119,8 @@ public class PostMigrationJobConfig {
     public Step createMarkCasesClosedStep() {
         return new StepBuilder("markCasesClosedStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
+                migrationTrackerService.startNewReportRun();
+
                 boolean dryRun = Boolean.parseBoolean(
                     Optional.ofNullable(chunkContext.getStepContext().getJobParameters().get("dryRun"))
                         .map(Object::toString)
@@ -149,116 +160,36 @@ public class PostMigrationJobConfig {
     }
 
     @Bean
-    public Step createShareBookingsStep(PostMigrationWriter postMigrationWriter) {
+    @StepScope
+    public ItemReader<PostMigratedItemGroup> postMigrationItemReaderBean() {
+        return postMigrationItemReader.createReader(false); 
+    }
+
+    @Bean
+    public Step createShareBookingsStep(PostMigrationWriter postMigrationWriter,
+                                        ItemReader<PostMigratedItemGroup> postMigrationItemReaderBean) {
         return new StepBuilder("createShareBookingsStep", jobRepository)
+            .<PostMigratedItemGroup, PostMigratedItemGroup>chunk(
+                BatchConfiguration.CHUNK_SIZE,
+                new ResourcelessTransactionManager()
+            )
+            .reader(postMigrationItemReaderBean)
+            .processor(postMigrationItemProcessor)
+            .writer(postMigrationWriter)
+            .faultTolerant()
+            .skipLimit(BatchConfiguration.SKIP_LIMIT)
+            .skip(Exception.class)
+            .build();
+    }
+
+    @Bean
+    public Step createWriteReportsStep() {
+        return new StepBuilder("writeReportsStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
-                boolean dryRun = Boolean.parseBoolean(
-                    Optional.ofNullable(chunkContext.getStepContext().getJobParameters().get("dryRun"))
-                        .map(Object::toString)
-                        .orElse("false")
-                );
-
-                // fetch sucessful ORIGs with booking + group key
-                List<MigrationRecord> shareableOrigs = migrationRecordService.findShareableOrigs();
-                Map<String, List<String[]>> channelUsersMap = cacheService.getAllChannelReferences();
-
-                List<PostMigratedItemGroup> migratedItems = new ArrayList<>();
-
-                for (MigrationRecord orig : shareableOrigs) {
-                    loggingService.logDebug("========================================================");
-                    loggingService.logDebug("Processing record: archiveId=%s, groupKey=%s",
-                        orig.getArchiveId(), orig.getRecordingGroupKey());
-
-                    // find matching channel users by checking the groupKey parts
-                    List<String[]> matchedUsers = channelUsersMap.entrySet().stream()
-                        .filter(entry -> channelContainsAllGroupParts(orig.getRecordingGroupKey(), entry.getKey()))
-                        .flatMap(entry -> entry.getValue().stream())
-                        .toList();
-
-                    if (matchedUsers.isEmpty()) {
-                        loggingService.logDebug("No matching channel users found for groupKey=%s",
-                            orig.getRecordingGroupKey());
-                        continue;
-                    }
-
-                    if (orig.getBookingId() == null) {
-                        loggingService.logWarning("Record %s has no bookingId", orig.getArchiveId());
-                        continue;
-                    }
-
-                    // fetch booking by booking_id  
-                    BookingDTO booking;
-                    try {
-                        booking = bookingService.findById(orig.getBookingId()); 
-                    } catch (Exception ex) {
-                        loggingService.logWarning("No booking found for record %s (bookingId=%s) — %s",
-                            orig.getArchiveId(), orig.getBookingId(), ex.getMessage());
-                        continue;
-                    }
-                    if (booking == null) {
-                        loggingService.logWarning("No booking found for record %s (bookingId=%s)",
-                            orig.getArchiveId(), orig.getBookingId());
-                        continue;
-                    }
-
-                    var alreadySharedEmails = booking.getShares() == null ? new HashSet<String>() 
-                        : booking.getShares().stream()
-                        .filter(share -> share.getDeletedAt() == null && share.getSharedWithUser() != null)
-                        .map(share -> share.getSharedWithUser().getEmail().toLowerCase())
-                        .collect(Collectors.toCollection(HashSet::new));
-
-                    for (String[] user : matchedUsers) {
-                        String email = user[1];
-                        String fullName = user[0];
-                        String[] nameParts = fullName.split("\\.");
-                        String firstName = nameParts.length > 0 ? nameParts[0] : "Unknown";
-                        String lastName  = nameParts.length > 1 ? nameParts[1] : "Unknown";
-
-                        String emailKey = email.toLowerCase();
-
-                        if (alreadySharedEmails.contains(emailKey)) {
-                            loggingService.logDebug("Skipping share creation for %s — already shared.", email);
-                            continue;
-                        }
-
-                        if (dryRun) {
-                            loggingService.logInfo("[DRY RUN] Would invite and share booking with %s", email);
-                            alreadySharedEmails.add(emailKey);
-                            continue;
-                        }
-
-                        var result = entityCreationService.createShareBookingAndInviteIfNotExists(
-                            booking, email, firstName, lastName
-                        );
-
-                        if (result != null) {
-                            migratedItems.add(result);
-                            alreadySharedEmails.add(emailKey);
-                            if (result.getInvites() != null) {
-                                result.getInvites().forEach(migrationTrackerService::addInvitedUser);
-                            }
-                            if (result.getShareBookings() != null) {  
-                                result.getShareBookings().forEach(shareBooking -> {
-                                    migrationTrackerService.addShareBooking(shareBooking);
-                                    migrationTrackerService.addShareBookingReport(
-                                        shareBooking,
-                                        email,
-                                        Optional.ofNullable(vodafoneUserEmail).orElse("")
-                                    );
-                                });
-                            }
-
-                            loggingService.logDebug("MigratedItemGroup added for user: %s", email);
-                        }
-                    }
-                }
-
-                postMigrationWriter.write(new Chunk<>(migratedItems));
                 migrationTrackerService.writeNewUserReport();
                 migrationTrackerService.writeShareBookingsReport();
                 migrationTrackerService.writeShareInviteFailureReport();
-                loggingService.logInfo("Share booking creation complete. Total created: %d", migratedItems.size());
-
+                loggingService.logInfo("Reports written successfully");
                 return RepeatStatus.FINISHED;
             }, transactionManager)
             .build();
@@ -267,37 +198,6 @@ public class PostMigrationJobConfig {
     //=======================
     // Helpers
     //=======================
-    private static boolean channelContainsAllGroupParts(String recordingGroupKey, String channelName) {
-        if (recordingGroupKey == null || channelName == null) {
-            return false;
-        }
-
-        String lowerChannel = channelName.toLowerCase();
-
-        for (String rawPart : recordingGroupKey.split("\\|")) {
-            if (rawPart == null || rawPart.isBlank()) {
-                continue;
-            }
-
-            String part = rawPart.toLowerCase().trim();
-
-            if (part.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                String yymmdd =
-                    part.substring(2, 4) + part.substring(5, 7) + part.substring(8, 10);
-
-                if (lowerChannel.contains(part) || lowerChannel.contains(yymmdd)) {
-                    continue; 
-                }
-                return false;
-            }
-
-            if (!lowerChannel.contains(part)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     private List<CaseDTO> fetchVodafoneCases() {
         List<CaseDTO> cases = caseService.getCasesByOrigin(RecordingOrigin.VODAFONE);
