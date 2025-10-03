@@ -35,6 +35,7 @@ import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -583,6 +584,52 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.addFailedItem(failedItem2);
 
         assertThat(migrationTrackerService.categorizedFailures.get("SameCategory")).hasSize(2);
+    }
+
+    @Test
+    void startNewReportRunResetsOutputDirectory() {
+        List<String> outputDirs = new ArrayList<>();
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), any(), any(), anyBoolean()))
+            .thenAnswer(invocation -> {
+                outputDirs.add(invocation.getArgument(3));
+                return tempDir.resolve(invocation.getArgument(2) + ".csv");
+            });
+
+        migrationTrackerService.startNewReportRun();
+        migrationTrackerService.writeNewUserReport();
+        migrationTrackerService.writeShareBookingsReport();
+
+        assertThat(outputDirs).hasSize(2);
+        assertThat(outputDirs.get(0)).isEqualTo(outputDirs.get(1));
+
+        String firstTimestamp = getCurrentRunTimestamp();
+        assertThat(firstTimestamp).isNotBlank();
+        
+        migrationTrackerService.startNewReportRun();
+        assertThat(getCurrentRunTimestamp()).isNull();
+        migrationTrackerService.writeNewUserReport();
+        
+        assertThat(outputDirs).hasSize(3);
+        String secondTimestamp = getCurrentRunTimestamp();
+        assertThat(secondTimestamp).isNotBlank();
+        assertThat(outputDirs.get(2)).contains(secondTimestamp);
+        
+        String firstDir = outputDirs.get(0);
+        if (!secondTimestamp.equals(firstTimestamp)) {
+            assertThat(outputDirs.get(2)).isNotEqualTo(firstDir);
+        }
+    }
+
+    private String getCurrentRunTimestamp() {
+        try {
+            Field field = MigrationTrackerService.class.getDeclaredField("currentRunTimestamp");
+            field.setAccessible(true);
+            return (String) field.get(migrationTrackerService);
+        } catch (ReflectiveOperationException e) {
+            fail("Failed to read currentRunTimestamp field: " + e.getMessage());
+            return null;
+        }
     }
 
 
