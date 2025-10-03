@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemor
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
+import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -32,6 +33,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -554,13 +556,13 @@ public class EntityCreationServiceTest {
 
         when(userService.findByEmail(VODAFONE_EMAIL)).thenReturn(accessDTO);
 
-        // Mock cache service - ensure vodafone user ID is found in cache
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "test@example.com", String.class))
             .thenReturn(null);
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
             .thenReturn(vodafoneUser.getId().toString());
-        when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
+        when(cacheService.getShareBooking(eq("share-key"))).thenReturn(Optional.empty());
 
+        setVodafoneEmail();
         BookingDTO booking = createTestBooking();
         when(cacheService.generateEntityCacheKey(eq("share-booking"), eq(booking.getId().toString()), anyString()))
             .thenReturn("share-key");
@@ -584,6 +586,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should create share booking without invite when user already exists")
     void createShareBookingAndInviteIfNotExistsShouldCreateShareBookingForExistingUser() {
+        setVodafoneEmail();
         BookingDTO booking = createTestBooking();
         UUID existingUserId = UUID.randomUUID();
         UUID vodafoneUserId = UUID.randomUUID();
@@ -593,7 +596,7 @@ public class EntityCreationServiceTest {
             .thenReturn(existingUserId.toString());
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
             .thenReturn(vodafoneUserId.toString());
-        when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
+        when(cacheService.getShareBooking(eq("share-key"))).thenReturn(Optional.empty());
         when(cacheService.generateEntityCacheKey(
             "share-booking",
             booking.getId().toString(),
@@ -662,6 +665,85 @@ public class EntityCreationServiceTest {
 
         assertThat(result).isNull();
         verify(loggingService).logWarning("Vodafone user ID not found in cache for email: %s", VODAFONE_EMAIL);
+    }
+
+    @Test
+    @DisplayName("prepareShareBookingAndInviteData should create invite and share when no cached user exists")
+    void prepareShareBookingAndInviteDataCreatesInviteAndShare() {
+        setVodafoneEmail();
+        BookingDTO booking = createTestBooking();
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "new@example.com", String.class))
+            .thenReturn(null);
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
+            .thenReturn(UUID.randomUUID().toString());
+        when(cacheService.getShareBooking("share-key")).thenReturn(Optional.empty());
+        when(cacheService.generateEntityCacheKey(eq("share-booking"), eq(booking.getId().toString()), anyString()))
+            .thenReturn("share-key");
+
+        PostMigratedItemGroup result = entityCreationService.prepareShareBookingAndInviteData(
+            booking,
+            "new@example.com",
+            "New",
+            "User"
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.getInvites()).hasSize(1);
+        assertThat(result.getShareBookings()).hasSize(1);
+        verify(cacheService).saveShareBooking(eq("share-key"), any(CreateShareBookingDTO.class));
+        verify(cacheService, times(2)).saveUser(eq("new@example.com"), any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("prepareShareBookingAndInviteData should return null when vodafone ID is missing")
+    void prepareShareBookingAndInviteDataReturnsNullWhenVodafoneMissing() {
+        setVodafoneEmail();
+        BookingDTO booking = createTestBooking();
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "new@example.com", String.class))
+            .thenReturn(null);
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
+            .thenReturn(null);
+        when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
+
+        PostMigratedItemGroup result = entityCreationService.prepareShareBookingAndInviteData(
+            booking,
+            "new@example.com",
+            "New",
+            "User"
+        );
+
+        assertThat(result).isNull();
+        verify(loggingService).logWarning("Vodafone user ID not found in cache for email: %s", VODAFONE_EMAIL);
+    }
+
+    @Test
+    @DisplayName("isOrigRecordingPersisted should identify persisted originals")
+    void isOrigRecordingPersistedReturnsTrueWhenOrigHasRecordingId() throws Exception {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setArchiveId("copy-1");
+        MigrationRecord orig = new MigrationRecord();
+        orig.setRecordingId(UUID.randomUUID());
+
+        when(migrationRecordService.findByArchiveId("copy-1")).thenReturn(Optional.of(copy));
+        when(migrationRecordService.getOrigFromCopy(copy)).thenReturn(Optional.of(orig));
+
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        boolean result = (boolean) method.invoke(entityCreationService, "copy-1");
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("isOrigRecordingPersisted should return false when orig missing")
+    void isOrigRecordingPersistedReturnsFalseWhenOrigMissing() throws Exception {
+        when(migrationRecordService.findByArchiveId("copy-2")).thenReturn(Optional.empty());
+
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        boolean result = (boolean) method.invoke(entityCreationService, "copy-2");
+        assertThat(result).isFalse();
     }
 
     @Test
@@ -955,5 +1037,15 @@ public class EntityCreationServiceTest {
         booking.setScheduledFor(Timestamp.from(Instant.now()));
 
         return booking;
+    }
+
+    private void setVodafoneEmail() {
+        try {
+            Field field = EntityCreationService.class.getDeclaredField("vodafoneUserEmail");
+            field.setAccessible(true);
+            field.set(entityCreationService, VODAFONE_EMAIL);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

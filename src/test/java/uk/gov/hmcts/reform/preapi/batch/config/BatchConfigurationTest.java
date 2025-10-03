@@ -322,4 +322,5 @@ class BatchConfigurationTest {
         ExitStatus result = batchConfiguration.afterStep(stepExecution);
         assertThatCode(() -> batchConfiguration.afterStep(stepExecution)).doesNotThrowAnyException();
     }
+
 }
