@@ -206,9 +206,9 @@ module "pre_api_b2c" {
 }
 
 module "pre-api-b2c-mgmt-api-policy" {
-  count         = local.env_to_deploy
+  count         = var.env == "prod" ? 0 : 1
   source        = "git@github.com:hmcts/cnp-module-api-mgmt-api-policy?ref=master"
-  api_name      = module.pre_api_b2c[0].name
+  api_name      = module.pre_api_b2c.name
   api_mgmt_name = "sds-api-mgmt-${var.env}"
   api_mgmt_rg   = "ss-${var.env}-network-rg"
   api_policy_xml_content = <<XML
