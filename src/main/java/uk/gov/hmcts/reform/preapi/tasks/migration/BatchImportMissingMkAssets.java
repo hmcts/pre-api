@@ -89,8 +89,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
 
         // Step 1: Find all VF recordings missing final asset
-        // List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings().stream()
-        List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordingsNoDuration().stream()
+        List<RecordingDTO> recordings = recordingService.findAllVodafoneRecordings().stream()
             // Step 2: Copy blob from Vodafone to Ingest
             .filter(this::copyBlobBetweenContainers)
             // Step 3: Create Temp Asset

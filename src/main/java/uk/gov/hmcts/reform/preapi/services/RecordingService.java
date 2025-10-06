@@ -252,15 +252,10 @@ public class RecordingService {
 
     @Transactional
     public List<RecordingDTO> findAllVodafoneRecordings() {
-        return recordingRepository.findAllOriginVodafone().stream()
-            .map(RecordingDTO::new)
-            .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public List<RecordingDTO> findAllVodafoneRecordingsNoDuration() {
+        // return recordingRepository.findAllOriginVodafone().stream()
         return recordingRepository.findAllOriginVodafoneNoDuration().stream()
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
+
 }
