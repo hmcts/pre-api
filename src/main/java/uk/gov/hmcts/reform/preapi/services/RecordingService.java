@@ -256,4 +256,11 @@ public class RecordingService {
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
+
+    @Transactional
+    public List<RecordingDTO> findAllVodafoneRecordingsNoDuration() {
+        return recordingRepository.findAllOriginVodafoneNoDuration().stream()
+            .map(RecordingDTO::new)
+            .collect(Collectors.toList());
+    }
 }
