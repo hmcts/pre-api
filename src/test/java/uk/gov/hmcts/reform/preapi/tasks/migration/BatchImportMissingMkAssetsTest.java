@@ -112,10 +112,10 @@ public class BatchImportMissingMkAssetsTest {
 
     @Test
     void runVodafoneRecordingsEmpty() throws IOException {
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of());
+        when(recordingService.findAllVodafoneRecordingsNoDuration()).thenReturn(List.of());
         batchImportMissingMkAssets.run();
 
-        verify(recordingService, times(1)).findAllVodafoneRecordings();
+        verify(recordingService, times(1)).findAllVodafoneRecordingsNoDuration();
         verify(mediaService, never()).getAsset(any());
         ArgumentCaptor<String> filenameCaptor =  ArgumentCaptor.forClass(String.class);
         verify(azureFinalStorageService, never()).uploadBlob(filenameCaptor.capture(), any(), any());
@@ -130,7 +130,7 @@ public class BatchImportMissingMkAssetsTest {
         captureSession.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
 
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(recordingService.findAllVodafoneRecordingsNoDuration()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         doThrow(NotFoundException.class).when(azureVodafoneStorageService).getBlobUrlForCopy(any(), any());
         when(azureVodafoneStorageService.getStorageAccountName()).thenReturn("voda-sa");
@@ -138,7 +138,7 @@ public class BatchImportMissingMkAssetsTest {
 
         batchImportMissingMkAssets.run();
 
-        verify(recordingService, times(1)).findAllVodafoneRecordings();
+        verify(recordingService, times(1)).findAllVodafoneRecordingsNoDuration();
         verify(mediaService, times(0)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureVodafoneStorageService, never()).copyBlobOverwritable(any(), any(), any(), eq(false));
@@ -173,14 +173,14 @@ public class BatchImportMissingMkAssetsTest {
         captureSession.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
 
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(recordingService.findAllVodafoneRecordingsNoDuration()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(false);
 
         batchImportMissingMkAssets.run();
 
-        verify(recordingService, times(1)).findAllVodafoneRecordings();
+        verify(recordingService, times(1)).findAllVodafoneRecordingsNoDuration();
         verify(mediaService, times(1)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureIngestStorageService, times(1)).copyBlobOverwritable(any(), any(), any(), eq(false));
@@ -215,7 +215,7 @@ public class BatchImportMissingMkAssetsTest {
         captureSession.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
 
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(recordingService.findAllVodafoneRecordingsNoDuration()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
@@ -223,7 +223,7 @@ public class BatchImportMissingMkAssetsTest {
 
         batchImportMissingMkAssets.run();
 
-        verify(recordingService, times(1)).findAllVodafoneRecordings();
+        verify(recordingService, times(1)).findAllVodafoneRecordingsNoDuration();
         verify(mediaService, times(2)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureIngestStorageService, times(1)).copyBlobOverwritable(any(), any(), any(), eq(false));
@@ -259,7 +259,7 @@ public class BatchImportMissingMkAssetsTest {
         captureSession.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
 
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(recordingService.findAllVodafoneRecordingsNoDuration()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
@@ -272,7 +272,7 @@ public class BatchImportMissingMkAssetsTest {
 
         batchImportMissingMkAssets.run();
 
-        verify(recordingService, times(1)).findAllVodafoneRecordings();
+        verify(recordingService, times(1)).findAllVodafoneRecordingsNoDuration();
         verify(mediaService, times(2)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureIngestStorageService, times(1)).copyBlobOverwritable(any(), any(), any(), eq(false));
@@ -314,7 +314,7 @@ public class BatchImportMissingMkAssetsTest {
         captureSession.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(recordingService.findAllVodafoneRecordingsNoDuration()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
@@ -329,7 +329,7 @@ public class BatchImportMissingMkAssetsTest {
 
         batchImportMissingMkAssets.run();
 
-        verify(recordingService, times(1)).findAllVodafoneRecordings();
+        verify(recordingService, times(1)).findAllVodafoneRecordingsNoDuration();
         verify(mediaService, times(2)).getAsset(any());
         verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureIngestStorageService, times(1)).copyBlobOverwritable(any(), any(), any(), eq(false));
@@ -419,7 +419,7 @@ public class BatchImportMissingMkAssetsTest {
         captureSession.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(recordingService.findAllVodafoneRecordingsNoDuration()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
@@ -447,7 +447,7 @@ public class BatchImportMissingMkAssetsTest {
         captureSession.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
-        when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
+        when(recordingService.findAllVodafoneRecordingsNoDuration()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
         when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
