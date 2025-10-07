@@ -701,4 +701,17 @@ class RecordingServiceTest {
         assertThrows(NotFoundException.class, () -> recordingService.forceUpsert(recordingModel));
         verify(recordingRepository, never()).save(any(Recording.class));
     }
+
+    @Test
+    @DisplayName("Find all Vodafone recordings with null duration")
+    void findAllVodafoneRecordingsSuccess() {
+        when(recordingRepository.findAllOriginVodafoneNoDuration())
+            .thenReturn(List.of(recordingEntity));
+
+        List<RecordingDTO> results = recordingService.findAllVodafoneRecordings();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().getId()).isEqualTo(recordingEntity.getId());
+        verify(recordingRepository, times(1)).findAllOriginVodafoneNoDuration();
+    }
 }

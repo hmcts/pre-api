@@ -204,3 +204,30 @@ module "pre_api_b2c" {
   protocols             = ["http", "https"]
   subscription_required = false
 }
+
+module "pre-api-b2c-mgmt-api-policy" {
+  count         = var.env == "prod" ? 0 : 1
+  source        = "git@github.com:hmcts/cnp-module-api-mgmt-api-policy?ref=master"
+  api_name      = module.pre_api_b2c[0].name
+  api_mgmt_name = "sds-api-mgmt-${var.env}"
+  api_mgmt_rg   = "ss-${var.env}-network-rg"
+  api_policy_xml_content = <<XML
+<policies>
+  <inbound>
+    <base />
+    <validate-jwt header-name="Authorization" require-scheme="Bearer" failed-validation-httpcode="401">
+      <openid-config url="https://login.microsoftonline.com/${var.tenant_id}/v2.0/.well-known/openid-configuration" />
+      <audiences>
+        <audience>api://${data.azuread_application.pre_apim_b2c_app.client_id}</audience>
+      </audiences>
+      <required-claims>
+        <claim name="scp"><value>api.request.b2c</value></claim>
+      </required-claims>
+    </validate-jwt>
+  </inbound>
+  <backend><base /></backend>
+  <outbound><base /></outbound>
+  <on-error><base /></on-error>
+</policies>
+XML
+}
