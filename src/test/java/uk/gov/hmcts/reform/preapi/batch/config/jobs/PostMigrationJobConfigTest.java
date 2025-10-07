@@ -13,6 +13,7 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.core.step.tasklet.TaskletStep;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
@@ -22,7 +23,9 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCre
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.application.writer.PostMigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
+import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
@@ -155,5 +158,28 @@ class PostMigrationJobConfigTest {
         Field field = TaskletStep.class.getDeclaredField("tasklet");
         field.setAccessible(true);
         return (Tasklet) field.get(step);
+    }
+
+    @Test
+    void createShareBookingsStep_shouldBuildStep() {
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        @SuppressWarnings("unchecked")
+        ItemReader<PostMigratedItemGroup> mockReader = mock(ItemReader.class);
+
+        Step step = config.createShareBookingsStep(mockWriter, mockReader);
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("createShareBookingsStep");
+    }
+
+    @Test
+    void postMigrationItemReaderBean_shouldCreateReader() {
+        @SuppressWarnings("unchecked")
+        ItemReader<PostMigratedItemGroup> mockReader = mock(ItemReader.class);
+        when(postMigrationItemReader.createReader(false)).thenReturn(mockReader);
+        
+        ItemReader<PostMigratedItemGroup> reader = config.postMigrationItemReaderBean();
+
+        assertThat(reader).isNotNull();
     }
 }
