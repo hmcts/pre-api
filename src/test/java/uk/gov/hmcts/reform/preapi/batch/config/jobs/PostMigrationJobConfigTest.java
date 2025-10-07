@@ -182,4 +182,28 @@ class PostMigrationJobConfigTest {
 
         assertThat(reader).isNotNull();
     }
+
+    @Test
+    void postMigrationJob_shouldBuildJobWithAllSteps() {
+        Step mockCreateRobotUserSignInStep = mock(Step.class);
+        Step mockCreateChannelUserStep = mock(Step.class);
+        Step mockCreateMarkCasesClosedStep = mock(Step.class);
+        Step mockCreatePreProcessStep = mock(Step.class);
+        Step mockCreateShareBookingsStep = mock(Step.class);
+        Step mockCreateWriteReportsStep = mock(Step.class);
+        Step mockCreateWriteToCSVStep = mock(Step.class);
+
+        Job job = config.postMigrationJob(
+            mockCreateRobotUserSignInStep,
+            mockCreateChannelUserStep,
+            mockCreateMarkCasesClosedStep,
+            mockCreatePreProcessStep,
+            mockCreateShareBookingsStep,
+            mockCreateWriteReportsStep,
+            mockCreateWriteToCSVStep
+        );
+
+        assertThat(job).isNotNull();
+        assertThat(job.getName()).isEqualTo("postMigrationJob");
+    }
 }
