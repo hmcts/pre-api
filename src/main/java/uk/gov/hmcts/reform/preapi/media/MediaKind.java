@@ -227,14 +227,13 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String playLiveEvent(UUID liveEventId) throws InterruptedException {
+    public String playLiveEvent(UUID captureSessionId) throws InterruptedException {
+        var liveEventId = getSanitisedLiveEventId(captureSessionId);
         assertLiveEventExists(liveEventId);
         assertStreamingEndpointExists(DEFAULT_LIVE_STREAMING_ENDPOINT);
 
         assertStreamingLocatorExists(liveEventId);
-        var paths = mediaKindClient.listStreamingLocatorPaths(getSanitisedLiveEventId(liveEventId));
-
-        return parseLiveOutputUrlFromStreamingLocatorPaths(DEFAULT_LIVE_STREAMING_ENDPOINT, paths);
+        return constructManifestPath(liveEventId);
     }
 
     @Override
@@ -359,7 +358,7 @@ public class MediaKind implements IMediaService {
 
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        assertStreamingLocatorExists(captureSession.getId());
+        assertStreamingLocatorExists(liveEventName);
     }
 
     private void startLiveEvent(String liveEventName) {
@@ -777,12 +776,11 @@ public class MediaKind implements IMediaService {
         }).map(MkGetListResponse::getValue).flatMap(List::stream);
     }
 
-    private void assertLiveEventExists(UUID liveEventId) {
-        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
+    private void assertLiveEventExists(String liveEventId) {
         try {
-            var liveEvent = mediaKindClient.getLiveEvent(sanitisedLiveEventId);
+            var liveEvent = mediaKindClient.getLiveEvent(liveEventId);
             if (!liveEvent.getProperties().getResourceState().equals(LiveEventResourceState.RUNNING.toString())) {
-                throw new LiveEventNotRunningException(sanitisedLiveEventId);
+                throw new LiveEventNotRunningException(liveEventId);
             }
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -823,13 +821,11 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private void assertStreamingLocatorExists(UUID liveEventId) {
-        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
-
+    private void assertStreamingLocatorExists(String liveEventId) {
         try {
-            mediaKindClient.getStreamingLocator(sanitisedLiveEventId);
+            mediaKindClient.getStreamingLocator(liveEventId);
         } catch (NotFoundException e) {
-            createStreamingLocator(sanitisedLiveEventId);
+            createStreamingLocator(liveEventId);
         } catch (Exception e) {
             log.error(e.getMessage());
             throw e;
@@ -859,6 +855,14 @@ public class MediaKind implements IMediaService {
         }
     }
 
+    private String constructManifestPath(String liveEventId) {
+        log.info("Generating manifest path");
+        var localManifestPath = "/" + liveEventId + "/index.qfm/manifest(format=m3u8-cmaf)";
+        log.info(localManifestPath);
+        return "https://" + getHostname(DEFAULT_LIVE_STREAMING_ENDPOINT) + localManifestPath;
+    }
+
+    // Not required now we construct manifest path from live event
     private String parseLiveOutputUrlFromStreamingLocatorPaths(String endpointName, MkStreamingLocatorUrlPaths paths) {
         log.info("parsing live output url from streaming locator paths");
         paths.getStreamingPaths().forEach(p -> {
