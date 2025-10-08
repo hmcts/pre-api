@@ -8,7 +8,3 @@ data "azurerm_application_insights" "app_insights" {
   name                = "pre-${var.env}-appinsights"
   resource_group_name = "${var.product}-${var.env}"
 }
-
-data "azuread_application" "pre_apim_b2c_app" {
-  display_name = "${var.product}-apim-b2c-${var.env}"
-}
