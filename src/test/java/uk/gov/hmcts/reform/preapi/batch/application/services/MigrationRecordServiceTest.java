@@ -89,7 +89,7 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should trim leading and trailing whitespace")
     void generateRecordingGroupKeyShouldTrimWhitespace() {
-        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ", 
+        String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ",
             " John ", " Doe ","241211");
 
         assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
@@ -875,9 +875,9 @@ public class MigrationRecordServiceTest {
         MigrationRecord record = new MigrationRecord();
         record.setArchiveId("id1");
         record.setRecordingVersion("ORIG");
-        record.setRecordingGroupKey("urn|ex|wit|def"); 
+        record.setRecordingGroupKey("urn|ex|wit|def");
         record.setRecordingVersionNumber("1");
-        record.setIsMostRecent(false); 
+        record.setIsMostRecent(false);
 
         when(migrationRecordRepository.findByArchiveId("id1")).thenReturn(Optional.of(record));
         when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(record));
@@ -906,7 +906,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setArchiveId("id2");
         copy.setRecordingVersion("COPY");
-        copy.setRecordingGroupKey("urn|ex|wit|def");  
+        copy.setRecordingGroupKey("urn|ex|wit|def");
         copy.setRecordingVersionNumber("2");
         copy.setIsMostRecent(false);
         copy.setIsPreferred(false);
@@ -983,7 +983,8 @@ public class MigrationRecordServiceTest {
     public void findAllBy() {
         final MigrationRecord migrationRecord = createMigrationRecord();
 
-        when(migrationRecordRepository.findAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(migrationRecordRepository.findAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                                                 any()))
             .thenReturn(new PageImpl<>(List.of(migrationRecord)));
 
         Page<VfMigrationRecordDTO> result = migrationRecordService.findAllBy(
@@ -994,7 +995,7 @@ public class MigrationRecordServiceTest {
         assertThat(result.getContent().getFirst().getId()).isEqualTo(migrationRecord.getId());
 
         verify(migrationRecordRepository, times(1))
-            .findAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(Pageable.class));
+            .findAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(Pageable.class));
     }
 
     @Test
@@ -1175,7 +1176,7 @@ public class MigrationRecordServiceTest {
         verify(migrationRecordRepository).saveAndFlush(any(MigrationRecord.class));
     }
 
- 
+
 
     @Test
     @DisplayName("Should insert pending from XML when duration is null")

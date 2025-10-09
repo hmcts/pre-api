@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -39,7 +38,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/vf-migration-records")
-@ConditionalOnExpression("${feature-flags.enable-migration-admin-endpoints:false}")
 public class VfMigrationController extends PreApiController {
     private final MigrationRecordService migrationRecordService;
     private final MigrateResolved migrateResolved;
@@ -72,6 +70,10 @@ public class VfMigrationController extends PreApiController {
         name = "courtId",
         description = "The court id to search for",
         schema = @Schema(implementation = UUID.class))
+    @Parameter(
+            name = "courtReference",
+            description = "The court reference to search for",
+            schema = @Schema(implementation = String.class))
     @Parameter(
         name = "status",
         description = "The status to search for",
