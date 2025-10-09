@@ -6,8 +6,10 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.scope.context.JobSynchronizationManager;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,13 +33,16 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
+import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -63,6 +68,7 @@ public class PostMigrationJobConfig {
     private final RecordingService recordingService;
     private final PostMigrationItemReader postMigrationItemReader;
     private final PostMigrationItemProcessor postMigrationItemProcessor;
+    private final UserService userService;
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
@@ -79,7 +85,8 @@ public class PostMigrationJobConfig {
                                   final BookingService bookingService,
                                   final RecordingService recordingService,
                                   final PostMigrationItemReader postMigrationItemReader,
-                                  final PostMigrationItemProcessor postMigrationItemProcessor) {
+                                  final PostMigrationItemProcessor postMigrationItemProcessor,
+                                  final UserService userService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.coreSteps = coreSteps;
@@ -93,6 +100,7 @@ public class PostMigrationJobConfig {
         this.recordingService = recordingService;
         this.postMigrationItemReader = postMigrationItemReader;
         this.postMigrationItemProcessor = postMigrationItemProcessor;
+        this.userService = userService;
     }
 
     @Bean
@@ -162,7 +170,8 @@ public class PostMigrationJobConfig {
     @Bean
     @StepScope
     public ItemReader<PostMigratedItemGroup> postMigrationItemReaderBean() {
-        return postMigrationItemReader.createReader(false); 
+        boolean dryRun = coreSteps.getDryRunFlag();
+        return postMigrationItemReader.createReader(dryRun); 
     }
 
     @Bean
@@ -175,7 +184,7 @@ public class PostMigrationJobConfig {
             )
             .reader(postMigrationItemReaderBean)
             .processor(postMigrationItemProcessor)
-            .writer(postMigrationWriter)
+            .writer(createConditionalWriter(postMigrationWriter))
             .faultTolerant()
             .skipLimit(BatchConfiguration.SKIP_LIMIT)
             .skip(Exception.class)
@@ -366,6 +375,72 @@ public class PostMigrationJobConfig {
     }
 
     private record CleanupStats(int found, int deleted) {
+    }
+
+    private String resolveEmailForShare(PostMigratedItemGroup item, CreateShareBookingDTO share) {
+        if (item.getInvites() != null) {
+            String email = item.getInvites().stream()
+                .filter(invite -> invite.getUserId() != null
+                    && invite.getUserId().equals(share.getSharedWithUser()))
+                .map(CreateInviteDTO::getEmail)
+                .findFirst()
+                .orElse("");
+            if (!email.isEmpty()) {
+                return email;
+            }
+        }
+        
+        if (share.getSharedWithUser() != null) {
+            try {
+                return userService.findById(share.getSharedWithUser()).getEmail();
+            } catch (Exception e) {
+                loggingService.logWarning(
+                    "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
+            }
+        }
+        return "";
+    }
+
+    private ItemWriter<PostMigratedItemGroup> createConditionalWriter(PostMigrationWriter postMigrationWriter) {
+        return chunk -> {
+            boolean dryRun = Boolean.parseBoolean(
+                Optional.ofNullable(JobSynchronizationManager.getContext())
+                    .map(ctx -> ctx.getJobParameters().get("dryRun"))
+                    .map(Object::toString)
+                    .orElse("false")
+            );
+            
+            if (dryRun) {
+                loggingService.logInfo(
+                    "[DRY RUN] PostMigrationWriter processing %d item(s) - skipping entity creation", chunk.size());
+                
+                for (PostMigratedItemGroup item : chunk) {
+                    try {
+                        loggingService.logDebug("[DRY RUN] Processing post-migration item group: %s", item);
+                        
+                        if (item.getInvites() != null) {
+                            for (CreateInviteDTO invite : item.getInvites()) {
+                                migrationTrackerService.addInvitedUser(invite);
+                            }
+                        }
+                        
+                        if (item.getShareBookings() != null) {
+                            for (CreateShareBookingDTO share : item.getShareBookings()) {
+                                String email = resolveEmailForShare(item, share);
+                                migrationTrackerService.addShareBooking(share);
+                                migrationTrackerService.addShareBookingReport(share, email, vodafoneUserEmail);
+                            }
+                        }
+                        
+                        loggingService.logDebug("[DRY RUN] Successfully processed post-migration item");
+                    } catch (Exception e) {
+                        loggingService.logError("[DRY RUN] Failed to process post-migration item: %s", e.getMessage());
+                    }
+                }
+            } else {
+                postMigrationWriter.write(chunk);
+            }
+        };
     }
 
 }

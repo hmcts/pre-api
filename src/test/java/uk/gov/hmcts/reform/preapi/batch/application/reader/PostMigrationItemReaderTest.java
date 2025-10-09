@@ -26,9 +26,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,7 +68,7 @@ class PostMigrationItemReaderTest {
     }
 
     @Test
-    void createReaderDryRunSkipsProcessingButLogsMatches() throws Exception {
+    void createReaderPreparesDataEvenInDryRunMode() throws Exception {
         MigrationRecord record = migrationRecord("archive-1", "case|segment");
         record.setBookingId(UUID.randomUUID());
 
@@ -82,9 +82,9 @@ class PostMigrationItemReaderTest {
         when(booking.getShares()).thenReturn(List.of());
 
         assertDoesNotThrow(() -> reader.createReader(true).read());
-
-        verify(loggingService).logInfo("[DRY RUN] Would invite and share booking with %s", "bob@example.com");
-        verifyNoInteractions(entityCreationService);
+        verify(entityCreationService).createShareBookingAndInviteIfNotExists(
+            eq(booking), eq("bob@example.com"), eq("bob"), eq("smith")
+        );
     }
 
     @Test
@@ -104,7 +104,7 @@ class PostMigrationItemReaderTest {
         when(bookingService.findById(record.getBookingId())).thenReturn(booking);
 
         PostMigratedItemGroup group = new PostMigratedItemGroup();
-        when(entityCreationService.prepareShareBookingAndInviteData(
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
             booking,
             "bob@example.com",
             "bob",
@@ -115,7 +115,7 @@ class PostMigrationItemReaderTest {
         assertThat(assertDoesNotThrow(itemReader::read)).isEqualTo(group);
         assertThat(assertDoesNotThrow(itemReader::read)).isNull();
 
-        verify(entityCreationService).prepareShareBookingAndInviteData(
+        verify(entityCreationService).createShareBookingAndInviteIfNotExists(
             booking,
             "bob@example.com",
             "bob",
@@ -171,12 +171,12 @@ class PostMigrationItemReaderTest {
 
         BookingDTO booking = buildBookingWithShares(null);
         when(bookingService.findById(record.getBookingId())).thenReturn(booking);
-        when(entityCreationService.prepareShareBookingAndInviteData(booking, "user@example.com", "user", "name"))
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(booking, "user@example.com", "user", "name"))
             .thenReturn(null);
 
         var readerResult = reader.createReader(false);
         assertThat(assertDoesNotThrow(readerResult::read)).isNull();
-        verify(entityCreationService).prepareShareBookingAndInviteData(booking, "user@example.com", "user", "name");
+        verify(entityCreationService).createShareBookingAndInviteIfNotExists(booking, "user@example.com", "user", "name");
     }
 
     @Test

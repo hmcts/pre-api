@@ -30,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
+import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -83,6 +84,9 @@ class PostMigrationJobConfigTest {
     private PostMigrationItemProcessor postMigrationItemProcessor;
 
     @Mock
+    private UserService userService;
+
+    @Mock
     private StepContribution stepContribution;
 
     @Mock
@@ -108,7 +112,8 @@ class PostMigrationJobConfigTest {
             bookingService,
             recordingService,
             postMigrationItemReader,
-            postMigrationItemProcessor
+            postMigrationItemProcessor,
+            userService
         );
 
         Field emailField = PostMigrationJobConfig.class.getDeclaredField("vodafoneUserEmail");

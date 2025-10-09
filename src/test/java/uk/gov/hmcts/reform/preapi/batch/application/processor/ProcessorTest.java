@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -76,6 +77,9 @@ class ProcessorTest {
 
     @MockitoBean
     private MigrationRecordService migrationRecordService;
+
+    @MockitoBean
+    private MigrationRecordRepository migrationRecordRepository;
 
     @MockitoBean
     private LoggingService loggingService;

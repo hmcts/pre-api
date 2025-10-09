@@ -113,13 +113,7 @@ public class PostMigrationItemReader {
                     continue;
                 }
 
-                if (dryRun) {
-                    loggingService.logInfo("[DRY RUN] Would invite and share booking with %s", email);
-                    alreadySharedEmails.add(emailKey);
-                    continue;
-                }
-
-                var result = entityCreationService.prepareShareBookingAndInviteData(
+                var result = entityCreationService.createShareBookingAndInviteIfNotExists(
                     booking, email, firstName, lastName
                 );
 

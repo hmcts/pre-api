@@ -26,10 +26,12 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -70,6 +72,9 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private PortalAccessRepository portalAccessRepository;
 
     @Autowired
     private EntityCreationService entityCreationService;
@@ -584,14 +589,13 @@ public class EntityCreationServiceTest {
     }
 
     @Test
-    @DisplayName("Should create share booking without invite when user already exists")
-    void createShareBookingAndInviteIfNotExistsShouldCreateShareBookingForExistingUser() {
+    @DisplayName("Should create share booking with invite when user exists but has no portal access")
+    void createShareBookingAndInviteIfNotExistsShouldCreateShareBookingForExistingUserWithoutPortalAccess() {
         setVodafoneEmail();
         BookingDTO booking = createTestBooking();
         UUID existingUserId = UUID.randomUUID();
         UUID vodafoneUserId = UUID.randomUUID();
 
-        // Mock existing user in cache
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "existing@example.com", String.class))
             .thenReturn(existingUserId.toString());
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
@@ -603,6 +607,9 @@ public class EntityCreationServiceTest {
             existingUserId.toString()
         ))
             .thenReturn("share-key");
+        
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
+            .thenReturn(Optional.empty());
 
         var result = entityCreationService.createShareBookingAndInviteIfNotExists(
             booking,
@@ -612,7 +619,47 @@ public class EntityCreationServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.getInvites()).isEmpty();
+        assertThat(result.getInvites()).hasSize(1);
+        assertThat(result.getInvites().get(0).getEmail()).isEqualTo("existing@example.com");
+        assertThat(result.getInvites().get(0).getUserId()).isEqualTo(existingUserId);
+        assertThat(result.getShareBookings()).hasSize(1);
+        assertThat(result.getShareBookings().get(0).getSharedWithUser()).isEqualTo(existingUserId);
+
+        verify(cacheService).saveShareBooking(anyString(), any(CreateShareBookingDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should create share booking without invite when user exists and has portal access")
+    void createShareBookingAndInviteIfNotExistsShouldCreateShareBookingForExistingUserWithPortalAccess() {
+        setVodafoneEmail();
+        BookingDTO booking = createTestBooking();
+        UUID existingUserId = UUID.randomUUID();
+        UUID vodafoneUserId = UUID.randomUUID();
+
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "existing@example.com", String.class))
+            .thenReturn(existingUserId.toString());
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, VODAFONE_EMAIL, String.class))
+            .thenReturn(vodafoneUserId.toString());
+        when(cacheService.getShareBooking(eq("share-key"))).thenReturn(Optional.empty());
+        when(cacheService.generateEntityCacheKey(
+            "share-booking",
+            booking.getId().toString(),
+            existingUserId.toString()
+        ))
+            .thenReturn("share-key");
+        
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
+            .thenReturn(Optional.of(new PortalAccess()));
+
+        var result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "existing@example.com",
+            "Existing",
+            "User"
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.getInvites()).isEmpty(); 
         assertThat(result.getShareBookings()).hasSize(1);
         assertThat(result.getShareBookings().get(0).getSharedWithUser()).isEqualTo(existingUserId);
 
@@ -668,8 +715,8 @@ public class EntityCreationServiceTest {
     }
 
     @Test
-    @DisplayName("prepareShareBookingAndInviteData should create invite and share when no cached user exists")
-    void prepareShareBookingAndInviteDataCreatesInviteAndShare() {
+    @DisplayName("createShareBookingAndInviteIfNotExists should create invite and share when no cached user exists")
+    void createShareBookingAndInviteIfNotExistsCreatesInviteAndShare() {
         setVodafoneEmail();
         BookingDTO booking = createTestBooking();
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "new@example.com", String.class))
@@ -680,7 +727,7 @@ public class EntityCreationServiceTest {
         when(cacheService.generateEntityCacheKey(eq("share-booking"), eq(booking.getId().toString()), anyString()))
             .thenReturn("share-key");
 
-        PostMigratedItemGroup result = entityCreationService.prepareShareBookingAndInviteData(
+        PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
             booking,
             "new@example.com",
             "New",
@@ -695,8 +742,8 @@ public class EntityCreationServiceTest {
     }
 
     @Test
-    @DisplayName("prepareShareBookingAndInviteData should return null when vodafone ID is missing")
-    void prepareShareBookingAndInviteDataReturnsNullWhenVodafoneMissing() {
+    @DisplayName("createShareBookingAndInviteIfNotExists should return null when vodafone ID is missing")
+    void createShareBookingAndInviteIfNotExistsReturnsNullWhenVodafoneMissing() {
         setVodafoneEmail();
         BookingDTO booking = createTestBooking();
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "new@example.com", String.class))
@@ -705,7 +752,7 @@ public class EntityCreationServiceTest {
             .thenReturn(null);
         when(cacheService.getShareBooking(anyString())).thenReturn(Optional.empty());
 
-        PostMigratedItemGroup result = entityCreationService.prepareShareBookingAndInviteData(
+        PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
             booking,
             "new@example.com",
             "New",
