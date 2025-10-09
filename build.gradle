@@ -326,7 +326,7 @@ dependencies {
 
 
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.30.Final')
+  annotationProcessor("org.hibernate.orm:hibernate-processor:7.1.1.Final")
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.10:all'
