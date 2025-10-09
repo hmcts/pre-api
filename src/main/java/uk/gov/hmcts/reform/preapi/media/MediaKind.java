@@ -141,10 +141,10 @@ public class MediaKind implements IMediaService {
         }
         // todo check asset has files
         createContentKeyPolicy(userId, symmetricKey);
-        assertStreamingPolicyExists(userId);
+        getOrCreateStreamingPolicy(userId);
         var streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
 
-        var hostName = HTTPS_PREFIX + assertStreamingEndpointExists(DEFAULT_VOD_STREAMING_ENDPOINT)
+        var hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(DEFAULT_VOD_STREAMING_ENDPOINT)
             .getProperties().getHostName();
         var paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
 
@@ -231,10 +231,10 @@ public class MediaKind implements IMediaService {
     @Override
     public String playLiveEvent(UUID captureSessionId) throws InterruptedException {
         var liveEventId = getSanitisedLiveEventId(captureSessionId);
-        assertLiveEventExists(liveEventId);
-        assertStreamingEndpointExists(DEFAULT_LIVE_STREAMING_ENDPOINT);
+        checkLiveEventExists(liveEventId);
+        getOrCreateStreamingEndpoint(DEFAULT_LIVE_STREAMING_ENDPOINT);
 
-        assertStreamingLocatorExists(liveEventId);
+        getOrCreateStreamingLocator(liveEventId);
         return constructManifestPath(liveEventId);
     }
 
@@ -360,7 +360,7 @@ public class MediaKind implements IMediaService {
 
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        assertStreamingLocatorExists(liveEventName);
+        getOrCreateStreamingLocator(liveEventName);
     }
 
     private void startLiveEvent(String liveEventName) {
@@ -486,7 +486,7 @@ public class MediaKind implements IMediaService {
         return streamingLocatorName;
     }
 
-    private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
+    private void getOrCreateStreamingPolicy(String defaultContentKeyPolicy) {
         try {
             mediaKindClient.getStreamingPolicy(MediaKind.STREAMING_POLICY_CLEAR_KEY);
         } catch (NotFoundException e) {
@@ -558,7 +558,7 @@ public class MediaKind implements IMediaService {
         mediaKindClient.deleteLiveEvent(liveEventName);
     }
 
-    private void assertTransformExists(String transformName) {
+    private void getOrCreateTransform(String transformName) {
         try {
             mediaKindClient.getTransform(transformName);
         } catch (NotFoundException e) {
@@ -611,7 +611,7 @@ public class MediaKind implements IMediaService {
                                       String outputAssetName,
                                       String transformName,
                                       String fileName) {
-        assertTransformExists(transformName);
+        getOrCreateTransform(transformName);
         var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         log.info("Creating job [{}]", jobName);
         mediaKindClient.putJob(
@@ -778,7 +778,7 @@ public class MediaKind implements IMediaService {
         }).map(MkGetListResponse::getValue).flatMap(List::stream);
     }
 
-    private void assertLiveEventExists(String liveEventId) {
+    private void checkLiveEventExists(String liveEventId) {
         try {
             var liveEvent = mediaKindClient.getLiveEvent(liveEventId);
             if (!liveEvent.getProperties().getResourceState().equals(LiveEventResourceState.RUNNING.toString())) {
@@ -790,7 +790,7 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private MkStreamingEndpoint assertStreamingEndpointExists(String endpointName) throws InterruptedException {
+    private MkStreamingEndpoint getOrCreateStreamingEndpoint(String endpointName) throws InterruptedException {
         try {
             var endpoint = mediaKindClient.getStreamingEndpointByName(endpointName);
             if (endpoint.getProperties().getResourceState() != MkStreamingEndpointProperties.ResourceState.Running) {
@@ -823,22 +823,22 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private void assertStreamingLocatorExists(String liveEventId) {
+    private MkStreamingLocator getOrCreateStreamingLocator(String liveEventId) {
         try {
-            mediaKindClient.getStreamingLocator(liveEventId);
+            return mediaKindClient.getStreamingLocator(liveEventId);
         } catch (NotFoundException e) {
-            createStreamingLocator(liveEventId);
+            return createStreamingLocator(liveEventId);
         } catch (Exception e) {
             log.error(e.getMessage());
             throw e;
         }
     }
 
-    private void createStreamingLocator(String sanitisedLiveEventId) {
+    private MkStreamingLocator createStreamingLocator(String sanitisedLiveEventId) {
         log.info("Creating Streaming locator");
         try {
             // Streaming Locator for a live event
-            mediaKindClient.createStreamingLocator(
+            return mediaKindClient.createStreamingLocator(
                 sanitisedLiveEventId,
                 MkStreamingLocator.builder()
                     .properties(MkStreamingLocatorProperties
@@ -851,6 +851,7 @@ public class MediaKind implements IMediaService {
             );
         } catch (ConflictException e) {
             log.info("Streaming locator already exists");
+            throw e;
         } catch (Exception e) {
             log.error(e.getMessage());
             throw e;
@@ -865,6 +866,7 @@ public class MediaKind implements IMediaService {
     }
 
     // Not required now we construct manifest path from live event
+    @Deprecated
     private String parseLiveOutputUrlFromStreamingLocatorPaths(String endpointName, MkStreamingLocatorUrlPaths paths) {
         log.info("parsing live output url from streaming locator paths");
         paths.getStreamingPaths().forEach(p -> {
