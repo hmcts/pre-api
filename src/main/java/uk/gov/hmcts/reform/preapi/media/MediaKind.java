@@ -109,6 +109,7 @@ public class MediaKind implements IMediaService {
     private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
     private static final String SENT_FOR_ENCODING = "SENT_FOR_ENCODING";
     private static final String AVAILABLE_IN_FINAL_STORAGE = "AVAILABLE_IN_FINAL_STORAGE";
+    private static final String HTTPS_PREFIX = "https://";
 
     @Autowired
     public MediaKind(
@@ -143,7 +144,8 @@ public class MediaKind implements IMediaService {
         assertStreamingPolicyExists(userId);
         var streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
 
-        var hostName = "https://" + assertStreamingEndpointExists(DEFAULT_VOD_STREAMING_ENDPOINT).getProperties().getHostName();
+        var hostName = HTTPS_PREFIX + assertStreamingEndpointExists(DEFAULT_VOD_STREAMING_ENDPOINT)
+            .getProperties().getHostName();
         var paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
 
         var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol() == StreamingProtocol.Dash)
@@ -859,7 +861,7 @@ public class MediaKind implements IMediaService {
         log.info("Generating manifest path");
         var localManifestPath = "/" + liveEventId + "/index.qfm/manifest(format=m3u8-cmaf)";
         log.info(localManifestPath);
-        return "https://" + getHostname(DEFAULT_LIVE_STREAMING_ENDPOINT) + localManifestPath;
+        return HTTPS_PREFIX + getHostname(DEFAULT_LIVE_STREAMING_ENDPOINT) + localManifestPath;
     }
 
     // Not required now we construct manifest path from live event
@@ -875,7 +877,7 @@ public class MediaKind implements IMediaService {
                         && p.getStreamingProtocol() == StreamingProtocol.Hls)
                     .flatMap(path -> path.getPaths().stream())
                     .findFirst()
-                    .map(p -> "https://" + getHostname(endpointName) + p)
+                    .map(p -> HTTPS_PREFIX + getHostname(endpointName) + p)
                     .orElseThrow(() -> new RuntimeException("No valid paths returned from Streaming Locator"));
     }
 
