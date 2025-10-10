@@ -443,6 +443,48 @@ public class MigrationTrackerServiceTest {
 
 
     @Test
+    void addShareBookingReportWithNullValues() {
+        CreateShareBookingDTO shareBooking = new CreateShareBookingDTO();
+        shareBooking.setId(null);
+        shareBooking.setBookingId(null);
+        shareBooking.setSharedWithUser(null);
+        shareBooking.setSharedByUser(null);
+
+        migrationTrackerService.addShareBookingReport(shareBooking, 
+            "test@example.com", "robot@example.com");
+
+        assertThat(migrationTrackerService.shareBookingReportEntries).hasSize(1);
+        MigrationTrackerService.ShareBookingReportEntry entry = 
+            migrationTrackerService.shareBookingReportEntries.get(0);
+        assertThat(entry.shareId()).isEmpty();
+        assertThat(entry.bookingId()).isEmpty();
+        assertThat(entry.sharedWithUserId()).isEmpty();
+        assertThat(entry.sharedByUserId()).isEmpty();
+    }
+
+    @Test
+    void addShareBookingReportWithValidValues() {
+        CreateShareBookingDTO shareBooking = new CreateShareBookingDTO();
+        shareBooking.setId(UUID.randomUUID());
+        shareBooking.setBookingId(UUID.randomUUID());
+        shareBooking.setSharedWithUser(UUID.randomUUID());
+        shareBooking.setSharedByUser(UUID.randomUUID());
+
+        migrationTrackerService.addShareBookingReport(shareBooking, 
+            "test@example.com", "robot@example.com");
+
+        assertThat(migrationTrackerService.shareBookingReportEntries).hasSize(1);
+        MigrationTrackerService.ShareBookingReportEntry entry = 
+            migrationTrackerService.shareBookingReportEntries.get(0);
+        assertThat(entry.shareId()).isEqualTo(shareBooking.getId().toString());
+        assertThat(entry.bookingId()).isEqualTo(shareBooking.getBookingId().toString());
+        assertThat(entry.sharedWithUserId()).isEqualTo(shareBooking.getSharedWithUser().toString());
+        assertThat(entry.sharedByUserId()).isEqualTo(shareBooking.getSharedByUser().toString());
+    }
+
+
+
+    @Test
     void writeSummaryFailure() {
         String outputDir = tempDir.toString();
         

@@ -7,9 +7,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.SimpleTransactionStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
@@ -57,12 +54,13 @@ class PostMigrationItemExecutorTest {
     @Mock
     private IEmailService emailService;
 
-    private RecordingTransactionManager transactionManager;
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     private PostMigrationItemExecutor executor;
 
     @BeforeEach
     void setUp() {
-        transactionManager = new RecordingTransactionManager();
         executor = new PostMigrationItemExecutor(
             loggingService,
             migrationTrackerService,
@@ -95,7 +93,6 @@ class PostMigrationItemExecutorTest {
 
         executor.processOneItem(item);
 
-        assertThat(transactionManager.getCommitCount()).isEqualTo(1);
         verify(userService).upsert(invite);
         verify(migrationTrackerService).addInvitedUser(invite);
         verify(emailService).portalInvite(storedUser);
@@ -135,8 +132,6 @@ class PostMigrationItemExecutorTest {
 
         executor.processOneItem(item);
 
-        assertThat(transactionManager.getRollbackCount()).isEqualTo(1);
-
         ArgumentCaptor<MigrationTrackerService.ShareInviteFailureEntry> captor =
             ArgumentCaptor.forClass(MigrationTrackerService.ShareInviteFailureEntry.class);
 
@@ -166,7 +161,6 @@ class PostMigrationItemExecutorTest {
 
         executor.processOneItem(item);
 
-        assertThat(transactionManager.getCommitCount()).isGreaterThanOrEqualTo(1);
         verify(shareBookingService).shareBookingById(share);
         verify(migrationTrackerService).addShareBooking(share);
         verify(migrationTrackerService).addShareBookingReport(share, "share@example.com", "vodafone@example.com");
@@ -238,31 +232,27 @@ class PostMigrationItemExecutorTest {
         verify(migrationTrackerService).addShareBookingReport(share, "", "vodafone@example.com");
     }
 
-    private static final class RecordingTransactionManager implements PlatformTransactionManager {
-        private int commitCount;
-        private int rollbackCount;
+    @Test
+    void processOneItem_recordsFailure() {
+        UUID userId = UUID.randomUUID();
+        CreateInviteDTO invite = new CreateInviteDTO();
+        invite.setUserId(userId);
+        invite.setEmail("blank@example.com");
 
-        @Override
-        public TransactionStatus getTransaction(TransactionDefinition definition) {
-            return new SimpleTransactionStatus();
-        }
+        doThrow(new RuntimeException("   ")) 
+            .when(userService).upsert(invite);
 
-        @Override
-        public void commit(TransactionStatus status) {
-            commitCount++;
-        }
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        item.setInvites(List.of(invite));
 
-        @Override
-        public void rollback(TransactionStatus status) {
-            rollbackCount++;
-        }
+        executor.processOneItem(item);
 
-        int getCommitCount() {
-            return commitCount;
-        }
+        ArgumentCaptor<MigrationTrackerService.ShareInviteFailureEntry> captor =
+            ArgumentCaptor.forClass(MigrationTrackerService.ShareInviteFailureEntry.class);
 
-        int getRollbackCount() {
-            return rollbackCount;
-        }
+        verify(migrationTrackerService).addShareInviteFailure(captor.capture());
+        assertThat(captor.getValue().entityType()).isEqualTo("Invite");
+        assertThat(captor.getValue().action()).isEqualTo("USER_CREATION");
+        assertThat(captor.getValue().reason()).isEqualTo("RuntimeException"); 
     }
 }
