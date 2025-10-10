@@ -16,3 +16,5 @@ variable "common_tags" {
 
 variable "tenant_id" {}
 
+variable "b2c_pre_portal_sso_app_client_id" {}
+
