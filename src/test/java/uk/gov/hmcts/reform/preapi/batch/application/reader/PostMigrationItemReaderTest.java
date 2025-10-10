@@ -176,13 +176,136 @@ class PostMigrationItemReaderTest {
 
         var readerResult = reader.createReader(false);
         assertThat(assertDoesNotThrow(readerResult::read)).isNull();
-        verify(entityCreationService).createShareBookingAndInviteIfNotExists(booking, "user@example.com", "user", "name");
+        verify(entityCreationService).createShareBookingAndInviteIfNotExists(
+            booking, "user@example.com", "user", "name");
     }
 
     @Test
     void channelMatchingHelperHandlesDateSegments() {
         assertThat(invokeChannelMatch("case|2024-04-01", "case_240401_segment")).isTrue();
         assertThat(invokeChannelMatch("case|name", "case-other")).isFalse();
+    }
+
+    @Test
+    void channelMatchingHelperHandlesNullRecordingGroupKey() {
+        assertThat(invokeChannelMatch(null, "case_segment")).isFalse();
+    }
+
+    @Test
+    void channelMatchingHelperHandlesNullChannelName() {
+        assertThat(invokeChannelMatch("case|segment", null)).isFalse();
+    }
+
+    @Test
+    void channelMatchingHelperHandlesBlankParts() {
+        assertThat(invokeChannelMatch("case||segment", "case_segment")).isTrue(); 
+        assertThat(invokeChannelMatch("case|   |segment", "case_segment")).isTrue(); 
+    }
+
+    @Test
+    void channelMatchingHelperHandlesDatePatternMismatch() {
+        assertThat(invokeChannelMatch("case|2024-04-01", "case_other")).isFalse(); 
+    }
+
+    @Test
+    void createReaderHandlesEmptyNameParts() throws Exception {
+        MigrationRecord record = migrationRecord("archive-empty-name", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"", "user@example.com"})); 
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of());
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "user@example.com", "", "Unknown"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderHandlesSingleNamePart() throws Exception {
+        MigrationRecord record = migrationRecord("archive-single-name", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"john", "user@example.com"})); 
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of());
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "user@example.com", "john", "Unknown" 
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderSkipsWhenBookingIdIsNull() throws Exception {
+        MigrationRecord record = migrationRecord("archive-null-booking", "case|segment");
+        record.setBookingId(null); 
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "user@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isNull();
+        verify(loggingService).logWarning("Record %s has no bookingId", "archive-null-booking");
+    }
+
+    @Test
+    void createReaderSkipsWhenBookingIsNull() throws Exception {
+        MigrationRecord record = migrationRecord("archive-null-booking-obj", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "user@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+        when(bookingService.findById(record.getBookingId())).thenReturn(null);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isNull();
+        verify(loggingService).logWarning("No booking found for record %s (bookingId=%s)",
+            "archive-null-booking-obj", record.getBookingId());
+    }
+
+    @Test
+    void createReaderHandlesNullShares() throws Exception {
+        MigrationRecord record = migrationRecord("archive-null-shares", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "user@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(null); 
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "user@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
     }
 
     private boolean invokeChannelMatch(String key, String channel) {
