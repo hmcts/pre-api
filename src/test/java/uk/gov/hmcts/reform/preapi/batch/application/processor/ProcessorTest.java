@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -462,6 +463,31 @@ class ProcessorTest {
         processor.process(testMigrationRecord);
 
         verify(migrationTrackerService,  atLeastOnce()).addNotifyItem(any(NotifyItem.class));
+    }
+
+    @Test
+    void shouldHandleTestItemWhenExtractionReturnsTestResult() throws Exception {
+        testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
+        testMigrationRecord.setArchiveName("test.mp4");
+
+        TestItem testItem = new TestItem(
+            testMigrationRecord,
+            "Test reason",
+            true,
+            180,
+            true,
+            "test keyword",
+            false
+        );
+
+        ServiceResult<?> testResult = ServiceResult.test(testItem);
+        doReturn(testResult).when(extractionService).process(testMigrationRecord);
+
+        MigratedItemGroup result = processor.process(testMigrationRecord);
+
+        assertNull(result);
+        verify(migrationTrackerService).addTestItem(testItem);
+        verify(migrationRecordService).updateToFailed(eq(testMigrationRecord.getArchiveId()), eq("Test"), anyString());
     }
 
     // =========================

@@ -1291,6 +1291,155 @@ public class MigrationRecordServiceTest {
     }
 
     @Test
+    @DisplayName("Should return original record from group when parentTempId is null but groupKey exists")
+    void getOrigFromCopyShouldReturnOriginalFromGroupWhenParentTempIdIsNull() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord orig1 = new MigrationRecord();
+        orig1.setId(UUID.randomUUID());
+        orig1.setRecordingVersion("ORIG");
+        orig1.setStatus(VfMigrationStatus.SUCCESS);
+        orig1.setRecordingId(UUID.randomUUID());
+        orig1.setIsPreferred(false);
+        orig1.setArchiveName("test1.raw");
+        orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
+        
+        MigrationRecord orig2 = new MigrationRecord();
+        orig2.setId(UUID.randomUUID());
+        orig2.setRecordingVersion("ORIG");
+        orig2.setStatus(VfMigrationStatus.SUCCESS);
+        orig2.setRecordingId(UUID.randomUUID());
+        orig2.setIsPreferred(true);
+        orig2.setArchiveName("test2.mp4");
+        orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
+        
+        List<MigrationRecord> groupRecords = List.of(orig1, orig2);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isPresent());
+        assertThat(result.get()).isEqualTo(orig2); 
+    }
+
+    @Test
+    @DisplayName("Should return original record with MP4 extension when no preferred flag")
+    void getOrigFromCopyShouldReturnMp4RecordWhenNoPreferredFlag() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord orig1 = new MigrationRecord();
+        orig1.setId(UUID.randomUUID());
+        orig1.setRecordingVersion("ORIG");
+        orig1.setStatus(VfMigrationStatus.SUCCESS);
+        orig1.setRecordingId(UUID.randomUUID());
+        orig1.setIsPreferred(false);
+        orig1.setArchiveName("test1.raw");
+        orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
+        
+        MigrationRecord orig2 = new MigrationRecord();
+        orig2.setId(UUID.randomUUID());
+        orig2.setRecordingVersion("ORIG");
+        orig2.setStatus(VfMigrationStatus.SUCCESS);
+        orig2.setRecordingId(UUID.randomUUID());
+        orig2.setIsPreferred(false);
+        orig2.setArchiveName("test2.mp4");
+        orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
+        
+        List<MigrationRecord> groupRecords = List.of(orig1, orig2);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isPresent());
+        assertThat(result.get()).isEqualTo(orig2); 
+    }
+
+    @Test
+    @DisplayName("Should return original record by creation time when no preferred flag and no MP4")
+    void getOrigFromCopyShouldReturnByCreationTimeWhenNoPreferredOrMp4() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord orig1 = new MigrationRecord();
+        orig1.setId(UUID.randomUUID());
+        orig1.setRecordingVersion("ORIG");
+        orig1.setStatus(VfMigrationStatus.SUCCESS);
+        orig1.setRecordingId(UUID.randomUUID());
+        orig1.setIsPreferred(false);
+        orig1.setArchiveName("test1.raw");
+        orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
+        
+        MigrationRecord orig2 = new MigrationRecord();
+        orig2.setId(UUID.randomUUID());
+        orig2.setRecordingVersion("ORIG");
+        orig2.setStatus(VfMigrationStatus.SUCCESS);
+        orig2.setRecordingId(UUID.randomUUID());
+        orig2.setIsPreferred(false);
+        orig2.setArchiveName("test2.raw");
+        orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
+        
+        List<MigrationRecord> groupRecords = List.of(orig1, orig2);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isPresent());
+        assertThat(result.get()).isEqualTo(orig1);
+    }
+
+    @Test
+    @DisplayName("Should return empty when no ORIG records found in group")
+    void getOrigFromCopyShouldReturnEmptyWhenNoOrigRecordsInGroup() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord copyRecord = new MigrationRecord();
+        copyRecord.setId(UUID.randomUUID());
+        copyRecord.setRecordingVersion("COPY");
+        copyRecord.setStatus(VfMigrationStatus.SUCCESS);
+        copyRecord.setRecordingId(UUID.randomUUID());
+        
+        List<MigrationRecord> groupRecords = List.of(copyRecord);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Should return empty when ORIG records have no recording ID")
+    void getOrigFromCopyShouldReturnEmptyWhenOrigRecordsHaveNoRecordingId() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord orig = new MigrationRecord();
+        orig.setId(UUID.randomUUID());
+        orig.setRecordingVersion("ORIG");
+        orig.setStatus(VfMigrationStatus.SUCCESS);
+        orig.setRecordingId(null);
+        
+        List<MigrationRecord> groupRecords = List.of(orig);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
     @DisplayName("Should return false in markNonMp4AsNotPreferred when groupKey is null")
     void markNonMp4AsNotPreferredShouldReturnFalseWhenGroupKeyNull() {
         testRecord.setRecordingGroupKey(null);
