@@ -153,6 +153,7 @@ class BookingServiceTest {
             null,
             null,
             null,
+            null,
             false,
             null
         ))
@@ -636,6 +637,7 @@ class BookingServiceTest {
             any(),
             any(),
             any(),
+            any(),
             anyBoolean(),
             any())).thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
@@ -656,6 +658,7 @@ class BookingServiceTest {
                 any(),
                 any(),
                 any(),
+                anyBoolean(),
                 any());
     }
 

@@ -674,6 +674,7 @@ class BookingServiceIT extends IntegrationTestBase {
                 null,
                 null,
                 null,
+                null,
                 null
             );
 
@@ -707,6 +708,7 @@ class BookingServiceIT extends IntegrationTestBase {
                 null,
                 null,
                 Optional.empty(),
+                null,
                 null,
                 null,
                 null,
@@ -772,6 +774,7 @@ class BookingServiceIT extends IntegrationTestBase {
                 null,
                 null,
                 null,
+                null,
                 null
             );
 
@@ -808,6 +811,7 @@ class BookingServiceIT extends IntegrationTestBase {
                 null,
                 null,
                 Optional.empty(),
+                null,
                 null,
                 null,
                 null,
