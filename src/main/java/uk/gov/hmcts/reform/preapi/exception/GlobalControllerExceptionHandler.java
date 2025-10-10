@@ -96,7 +96,29 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> onHttpMessageNotReadableException(final HttpMessageNotReadableException e)
         throws JsonProcessingException {
 
-        return getResponseEntity(e.getMessage(), getStatus(e));
+        String message = e.getMessage();
+
+        // Try to extract a more meaningful error message from the cause
+        Throwable cause = e.getCause();
+        if (cause != null) {
+            String causeMessage = cause.getMessage();
+            if (causeMessage != null && !causeMessage.isEmpty()) {
+                // For Jackson deserialization errors, extract the meaningful part
+                if (causeMessage.contains("Cannot deserialize") ||
+                    causeMessage.contains("Cannot construct") ||
+                    causeMessage.contains("Unrecognized field") ||
+                    causeMessage.contains("Missing required") ||
+                    causeMessage.contains("Invalid value")) {
+                    message = causeMessage;
+                } else if (cause.getCause() != null && cause.getCause().getMessage() != null) {
+                    // Sometimes the real error is nested deeper
+                    message = cause.getCause().getMessage();
+                }
+            }
+        }
+
+        log.error("HttpMessageNotReadableException: {}", message);
+        return getResponseEntity(message, getStatus(e));
     }
 
     @ExceptionHandler(ImmutableDataException.class)
