@@ -635,6 +635,7 @@ class BookingServiceTest {
             any(),
             any(),
             any(),
+            any(),
             any()
         ))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
@@ -654,6 +655,7 @@ class BookingServiceTest {
                 any(),
                 eq(Timestamp.valueOf(currentDate.atStartOfDay())),
                 eq(Timestamp.valueOf(currentDate.atTime(23, 59, 59))),
+                any(),
                 any(),
                 any(),
                 any(),
