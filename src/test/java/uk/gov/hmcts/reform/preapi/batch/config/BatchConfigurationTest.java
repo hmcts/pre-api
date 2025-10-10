@@ -2,16 +2,22 @@ package uk.gov.hmcts.reform.preapi.batch.config;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.core.io.Resource;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.core.step.tasklet.TaskletStep;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.ArchiveMetadataXmlExtractor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PreProcessor;
@@ -30,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class BatchConfigurationTest {
 
     private BatchConfiguration batchConfiguration;
@@ -170,14 +177,6 @@ class BatchConfigurationTest {
 
     @Test
     void fileAvailabilityDeciderShouldReturnCompletedWhenAllFilesExist() {
-        Resource mockSites = mock(Resource.class);
-        Resource mockChannelReport = mock(Resource.class);
-        Resource mockArchiveList = mock(Resource.class);
-        
-        when(mockSites.exists()).thenReturn(true);
-        when(mockChannelReport.exists()).thenReturn(true);
-        when(mockArchiveList.exists()).thenReturn(true);
-
         JobExecutionDecider decider = batchConfiguration.fileAvailabilityDecider();
         
         assertThat(decider).isNotNull();
@@ -312,14 +311,43 @@ class BatchConfigurationTest {
     @Test
     void batchConfigurationShouldImplementStepExecutionListenerMethods() {
         assertThat(batchConfiguration).isInstanceOf(StepExecutionListener.class);
-        
         StepExecution stepExecution = mock(StepExecution.class);
-        when(stepExecution.getStepName()).thenReturn("testStep");
-        when(stepExecution.getExitStatus()).thenReturn(ExitStatus.COMPLETED);
-        
+
         assertThatCode(() -> batchConfiguration.beforeStep(stepExecution)).doesNotThrowAnyException();
         
         ExitStatus result = batchConfiguration.afterStep(stepExecution);
         assertThatCode(() -> batchConfiguration.afterStep(stepExecution)).doesNotThrowAnyException();
     }
+
+    // New tests to execute tasklets and verify interactions
+    @Test
+    void createPreProcessMetadataStep_executesAndLogsWhenNoPendingRecords() throws Exception {
+        when(migrationRecordService.getPendingMigrationRecords()).thenReturn(java.util.List.of());
+
+        Step step = batchConfiguration.createPreProcessMetadataStep();
+        Tasklet tasklet = extractTasklet(step);
+
+        RepeatStatus status = tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        org.mockito.Mockito.verify(loggingService).logInfo("No pending migration records to pre-process.");
+    }
+
+    @Test
+    void createWriteToCSVStep_executesAndWritesReports() throws Exception {
+        Step step = batchConfiguration.createWriteToCSVStep();
+        Tasklet tasklet = extractTasklet(step);
+
+        tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+        org.mockito.Mockito.verify(migrationTrackerService).startNewReportRun();
+        org.mockito.Mockito.verify(migrationTrackerService).writeAllToCsv();
+    }
+
+    private Tasklet extractTasklet(Step step) throws Exception {
+        java.lang.reflect.Field field = TaskletStep.class.getDeclaredField("tasklet");
+        field.setAccessible(true);
+        return (Tasklet) field.get(step);
+    }
+
 }
