@@ -19,6 +19,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -367,30 +368,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).createStreamingLocator(any(), any());
     }
 
-    @Test
-    @DisplayName("Should return the capture session when successfully started the live event (feature flag off)")
-    void startLiveEventLiveEventConflictSuccessNoStreamingLocatorCreated() {
-        mediaKind.enableStreamingLocatorOnStart = false;
-
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var mockLiveEvent = mock(MkLiveEvent.class);
-
-        when(mockClient.putLiveEvent(any(), any()))
-            .thenThrow(mock(ConflictException.class));
-        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
-
-        mediaKind.startLiveEvent(captureSession);
-
-        verify(mockClient, times(1)).putLiveEvent(any(), any());
-        verify(mockClient, times(1)).getLiveEvent(any());
-        verify(mockClient, times(1)).putAsset(any(), any());
-        verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
-        verify(mockClient, times(1)).startLiveEvent(any());
-        verify(mockClient, never()).createStreamingLocator(any(), any());
-
-        mediaKind.enableStreamingLocatorOnStart = true;
-    }
-
     @DisplayName("Should throw not found error when live event cannot be found after creation")
     @Test
     void startLiveEventNotFoundAfterCreate() {
@@ -519,6 +496,8 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
         verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
+        verify(azureIngestStorageService, times(1))
+            .markContainerAsSafeToDelete(captureSession.getBookingId().toString());
         verify(mockClient, never()).putAsset(any(), any());
     }
 
@@ -569,6 +548,11 @@ public class MediaKindTest {
         verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
         assertThat(jobArgument3.getValue()).startsWith(tempName);
         assertThat(jobArgument4.getValue()).startsWith(tempName);
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(captureSession.getBookingId().toString());
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(recordingId.toString());
+        verify(azureIngestStorageService, times(1))
+            .markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+        verify(azureIngestStorageService, times(1)).markContainerAsSafeToDelete(recordingId.toString());
     }
 
     @Test
@@ -1568,5 +1552,67 @@ public class MediaKindTest {
 
         var status = mediaKind.hasJobCompleted("transform1", "job1");
         assertThat(status).isEqualTo(RecordingStatus.PROCESSING);
+    }
+
+    @Test
+    @DisplayName("Should return true when asset is created in MediaKind when importing final asset")
+    void importAssetFinalAssetSuccess() {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+
+        boolean result = mediaKind.importAsset(recording, true);
+
+        assertThat(result).isTrue();
+
+        ArgumentCaptor<String> assetNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<MkAsset> mkAssetCaptor = ArgumentCaptor.forClass(MkAsset.class);
+        verify(mediaKindClient, times(1)).putAsset(assetNameCaptor.capture(), mkAssetCaptor.capture());
+
+        assertThat(assetNameCaptor.getValue())
+            .isEqualTo(recording.getId().toString().replace("-", "") + "_output");
+        assertThat(mkAssetCaptor.getValue().getProperties().getContainer())
+            .isEqualTo(recording.getId().toString());
+    }
+
+    @Test
+    @DisplayName("Should return true when asset is created in MediaKind when importing ingest asset")
+    void importAssetIngestAssetSuccess() {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+
+        boolean result = mediaKind.importAsset(recording, false);
+
+        assertThat(result).isTrue();
+
+        ArgumentCaptor<String> assetNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<MkAsset> mkAssetCaptor = ArgumentCaptor.forClass(MkAsset.class);
+        verify(mediaKindClient, times(1)).putAsset(assetNameCaptor.capture(), mkAssetCaptor.capture());
+
+        assertThat(assetNameCaptor.getValue())
+            .isEqualTo(recording.getId().toString().replace("-", "") + "_temp");
+        assertThat(mkAssetCaptor.getValue().getProperties().getContainer())
+            .isEqualTo(recording.getId().toString() + "-input");
+    }
+
+    @Test
+    @DisplayName("Should return false when asset fails to be created in MediaKind when importing final asset")
+    void importAssetFinalAssetFailure() {
+        RecordingDTO recording = new RecordingDTO();
+        recording.setId(UUID.randomUUID());
+
+        doThrow(ConflictException.class).when(mockClient).putAsset(any(), any());
+
+        boolean result = mediaKind.importAsset(recording, true);
+
+        assertThat(result).isFalse();
+
+        ArgumentCaptor<String> assetNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<MkAsset> mkAssetCaptor = ArgumentCaptor.forClass(MkAsset.class);
+        verify(mediaKindClient, times(1)).putAsset(assetNameCaptor.capture(), mkAssetCaptor.capture());
+
+        assertThat(assetNameCaptor.getValue())
+            .isEqualTo(recording.getId().toString().replace("-", "") + "_output");
+        assertThat(mkAssetCaptor.getValue().getProperties().getContainer())
+            .isEqualTo(recording.getId().toString());
     }
 }

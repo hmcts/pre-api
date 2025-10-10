@@ -114,11 +114,8 @@ class RecordingServiceTest {
     @DisplayName("Find a recording by it's id and return a model")
     @Test
     void findRecordingByIdSuccess() {
-        when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            )
-        ).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId()))
+            .thenReturn(Optional.of(recordingEntity));
 
         var model = recordingService.findById(recordingEntity.getId());
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
@@ -128,21 +125,14 @@ class RecordingServiceTest {
     @DisplayName("Find a recording by it's id which is missing")
     @Test
     void findRecordingByIdMissing() {
-        when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            )
-        ).thenReturn(Optional.empty());
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId())).thenReturn(Optional.empty());
 
         assertThrows(
             NotFoundException.class,
             () -> recordingService.findById(recordingEntity.getId())
         );
 
-        verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            );
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(recordingEntity.getId());
     }
 
     @DisplayName("Find a list of recordings and return a list of models")
@@ -150,7 +140,7 @@ class RecordingServiceTest {
     void findAllRecordingsSuccess() {
         var params = new SearchRecordings();
         when(
-            recordingRepository.searchAllBy(eq(params), eq(false), any())
+            recordingRepository.searchAllBy(eq(params), eq(false), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -170,7 +160,7 @@ class RecordingServiceTest {
         params.setStartedAtUntil(Timestamp.valueOf("2023-01-01 23:59:59"));
 
         when(
-            recordingRepository.searchAllBy(params, false, null)
+            recordingRepository.searchAllBy(params, false, false, null)
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -373,7 +363,7 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
         var params = new SearchRecordings();
-        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false, null)).thenReturn(Page.empty());
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
@@ -382,7 +372,7 @@ class RecordingServiceTest {
         var models = recordingService.findAll(params, false, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(params, false, null);
+            .searchAllBy(params, false, false,null);
 
         assertThat(models.size()).isEqualTo(0);
     }
@@ -390,18 +380,13 @@ class RecordingServiceTest {
     @DisplayName("Delete a recording by it's id")
     @Test
     void deleteRecordingSuccess() {
-        when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            )
-        ).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId()))
+            .thenReturn(Optional.of(recordingEntity));
 
         recordingService.deleteById(recordingEntity.getId());
 
         verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            );
+            .findByIdAndDeletedAtIsNull(recordingEntity.getId());
 
         verify(recordingRepository, times(1)).saveAndFlush(recordingEntity);
     }
@@ -409,45 +394,15 @@ class RecordingServiceTest {
     @DisplayName("Delete a recording by it's id when recording doesn't exist")
     @Test
     void deleteRecordingNotFound() {
-        when(
-            recordingRepository
-                .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                    recordingEntity.getId()
-                )
-        ).thenReturn(Optional.empty());
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId()))
+            .thenReturn(Optional.empty());
 
         assertThrows(
             NotFoundException.class,
             () -> recordingService.deleteById(recordingEntity.getId())
         );
 
-        verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            );
-        verify(recordingRepository, never()).deleteById(recordingEntity.getId());
-    }
-
-    @DisplayName("Delete a recording by it's id when recording has already been deleted")
-    @Test
-    void deleteRecordingAlreadyDeleted() {
-        Timestamp now = Timestamp.from(Instant.now());
-        recordingEntity.setDeletedAt(now);
-        when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            )
-        ).thenReturn(Optional.of(recordingEntity));
-
-        assertThrows(
-            NotFoundException.class,
-            () -> recordingService.deleteById(recordingEntity.getId())
-        );
-
-        verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            );
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(recordingEntity.getId());
         verify(recordingRepository, never()).deleteById(recordingEntity.getId());
     }
 
@@ -486,13 +441,12 @@ class RecordingServiceTest {
         var params = new SearchRecordings();
         var startedAt = new Date();
         params.setStartedAt(startedAt);
-        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false,null)).thenReturn(Page.empty());
 
         recordingService.findAll(params, false, null);
 
         assertThat(params.getStartedAtFrom()).isNotNull();
         assertThat(params.getStartedAtFrom().toInstant()).isEqualTo(startedAt.toInstant());
-
         assertThat(params.getStartedAtUntil()).isNotNull();
         assertThat(params.getStartedAtUntil().toInstant())
             .isEqualTo(startedAt.toInstant().plus(86399, ChronoUnit.SECONDS));
@@ -506,12 +460,11 @@ class RecordingServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var params = new SearchRecordings();
-        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false, null)).thenReturn(Page.empty());
 
         recordingService.findAll(params, false, null);
 
         assertThat(params.getStartedAtFrom()).isNull();
-
         assertThat(params.getStartedAtUntil()).isNull();
     }
 
@@ -747,5 +700,18 @@ class RecordingServiceTest {
 
         assertThrows(NotFoundException.class, () -> recordingService.forceUpsert(recordingModel));
         verify(recordingRepository, never()).save(any(Recording.class));
+    }
+
+    @Test
+    @DisplayName("Find all Vodafone recordings with null duration")
+    void findAllVodafoneRecordingsSuccess() {
+        when(recordingRepository.findAllOriginVodafoneNoDuration())
+            .thenReturn(List.of(recordingEntity));
+
+        List<RecordingDTO> results = recordingService.findAllVodafoneRecordings();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().getId()).isEqualTo(recordingEntity.getId());
+        verify(recordingRepository, times(1)).findAllOriginVodafoneNoDuration();
     }
 }

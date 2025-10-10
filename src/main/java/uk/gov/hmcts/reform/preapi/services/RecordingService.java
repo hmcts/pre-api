@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -44,30 +47,37 @@ public class RecordingService {
     private final CaptureSessionService captureSessionService;
     private final AzureFinalStorageService azureFinalStorageService;
 
+    @Setter
+    private boolean enableMigratedData;
+
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository,
                             @Lazy CaptureSessionService captureSessionService,
-                            AzureFinalStorageService azureFinalStorageService) {
+                            AzureFinalStorageService azureFinalStorageService,
+                            @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public RecordingDTO findById(UUID recordingId) {
-        return recordingRepository
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingId
-            )
+        return recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
             .map(RecordingDTO::new)
             .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
     }
 
     @Transactional
-    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
+    @PreAuthorize(
+        """
+        (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
+        and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
+        """
+    )
     public Page<RecordingDTO> findAll(
         SearchRecordings params,
         boolean includeDeleted,
@@ -95,7 +105,12 @@ public class RecordingService {
         );
 
         return recordingRepository
-            .searchAllBy(params, includeDeleted, pageable)
+            .searchAllBy(
+                params,
+                includeDeleted,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
+                pageable
+            )
             .map(RecordingDTO::new);
     }
 
@@ -107,12 +122,10 @@ public class RecordingService {
         recordingEntity.setId(createRecordingDTO.getId());
         recordingEntity.setCaptureSession(captureSession);
         if (createRecordingDTO.getParentRecordingId() != null) {
-            Optional<Recording> parentRecording = recordingRepository
-                .findById(createRecordingDTO.getParentRecordingId());
-            if (parentRecording.isEmpty()) {
-                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
-            }
-            recordingEntity.setParentRecording(parentRecording.get());
+            Recording parentRecording = recordingRepository
+                .findById(createRecordingDTO.getParentRecordingId())
+                .orElseThrow(() -> new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId()));
+            recordingEntity.setParentRecording(parentRecording);
         } else {
             recordingEntity.setParentRecording(null);
         }
@@ -167,20 +180,12 @@ public class RecordingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public void deleteById(UUID recordingId) {
-        var recording = recordingRepository
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingId
-            );
+        var recording = recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
+            .orElseThrow(() -> new NotFoundException("Recording: " + recordingId));
+        recording.setDeleteOperation(true);
+        recording.setDeletedAt(Timestamp.from(Instant.now()));
 
-        if (recording.isEmpty() || recording.get().isDeleted()) {
-            throw new NotFoundException("Recording: " + recordingId);
-        }
-
-        var recordingEntity = recording.get();
-        recordingEntity.setDeleteOperation(true);
-        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
-
-        recordingRepository.saveAndFlush(recordingEntity);
+        recordingRepository.saveAndFlush(recording);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -230,6 +235,10 @@ public class RecordingService {
         if (filenameChanged || durationChanged) {
             recordingRepository.saveAndFlush(recording);
         }
+
+        if (recording.getParentRecording() != null) {
+            syncRecordingMetadataWithStorage(recording.getParentRecording().getId());
+        }
     }
 
     @Transactional
@@ -239,4 +248,14 @@ public class RecordingService {
             .map(RecordingDTO::new)
             .toList();
     }
+
+
+    @Transactional
+    public List<RecordingDTO> findAllVodafoneRecordings() {
+        // return recordingRepository.findAllOriginVodafone().stream()
+        return recordingRepository.findAllOriginVodafoneNoDuration().stream()
+            .map(RecordingDTO::new)
+            .collect(Collectors.toList());
+    }
+
 }

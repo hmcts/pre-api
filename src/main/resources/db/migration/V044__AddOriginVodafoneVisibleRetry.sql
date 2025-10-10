@@ -1,0 +1,1 @@
+ALTER TYPE public.recording_origin ADD VALUE IF NOT EXISTS 'VODAFONE_VISIBLE';
