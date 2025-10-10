@@ -84,52 +84,44 @@ class ResolvedJobConfigTest {
 
     @Test
     void shouldCreateResolvedMigrationRecordReaderWithRecords() {
-        // Given
         List<MigrationRecord> resolvedRecords = List.of(
             new MigrationRecord(),
             new MigrationRecord()
         );
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.SUBMITTED)).thenReturn(resolvedRecords);
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.SUBMITTED))
+            .thenReturn(resolvedRecords);
 
-        // When
         ListItemReader<MigrationRecord> reader = resolvedJobConfig.resolvedMigrationRecordReader(
             migrationRecordRepository, loggingService
         );
 
-        // Then
         assertThat(reader).isNotNull();
-        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.SUBMITTED);
+        verify(migrationRecordRepository).findAllByStatusOrderedByVersion(VfMigrationStatus.SUBMITTED);
         verify(loggingService).logInfo("Found %d resolved migration records.", 2);
     }
 
     @Test
     void shouldCreateResolvedMigrationRecordReaderWithEmptyList() {
-        // Given
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.SUBMITTED))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.SUBMITTED))
             .thenReturn(Collections.emptyList());
 
-        // When
         ListItemReader<MigrationRecord> reader = resolvedJobConfig.resolvedMigrationRecordReader(
             migrationRecordRepository, loggingService
         );
 
-        // Then
         assertThat(reader).isNotNull();
-        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.SUBMITTED);
+        verify(migrationRecordRepository).findAllByStatusOrderedByVersion(VfMigrationStatus.SUBMITTED);
         verify(loggingService).logInfo("No resolved migration records found.");
     }
 
     @Test
     void shouldCreateResolvedMigrationRecordStepWithDryRunEnabled() {
-        // Given
         ListItemReader<MigrationRecord> reader = new ListItemReader<>(Collections.emptyList());
         when(coreSteps.getDryRunFlag()).thenReturn(true);
         when(coreSteps.noOpWriter()).thenReturn(noOpObjectWriter);
 
-        // When
         Step step = resolvedJobConfig.resolvedMigrationRecordStep(reader, processor, writer);
 
-        // Then
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo("resolvedMigrationRecordStep");
         verify(coreSteps).getDryRunFlag();
@@ -138,14 +130,11 @@ class ResolvedJobConfigTest {
 
     @Test
     void shouldCreateResolvedMigrationRecordStepWithDryRunDisabled() {
-        // Given
         ListItemReader<MigrationRecord> reader = new ListItemReader<>(Collections.emptyList());
         when(coreSteps.getDryRunFlag()).thenReturn(false);
 
-        // When
         Step step = resolvedJobConfig.resolvedMigrationRecordStep(reader, processor, writer);
 
-        // Then
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo("resolvedMigrationRecordStep");
         verify(coreSteps).getDryRunFlag();
@@ -153,13 +142,11 @@ class ResolvedJobConfigTest {
 
     @Test
     void shouldCreateResolvedMigrationRecordJob() {
-        // Given
         Step resolvedMigrationRecordStep = resolvedJobConfig.resolvedMigrationRecordStep(
             new ListItemReader<>(Collections.emptyList()), processor, writer
         );
         when(coreSteps.startLogging()).thenReturn(startLoggingStep);
 
-        // When
         Job job = resolvedJobConfig.resolvedMigrationRecordJob(
             createSitesDataStep,
             createChannelUserStep,
@@ -169,7 +156,6 @@ class ResolvedJobConfigTest {
             createWriteToCSVStep
         );
 
-        // Then
         assertThat(job).isNotNull();
         assertThat(job.getName()).isEqualTo("resolvedMigrationRecordJob");
         verify(coreSteps).startLogging();
@@ -177,13 +163,11 @@ class ResolvedJobConfigTest {
 
     @Test
     void shouldHaveCorrectJobFlow() {
-        // Given
         Step resolvedMigrationRecordStep = resolvedJobConfig.resolvedMigrationRecordStep(
             new ListItemReader<>(Collections.emptyList()), processor, writer
         );
         when(coreSteps.startLogging()).thenReturn(startLoggingStep);
 
-        // When
         Job job = resolvedJobConfig.resolvedMigrationRecordJob(
             createSitesDataStep,
             createChannelUserStep,
@@ -193,9 +177,7 @@ class ResolvedJobConfigTest {
             createWriteToCSVStep
         );
 
-        // Then
         assertThat(job).isNotNull();
-        // Verify the job has an incrementer
         assertThat(job.getJobParametersIncrementer()).isNotNull();
     }
 }
