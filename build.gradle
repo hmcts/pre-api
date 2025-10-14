@@ -10,7 +10,7 @@ plugins {
   id 'pmd'
   id 'jacoco'
   id 'io.spring.dependency-management' version '1.1.7'
-  id 'org.springframework.boot' version '3.5.5'
+  id 'org.springframework.boot' version '3.5.6'
   id 'org.owasp.dependencycheck' version '12.1.6'
   id 'com.github.ben-manes.versions' version '0.53.0'
   id 'org.sonarqube' version '6.3.1.5724'
@@ -326,7 +326,7 @@ dependencies {
 
 
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.30.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.31.Final')
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.10:all'
