@@ -921,9 +921,6 @@ public class MediaKindTest {
         when(mockClient.getStreamingLocator(any()))
             .thenThrow(mock(NotFoundException.class));
 
-        when(mockClient.listStreamingLocatorPaths(liveEventName))
-            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
-
         var result = mediaKind.playLiveEvent(captureSession.getId());
 
         assertThat(result).isEqualTo(
@@ -956,9 +953,6 @@ public class MediaKindTest {
 
         when(mockClient.getStreamingLocator(any()))
             .thenReturn(MkStreamingLocator.builder().build());
-
-        when(mockClient.listStreamingLocatorPaths(liveEventName))
-            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
 
         var result = mediaKind.playLiveEvent(captureSession.getId());
 
@@ -994,9 +988,6 @@ public class MediaKindTest {
 
         when(mockClient.getStreamingLocator(any()))
             .thenThrow(mock(ConflictException.class));
-
-        when(mockClient.listStreamingLocatorPaths(liveEventName))
-            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
 
         assertThrows(
             ConflictException.class,
