@@ -710,5 +710,35 @@ public class WriterTest {
         assertThat(only.getLastName()).isEqualTo("Doe");
     }
 
+    @Test
+    void writeItemGroupCaseUpsertExceptionInProcessCaseDataOrThrow() {
+        var courtId = UUID.randomUUID();
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setId(UUID.randomUUID());
+        createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf()) 
+            .thenReturn(pageOf()); 
+
+        when(caseService.upsert(any(CreateCaseDTO.class)))
+            .thenThrow(new RuntimeException("Database error"));
+
+        MigratedItemGroup itemGroup = MigratedItemGroup.builder()
+            .acase(createCaseDTO)
+            .build();
+
+        writer.write(Chunk.of(itemGroup));
+
+        verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
+        verify(loggingService, times(1))
+            .logError(eq("Create case failed (safe path). ref=%s court=%s | %s"), 
+                eq("REFERENCE"), eq(courtId), eq("Database error"));
+        verify(loggingService, times(1))
+            .logError(eq("Failed to process migrated item: %s | %s"), 
+                eq("REFERENCE"), eq("Database error"));
+    }
+
     
 }
