@@ -219,6 +219,7 @@ module "pre-api-b2c-mgmt-api-policy" {
       <openid-config url="https://login.microsoftonline.com/${var.tenant_id}/v2.0/.well-known/openid-configuration" />
       <audiences>
         <audience>api://${var.pre_apim_b2c_client_id}</audience>
+        <audience>${var.pre_apim_b2c_client_id}</audience>
       </audiences>
       <issuers>
         <issuer>https://login.microsoftonline.com/${var.tenant_id}/v2.0</issuer>
