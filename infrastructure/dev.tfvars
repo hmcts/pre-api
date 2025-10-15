@@ -1,1 +1,1 @@
-b2c_pre_portal_sso_app_client_id = "c8deb898-d595-4fb2-8ba5-52fffa8db064"
+pre_apim_b2c_client_id = "b79aae69-ed5f-4b1b-aa59-9fbd950639b4"
