@@ -146,12 +146,24 @@ public class PostMigrationItemExecutor {
 
     private String resolveEmailForShare(PostMigratedItemGroup item, CreateShareBookingDTO share) {
         if (item.getInvites() != null) {
-            return item.getInvites().stream()
+            String email = item.getInvites().stream()
                 .filter(invite -> invite.getUserId() != null
                     && invite.getUserId().equals(share.getSharedWithUser()))
                 .map(CreateInviteDTO::getEmail)
                 .findFirst()
                 .orElse("");
+            if (!email.isEmpty()) {
+                return email;
+            }
+        }
+        
+        if (share.getSharedWithUser() != null) {
+            try {
+                return userService.findById(share.getSharedWithUser()).getEmail();
+            } catch (Exception e) {
+                loggingService.logWarning(
+                    "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
+            }
         }
         return "";
     }
