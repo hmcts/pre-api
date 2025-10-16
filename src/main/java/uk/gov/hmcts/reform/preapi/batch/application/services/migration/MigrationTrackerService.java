@@ -24,8 +24,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.DATE_TIME_FORMAT;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.CREATE_TIME;
@@ -79,7 +81,7 @@ public class MigrationTrackerService {
     protected final List<PassItem> migratedItems = new ArrayList<>();
     protected final List<TestItem> testFailures = new ArrayList<>();
     protected final List<NotifyItem> notifyItems = new ArrayList<>();
-    protected final List<CreateInviteDTO> invitedUsers = new ArrayList<>();
+    protected final Set<CreateInviteDTO> invitedUsers = new LinkedHashSet<>();
     protected final List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
     protected final List<ShareBookingReportEntry> shareBookingReportEntries = new ArrayList<>();
     protected final List<CaseClosureReportEntry> caseClosureEntries = new ArrayList<>();
