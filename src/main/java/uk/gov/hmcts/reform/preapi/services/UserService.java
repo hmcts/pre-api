@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
@@ -274,5 +275,11 @@ public class UserService {
             .map(type -> termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(type)
                 .orElse(null))
             .collect(Collectors.toSet());
+    }
+
+    @Transactional(readOnly = true)
+    public Role getRoleById(UUID roleId) {
+        return roleRepository.findById(roleId)
+            .orElseThrow(() -> new NotFoundException("Role: " + roleId));
     }
 }
