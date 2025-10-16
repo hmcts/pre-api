@@ -104,11 +104,11 @@ public class GlobalControllerExceptionHandler {
             String causeMessage = cause.getMessage();
             if (causeMessage != null && !causeMessage.isEmpty()) {
                 // For Jackson deserialization errors, extract the meaningful part
-                if (causeMessage.contains("Cannot deserialize") ||
-                    causeMessage.contains("Cannot construct") ||
-                    causeMessage.contains("Unrecognized field") ||
-                    causeMessage.contains("Missing required") ||
-                    causeMessage.contains("Invalid value")) {
+                if (causeMessage.contains("Cannot deserialize")
+                    || causeMessage.contains("Cannot construct")
+                    || causeMessage.contains("Unrecognized field")
+                    || causeMessage.contains("Missing required")
+                    || causeMessage.contains("Invalid value")) {
                     message = causeMessage;
                 } else if (cause.getCause() != null && cause.getCause().getMessage() != null) {
                     // Sometimes the real error is nested deeper

@@ -168,7 +168,7 @@ public class UserController extends PreApiController {
 
         // Prevent ROLE_LEVEL_1 users from uplifting to ROLE_SUPER_USER
         var auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        if (auth.hasRole("ROLE_LEVEL_1") && !auth.hasRole("ROLE_SUPER_USER")) {
+        if (auth != null && auth.hasRole("ROLE_LEVEL_1") && !auth.hasRole("ROLE_SUPER_USER")) {
             boolean hasSuperUserRole = createUserDTO.getAppAccess()
                 .stream()
                 .map(CreateAppAccessDTO::getRoleId)
