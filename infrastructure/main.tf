@@ -218,7 +218,8 @@ module "pre-api-b2c-mgmt-api-policy" {
     <validate-jwt header-name="Authorization" require-scheme="Bearer" failed-validation-httpcode="401">
       <openid-config url="https://login.microsoftonline.com/${var.tenant_id}/v2.0/.well-known/openid-configuration" />
       <audiences>
-        <audience>api://${var.b2c_pre_portal_sso_app_client_id}</audience>
+        <audience>api://${var.pre_apim_b2c_client_id}</audience>
+        <audience>${var.pre_apim_b2c_client_id}</audience>
       </audiences>
       <issuers>
         <issuer>https://login.microsoftonline.com/${var.tenant_id}/v2.0</issuer>
