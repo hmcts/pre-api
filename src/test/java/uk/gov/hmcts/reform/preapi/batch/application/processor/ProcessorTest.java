@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -76,6 +77,9 @@ class ProcessorTest {
 
     @MockitoBean
     private MigrationRecordService migrationRecordService;
+
+    @MockitoBean
+    private MigrationRecordRepository migrationRecordRepository;
 
     @MockitoBean
     private LoggingService loggingService;
@@ -138,6 +142,17 @@ class ProcessorTest {
 
         assertNull(result);
         verify(loggingService).logError("Processor - Unsupported item type: %s", "java.lang.String");
+    }
+
+    @Test
+    void shouldHandleExceptionInProcess() throws Exception {
+        MigrationRecord mockRecord = mock(MigrationRecord.class);
+        when(mockRecord.getArchiveId()).thenThrow(new RuntimeException("Test exception"));
+
+        MigratedItemGroup result = processor.process(mockRecord);
+
+        assertNull(result);
+        verify(loggingService).logError(eq("Processor - Error: %s"), eq("Test exception"), any(Exception.class));
     }
 
 

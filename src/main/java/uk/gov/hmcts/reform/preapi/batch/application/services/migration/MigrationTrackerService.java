@@ -24,8 +24,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.DATE_TIME_FORMAT;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.CREATE_TIME;
@@ -60,7 +62,17 @@ public class MigrationTrackerService {
         "Extracted_witness", "Duration", "Date / Time migrated");
 
     protected static final List<String> SHARE_BOOKINGS_HEADERS = List.of(
-        "Booking ID", "User ID", "User Email", "Date / Time"
+        "Share ID", "Booking ID", "Shared With User ID", "Shared With Email",
+        "Shared By User ID", "Shared By Email", "Date / Time"
+    );
+
+    protected static final List<String> CASE_CLOSURE_HEADERS = List.of(
+        "Case Reference", "Case ID", "Outcome", "Recordings Found",
+        "Recordings Deleted", "Failure Reason"
+    );
+
+    protected static final List<String> SHARE_INVITE_FAILURE_HEADERS = List.of(
+        "Entity Type", "Identifier", "Email", "Action", "Reason", "Date / Time"
     );
     
     protected static final String OUTPUT_DIR = "Migration Reports";
@@ -69,10 +81,17 @@ public class MigrationTrackerService {
     protected final List<PassItem> migratedItems = new ArrayList<>();
     protected final List<TestItem> testFailures = new ArrayList<>();
     protected final List<NotifyItem> notifyItems = new ArrayList<>();
-    protected final List<CreateInviteDTO> invitedUsers = new ArrayList<>();
+    protected final Set<CreateInviteDTO> invitedUsers = new LinkedHashSet<>();
     protected final List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
+    protected final List<ShareBookingReportEntry> shareBookingReportEntries = new ArrayList<>();
+    protected final List<CaseClosureReportEntry> caseClosureEntries = new ArrayList<>();
+    protected final List<ShareInviteFailureEntry> shareInviteFailures = new ArrayList<>();
 
     private final LoggingService loggingService;
+
+    private String currentRunTimestamp;
+    private String currentOutputDir;
+    private String currentFailureDir;
 
     public MigrationTrackerService(
         final LoggingService loggingService, final AzureVodafoneStorageService azureVodafoneStorageService) {
@@ -113,6 +132,25 @@ public class MigrationTrackerService {
 
     public void addShareBooking(CreateShareBookingDTO row) {
         shareBookings.add(row);
+    }
+
+    public void addShareBookingReport(CreateShareBookingDTO row, String sharedWithEmail, String sharedByEmail) {
+        shareBookingReportEntries.add(new ShareBookingReportEntry(
+            row.getId() != null ? row.getId().toString() : "",
+            row.getBookingId() != null ? row.getBookingId().toString() : "",
+            row.getSharedWithUser() != null ? row.getSharedWithUser().toString() : "",
+            sharedWithEmail,
+            row.getSharedByUser() != null ? row.getSharedByUser().toString() : "",
+            sharedByEmail
+        ));
+    }
+
+    public void addCaseClosureEntry(CaseClosureReportEntry entry) {
+        caseClosureEntries.add(entry);
+    }
+
+    public void addShareInviteFailure(ShareInviteFailureEntry entry) {
+        shareInviteFailures.add(entry);
     }
 
     public File writeMigratedItemsToCsv(String fileName, String outputDir) {
@@ -194,13 +232,16 @@ public class MigrationTrackerService {
      * Writes both migrated and failed items to CSV files and logs the total counts,
      * and generates all reports at once.
      */
-    public void writeAllToCsv() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
-        new File(outputDir).mkdirs();
+    public void startNewReportRun() {
+        currentRunTimestamp = null;
+        currentOutputDir = null;
+        currentFailureDir = null;
+    }
 
-        String failureDir = Paths.get(outputDir, "Failure Reports").toString();
-        new File(failureDir).mkdirs();
+    public void writeAllToCsv() {
+        String timestamp = ensureRunTimestamp();
+        String outputDir = ensureOutputDir();
+        String failureDir = ensureFailureDir();
 
         File migratedFile = writeMigratedItemsToCsv("Migrated", outputDir);
         if (migratedFile != null && migratedFile.exists()) {
@@ -237,6 +278,21 @@ public class MigrationTrackerService {
             azureVodafoneStorageService.uploadCsvFile(reportContainer, timestamp + "/Notify.csv", notifyFile);
         }
 
+        File caseClosureFile = writeCaseClosureReport("Case_closure", outputDir);
+        if (caseClosureFile != null && caseClosureFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(reportContainer, timestamp 
+                + "/Case_closure.csv", caseClosureFile);
+        }
+
+        File shareInviteFailureFile = writeShareInviteFailureReport("Share_invite_failures", outputDir);
+        if (shareInviteFailureFile != null && shareInviteFailureFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(
+                reportContainer,
+                timestamp + "/Share_invite_failures.csv",
+                shareInviteFailureFile
+            );
+        }
+
         loggingService.setTotalMigrated(migratedItems.size());
         loggingService.setTotalFailed(categorizedFailures, testFailures);
 
@@ -247,19 +303,61 @@ public class MigrationTrackerService {
     }
 
     public void writeNewUserReport() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
-        new File(outputDir).mkdirs();
-
+        String outputDir = ensureOutputDir();
         writeInvitedUsersToCsv("Invited_users", outputDir);
     }
 
     public void writeShareBookingsReport() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-        String outputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
-        new File(outputDir).mkdirs();
+        String outputDir = ensureOutputDir();
         writeShareBookingsToCsv("Share_bookings", outputDir);
     }
+
+    public void writeCaseClosureReport() {
+        String outputDir = ensureOutputDir();
+        writeCaseClosureReport("Case_closure", outputDir);
+    }
+
+    public File writeCaseClosureReport(String fileName, String outputDir) {
+        if (caseClosureEntries.isEmpty()) {
+            return null;
+        }
+
+        List<List<String>> rows = buildCaseClosureRows();
+        try {
+            Path path = ReportCsvWriter.writeToCsv(CASE_CLOSURE_HEADERS, rows, fileName, outputDir, false);
+            return path != null ? path.toFile() : null;
+        } catch (IOException e) {
+            loggingService.logError("Failed to write case closure CSV: %s", e.getMessage());
+            return null;
+        }
+    }
+
+    public void writeShareInviteFailureReport() {
+        String outputDir = ensureOutputDir();
+        writeShareInviteFailureReport("Share_invite_failures", outputDir);
+    }
+
+    public File writeShareInviteFailureReport(String fileName, String outputDir) {
+        if (shareInviteFailures.isEmpty()) {
+            return null;
+        }
+
+        List<List<String>> rows = buildShareInviteFailureRows();
+        try {
+            Path path = ReportCsvWriter.writeToCsv(
+                SHARE_INVITE_FAILURE_HEADERS,
+                rows,
+                fileName,
+                outputDir,
+                false
+            );
+            return path != null ? path.toFile() : null;
+        } catch (IOException e) {
+            loggingService.logError("Failed to write share/invite failure CSV: %s", e.getMessage());
+            return null;
+        }
+    }
+
 
     // ==================================
     // Helpers
@@ -359,6 +457,36 @@ public class MigrationTrackerService {
         return rows;
     }
 
+    public List<List<String>> buildCaseClosureRows() {
+        List<List<String>> rows = new ArrayList<>();
+        for (CaseClosureReportEntry entry : caseClosureEntries) {
+            rows.add(List.of(
+                getValueOrEmpty(entry.caseReference()),
+                getValueOrEmpty(entry.caseId()),
+                getValueOrEmpty(entry.outcome()),
+                String.valueOf(entry.recordingsFound()),
+                String.valueOf(entry.recordingsDeleted()),
+                getValueOrEmpty(entry.failureReason())
+            ));
+        }
+        return rows;
+    }
+
+    public List<List<String>> buildShareInviteFailureRows() {
+        List<List<String>> rows = new ArrayList<>();
+        for (ShareInviteFailureEntry entry : shareInviteFailures) {
+            rows.add(List.of(
+                getValueOrEmpty(entry.entityType()),
+                getValueOrEmpty(entry.entityIdentifier()),
+                getValueOrEmpty(entry.email()),
+                getValueOrEmpty(entry.action()),
+                getValueOrEmpty(entry.reason()),
+                getValueOrEmpty(entry.timestamp())
+            ));
+        }
+        return rows;
+    }
+
     private File writeSummary(String outputDir) {
         List<String> headers = List.of("Category", "Count");
 
@@ -417,12 +545,32 @@ public class MigrationTrackerService {
     public List<List<String>> buildShareBookingsRows() {
         List<List<String>> rows = new ArrayList<>();
         String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+
+        if (!shareBookingReportEntries.isEmpty()) {
+            for (ShareBookingReportEntry entry : shareBookingReportEntries) {
+                rows.add(List.of(
+                    getValueOrEmpty(entry.shareId()),
+                    getValueOrEmpty(entry.bookingId()),
+                    getValueOrEmpty(entry.sharedWithUserId()),
+                    getValueOrEmpty(entry.sharedWithEmail()),
+                    getValueOrEmpty(entry.sharedByUserId()),
+                    getValueOrEmpty(entry.sharedByEmail()),
+                    migratedTime
+                ));
+            }
+            return rows;
+        }
+
         for (CreateShareBookingDTO s : shareBookings) {
             rows.add(List.of(
+                getValueOrEmpty(s.getId()),
                 getValueOrEmpty(s.getBookingId()),
                 getValueOrEmpty(s.getSharedWithUser()),
-                migratedTime)
-            );
+                "",
+                getValueOrEmpty(s.getSharedByUser()),
+                "",
+                migratedTime
+            ));
         }
         return rows;
     }
@@ -434,6 +582,63 @@ public class MigrationTrackerService {
         } catch (IOException e) {
             loggingService.logError("Failed to write share bookings CSV: %s", e.getMessage());
         }
+    }
+
+    
+
+    
+    public record ShareBookingReportEntry(
+        String shareId,
+        String bookingId,
+        String sharedWithUserId,
+        String sharedWithEmail,
+        String sharedByUserId,
+        String sharedByEmail
+    ) {
+    }
+
+    public record CaseClosureReportEntry(
+        String caseId,
+        String caseReference,
+        String outcome,
+        int recordingsFound,
+        int recordingsDeleted,
+        String failureReason
+    ) {
+    }
+
+    public record ShareInviteFailureEntry(
+        String entityType,
+        String entityIdentifier,
+        String email,
+        String action,
+        String reason,
+        String timestamp
+    ) {
+    }
+
+    private String ensureRunTimestamp() {
+        if (currentRunTimestamp == null) {
+            currentRunTimestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+        }
+        return currentRunTimestamp;
+    }
+
+    private String ensureOutputDir() {
+        if (currentOutputDir == null) {
+            String timestamp = ensureRunTimestamp();
+            currentOutputDir = Paths.get(OUTPUT_DIR, timestamp).toString();
+            new File(currentOutputDir).mkdirs();
+        }
+        return currentOutputDir;
+    }
+
+    private String ensureFailureDir() {
+        if (currentFailureDir == null) {
+            currentFailureDir = Paths.get(ensureOutputDir(), "Failure Reports").toString();
+            new File(currentFailureDir).mkdirs();
+        }
+        return currentFailureDir;
     }
 
     private String getValueOrEmpty(Object value) {
