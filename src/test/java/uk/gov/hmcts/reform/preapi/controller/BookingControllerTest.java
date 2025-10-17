@@ -115,7 +115,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO2);
 
-        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
         MvcResult response = mockMvc.perform(get("/bookings?caseReference=MyRef")
@@ -144,8 +144,19 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
+        when(bookingService
+                 .searchBy(
+                     eq(caseDTO.getId()),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any()))
+                 .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
         MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
@@ -174,7 +185,7 @@ class BookingControllerTest {
         var booking2 = new BookingDTO();
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
-        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -196,8 +207,19 @@ class BookingControllerTest {
         var caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(Page.empty());
+        when(bookingService
+                 .searchBy(
+                     eq(caseDTO.getId()),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any(),
+                     any()))
+                .thenReturn(Page.empty());
 
         MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
                                                  .with(csrf())
@@ -214,14 +236,26 @@ class BookingControllerTest {
     @DisplayName("Should get all bookings with a capture session one of the listed statuses")
     @Test
     void searchBookingsByStatusOk() throws Exception {
-        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(Page.empty());
+        when(bookingService
+                 .searchBy(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any()))
+                .thenReturn(Page.empty());
 
         mockMvc.perform(get("/bookings?captureSessionStatusIn=RECORDING,NO_RECORDING"))
             .andExpect(status().isOk());
 
         verify(bookingService, times(1))
             .searchBy(
+                any(),
                 any(),
                 any(),
                 any(),
@@ -237,7 +271,7 @@ class BookingControllerTest {
     @DisplayName("Should get all bookings with a capture session one of the listed statuses")
     @Test
     void searchBookingsByNotStatusOk() throws Exception {
-        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Page.empty());
 
         mockMvc.perform(get("/bookings?captureSessionStatusNotIn=RECORDING,NO_RECORDING"))
@@ -245,6 +279,7 @@ class BookingControllerTest {
 
         verify(bookingService, times(1))
             .searchBy(
+                any(),
                 any(),
                 any(),
                 any(),
@@ -843,6 +878,100 @@ class BookingControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Booking: " + bookingId));
+    }
+
+    @DisplayName("Should set include deleted param to false if not set")
+    @Test
+    public void testGetCasesIncludeDeletedNotSet() throws Exception {
+        when(bookingService.searchBy(any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any()))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/bookings")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(bookingService, times(1)).searchBy(any(),
+                                                  any(),
+                                                  any(),
+                                                  any(),
+                                                  any(),
+                                                  any(),
+                                                  eq(false),
+                                                  any(),
+                                                  any(),
+                                                  any());
+    }
+
+    @DisplayName("Should set include deleted param to false when set to false")
+    @Test
+    public void testGetCasesIncludeDeletedFalse() throws Exception {
+        when(bookingService.searchBy(any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any()))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/bookings")
+                            .with(csrf())
+                            .param("includeDeleted", "false")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+
+        verify(bookingService, times(1)).searchBy(any(), any(), any(), any(), any(), any(),
+                                                  eq(false), any(), any(),any());
+    }
+
+    @DisplayName("Should set include deleted param to true when set to true")
+    @Test
+    public void testGetCasesIncludeDeletedTrue() throws Exception {
+        when(bookingService.searchBy(any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any(),
+                                     any()))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/bookings")
+                            .with(csrf())
+                            .param("includeDeleted", "true")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(bookingService, times(1)).searchBy(any(),
+                                                  any(),
+                                                  any(),
+                                                  any(),
+                                                  any(),
+                                                  any(),
+                                                  eq(true),
+                                                  any(),
+                                                  any(),
+                                                  any());
     }
 
     private String getPath(UUID bookingId) {
