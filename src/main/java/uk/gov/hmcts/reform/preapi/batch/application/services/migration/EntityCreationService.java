@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -265,7 +266,8 @@ public class EntityCreationService {
         try {
             return portalAccessRepository
                 .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID.fromString(userId))
-                .isPresent();
+                .map(portalAccess -> portalAccess.getStatus() != AccessStatus.INACTIVE)
+                .orElse(false);
         } catch (Exception e) {
             loggingService.logWarning("Could not check portal access for user: %s - %s", userId, e.getMessage());
             return false; 
@@ -284,6 +286,13 @@ public class EntityCreationService {
         String existingUserId = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, String.class);
         CreateUserDTO sharedWith;
         if (existingUserId != null) {
+            if (!isUserActiveForMigration(UUID.fromString(existingUserId), lowerEmail)) {
+                loggingService.logWarning(
+                    "User %s is inactive or deleted - skipping invite and share booking", lowerEmail);
+                PostMigratedItemGroup excludedResult = new PostMigratedItemGroup();
+                return excludedResult;
+            }
+            
             sharedWith = new CreateUserDTO();
             sharedWith.setId(UUID.fromString(existingUserId));
             sharedWith.setEmail(lowerEmail);
@@ -371,5 +380,35 @@ public class EntityCreationService {
             return maybeOrig.isPresent() && maybeOrig.get().getRecordingId() != null;
         }
         return false;
+    }
+
+    private boolean isUserActiveForMigration(UUID userId, String email) {
+        try {
+            var user = userService.findById(userId);
+            if (user.getDeletedAt() != null) {
+                loggingService.logDebug("User %s is deleted", email);
+                return false;
+            }
+            
+            var portalAccess = portalAccessRepository
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId);
+            
+            if (portalAccess.isEmpty()) {
+                loggingService.logDebug("User %s has no portal access - allowing invite creation", email);
+                return true;
+            }
+            
+            if (portalAccess.get().getStatus() == AccessStatus.INACTIVE) {
+                loggingService.logDebug("User %s has INACTIVE portal access", email);
+                return false;
+            }
+            
+            loggingService.logDebug(
+                "User %s has active portal access with status: %s", email, portalAccess.get().getStatus());
+            return true;
+        } catch (Exception e) {
+            loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
+            return false;
+        }
     }
 }

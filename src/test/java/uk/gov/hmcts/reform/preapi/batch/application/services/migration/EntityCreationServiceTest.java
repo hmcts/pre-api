@@ -713,6 +713,11 @@ public class EntityCreationServiceTest {
         when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
             .thenReturn(Optional.empty());
 
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(existingUserId);
+        userDTO.setDeletedAt(null);
+        when(userService.findById(existingUserId)).thenReturn(userDTO);
+
         var result = entityCreationService.createShareBookingAndInviteIfNotExists(
             booking,
             "existing@example.com",
@@ -753,6 +758,11 @@ public class EntityCreationServiceTest {
         when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
             .thenReturn(Optional.of(new PortalAccess()));
 
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(existingUserId);
+        userDTO.setDeletedAt(null);
+        when(userService.findById(existingUserId)).thenReturn(userDTO);
+
         var result = entityCreationService.createShareBookingAndInviteIfNotExists(
             booking,
             "existing@example.com",
@@ -783,6 +793,11 @@ public class EntityCreationServiceTest {
         ))
             .thenReturn("share-key");
         when(cacheService.getShareBooking("share-key")).thenReturn(Optional.of(new CreateShareBookingDTO()));
+
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(existingUserId);
+        userDTO.setDeletedAt(null);
+        when(userService.findById(existingUserId)).thenReturn(userDTO);
 
         var result = entityCreationService.createShareBookingAndInviteIfNotExists(
             booking,
