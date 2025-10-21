@@ -45,6 +45,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -1025,5 +1026,108 @@ public class UserControllerTest {
         appAccess.setRoleId(UUID.randomUUID());
         appAccess.setDefaultCourt(isDefaultCourt);
         return appAccess;
+    }
+
+    @DisplayName("Should prevent ROLE_LEVEL_1 from assigning ROLE_SUPER_USER with 403 response code")
+    @Test
+    void upsertUserLevel1CannotAssignSuperUser() throws Exception {
+        var userId = UUID.randomUUID();
+
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+
+        var superUserRoleId = UUID.randomUUID();
+        var appAccess = new CreateAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUserId(userId);
+        appAccess.setCourtId(UUID.randomUUID());
+        appAccess.setRoleId(superUserRoleId);
+        appAccess.setDefaultCourt(true);
+
+        user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
+
+        // Mock the role as Super User
+        var superUserRole = new Role();
+        superUserRole.setId(superUserRoleId);
+        superUserRole.setName("Super User");
+        when(userService.getRoleById(superUserRoleId)).thenReturn(superUserRole);
+
+        // Create mock authentication for ROLE_LEVEL_1 (without ROLE_SUPER_USER)
+        var mockAuth = mock(uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication.class);
+        when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+
+        mockMvc.perform(put("/users/" + userId)
+                            .with(csrf())
+                            .with(request -> {
+                                org.springframework.security.core.context.SecurityContextHolder
+                                    .getContext()
+                                    .setAuthentication(mockAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(user))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message")
+                           .value("ROLE_LEVEL_1 users cannot assign ROLE_SUPER_USER"));
+    }
+
+    @DisplayName("Should allow ROLE_SUPER_USER to assign any role including ROLE_SUPER_USER with 201 response code")
+    @Test
+    void upsertUserSuperUserCanAssignSuperUser() throws Exception {
+        var userId = UUID.randomUUID();
+
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+
+        var superUserRoleId = UUID.randomUUID();
+        var appAccess = new CreateAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUserId(userId);
+        appAccess.setCourtId(UUID.randomUUID());
+        appAccess.setRoleId(superUserRoleId);
+        appAccess.setDefaultCourt(true);
+
+        user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
+
+        // Mock the role as Super User
+        var superUserRole = new Role();
+        superUserRole.setId(superUserRoleId);
+        superUserRole.setName("Super User");
+        when(userService.getRoleById(superUserRoleId)).thenReturn(superUserRole);
+
+        // Create mock authentication for ROLE_SUPER_USER
+        var mockAuth = mock(uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication.class);
+        when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+
+        when(userService.upsert(user)).thenReturn(UpsertResult.CREATED);
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .with(request -> {
+                                                     org.springframework.security.core.context.SecurityContextHolder
+                                                         .getContext()
+                                                         .setAuthentication(mockAuth);
+                                                     return request;
+                                                 })
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+        assertThat(response.getResponse().getHeaderValue("Location"))
+            .isEqualTo(TEST_URL + "/users/" + userId);
     }
 }
