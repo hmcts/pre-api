@@ -60,11 +60,41 @@ public class MigrationRecordService {
 
     @Transactional(readOnly = true)
     public Optional<MigrationRecord> getOrigFromCopy(MigrationRecord copy) {
-        if (copy.getParentTempId() == null) {
-            return Optional.empty();
+        if (copy.getParentTempId() != null) {
+            Optional<MigrationRecord> result = migrationRecordRepository.findById(copy.getParentTempId());
+            if (result.isPresent()) {
+                return result;
+            }
         }
-        Optional<MigrationRecord> result = migrationRecordRepository.findById(copy.getParentTempId());
-        return result;
+        
+        if (copy.getRecordingGroupKey() != null) {
+            List<MigrationRecord> groupRecords = migrationRecordRepository
+                .findByRecordingGroupKey(copy.getRecordingGroupKey());
+            
+            Optional<MigrationRecord> origRecord = groupRecords.stream()
+                .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+                .filter(r -> r.getStatus() == VfMigrationStatus.SUCCESS) 
+                .filter(r -> r.getRecordingId() != null) 
+                .sorted((a, b) -> {
+                    int preferredComparison = Boolean.compare(b.getIsPreferred(), a.getIsPreferred());
+                    if (preferredComparison != 0) {
+                        return preferredComparison;
+                    }
+                    boolean aIsMp4 = a.getArchiveName().toLowerCase().endsWith(".mp4");
+                    boolean bIsMp4 = b.getArchiveName().toLowerCase().endsWith(".mp4");
+                    if (aIsMp4 != bIsMp4) {
+                        return bIsMp4 ? 1 : -1;
+                    }
+                    return a.getCreatedAt().compareTo(b.getCreatedAt());
+                })
+                .findFirst();
+                
+            if (origRecord.isPresent()) {
+                return origRecord;
+            }
+        }
+        
+        return Optional.empty();
     }
 
     public List<MigrationRecord> getPendingMigrationRecords() {
