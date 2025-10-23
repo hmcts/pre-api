@@ -19,6 +19,7 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.core.step.tasklet.TaskletStep;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -488,8 +489,18 @@ class PostMigrationJobConfigTest {
         method.setAccessible(true);
         
         PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
-        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
         PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        CreateInviteDTO invite = new CreateInviteDTO();
+        invite.setUserId(UUID.randomUUID());
+        invite.setEmail("test@example.com");
+        item.setInvites(List.of(invite));
+        
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
+        share.setSharedWithUser(invite.getUserId());
+        item.setShareBookings(List.of(share));
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
         chunk.add(item);
         
         JobParameters jobParams = new JobParametersBuilder()
@@ -499,8 +510,24 @@ class PostMigrationJobConfigTest {
         JobSynchronizationManager.register(jobExecution);
         
         try {
-            Object writer = method.invoke(config, mockWriter);
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
             assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(loggingService).logInfo(
+                "[DRY RUN] PostMigrationWriter processing %d item(s) - skipping entity creation", 1);
+            verify(loggingService).logDebug("[DRY RUN] Processing post-migration item group: %s", item);
+            verify(loggingService).logDebug("[DRY RUN] Successfully processed post-migration item");
+            
+            verify(migrationTrackerService).addInvitedUser(invite);
+            verify(migrationTrackerService).addShareBooking(share);
+            verify(migrationTrackerService).addShareBookingReport(share, 
+                "test@example.com", "robot@example.com");
+            
+            verify(mockWriter, never()).write(any());
             
         } finally {
             JobSynchronizationManager.close();
