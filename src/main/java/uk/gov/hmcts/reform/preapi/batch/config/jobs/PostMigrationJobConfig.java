@@ -18,6 +18,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
@@ -52,6 +54,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
 
 @Configuration
 public class PostMigrationJobConfig {
@@ -268,6 +271,7 @@ public class PostMigrationJobConfig {
                     "Failed to close case %s (%s): %s — %s",
                     reference, caseDTO.getId(), e.getClass().getSimpleName(), e.getMessage()
                 );
+                
                 skipped.incrementAndGet();
                 migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
                     caseDTO.getId() != null ? caseDTO.getId().toString() : "",
@@ -297,7 +301,11 @@ public class PostMigrationJobConfig {
             .anyMatch(k -> k.toLowerCase().contains(reference.toLowerCase()));
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private CleanupStats deleteActiveRecordings(CaseDTO caseDTO, boolean dryRun) {
+        loggingService.logInfo("Starting deleteActiveRecordings for case %s (dryRun: %s)", 
+            caseDTO.getReference(), dryRun);
+        
         AtomicInteger discoveredCount = new AtomicInteger();
         AtomicInteger deletedCount = new AtomicInteger();
 
@@ -331,10 +339,10 @@ public class PostMigrationJobConfig {
                                 "Deleted recording %s for case %s (capture session %s)",
                                 recording.getId(), caseDTO.getReference(), captureSession.getId()
                             );
-                        } catch (Exception ex) {
+                        } catch (Exception e) {
                             loggingService.logError(
                                 "Failed to delete recording %s for case %s: %s",
-                                recording.getId(), caseDTO.getReference(), ex.getMessage()
+                                recording.getId(), caseDTO.getReference(), e.getMessage()
                             );
                         }
                     }
