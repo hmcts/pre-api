@@ -405,6 +405,28 @@ class PostMigrationJobConfigTest {
     }
 
     @Test
+    void deleteActiveRecordings_shouldHandleDeleteException() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("deleteActiveRecordings", 
+            CaseDTO.class, boolean.class);
+        method.setAccessible(true);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        BookingDTO booking = createTestBookingDTO();
+        when(bookingService.findAllByCaseId(any(), any())).thenReturn(new PageImpl<>(List.of(booking)));
+        
+        RecordingDTO recording = createTestRecordingDTO();
+        when(recordingService.findAll(any(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of(recording)));
+        
+        doThrow(new RuntimeException("boom")).when(recordingService).deleteById(recording.getId());
+        
+        Object result = method.invoke(config, caseDTO, false);
+        
+        verify(loggingService).logError("Failed to delete recording %s for case %s: %s",
+            recording.getId(), caseDTO.getReference(), "boom");
+        assertThat(result).isNotNull();
+    }
+
+    @Test
     void buildClosedCaseDTO_shouldMapCorrectly() throws Exception {
         Method method = PostMigrationJobConfig.class.getDeclaredMethod("buildClosedCaseDTO", 
             CaseDTO.class);
@@ -528,6 +550,46 @@ class PostMigrationJobConfigTest {
                 "test@example.com", "robot@example.com");
             
             verify(mockWriter, never()).write(any());
+            
+        } finally {
+            JobSynchronizationManager.close();
+        }
+    }
+
+    @Test
+    void createConditionalWriter_withDryRunException_shouldHandleError() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
+            PostMigrationWriter.class);
+        method.setAccessible(true);
+        
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        CreateInviteDTO invite = new CreateInviteDTO();
+        invite.setUserId(UUID.randomUUID());
+        invite.setEmail("test@example.com");
+        item.setInvites(List.of(invite));
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
+        chunk.add(item);
+        
+        JobParameters jobParams = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(1L, jobParams);
+        JobSynchronizationManager.register(jobExecution);
+        
+        try {
+            doThrow(new RuntimeException("fail")).when(migrationTrackerService).addInvitedUser(invite);
+            
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
+            assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(loggingService).logError("[DRY RUN] Failed to process post-migration item: %s", "fail");
             
         } finally {
             JobSynchronizationManager.close();
