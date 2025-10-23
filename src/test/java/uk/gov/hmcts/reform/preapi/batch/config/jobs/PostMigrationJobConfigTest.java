@@ -41,6 +41,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -244,7 +245,7 @@ class PostMigrationJobConfigTest {
         when(chunkContext.getStepContext()).thenReturn(stepContext);
         when(stepContext.getJobParameters()).thenReturn(jobParams);
         
-        uk.gov.hmcts.reform.preapi.dto.CaseDTO caseDTO = createTestCaseDTO();
+        CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
@@ -272,7 +273,7 @@ class PostMigrationJobConfigTest {
         when(chunkContext.getStepContext()).thenReturn(stepContext);
         when(stepContext.getJobParameters()).thenReturn(jobParams);
         
-        uk.gov.hmcts.reform.preapi.dto.CaseDTO caseDTO = createTestCaseDTO();
+        CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
@@ -297,7 +298,7 @@ class PostMigrationJobConfigTest {
         when(chunkContext.getStepContext()).thenReturn(stepContext);
         when(stepContext.getJobParameters()).thenReturn(jobParams);
         
-        uk.gov.hmcts.reform.preapi.dto.CaseDTO caseDTO = createTestCaseDTO();
+        CaseDTO caseDTO = createTestCaseDTO();
         caseDTO.setState(CaseState.CLOSED);
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         
@@ -320,7 +321,7 @@ class PostMigrationJobConfigTest {
         when(chunkContext.getStepContext()).thenReturn(stepContext);
         when(stepContext.getJobParameters()).thenReturn(jobParams);
         
-        uk.gov.hmcts.reform.preapi.dto.CaseDTO caseDTO = createTestCaseDTO();
+        CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
@@ -337,6 +338,31 @@ class PostMigrationJobConfigTest {
         verify(loggingService).logError("Failed to close case %s (%s): %s — %s", 
             caseDTO.getReference(), caseDTO.getId(), "RuntimeException", "Test error");
         verify(migrationTrackerService).addCaseClosureEntry(any());
+    }
+
+    @Test
+    void createMarkCasesClosedStep_withMatchingChannelUser_shouldSkipCase() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        String[] userData = {"user", "email"};
+        channelUsersMap.put("TEST-CASE-123", Collections.singletonList(userData));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(loggingService).logInfo("Skipping case %s — matching channel user data found.", caseDTO.getReference());
+        verify(migrationTrackerService).addCaseClosureEntry(any());
+        verify(caseService, never()).upsert(any());
     }
 
     @Test
@@ -361,7 +387,7 @@ class PostMigrationJobConfigTest {
     @Test
     void deleteActiveRecordings_shouldDeleteRecordings() throws Exception {
         Method method = PostMigrationJobConfig.class.getDeclaredMethod("deleteActiveRecordings", 
-            uk.gov.hmcts.reform.preapi.dto.CaseDTO.class, boolean.class);
+            CaseDTO.class, boolean.class);
         method.setAccessible(true);
         
         CaseDTO caseDTO = createTestCaseDTO();
@@ -380,7 +406,7 @@ class PostMigrationJobConfigTest {
     @Test
     void buildClosedCaseDTO_shouldMapCorrectly() throws Exception {
         Method method = PostMigrationJobConfig.class.getDeclaredMethod("buildClosedCaseDTO", 
-            uk.gov.hmcts.reform.preapi.dto.CaseDTO.class);
+            CaseDTO.class);
         method.setAccessible(true);
         
         CaseDTO caseDTO = createTestCaseDTO();
@@ -396,21 +422,63 @@ class PostMigrationJobConfigTest {
     @Test
     void resolveEmailForShare_shouldFindEmailFromInvites() throws Exception {
         Method method = PostMigrationJobConfig.class.getDeclaredMethod("resolveEmailForShare", 
-            PostMigratedItemGroup.class, uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO.class);
+            PostMigratedItemGroup.class, CreateShareBookingDTO.class);
         method.setAccessible(true);
         
         PostMigratedItemGroup item = new PostMigratedItemGroup();
-        CreateInviteDTO invite = new uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO();
+        CreateInviteDTO invite = new CreateInviteDTO();
         invite.setUserId(UUID.randomUUID());
         invite.setEmail("test@example.com");
         item.setInvites(List.of(invite));
         
-        CreateShareBookingDTO share = new uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO();
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
         share.setSharedWithUser(invite.getUserId());
         
         String result = (String) method.invoke(config, item, share);
         
         assertThat(result).isEqualTo("test@example.com");
+    }
+
+    @Test
+    void resolveEmailForShare_shouldFallbackToUserService() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("resolveEmailForShare", 
+            PostMigratedItemGroup.class, CreateShareBookingDTO.class);
+        method.setAccessible(true);
+        
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
+        UUID userId = UUID.randomUUID();
+        share.setSharedWithUser(userId);
+        
+        UserDTO userDTO = new UserDTO();
+        userDTO.setEmail("user@example.com");
+        when(userService.findById(userId)).thenReturn(userDTO);
+        
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        String result = (String) method.invoke(config, item, share);
+        
+        assertThat(result).isEqualTo("user@example.com");
+        verify(userService).findById(userId);
+    }
+
+    @Test
+    void resolveEmailForShare_shouldHandleUserServiceException() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("resolveEmailForShare", 
+            PostMigratedItemGroup.class, CreateShareBookingDTO.class);
+        method.setAccessible(true);
+        
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
+        UUID userId = UUID.randomUUID();
+        share.setSharedWithUser(userId);
+        
+        when(userService.findById(userId)).thenThrow(new RuntimeException("User not found"));
+        
+        String result = (String) method.invoke(config, item, share);
+        
+        assertThat(result).isEqualTo("");
+        verify(loggingService).logWarning(
+            "Could not find user email for ID: %s - %s", userId, "User not found");
     }
 
     @Test
