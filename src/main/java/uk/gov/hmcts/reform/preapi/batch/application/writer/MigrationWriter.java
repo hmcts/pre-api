@@ -60,6 +60,12 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 }
             } catch (Exception e) {
                 failureCount.incrementAndGet();
+                
+                migrationRecordService.updateToFailed(
+                    item.getPassItem().cleansedData().getArchiveId(), 
+                    "Processing_Error", 
+                    e.getMessage()
+                );
 
                 loggingService.logError("Failed to process migrated item: %s | %s",
                     item.getCase().getReference(), e.getMessage());

@@ -156,24 +156,30 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (status == VfMigrationStatus.SUBMITTED) {
             ExtractedMetadata extractedData = convertToExtractedMetadata(migrationRecord);
             
-            loggingService.logInfo("SUBMITTED record - %s", 
-                migrationRecord.getArchiveName());
-            
             if (migrationRecord.getRecordingGroupKey() == null || migrationRecord.getRecordingGroupKey().isEmpty()) {
                 String groupKey = MigrationRecordService.generateRecordingGroupKey(
                     extractedData.getUrn(),
                     extractedData.getExhibitReference(),
                     extractedData.getWitnessFirstName(),
                     extractedData.getDefendantLastName(),
-                    extractedData.getDatePattern()
+                    extractedData.getDatePattern(),
+                    extractedData.getCreateTime()
                 );
                 migrationRecord.setRecordingGroupKey(groupKey);
-                migrationRecordRepository.save(migrationRecord);
-                loggingService.logInfo("Set recording group key for SUBMITTED record %s: %s", 
-                    migrationRecord.getArchiveId(), groupKey);
-            } else {
-                loggingService.logInfo("Recording group key already set for SUBMITTED record %s: %s", 
-                    migrationRecord.getArchiveId(), migrationRecord.getRecordingGroupKey());
+                migrationRecordRepository.save(migrationRecord);     
+            } 
+            
+            if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {
+                String origVersionStr = extractedData.getRecordingVersionNumber() != null 
+                    ? extractedData.getRecordingVersionNumber().split("\\.")[0] 
+                    : "1";
+                
+                migrationRecordService.updateParentTempIdIfCopy(
+                    migrationRecord.getArchiveId(),
+                    migrationRecord.getRecordingGroupKey(),
+                    origVersionStr
+                );
+                loggingService.logInfo("Updated parent_temp_id for COPY record %s", migrationRecord.getArchiveId());
             }
             
             try {
