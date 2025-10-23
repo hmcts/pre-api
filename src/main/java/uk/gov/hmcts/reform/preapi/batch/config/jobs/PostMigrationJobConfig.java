@@ -302,7 +302,7 @@ public class PostMigrationJobConfig {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    private CleanupStats deleteActiveRecordings(CaseDTO caseDTO, boolean dryRun) {
+    CleanupStats deleteActiveRecordings(CaseDTO caseDTO, boolean dryRun) {
         loggingService.logInfo("Starting deleteActiveRecordings for case %s (dryRun: %s)", 
             caseDTO.getReference(), dryRun);
         
