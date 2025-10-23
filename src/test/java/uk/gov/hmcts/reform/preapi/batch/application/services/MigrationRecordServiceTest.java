@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -73,7 +74,9 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should return lowercase combined string from non-null parameters")
     void generateRecordingGroupKeyShouldReturnLowercaseCombinedString() {
-        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe", "241211");
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
+        String result = MigrationRecordService.generateRecordingGroupKey(
+            "URN123", "EXHIBIT1", "John", "Doe", "241211",createTime);
 
         assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
@@ -81,7 +84,9 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should handle null values by replacing with empty strings")
     void generateRecordingGroupKeyShouldHandleNullValues() {
-        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe","241211");
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
+        String result = MigrationRecordService.generateRecordingGroupKey(
+            null, "EXHIBIT1", null, "Doe","241211", createTime);
 
         assertThat(result).isEqualTo("exhibit1|doe|2024-12-11");
     }
@@ -89,8 +94,9 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should trim leading and trailing whitespace")
     void generateRecordingGroupKeyShouldTrimWhitespace() {
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
         String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ",
-            " John ", " Doe ","241211");
+            " John ", " Doe ","241211", createTime);
 
         assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
@@ -516,11 +522,12 @@ public class MigrationRecordServiceTest {
         metadata.setRecordingVersionNumber("1");
         metadata.setFileName("video.mp4");
         metadata.setFileSize("20MB");
+        metadata.setCreateTime(LocalDateTime.of(2024, 12, 11, 10, 0));
 
         migrationRecordService.updateMetadataFields("123", metadata);
 
         assertThat(record.getCourtReference()).isEqualTo("CourtRef");
-        assertThat(record.getRecordingGroupKey()).isEqualTo("urn1|ex1|anna|smith");
+        assertThat(record.getRecordingGroupKey()).isEqualTo("urn1|ex1|anna|smith|2024-12-11");
 
         verify(migrationRecordRepository, times(1)).save(record);
     }
@@ -875,12 +882,13 @@ public class MigrationRecordServiceTest {
         MigrationRecord record = new MigrationRecord();
         record.setArchiveId("id1");
         record.setRecordingVersion("ORIG");
-        record.setRecordingGroupKey("urn|ex|wit|def");
+        record.setRecordingGroupKey("urn|ex|wit|def|2024-12-11");
         record.setRecordingVersionNumber("1");
         record.setIsMostRecent(false);
 
         when(migrationRecordRepository.findByArchiveId("id1")).thenReturn(Optional.of(record));
-        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(record));
+        when(migrationRecordRepository.findByRecordingGroupKey(
+            "urn|ex|wit|def|2024-12-11")).thenReturn(List.of(record));
 
         ExtractedMetadata metadata = new ExtractedMetadata();
         metadata.setCourtReference("Court");
@@ -892,6 +900,7 @@ public class MigrationRecordServiceTest {
         metadata.setRecordingVersionNumber("1");
         metadata.setFileName("file.mp4");
         metadata.setFileSize("10MB");
+        metadata.setCreateTime(LocalDateTime.of(2024, 12, 11, 10, 0));
 
         migrationRecordService.updateMetadataFields("id1", metadata);
 
@@ -906,14 +915,14 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setArchiveId("id2");
         copy.setRecordingVersion("COPY");
-        copy.setRecordingGroupKey("urn|ex|wit|def");
+        copy.setRecordingGroupKey("urn|ex|wit|def|2024-12-11");
         copy.setRecordingVersionNumber("2");
         copy.setIsMostRecent(false);
         copy.setIsPreferred(false);
         copy.setParentTempId(UUID.randomUUID());
 
         when(migrationRecordRepository.findByArchiveId("id2")).thenReturn(Optional.of(copy));
-        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(copy));
+        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def|2024-12-11")).thenReturn(List.of(copy));
 
         ExtractedMetadata metadata = new ExtractedMetadata();
         metadata.setCourtReference("Court");
@@ -924,7 +933,10 @@ public class MigrationRecordServiceTest {
         metadata.setRecordingVersion("COPY");
         metadata.setRecordingVersionNumber("2");
         metadata.setFileName("file.mp4");
+        metadata.setDatePattern("241211");
         metadata.setFileSize("10MB");
+        metadata.setCreateTime(LocalDateTime.of(2024, 12, 11, 10, 0));
+
 
         migrationRecordService.updateMetadataFields("id2", metadata);
 
@@ -941,7 +953,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy1 = new MigrationRecord();
         copy1.setArchiveId("id3");
         copy1.setRecordingVersion("COPY");
-        copy1.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
+        copy1.setRecordingGroupKey("urn|ex|wit|def|2024-12-11"); // Set the same groupKey that will be generated
         copy1.setRecordingVersionNumber("1");
         copy1.setIsMostRecent(false);
         copy1.setIsPreferred(false);
@@ -950,14 +962,15 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy2 = new MigrationRecord();
         copy2.setArchiveId("id4");
         copy2.setRecordingVersion("COPY");
-        copy2.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
+        copy2.setRecordingGroupKey("urn|ex|wit|def|2024-12-11"); // Set the same groupKey that will be generated
         copy2.setRecordingVersionNumber("2");
         copy2.setIsMostRecent(false);
         copy2.setIsPreferred(false);
         copy2.setParentTempId(parentId);
 
         when(migrationRecordRepository.findByArchiveId("id4")).thenReturn(Optional.of(copy2));
-        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(copy1, copy2));
+        when(migrationRecordRepository.findByRecordingGroupKey(
+            "urn|ex|wit|def|2024-12-11")).thenReturn(List.of(copy1, copy2));
 
         ExtractedMetadata metadata = new ExtractedMetadata();
         metadata.setCourtReference("Court");
@@ -969,6 +982,7 @@ public class MigrationRecordServiceTest {
         metadata.setRecordingVersionNumber("2");
         metadata.setFileName("file.mp4");
         metadata.setFileSize("10MB");
+        metadata.setCreateTime(LocalDateTime.of(2024, 12, 11, 10, 0));
 
         migrationRecordService.updateMetadataFields("id4", metadata);
 

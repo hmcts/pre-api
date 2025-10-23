@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordServ
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -94,6 +95,15 @@ public class WriterTest {
     }
     // ---------- tests ----------
 
+    private PassItem createMockPassItem() {
+        ProcessedRecording mockProcessedRecording = mock(ProcessedRecording.class);
+        when(mockProcessedRecording.getArchiveId()).thenReturn("test-archive-id");
+        
+        PassItem mockPassItem = mock(PassItem.class);
+        when(mockPassItem.cleansedData()).thenReturn(mockProcessedRecording);
+        return mockPassItem;
+    }
+
     @Test
     void writeMigratedItemsEmpty() {
         writer.write(Chunk.of());
@@ -121,7 +131,7 @@ public class WriterTest {
             .booking(null)  
             .captureSession(null) 
             .recording(null) 
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -142,6 +152,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
+            .passItem(createMockPassItem())
             .build();
 
         when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
@@ -186,7 +197,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -208,6 +219,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
+            .passItem(createMockPassItem())
             .build();
 
         doThrow(NotFoundException.class).when(caseService).upsert(any(CreateCaseDTO.class));
@@ -236,6 +248,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
+            .passItem(createMockPassItem())
             .build();
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
@@ -266,6 +279,7 @@ public class WriterTest {
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(createBookingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
@@ -304,6 +318,7 @@ public class WriterTest {
             .acase(createCaseDTO)
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -341,6 +356,7 @@ public class WriterTest {
             .acase(createCaseDTO)
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -386,6 +402,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -428,6 +445,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -474,6 +492,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -516,6 +535,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -557,6 +577,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -599,7 +620,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -626,7 +647,7 @@ public class WriterTest {
 
         MigratedItemGroup valid = MigratedItemGroup.builder()
             .acase(createCaseDTO)
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(null, valid)); 
@@ -652,7 +673,7 @@ public class WriterTest {
 
         MigratedItemGroup item = MigratedItemGroup.builder()
             .acase(createCaseDTO)
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(item));
@@ -696,6 +717,7 @@ public class WriterTest {
         MigratedItemGroup item = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(booking)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(item));
@@ -727,6 +749,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
