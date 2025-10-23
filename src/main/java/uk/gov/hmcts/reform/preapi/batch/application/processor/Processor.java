@@ -162,7 +162,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     extractedData.getExhibitReference(),
                     extractedData.getWitnessFirstName(),
                     extractedData.getDefendantLastName(),
-                    extractedData.getDatePattern()
+                    extractedData.getDatePattern(),
+                    extractedData.getCreateTime()
                 );
                 migrationRecord.setRecordingGroupKey(groupKey);
                 migrationRecordRepository.save(migrationRecord);     

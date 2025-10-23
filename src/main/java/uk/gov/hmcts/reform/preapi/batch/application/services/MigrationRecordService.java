@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
@@ -255,7 +256,8 @@ public class MigrationRecordService {
                 extracted.getExhibitReference(),
                 extracted.getWitnessFirstName(),
                 extracted.getDefendantLastName(),
-                extracted.getDatePattern()
+                extracted.getDatePattern(),
+                extracted.getCreateTimeAsLocalDateTime()
             );
 
             record.setRecordingGroupKey(groupKey);
@@ -464,9 +466,23 @@ public class MigrationRecordService {
     }
 
     public static String generateRecordingGroupKey(
-        String urn, String exhibitRef, String witnessName, String defendantName, String datePattern) {
+        String urn, 
+        String exhibitRef, 
+        String witnessName, 
+        String defendantName, 
+        String datePattern, 
+        LocalDateTime createTime
+    ) {
         
         String datePart = normaliseDate(datePattern);
+        
+        if (datePart == null || datePart.isEmpty()) {
+            if (createTime != null) {
+                datePart = createTime.toLocalDate().toString();
+            } else {
+                datePart = "";
+            }
+        }
 
         return Stream.of(urn, exhibitRef, witnessName, defendantName, datePart)
             .map(MigrationRecordService::nullToEmpty)
@@ -518,8 +534,11 @@ public class MigrationRecordService {
                 ))
                 .orElse(null);
 
-            for (MigrationRecord copy : copies) {
-                copy.setIsMostRecent(copy.equals(mostRecent));
+            if (mostRecent != null) {
+                String mostRecentArchiveId = mostRecent.getArchiveId();
+                for (MigrationRecord copy : copies) {
+                    copy.setIsMostRecent(mostRecentArchiveId.equals(copy.getArchiveId()));
+                }
             }
         }
 
