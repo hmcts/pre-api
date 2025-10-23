@@ -147,6 +147,17 @@ class ProcessorTest {
         verify(loggingService).logError("Processor - Unsupported item type: %s", "java.lang.String");
     }
 
+    @Test
+    void shouldHandleExceptionInProcess() throws Exception {
+        MigrationRecord mockRecord = mock(MigrationRecord.class);
+        when(mockRecord.getArchiveId()).thenThrow(new RuntimeException("Test exception"));
+
+        MigratedItemGroup result = processor.process(mockRecord);
+
+        assertNull(result);
+        verify(loggingService).logError(eq("Processor - Error: %s"), eq("Test exception"), any(Exception.class));
+    }
+
 
     @Test
     void shouldHandleExtractionFailure() throws Exception {
