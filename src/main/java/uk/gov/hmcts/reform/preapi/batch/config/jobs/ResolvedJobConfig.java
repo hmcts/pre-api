@@ -43,7 +43,7 @@ public class ResolvedJobConfig {
     @StepScope
     public ListItemReader<MigrationRecord> resolvedMigrationRecordReader(MigrationRecordRepository repository,
                                                                          LoggingService loggingService) {
-        List<MigrationRecord> resolved = repository.findAllByStatus(VfMigrationStatus.SUBMITTED);
+        List<MigrationRecord> resolved = repository.findAllByStatusOrderedByVersion(VfMigrationStatus.SUBMITTED);
         if (resolved.isEmpty()) {
             loggingService.logInfo("No resolved migration records found.");
         } else {
