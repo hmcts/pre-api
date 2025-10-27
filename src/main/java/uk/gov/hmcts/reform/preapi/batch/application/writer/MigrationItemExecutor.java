@@ -133,21 +133,21 @@ public class MigrationItemExecutor {
  
     private void processBookingDataOrThrow(CreateBookingDTO bookingData) {
         if (bookingData == null) {
-            throw new IllegalStateException("Recording creation failed - no parent found for COPY recording");
+            throw new IllegalStateException("Recording creation failed - no booking data found");
         }
         bookingService.upsert(bookingData);
     }
 
     private void processCaptureSessionDataOrThrow(CreateCaptureSessionDTO captureSessionData) {
         if (captureSessionData == null) {
-            throw new IllegalStateException("Recording creation failed - no parent found for COPY recording");
+            throw new IllegalStateException("Recording creation failed - no capture session data found");
         }
         captureSessionService.upsert(captureSessionData); 
     }
 
     private void processRecordingDataOrThrow(CreateRecordingDTO recordingData) {
         if (recordingData == null) {
-            throw new IllegalStateException("Recording creation failed - no parent found for COPY recording");
+            throw new IllegalStateException("Recording creation failed - no recording data found");
         }
         recordingService.upsert(recordingData);
     }
