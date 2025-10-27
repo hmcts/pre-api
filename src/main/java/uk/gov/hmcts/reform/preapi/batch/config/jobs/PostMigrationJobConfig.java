@@ -19,8 +19,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
-import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService.CaseClosureReportEntry;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
@@ -37,9 +35,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
-import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
-import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
@@ -59,12 +55,8 @@ public class PostMigrationJobConfig {
     private final CoreStepsConfig coreSteps;
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
-    private final EntityCreationService entityCreationService;
     private final MigrationTrackerService migrationTrackerService;
-    private final MigrationRecordService migrationRecordService;
     private final CaseService caseService;
-    private final BookingService bookingService;
-    private final RecordingService recordingService;
     private final PostMigrationItemReader postMigrationItemReader;
     private final PostMigrationItemProcessor postMigrationItemProcessor;
     private final UserService userService;
@@ -77,12 +69,8 @@ public class PostMigrationJobConfig {
                                   final CoreStepsConfig coreSteps,
                                   final LoggingService loggingService,
                                   final InMemoryCacheService cacheService,
-                                  final EntityCreationService entityCreationService,
                                   final MigrationTrackerService migrationTrackerService,
-                                  final MigrationRecordService migrationRecordService,
                                   final CaseService caseService,
-                                  final BookingService bookingService,
-                                  final RecordingService recordingService,
                                   final PostMigrationItemReader postMigrationItemReader,
                                   final PostMigrationItemProcessor postMigrationItemProcessor,
                                   final UserService userService) {
@@ -91,12 +79,8 @@ public class PostMigrationJobConfig {
         this.coreSteps = coreSteps;
         this.loggingService = loggingService;
         this.cacheService = cacheService;
-        this.entityCreationService = entityCreationService;
         this.migrationTrackerService = migrationTrackerService;
-        this.migrationRecordService = migrationRecordService;
         this.caseService = caseService;
-        this.bookingService = bookingService;
-        this.recordingService = recordingService;
         this.postMigrationItemReader = postMigrationItemReader;
         this.postMigrationItemProcessor = postMigrationItemProcessor;
         this.userService = userService;

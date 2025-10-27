@@ -24,8 +24,6 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
-import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
@@ -44,9 +42,7 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
-import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
-import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.lang.reflect.Field;
@@ -84,22 +80,10 @@ class PostMigrationJobConfigTest {
     private InMemoryCacheService cacheService;
 
     @Mock
-    private EntityCreationService entityCreationService;
-
-    @Mock
     private MigrationTrackerService migrationTrackerService;
 
     @Mock
-    private MigrationRecordService migrationRecordService;
-
-    @Mock
     private CaseService caseService;
-
-    @Mock
-    private BookingService bookingService;
-
-    @Mock
-    private RecordingService recordingService;
 
     @Mock
     private PostMigrationItemReader postMigrationItemReader;
@@ -129,12 +113,8 @@ class PostMigrationJobConfigTest {
             coreSteps,
             loggingService,
             cacheService,
-            entityCreationService,
             migrationTrackerService,
-            migrationRecordService,
             caseService,
-            bookingService,
-            recordingService,
             postMigrationItemReader,
             postMigrationItemProcessor,
             userService
