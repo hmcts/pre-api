@@ -157,7 +157,7 @@ public class MigrationItemExecutor {
     // ------------------------
     private void remapBookingParticipantsToPersisted(CreateBookingDTO booking, CaseDTO persistedCase) {
         if (booking == null || booking.getParticipants() == null) {
-            throw new IllegalStateException("Recording creation failed - no parent found for COPY recording");
+            throw new IllegalStateException("Recording creation failed - no recording data found");
         }
 
         Map<String, ParticipantDTO> persistedMap = new HashMap<>();
