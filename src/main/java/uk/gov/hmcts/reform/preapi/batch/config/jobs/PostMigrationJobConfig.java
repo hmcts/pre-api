@@ -16,10 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
@@ -32,7 +29,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.writer.PostMigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
@@ -150,18 +146,13 @@ public class PostMigrationJobConfig {
 
                 AtomicInteger closed = new AtomicInteger();
                 AtomicInteger skipped = new AtomicInteger();
-                AtomicInteger recordingsFound = new AtomicInteger();
-                AtomicInteger recordingsDeleted = new AtomicInteger();
 
                 vodafoneCases.forEach(caseDTO ->
-                    processCase(caseDTO, channelUsersMap, closed, skipped, dryRun, recordingsFound, recordingsDeleted)
+                    processCase(caseDTO, channelUsersMap, closed, skipped, dryRun)
                 );
 
                 loggingService.logInfo("Case closure summary — Total: %d, Closed: %d, Skipped: %d",
                     vodafoneCases.size(), closed.get(), skipped.get());
-
-                loggingService.logInfo("Recording cleanup summary — Found: %d, Removed: %d",
-                    recordingsFound.get(), recordingsDeleted.get());
 
                 migrationTrackerService.writeCaseClosureReport();
 
@@ -218,8 +209,7 @@ public class PostMigrationJobConfig {
     }
 
     private void processCase(CaseDTO caseDTO, Map<String, List<String[]>> channelUsersMap,
-        AtomicInteger closed, AtomicInteger skipped, boolean dryRun,
-        AtomicInteger recordingsFound, AtomicInteger recordingsDeleted) {
+        AtomicInteger closed, AtomicInteger skipped, boolean dryRun) {
         String reference = caseDTO.getReference();
 
         if (caseDTO.getState() == CaseState.CLOSED) {
@@ -229,8 +219,6 @@ public class PostMigrationJobConfig {
                 caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                 reference,
                 "ALREADY_CLOSED",
-                0,
-                0,
                 "Case already in CLOSED state"
             ));
             return;
@@ -241,27 +229,18 @@ public class PostMigrationJobConfig {
                 "Case %s does not have matching channel user entry — attempting to close.",
                                     reference);
             try {
-                CleanupStats cleanupStats = deleteActiveRecordings(caseDTO, dryRun);
-                recordingsFound.addAndGet(cleanupStats.found());
-                recordingsDeleted.addAndGet(cleanupStats.deleted());
-
                 if (!dryRun) {
                     caseService.upsert(buildClosedCaseDTO(caseDTO));
-                    loggingService.logInfo(
-                        "Closed Vodafone case: %s (%s). Removed %d recording(s).",
-                        reference, caseDTO.getId(), cleanupStats.deleted());
                 } else {
                     loggingService.logInfo(
-                        "[DRY RUN] Would close Vodafone case: %s (%s). Would remove %d recording(s).",
-                        reference, caseDTO.getId(), cleanupStats.found());
+                        "[DRY RUN] Would close Vodafone case: %s (%s).",
+                        reference, caseDTO.getId());
                 }
 
                 migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
                     caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                     reference,
                     dryRun ? "DRY_RUN_CLOSE" : "CLOSED",
-                    cleanupStats.found(),
-                    cleanupStats.deleted(),
                     ""
                 ));
 
@@ -277,8 +256,6 @@ public class PostMigrationJobConfig {
                     caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                     reference,
                     "FAILED",
-                    0,
-                    0,
                     e.getMessage()
                 ));
             }
@@ -289,8 +266,6 @@ public class PostMigrationJobConfig {
                 caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                 reference,
                 "SKIPPED",
-                0,
-                0,
                 "Matching channel user data found"
             ));
         }
@@ -299,58 +274,6 @@ public class PostMigrationJobConfig {
     private boolean hasMatchingChannelUser(String reference, Map<String, List<String[]>> channelUsersMap) {
         return channelUsersMap.keySet().stream()
             .anyMatch(k -> k.toLowerCase().contains(reference.toLowerCase()));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    CleanupStats deleteActiveRecordings(CaseDTO caseDTO, boolean dryRun) {
-        loggingService.logInfo("Starting deleteActiveRecordings for case %s (dryRun: %s)", 
-            caseDTO.getReference(), dryRun);
-        
-        AtomicInteger discoveredCount = new AtomicInteger();
-        AtomicInteger deletedCount = new AtomicInteger();
-
-        bookingService.findAllByCaseId(caseDTO.getId(), Pageable.unpaged()).forEach(booking -> {
-            if (booking.getCaptureSessions() == null) {
-                return;
-            }
-
-            booking.getCaptureSessions().forEach(captureSession -> {
-                SearchRecordings params = new SearchRecordings();
-                params.setCaptureSessionId(captureSession.getId());
-
-                var recordings = recordingService.findAll(params, false, Pageable.unpaged());
-                if (recordings.isEmpty()) {
-                    return;
-                }
-
-                recordings.forEach(recording -> {
-                    discoveredCount.incrementAndGet();
-
-                    if (dryRun) {
-                        loggingService.logDebug(
-                            "[DRY RUN] Would delete recording %s for case %s (capture session %s)",
-                            recording.getId(), caseDTO.getReference(), captureSession.getId()
-                        );
-                    } else {
-                        try {
-                            recordingService.deleteById(recording.getId());
-                            deletedCount.incrementAndGet();
-                            loggingService.logDebug(
-                                "Deleted recording %s for case %s (capture session %s)",
-                                recording.getId(), caseDTO.getReference(), captureSession.getId()
-                            );
-                        } catch (Exception e) {
-                            loggingService.logError(
-                                "Failed to delete recording %s for case %s: %s",
-                                recording.getId(), caseDTO.getReference(), e.getMessage()
-                            );
-                        }
-                    }
-                });
-            });
-        });
-
-        return new CleanupStats(discoveredCount.get(), deletedCount.get());
     }
 
     private CreateCaseDTO buildClosedCaseDTO(CaseDTO caseDTO) {
@@ -380,9 +303,6 @@ public class PostMigrationJobConfig {
         dto.setLastName(p.getLastName());
         dto.setParticipantType(p.getParticipantType());
         return dto;
-    }
-
-    private record CleanupStats(int found, int deleted) {
     }
 
     private String resolveEmailForShare(PostMigratedItemGroup item, CreateShareBookingDTO share) {

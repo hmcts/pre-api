@@ -21,8 +21,6 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
@@ -61,7 +59,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -254,8 +251,6 @@ class PostMigrationJobConfigTest {
         channelUsersMap.put("test-case", Collections.singletonList(userData));
         when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
         
-        when(bookingService.findAllByCaseId(any(), any())).thenReturn(Page.empty());
-
         Step step = config.createMarkCasesClosedStep();
         Tasklet tasklet = extractTasklet(step);
         RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
@@ -280,16 +275,14 @@ class PostMigrationJobConfigTest {
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
         
-        when(bookingService.findAllByCaseId(any(), any())).thenReturn(Page.empty());
-
         Step step = config.createMarkCasesClosedStep();
         Tasklet tasklet = extractTasklet(step);
         RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
 
         assertThat(status).isEqualTo(RepeatStatus.FINISHED);
         verify(caseService, never()).upsert(any());
-        verify(loggingService).logInfo("[DRY RUN] Would close Vodafone case: %s (%s). Would remove %d recording(s).", 
-            caseDTO.getReference(), caseDTO.getId(), 0);
+        verify(loggingService).logInfo("[DRY RUN] Would close Vodafone case: %s (%s).", 
+            caseDTO.getReference(), caseDTO.getId());
     }
 
     @Test
@@ -328,7 +321,6 @@ class PostMigrationJobConfigTest {
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
         
-        when(bookingService.findAllByCaseId(any(), any())).thenReturn(Page.empty());
         doThrow(new RuntimeException("Test error")).when(caseService).upsert(any());
 
         Step step = config.createMarkCasesClosedStep();
@@ -383,47 +375,6 @@ class PostMigrationJobConfigTest {
         
         boolean result2 = (boolean) method.invoke(config, "NOMATCH", channelUsersMap);
         assertThat(result2).isFalse();
-    }
-
-    @Test
-    void deleteActiveRecordings_shouldDeleteRecordings() throws Exception {
-        Method method = PostMigrationJobConfig.class.getDeclaredMethod("deleteActiveRecordings", 
-            CaseDTO.class, boolean.class);
-        method.setAccessible(true);
-        
-        CaseDTO caseDTO = createTestCaseDTO();
-        BookingDTO booking = createTestBookingDTO();
-        when(bookingService.findAllByCaseId(any(), any())).thenReturn(new PageImpl<>(List.of(booking)));
-        
-        RecordingDTO recording = createTestRecordingDTO();
-        when(recordingService.findAll(any(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of(recording)));
-        
-        Object result = method.invoke(config, caseDTO, false);
-        
-        verify(recordingService).deleteById(recording.getId());
-        assertThat(result).isNotNull();
-    }
-
-    @Test
-    void deleteActiveRecordings_shouldHandleDeleteException() throws Exception {
-        Method method = PostMigrationJobConfig.class.getDeclaredMethod("deleteActiveRecordings", 
-            CaseDTO.class, boolean.class);
-        method.setAccessible(true);
-        
-        CaseDTO caseDTO = createTestCaseDTO();
-        BookingDTO booking = createTestBookingDTO();
-        when(bookingService.findAllByCaseId(any(), any())).thenReturn(new PageImpl<>(List.of(booking)));
-        
-        RecordingDTO recording = createTestRecordingDTO();
-        when(recordingService.findAll(any(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of(recording)));
-        
-        doThrow(new RuntimeException("boom")).when(recordingService).deleteById(recording.getId());
-        
-        Object result = method.invoke(config, caseDTO, false);
-        
-        verify(loggingService).logError("Failed to delete recording %s for case %s: %s",
-            recording.getId(), caseDTO.getReference(), "boom");
-        assertThat(result).isNotNull();
     }
 
     @Test
