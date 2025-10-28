@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
-import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 public class B2cControllerFT extends FunctionalTestBase {
 
@@ -19,6 +19,6 @@ public class B2cControllerFT extends FunctionalTestBase {
             OBJECT_MAPPER.writeValueAsString(request),
             null);
 
-        assertResponseCode(response, OK.value());
+        assertResponseCode(response, NO_CONTENT.value());
     }
 }
