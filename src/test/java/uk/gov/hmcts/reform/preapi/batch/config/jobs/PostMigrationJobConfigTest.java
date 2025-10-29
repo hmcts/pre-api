@@ -42,6 +42,7 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -51,6 +52,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -95,6 +97,9 @@ class PostMigrationJobConfigTest {
     private UserService userService;
 
     @Mock
+    private PortalAccessRepository portalAccessRepository;
+
+    @Mock
     private StepContribution stepContribution;
 
     @Mock
@@ -117,7 +122,8 @@ class PostMigrationJobConfigTest {
             caseService,
             postMigrationItemReader,
             postMigrationItemProcessor,
-            userService
+            userService,
+            portalAccessRepository
         );
 
         Field emailField = PostMigrationJobConfig.class.getDeclaredField("vodafoneUserEmail");
@@ -444,14 +450,26 @@ class PostMigrationJobConfigTest {
         PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
         PostMigratedItemGroup item = new PostMigratedItemGroup();
         
+        UUID userId = UUID.randomUUID();
         CreateInviteDTO invite = new CreateInviteDTO();
-        invite.setUserId(UUID.randomUUID());
+        invite.setUserId(userId);
         invite.setEmail("test@example.com");
         item.setInvites(List.of(invite));
         
         CreateShareBookingDTO share = new CreateShareBookingDTO();
-        share.setSharedWithUser(invite.getUserId());
+        share.setSharedWithUser(userId);
         item.setShareBookings(List.of(share));
+        
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(userId);
+        activeUser.setEmail("test@example.com");
+        activeUser.setDeletedAt(null);
+        
+        when(userService.findById(userId)).thenReturn(activeUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId))
+            .thenReturn(List.of());
         
         Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
         chunk.add(item);
@@ -496,10 +514,22 @@ class PostMigrationJobConfigTest {
         PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
         PostMigratedItemGroup item = new PostMigratedItemGroup();
         
+        UUID userId = UUID.randomUUID();
         CreateInviteDTO invite = new CreateInviteDTO();
-        invite.setUserId(UUID.randomUUID());
+        invite.setUserId(userId);
         invite.setEmail("test@example.com");
         item.setInvites(List.of(invite));
+        
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(userId);
+        activeUser.setEmail("test@example.com");
+        activeUser.setDeletedAt(null);
+        
+        when(userService.findById(userId)).thenReturn(activeUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId))
+            .thenReturn(List.of());
         
         Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
         chunk.add(item);

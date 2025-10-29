@@ -33,19 +33,26 @@ import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.DATE_TIME_FORMAT;
 
 
 @Configuration
@@ -60,6 +67,7 @@ public class PostMigrationJobConfig {
     private final PostMigrationItemReader postMigrationItemReader;
     private final PostMigrationItemProcessor postMigrationItemProcessor;
     private final UserService userService;
+    private final PortalAccessRepository portalAccessRepository;
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
@@ -73,7 +81,8 @@ public class PostMigrationJobConfig {
                                   final CaseService caseService,
                                   final PostMigrationItemReader postMigrationItemReader,
                                   final PostMigrationItemProcessor postMigrationItemProcessor,
-                                  final UserService userService) {
+                                  final UserService userService,
+                                  final PortalAccessRepository portalAccessRepository) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.coreSteps = coreSteps;
@@ -84,6 +93,7 @@ public class PostMigrationJobConfig {
         this.postMigrationItemReader = postMigrationItemReader;
         this.postMigrationItemProcessor = postMigrationItemProcessor;
         this.userService = userService;
+        this.portalAccessRepository = portalAccessRepository;
     }
 
     @Bean
@@ -332,6 +342,21 @@ public class PostMigrationJobConfig {
                         
                         if (item.getInvites() != null) {
                             for (CreateInviteDTO invite : item.getInvites()) {
+                                if (invite.getUserId() != null 
+                                    && !isUserActiveForMigration(invite.getUserId(), invite.getEmail())) {
+                                    loggingService.logWarning(
+                                        "[DRY RUN] Skipping invite for inactive/deleted user: %s", invite.getEmail());
+                                    migrationTrackerService.addShareInviteFailure(
+                                        new MigrationTrackerService.ShareInviteFailureEntry(
+                                            "Invite",
+                                            invite.getUserId().toString(),
+                                            invite.getEmail(),
+                                            "SKIPPED",
+                                            "User is inactive or deleted",
+                                            DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
+                                    ));
+                                    continue;
+                                }
                                 migrationTrackerService.addInvitedUser(invite);
                             }
                         }
@@ -339,6 +364,21 @@ public class PostMigrationJobConfig {
                         if (item.getShareBookings() != null) {
                             for (CreateShareBookingDTO share : item.getShareBookings()) {
                                 String email = resolveEmailForShare(item, share);
+                                if (share.getSharedWithUser() != null 
+                                    && !isUserActiveForMigration(share.getSharedWithUser(), email)) {
+                                    loggingService.logWarning(
+                                        "[DRY RUN] Skipping share booking for inactive/deleted user: %s", email);
+                                    migrationTrackerService.addShareInviteFailure(
+                                        new MigrationTrackerService.ShareInviteFailureEntry(
+                                            "ShareBooking",
+                                            share.getId() != null ? share.getId().toString() : "",
+                                            email,
+                                            "SKIPPED",
+                                            "User is inactive or deleted",
+                                            DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
+                                    ));
+                                    continue;
+                                }
                                 migrationTrackerService.addShareBooking(share);
                                 migrationTrackerService.addShareBookingReport(share, email, vodafoneUserEmail);
                             }
@@ -353,6 +393,38 @@ public class PostMigrationJobConfig {
                 postMigrationWriter.write(chunk);
             }
         };
+    }
+
+    private boolean isUserActiveForMigration(UUID userId, String email) {
+        try {
+            var user = userService.findById(userId);
+            if (user.getDeletedAt() != null) {
+                loggingService.logDebug("User %s is deleted - skipping", email);
+                return false;
+            }
+            
+            var portalAccess = portalAccessRepository
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId);
+            
+            if (portalAccess.isEmpty()) {
+                var deletedPortalAccess = portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId);
+                if (!deletedPortalAccess.isEmpty()) {
+                    loggingService.logDebug("User %s has deleted portal access - skipping", email);
+                    return false;
+                }
+                return true;
+            }
+            
+            if (portalAccess.get().getStatus() == AccessStatus.INACTIVE) {
+                loggingService.logDebug("User %s has INACTIVE portal access - skipping", email);
+                return false;
+            }
+            
+            return true;
+        } catch (Exception e) {
+            loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
+            return false;
+        }
     }
 
 }

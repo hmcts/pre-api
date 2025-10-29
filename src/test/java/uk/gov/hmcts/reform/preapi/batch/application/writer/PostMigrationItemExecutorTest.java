@@ -12,9 +12,11 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingSe
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -49,6 +51,9 @@ class PostMigrationItemExecutorTest {
     private UserRepository userRepository;
 
     @Mock
+    private PortalAccessRepository portalAccessRepository;
+
+    @Mock
     private EmailServiceFactory emailServiceFactory;
 
     @Mock
@@ -67,10 +72,24 @@ class PostMigrationItemExecutorTest {
             shareBookingService,
             userService,
             userRepository,
+            portalAccessRepository,
             emailServiceFactory,
             transactionManager,
             "vodafone@example.com"
         );
+    }
+
+    private void mockActiveUser(UUID userId, String email) {
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(userId);
+        activeUser.setEmail(email);
+        activeUser.setDeletedAt(null);
+
+        when(userService.findById(userId)).thenReturn(activeUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId))
+            .thenReturn(List.of());
     }
 
     @Test
@@ -84,6 +103,7 @@ class PostMigrationItemExecutorTest {
         storedUser.setId(userId);
         storedUser.setEmail(invite.getEmail());
 
+        mockActiveUser(userId, invite.getEmail());
         when(userRepository.findById(userId)).thenReturn(Optional.of(storedUser));
         when(emailServiceFactory.isEnabled()).thenReturn(true);
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
@@ -106,6 +126,7 @@ class PostMigrationItemExecutorTest {
         invite.setUserId(userId);
         invite.setEmail("disabled@example.com");
 
+        mockActiveUser(userId, invite.getEmail());
         when(emailServiceFactory.isEnabled()).thenReturn(false);
         when(userRepository.findById(userId)).thenReturn(Optional.of(new User()));
 
@@ -124,6 +145,7 @@ class PostMigrationItemExecutorTest {
         invite.setUserId(userId);
         invite.setEmail("broken@example.com");
 
+        mockActiveUser(userId, invite.getEmail());
         doThrow(new RuntimeException("boom"))
             .when(userService).upsert(invite);
 
@@ -155,6 +177,8 @@ class PostMigrationItemExecutorTest {
         share.setSharedWithUser(inviteUserId);
         share.setSharedByUser(UUID.randomUUID());
 
+        mockActiveUser(inviteUserId, "share@example.com");
+
         PostMigratedItemGroup item = new PostMigratedItemGroup();
         item.setInvites(List.of(invite));
         item.setShareBookings(List.of(share));
@@ -168,9 +192,12 @@ class PostMigrationItemExecutorTest {
 
     @Test
     void processOneItem_recordsFailureWhenShareCreationFails() {
+        UUID sharedWithUserId = UUID.randomUUID();
         CreateShareBookingDTO share = new CreateShareBookingDTO();
         share.setId(UUID.randomUUID());
-        share.setSharedWithUser(UUID.randomUUID());
+        share.setSharedWithUser(sharedWithUserId);
+
+        mockActiveUser(sharedWithUserId, "test@example.com");
 
         doThrow(new IllegalStateException("conflict"))
             .when(shareBookingService).shareBookingById(share);
@@ -200,6 +227,7 @@ class PostMigrationItemExecutorTest {
         storedUser.setId(userId);
         storedUser.setEmail(invite.getEmail());
 
+        mockActiveUser(userId, invite.getEmail());
         when(userRepository.findById(userId)).thenReturn(Optional.of(storedUser));
         when(emailServiceFactory.isEnabled()).thenReturn(true);
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
@@ -217,10 +245,13 @@ class PostMigrationItemExecutorTest {
 
     @Test
     void processOneItem_handlesShareWithoutMatchingInvite() {
+        UUID sharedWithUserId = UUID.randomUUID();
         CreateShareBookingDTO share = new CreateShareBookingDTO();
         share.setId(UUID.randomUUID());
-        share.setSharedWithUser(UUID.randomUUID());
+        share.setSharedWithUser(sharedWithUserId);
         share.setSharedByUser(UUID.randomUUID());
+
+        mockActiveUser(sharedWithUserId, "test@example.com");
 
         PostMigratedItemGroup item = new PostMigratedItemGroup();
         item.setInvites(null);
@@ -229,7 +260,7 @@ class PostMigrationItemExecutorTest {
         executor.processOneItem(item);
 
         verify(shareBookingService).shareBookingById(share);
-        verify(migrationTrackerService).addShareBookingReport(share, "", "vodafone@example.com");
+        verify(migrationTrackerService).addShareBookingReport(share, "test@example.com", "vodafone@example.com");
     }
 
     @Test
@@ -239,6 +270,7 @@ class PostMigrationItemExecutorTest {
         invite.setUserId(userId);
         invite.setEmail("blank@example.com");
 
+        mockActiveUser(userId, invite.getEmail());
         doThrow(new RuntimeException("   ")) 
             .when(userService).upsert(invite);
 

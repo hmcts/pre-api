@@ -12,13 +12,16 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.DATE_TIME_FORMAT;
 
@@ -30,6 +33,7 @@ public class PostMigrationItemExecutor {
     private final ShareBookingService shareBookingService;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final PortalAccessRepository portalAccessRepository;
     private final EmailServiceFactory emailServiceFactory;
     private final String vodafoneUserEmail;
     private final TransactionTemplate newTransactionTemplate;
@@ -40,6 +44,7 @@ public class PostMigrationItemExecutor {
                                      final ShareBookingService shareBookingService,
                                      final UserService userService,
                                      final UserRepository userRepository,
+                                     final PortalAccessRepository portalAccessRepository,
                                      final EmailServiceFactory emailServiceFactory,
                                      final PlatformTransactionManager transactionManager,
                                      @Value("${vodafone-user-email}") String vodafoneUserEmail) {
@@ -48,6 +53,7 @@ public class PostMigrationItemExecutor {
         this.shareBookingService = shareBookingService;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.portalAccessRepository = portalAccessRepository;
         this.emailServiceFactory = emailServiceFactory;
         this.vodafoneUserEmail = vodafoneUserEmail;
         this.newTransactionTemplate = new TransactionTemplate(transactionManager);
@@ -73,6 +79,20 @@ public class PostMigrationItemExecutor {
     }
 
     private void handleInvite(CreateInviteDTO invite) {
+        if (invite.getUserId() != null) {
+            if (!isUserActiveForMigration(invite.getUserId(), invite.getEmail())) {
+                loggingService.logWarning("Skipping invite for inactive/deleted user: %s", invite.getEmail());
+                recordFailure(
+                    "Invite",
+                    invite.getUserId().toString(),
+                    invite.getEmail(),
+                    "SKIPPED",
+                    "User is inactive or deleted"
+                );
+                return;
+            }
+        }
+        
         try {
             newTransactionTemplate.executeWithoutResult(status -> userService.upsert(invite));
 
@@ -110,6 +130,21 @@ public class PostMigrationItemExecutor {
 
     private void handleShare(PostMigratedItemGroup item, CreateShareBookingDTO share) {
         String email = resolveEmailForShare(item, share);
+        
+        if (share.getSharedWithUser() != null) {
+            if (!isUserActiveForMigration(share.getSharedWithUser(), email)) {
+                loggingService.logWarning("Skipping share booking for inactive/deleted user: %s", email);
+                recordFailure(
+                    "ShareBooking",
+                    share.getId() != null ? share.getId().toString() : "",
+                    email,
+                    "SKIPPED",
+                    "User is inactive or deleted"
+                );
+                return;
+            }
+        }
+        
         try {
             newTransactionTemplate.executeWithoutResult(status -> shareBookingService.shareBookingById(share));
 
@@ -174,5 +209,37 @@ public class PostMigrationItemExecutor {
             return e.getClass().getSimpleName();
         }
         return message;
+    }
+
+    private boolean isUserActiveForMigration(UUID userId, String email) {
+        try {
+            var user = userService.findById(userId);
+            if (user.getDeletedAt() != null) {
+                loggingService.logDebug("User %s is deleted - skipping", email);
+                return false;
+            }
+            
+            var portalAccess = portalAccessRepository
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId);
+            
+            if (portalAccess.isEmpty()) {
+                var deletedPortalAccess = portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId);
+                if (!deletedPortalAccess.isEmpty()) {
+                    loggingService.logDebug("User %s has deleted portal access - skipping", email);
+                    return false;
+                }
+                return true;
+            }
+            
+            if (portalAccess.get().getStatus() == AccessStatus.INACTIVE) {
+                loggingService.logDebug("User %s has INACTIVE portal access - skipping", email);
+                return false;
+            }
+            
+            return true;
+        } catch (Exception e) {
+            loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
+            return false;
+        }
     }
 }
