@@ -838,8 +838,6 @@ public class MigrationTrackerServiceTest {
                 "case-id",
                 "REF123",
                 "CLOSED",
-                5,
-                4,
                 ""
             )
         );

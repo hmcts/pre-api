@@ -394,6 +394,12 @@ public class EntityCreationService {
                 .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId);
             
             if (portalAccess.isEmpty()) {
+                var deletedPortalAccess = portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId);
+                if (!deletedPortalAccess.isEmpty()) {
+                    loggingService.logDebug("User %s has deleted portal access - skipping invite and share", email);
+                    return false;
+                }
+                
                 loggingService.logDebug("User %s has no portal access - allowing invite creation", email);
                 return true;
             }
