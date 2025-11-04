@@ -91,6 +91,18 @@ public class PostMigrationItemExecutor {
                 );
                 return;
             }
+
+            var existingInvite = portalAccessRepository
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
+                    invite.getUserId(), 
+                    AccessStatus.INVITATION_SENT
+                );
+            
+            if (existingInvite.isPresent()) {
+                loggingService.logDebug("Skipping invite for user %s — invite already exists", invite.getEmail());
+                migrationTrackerService.addInvitedUser(invite);
+                return;
+            }
         }
         
         try {
@@ -237,6 +249,9 @@ public class PostMigrationItemExecutor {
             }
             
             return true;
+        } catch (NotFoundException e) {
+            loggingService.logDebug("User %s does not exist yet- will create", email);
+            return true;  
         } catch (Exception e) {
             loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
             return false;
