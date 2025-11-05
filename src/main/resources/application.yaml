@@ -98,6 +98,8 @@ mediakind:
   token: ${MEDIA_KIND_TOKEN:}
   issuer: ${ISSUER:https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/}
   symmetricKey: ${SYMMETRIC_KEY:}
+  vodStreamingEndpoint: ${MEDIA_KIND_VOD_STREAMING_ENDPOINT:default}
+  liveStreamingEndpoint: ${MEDIA_KIND_LIVE_STREAMING_ENDPOINT:default-live}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 

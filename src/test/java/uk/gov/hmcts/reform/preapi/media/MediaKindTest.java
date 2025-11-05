@@ -60,7 +60,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.hmcts.reform.preapi.media.MediaKind.DEFAULT_LIVE_STREAMING_ENDPOINT;
 import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_INGEST_TRANSFORM;
 import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFORM;
 
@@ -71,6 +70,8 @@ import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFO
     "mediakind.subscription=pre-mediakind-stg",
     "mediakind.issuer=testIssuer",
     "mediakind.symmetricKey=testSymmetricKey",
+    "mediakind.vodStreamingEndpoint=default",
+    "mediakind.liveStreamingEndpoint=default-live",
     "mediakind.streaming-locator-on-start=true",
 })
 public class MediaKindTest {
@@ -880,7 +881,7 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+        when(mockClient.getStreamingEndpointByName("default-live"))
             .thenThrow(new NotFoundException("not found"));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
@@ -889,7 +890,7 @@ public class MediaKindTest {
                                      .resourceState(LiveEventResourceState.RUNNING.toString())
                                      .build()
             );
-        when(mockClient.createStreamingEndpoint(eq(DEFAULT_LIVE_STREAMING_ENDPOINT), any()))
+        when(mockClient.createStreamingEndpoint(eq("default-live"), any()))
             .thenThrow(new ConflictException("Conflict"));
 
         assertThrows(
@@ -904,7 +905,7 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+        when(mockClient.getStreamingEndpointByName("default-live"))
             .thenReturn(MkStreamingEndpoint.builder()
                             .properties(MkStreamingEndpointProperties.builder()
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
@@ -925,7 +926,7 @@ public class MediaKindTest {
 
         assertThat(result).isEqualTo(
             "https://ep-"
-            + DEFAULT_LIVE_STREAMING_ENDPOINT
+            + "default-live"
             + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
             + liveEventName
             + "/index.qfm/manifest(format=m3u8-cmaf)");
@@ -937,7 +938,7 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+        when(mockClient.getStreamingEndpointByName("default-live"))
             .thenReturn(MkStreamingEndpoint.builder()
                             .properties(MkStreamingEndpointProperties.builder()
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
@@ -958,7 +959,7 @@ public class MediaKindTest {
 
         assertThat(result).isEqualTo(
             "https://ep-"
-                + DEFAULT_LIVE_STREAMING_ENDPOINT
+                + "default-live"
                 + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
                 + liveEventName
                 + "/index.qfm/manifest(format=m3u8-cmaf)");
@@ -972,7 +973,7 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+        when(mockClient.getStreamingEndpointByName("default-live"))
             .thenReturn(MkStreamingEndpoint.builder()
                             .properties(MkStreamingEndpointProperties.builder()
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)

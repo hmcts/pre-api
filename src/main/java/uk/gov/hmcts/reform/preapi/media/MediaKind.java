@@ -93,6 +93,8 @@ public class MediaKind implements IMediaService {
     private final String subscription;
     private final String issuer;
     private final String symmetricKey;
+    private final String vodStreamingEndpoint;
+    private final String liveStreamingEndpoint;
 
     private final MediaKindClient mediaKindClient;
     private final AzureIngestStorageService azureIngestStorageService;
@@ -102,8 +104,6 @@ public class MediaKind implements IMediaService {
 
     public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
     public static final String ENCODE_FROM_INGEST_TRANSFORM = "EncodeFromIngest";
-    public static final String DEFAULT_VOD_STREAMING_ENDPOINT = "default";
-    public static final String DEFAULT_LIVE_STREAMING_ENDPOINT = "default-live";
     private static final String LOCATION = "uksouth";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
     private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
@@ -119,6 +119,8 @@ public class MediaKind implements IMediaService {
         @Value("${mediakind.subscription}") String subscription,
         @Value("${mediakind.issuer:}") String issuer,
         @Value("${mediakind.symmetricKey:}") String symmetricKey,
+        @Value("${mediakind.vodStreamingEndpoint}") String vodStreamingEndpoint,
+        @Value("${mediakind.liveStreamingEndpoint}") String liveStreamingEndpoint,
         MediaKindClient mediaKindClient,
         AzureIngestStorageService azureIngestStorageService,
         AzureFinalStorageService azureFinalStorageService
@@ -129,6 +131,8 @@ public class MediaKind implements IMediaService {
         this.subscription = subscription;
         this.issuer = issuer;
         this.symmetricKey = symmetricKey;
+        this.vodStreamingEndpoint = vodStreamingEndpoint;
+        this.liveStreamingEndpoint = liveStreamingEndpoint;
         this.mediaKindClient = mediaKindClient;
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
@@ -144,7 +148,7 @@ public class MediaKind implements IMediaService {
         getOrCreateStreamingPolicy(userId);
         var streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
 
-        var hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(DEFAULT_VOD_STREAMING_ENDPOINT)
+        var hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(vodStreamingEndpoint)
             .getProperties().getHostName();
         var paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
 
@@ -232,7 +236,7 @@ public class MediaKind implements IMediaService {
     public String playLiveEvent(UUID captureSessionId) throws InterruptedException {
         var liveEventId = getSanitisedLiveEventId(captureSessionId);
         checkLiveEventExists(liveEventId);
-        getOrCreateStreamingEndpoint(DEFAULT_LIVE_STREAMING_ENDPOINT);
+        getOrCreateStreamingEndpoint(liveStreamingEndpoint);
 
         getOrCreateStreamingLocator(liveEventId);
         return constructManifestPath(liveEventId);
@@ -862,7 +866,7 @@ public class MediaKind implements IMediaService {
         log.info("Generating manifest path");
         var localManifestPath = "/" + liveEventId + "/index.qfm/manifest(format=m3u8-cmaf)";
         log.info(localManifestPath);
-        return HTTPS_PREFIX + getHostname(DEFAULT_LIVE_STREAMING_ENDPOINT) + localManifestPath;
+        return HTTPS_PREFIX + getHostname(liveStreamingEndpoint) + localManifestPath;
     }
 
     // Not required now we construct manifest path from live event
