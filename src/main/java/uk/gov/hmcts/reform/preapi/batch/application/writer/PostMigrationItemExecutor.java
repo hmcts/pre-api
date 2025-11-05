@@ -144,17 +144,39 @@ public class PostMigrationItemExecutor {
         String email = resolveEmailForShare(item, share);
         
         if (share.getSharedWithUser() != null) {
+            if (email.isEmpty()) {
+                try {
+                    email = userService.findById(share.getSharedWithUser()).getEmail();
+                } catch (Exception e) {
+                    loggingService.logWarning("Could not resolve email for user ID: %s - %s", 
+                        share.getSharedWithUser(), e.getMessage());
+                    email = "unknown@" + share.getSharedWithUser().toString().substring(0, 8);
+                }
+            }
+            
             if (!isUserActiveForMigration(share.getSharedWithUser(), email)) {
-                loggingService.logWarning("Skipping share booking for inactive/deleted user: %s", email);
+                loggingService.logWarning("Skipping share booking for inactive/deleted user: %s (ID: %s)", 
+                    email, share.getSharedWithUser());
                 recordFailure(
                     "ShareBooking",
                     share.getId() != null ? share.getId().toString() : "",
-                    email,
+                    email.isEmpty() ? "unknown" : email,
                     "SKIPPED",
                     "User is inactive or deleted"
                 );
-                return;
+                return; 
             }
+        } else {
+            loggingService.logWarning("Skipping share booking - sharedWithUser is null for share: %s", 
+                share.getId() != null ? share.getId().toString() : "unknown");
+            recordFailure(
+                "ShareBooking",
+                share.getId() != null ? share.getId().toString() : "",
+                email.isEmpty() ? "unknown" : email,
+                "SKIPPED",
+                "SharedWithUser is null"
+            );
+            return; 
         }
         
         try {
@@ -172,7 +194,7 @@ public class PostMigrationItemExecutor {
             recordFailure(
                 "ShareBooking",
                 share.getId() != null ? share.getId().toString() : "",
-                email,
+                email.isEmpty() ? "unknown" : email,
                 "SHARE",
                 extractReason(e)
             );
@@ -206,7 +228,11 @@ public class PostMigrationItemExecutor {
         
         if (share.getSharedWithUser() != null) {
             try {
-                return userService.findById(share.getSharedWithUser()).getEmail();
+                var user = userService.findById(share.getSharedWithUser());
+                return user.getEmail();
+            } catch (NotFoundException e) {
+                loggingService.logWarning(
+                    "User not found for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
             } catch (Exception e) {
                 loggingService.logWarning(
                     "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());

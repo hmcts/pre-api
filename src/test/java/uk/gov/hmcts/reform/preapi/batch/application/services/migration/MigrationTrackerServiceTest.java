@@ -917,7 +917,9 @@ public class MigrationTrackerServiceTest {
     void writeShareInviteFailureReport_returnsNullWhenNoEntries() {
         File result = migrationTrackerService.writeShareInviteFailureReport(
             "Share_invite_failures", tempDir.toString());
+        
         assertThat(result).isNull();
+        
         reportCsvWriter.verifyNoInteractions();
     }
 

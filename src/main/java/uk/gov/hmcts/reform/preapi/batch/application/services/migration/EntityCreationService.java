@@ -286,28 +286,30 @@ public class EntityCreationService {
         String existingUserId = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, String.class);
         CreateUserDTO sharedWith;
         if (existingUserId != null) {
-            if (!isUserActiveForMigration(UUID.fromString(existingUserId), lowerEmail)) {
-                loggingService.logWarning(
-                    "User %s is inactive or deleted - skipping invite and share booking", lowerEmail);
-                PostMigratedItemGroup excludedResult = new PostMigratedItemGroup();
-                return excludedResult;
-            }
+            UUID userId = UUID.fromString(existingUserId);
             
             sharedWith = new CreateUserDTO();
-            sharedWith.setId(UUID.fromString(existingUserId));
+            sharedWith.setId(userId);
             sharedWith.setEmail(lowerEmail);
             sharedWith.setFirstName(firstName);
             sharedWith.setLastName(lastName);
-            loggingService.logDebug("Found existing user in cache: %s (%s)", lowerEmail, existingUserId);
             
-            if (!userHasPortalAccess(existingUserId)) {
-                CreateInviteDTO invite = createInvite(sharedWith);
-                invites.add(invite);
-                loggingService.logDebug(
-                    "Created invite for existing user without portal access: %s (%s)", lowerEmail, existingUserId);
+            boolean isActive = isUserActiveForMigration(userId, lowerEmail);
+            if (!isActive) {
+                loggingService.logWarning(
+                    "User %s is inactive or deleted", lowerEmail);
             } else {
-                loggingService.logDebug(
-                    "Skipping invite for existing user with portal access: %s (%s)", lowerEmail, existingUserId);
+                loggingService.logDebug("Found existing user in cache: %s (%s)", lowerEmail, existingUserId);
+                
+                if (!userHasPortalAccess(existingUserId)) {
+                    CreateInviteDTO invite = createInvite(sharedWith);
+                    invites.add(invite);
+                    loggingService.logDebug(
+                        "Created invite for existing user without portal access: %s (%s)", lowerEmail, existingUserId);
+                } else {
+                    loggingService.logDebug(
+                        "Skipping invite for existing user with portal access: %s (%s)", lowerEmail, existingUserId);
+                }
             }
         } else {
             sharedWith = createUser(firstName, lastName, lowerEmail, UUID.randomUUID());
