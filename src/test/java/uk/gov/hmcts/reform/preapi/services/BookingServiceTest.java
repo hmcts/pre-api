@@ -284,36 +284,6 @@ class BookingServiceTest {
         verify(bookingRepository, never()).save(any());
     }
 
-    @DisplayName("Create/update a booking when case is not OPEN but user is Super Admin")
-    @Test
-    void upsertCreateBookingCaseNotOpenWithSuperAdmin() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(true);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-
-        var bookingModel = new CreateBookingDTO();
-        var caseId = UUID.randomUUID();
-        bookingModel.setId(UUID.randomUUID());
-        bookingModel.setCaseId(caseId);
-        bookingModel.setParticipants(Set.of());
-        bookingModel.setScheduledFor(Timestamp.from(Instant.now().plus(Period.ofWeeks(1))));
-
-        var aCase = new Case();
-        aCase.setId(UUID.randomUUID());
-        aCase.setState(CaseState.CLOSED);
-
-        var bookingEntity = new Booking();
-        when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(aCase));
-        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
-        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
-        when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
-        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
-
-        assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);
-    }
-
     @DisplayName("Create a booking in the past as a superuser")
     @Test
     void upsertBookingInPastSuperuserCreated() {

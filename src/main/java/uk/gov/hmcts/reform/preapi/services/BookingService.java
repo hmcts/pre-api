@@ -150,7 +150,7 @@ public class BookingService {
         var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
             .orElseThrow(() -> new NotFoundException("Case: " + createBookingDTO.getCaseId()));
 
-        if (caseEntity.getState() != CaseState.OPEN && !auth.hasRole("ROLE_SUPER_USER")) {
+        if (caseEntity.getState() != CaseState.OPEN) {
             throw new ResourceInWrongStateException(
                 "Booking",
                 createBookingDTO.getId(),

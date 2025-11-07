@@ -123,15 +123,12 @@ public class CaseService {
         var isCaseClosureCancellation = false;
         var isCasePendingClosure = false;
 
-        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-
         if (isUpdate) {
             if (foundCase.get().isDeleted()) {
                 throw new ResourceInDeletedStateException("CaseDTO", createCaseDTO.getId().toString());
             }
             if (foundCase.get().getState() != CaseState.OPEN
                 && foundCase.get().getState() == createCaseDTO.getState()
-                && !auth.hasRole("ROLE_SUPER_USER")
             ) {
                 throw new ResourceInWrongStateException(
                     "Resource Case("
