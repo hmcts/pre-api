@@ -33,11 +33,13 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -53,6 +55,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
@@ -93,6 +96,7 @@ class TestingSupportController {
     private final ScheduledTaskRunner scheduledTaskRunner;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MigrationRecordRepository migrationRecordRepository;
+    private final PortalAccessRepository portalAccessRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -110,7 +114,8 @@ class TestingSupportController {
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
                              final AzureFinalStorageService azureFinalStorageService,
-                             final MigrationRecordRepository migrationRecordRepository) {
+                             final MigrationRecordRepository migrationRecordRepository,
+                             final PortalAccessRepository portalAccessRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -127,6 +132,7 @@ class TestingSupportController {
         this.scheduledTaskRunner = scheduledTaskRunner;
         this.azureFinalStorageService = azureFinalStorageService;
         this.migrationRecordRepository = migrationRecordRepository;
+        this.portalAccessRepository = portalAccessRepository;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -333,6 +339,53 @@ class TestingSupportController {
             "accessId", appAccess.getId().toString(),
             "courtId", appAccess.getCourt().getId().toString()
         ));
+    }
+
+    @PostMapping("/create-invitation-sent-portal-access/{userId}")
+    public ResponseEntity<Map<String, String>> createInvitationSentPortalAccess(@PathVariable UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
+        if (!user.getPortalAccess().isEmpty()) {
+            PortalAccess currentPortalAccess =  user.getPortalAccess().stream()
+                .filter(access -> !access.isDeleted())
+                .findFirst()
+                .orElse(null);
+            if (currentPortalAccess != null) {
+                return ResponseEntity.ok(Map.of("portalAccessId", currentPortalAccess.getId().toString()));
+            }
+        }
+
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setStatus(AccessStatus.INVITATION_SENT);
+        portalAccess.setUser(user);
+        portalAccess.setInvitedAt(Timestamp.from(Instant.now()));
+        portalAccessRepository.saveAndFlush(portalAccess);
+        return ResponseEntity.ok(Map.of("portalAccessId", portalAccess.getId().toString()));
+    }
+
+    @PostMapping("/create-active-portal-access/{userId}")
+    public ResponseEntity<Map<String, String>> createActivePortalAccess(@PathVariable UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
+        if (!user.getPortalAccess().isEmpty()) {
+            PortalAccess currentPortalAccess =  user.getPortalAccess().stream()
+                .filter(access -> !access.isDeleted())
+                .findFirst()
+                .orElse(null);
+            if (currentPortalAccess != null) {
+                return ResponseEntity.ok(Map.of("portalAccessId", currentPortalAccess.getId().toString()));
+            }
+        }
+
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setStatus(AccessStatus.ACTIVE);
+        portalAccess.setUser(user);
+        portalAccess.setInvitedAt(Timestamp.from(Instant.now()));
+        portalAccess.setRegisteredAt(Timestamp.from(Instant.now()));
+        portalAccessRepository.saveAndFlush(portalAccess);
+        return ResponseEntity.ok(Map.of("portalAccessId", portalAccess.getId().toString()));
     }
 
     @PostMapping(value = "/create-ready-to-use-booking/{caseReference}", produces = MediaType.APPLICATION_JSON_VALUE)

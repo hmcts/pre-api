@@ -76,6 +76,61 @@ public class PortalAccessServiceTest {
         verify(portalAccessRepository, never()).save(any());
     }
 
+    @DisplayName("Update should set status to to invitationSent when new status is active and registeredAt is null")
+    @Test
+    public void updateShouldSetStatusToInvitationSentWhenNewStatusIsActiveAndRegisteredAtIsNull() {
+        CreatePortalAccessDTO model = new CreatePortalAccessDTO();
+        model.setId(UUID.randomUUID());
+        model.setStatus(AccessStatus.ACTIVE);
+        model.setLastAccess(Timestamp.from(Instant.now()));
+        model.setInvitedAt(Timestamp.from(Instant.now()));
+        model.setRegisteredAt(null);
+
+        PortalAccess entity = new PortalAccess();
+        entity.setId(model.getId());
+        entity.setRegisteredAt(null);
+        entity.setStatus(AccessStatus.INACTIVE);
+
+        when(portalAccessRepository.findByIdAndDeletedAtIsNull(model.getId()))
+            .thenReturn(Optional.of(entity));
+
+        assertThat(portalAccessService.update(model)).isEqualTo(UpsertResult.UPDATED);
+
+        verify(portalAccessRepository, times(1)).findByIdAndDeletedAtIsNull(model.getId());
+        verify(portalAccessRepository, times(1)).save(any());
+
+        assertThat(entity.getStatus()).isEqualTo(AccessStatus.INVITATION_SENT);
+        assertThat(entity.getRegisteredAt()).isNull();
+    }
+
+    @DisplayName("Update should set status to to active when new status is active and registeredAt is not null")
+    @Test
+    public void updateShouldSetStatusToActiveWhenNewStatusIsActiveAndRegisteredAtIsNotNull() {
+        CreatePortalAccessDTO model = new CreatePortalAccessDTO();
+        Timestamp registeredAt = Timestamp.from(Instant.now());
+        model.setId(UUID.randomUUID());
+        model.setStatus(AccessStatus.ACTIVE);
+        model.setLastAccess(Timestamp.from(Instant.now()));
+        model.setInvitedAt(Timestamp.from(Instant.now()));
+        model.setRegisteredAt(registeredAt);
+
+        PortalAccess entity = new PortalAccess();
+        entity.setId(model.getId());
+        entity.setRegisteredAt(registeredAt);
+        entity.setStatus(AccessStatus.INACTIVE);
+
+        when(portalAccessRepository.findByIdAndDeletedAtIsNull(model.getId()))
+            .thenReturn(Optional.of(entity));
+
+        assertThat(portalAccessService.update(model)).isEqualTo(UpsertResult.UPDATED);
+
+        verify(portalAccessRepository, times(1)).findByIdAndDeletedAtIsNull(model.getId());
+        verify(portalAccessRepository, times(1)).save(any());
+
+        assertThat(entity.getStatus()).isEqualTo(AccessStatus.ACTIVE);
+        assertThat(entity.getRegisteredAt()).isEqualTo(registeredAt);
+    }
+
     @DisplayName("Should mark app access entity as deleted and inactive")
     @Test
     void deleteByIdSuccess() {
