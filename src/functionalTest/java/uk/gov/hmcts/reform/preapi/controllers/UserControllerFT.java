@@ -158,44 +158,6 @@ public class UserControllerFT extends FunctionalTestBase {
         assertThat(portalAccessDto2.getStatus()).isEqualTo(AccessStatus.ACTIVE);
     }
 
-//    @Test
-//    @DisplayName("Portal access registered at value should be set when active")
-//    void shouldAutomaticallySetRegisteredAtWhenNotSetOnActive() throws JsonProcessingException {
-//        // create a user
-//        CreateUserDTO dto = createUserDto();
-//        Response putUser1 = putUser(dto, TestingSupportRoles.SUPER_USER);
-//        assertResponseCode(putUser1, 201);
-//
-//        // add new portal access in the invited status
-//        Response createPortalAccessResponse = doPostRequest(
-//            "/testing-support/create-portal-access-without-email-invite/" + dto.getId(),
-//            TestingSupportRoles.SUPER_USER);
-//        UUID portalAccessId = createPortalAccessResponse.jsonPath().getUUID("portalAccessId");
-//
-//        // check portal access
-//        UserDTO userDto1 = getUserById(dto.getId());
-//        assertThat(userDto1.getPortalAccess()).isNotEmpty();
-//        PortalAccessDTO portalAccessDto1 = userDto1.getPortalAccess().getFirst();
-//        assertThat(portalAccessDto1.getId()).isEqualTo(portalAccessId);
-//        assertThat(portalAccessDto1.getRegisteredAt()).isNull();
-//        assertThat(portalAccessDto1.getStatus()).isEqualTo(AccessStatus.INVITATION_SENT);
-//
-//        // update portal access to active without setting registered at
-//        CreatePortalAccessDTO updatedPortalAccess = new CreatePortalAccessDTO(portalAccessDto1);
-//        updatedPortalAccess.setStatus(AccessStatus.ACTIVE);
-//        dto.setPortalAccess(Set.of(updatedPortalAccess));
-//        Response putUser2 = putUser(dto, TestingSupportRoles.SUPER_USER);
-//        assertResponseCode(putUser2, 204);
-//
-//        // check registered at set
-//        UserDTO userDto2 = getUserById(dto.getId());
-//        assertThat(userDto2.getPortalAccess()).isNotEmpty();
-//        PortalAccessDTO portalAccessDto2 = userDto2.getPortalAccess().getFirst();
-//        assertThat(portalAccessDto2.getId()).isEqualTo(portalAccessId);
-//        assertThat(portalAccessDto2.getRegisteredAt()).isNotNull();
-//        assertThat(portalAccessDto2.getStatus()).isEqualTo(AccessStatus.ACTIVE);
-//    }
-
     @DisplayName("Scenario: Duplicate email address should fail")
     @Test
     void shouldFailCreateUserWithDuplicateEmail() throws JsonProcessingException {
