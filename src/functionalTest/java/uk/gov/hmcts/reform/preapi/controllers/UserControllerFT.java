@@ -84,8 +84,8 @@ public class UserControllerFT extends FunctionalTestBase {
     }
 
     @Test
-    @DisplayName("Scenario: Unregistered portal user is set to active")
-    void shouldSetStatusToInvitationSentWhenActivatingUnregisteredPortalUser() throws JsonProcessingException {
+    @DisplayName("Scenario: Unregistered portal user is changed to active")
+    void shouldUpdateStatusWhenActivatingUnregisteredPortalUser() throws JsonProcessingException {
         // create and invite a user
         CreateUserDTO createUserDto = createUserDto();
         CreateInviteDTO inviteDto = createInviteDto(createUserDto.getId(), createUserDto.getFirstName(),
@@ -118,8 +118,8 @@ public class UserControllerFT extends FunctionalTestBase {
     }
 
     @Test
-    @DisplayName("Scenario: Registered portal user is set to active")
-    void shouldSetStatusToActiveWhenActivatingRegisteredPortalUser() throws JsonProcessingException {
+    @DisplayName("Scenario: Registered portal user is changed to active")
+    void shouldUpdateStatusWhenActivatingRegisteredPortalUser() throws JsonProcessingException {
         // create and invite a user
         CreateUserDTO createUserDto = createUserDto();
         CreateInviteDTO inviteDto = createInviteDto(createUserDto.getId(), createUserDto.getFirstName(),
