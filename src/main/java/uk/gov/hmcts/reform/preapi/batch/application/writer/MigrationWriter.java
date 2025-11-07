@@ -5,6 +5,7 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
@@ -63,7 +64,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 
                 migrationRecordService.updateToFailed(
                     item.getPassItem().cleansedData().getArchiveId(), 
-                    "Error", 
+                    VfFailureReason.GENERAL_ERROR.toString(), 
                     e.getMessage()
                 );
 
