@@ -515,9 +515,20 @@ class ProcessorTest {
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
+        String expectedGroupKey = MigrationRecordService.generateRecordingGroupKey(
+            "12345678901", 
+            "EXHIBIT123",   
+            "Jane Smith",   
+            "John Doe",     
+            null,           
+            testMigrationRecord.getCreateTime() != null 
+                ? testMigrationRecord.getCreateTime().toLocalDateTime() 
+                : LocalDateTime.now()
+        );
+
         assertNotNull(result);
         verify(migrationRecordService).updateParentTempIdIfCopy(
-            testMigrationRecord.getArchiveId(), "test-group", "1");
+            testMigrationRecord.getArchiveId(), expectedGroupKey, "1");
         verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s", testMigrationRecord.getArchiveId());
     }
 
@@ -532,9 +543,20 @@ class ProcessorTest {
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
+        String expectedGroupKey = MigrationRecordService.generateRecordingGroupKey(
+            "12345678901", 
+            "EXHIBIT123",   
+            "Jane Smith",   
+            "John Doe",     
+            null,           
+            testMigrationRecord.getCreateTime() != null 
+                ? testMigrationRecord.getCreateTime().toLocalDateTime() 
+                : LocalDateTime.now()
+        );
+
         assertNotNull(result);
         verify(migrationRecordService).updateParentTempIdIfCopy(
-            testMigrationRecord.getArchiveId(), "test-group", "");
+            testMigrationRecord.getArchiveId(), expectedGroupKey, "");
         verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s", testMigrationRecord.getArchiveId());
     }
 
@@ -547,11 +569,22 @@ class ProcessorTest {
         
         setupSuccessfulProcessingMocks();
 
+        String expectedGroupKey = MigrationRecordService.generateRecordingGroupKey(
+            "12345678901", 
+            "EXHIBIT123",   
+            "Jane Smith",   
+            "John Doe",     
+            null,           
+            testMigrationRecord.getCreateTime() != null 
+                ? testMigrationRecord.getCreateTime().toLocalDateTime() 
+                : LocalDateTime.now()
+        );
+
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
         assertNotNull(result);
         verify(migrationRecordService).updateParentTempIdIfCopy(
-            testMigrationRecord.getArchiveId(), "test-group", "2");
+            testMigrationRecord.getArchiveId(),  expectedGroupKey, "2");
         verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s", testMigrationRecord.getArchiveId());
     }
 
