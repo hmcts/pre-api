@@ -100,6 +100,7 @@ mediakind:
   symmetricKey: ${SYMMETRIC_KEY:}
   vodStreamingEndpoint: ${MEDIA_KIND_VOD_STREAMING_ENDPOINT:default}
   liveStreamingEndpoint: ${MEDIA_KIND_LIVE_STREAMING_ENDPOINT:default-live}
+  location: ${MEDIA_KIND_LOCATION:uksouth}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 
@@ -177,6 +178,12 @@ feature-flags:
 #              media:
 #                MediaKindClient: DEBUG
 #                MediaKindAccountsClient: DEBUG
+#feign:
+#  client:
+#    config:
+#      mediaKindClient:
+#        loggerLevel: full
+
 #log4j:
 #  logger:
 #    org:

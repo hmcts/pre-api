@@ -72,6 +72,7 @@ import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFO
     "mediakind.symmetricKey=testSymmetricKey",
     "mediakind.vodStreamingEndpoint=default",
     "mediakind.liveStreamingEndpoint=default-live",
+    "mediakind.location=uksouth",
     "mediakind.streaming-locator-on-start=true",
 })
 public class MediaKindTest {
