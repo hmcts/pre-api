@@ -95,6 +95,7 @@ public class MediaKind implements IMediaService {
     private final String symmetricKey;
     private final String vodStreamingEndpoint;
     private final String liveStreamingEndpoint;
+    private final String location;
 
     private final MediaKindClient mediaKindClient;
     private final AzureIngestStorageService azureIngestStorageService;
@@ -104,7 +105,6 @@ public class MediaKind implements IMediaService {
 
     public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
     public static final String ENCODE_FROM_INGEST_TRANSFORM = "EncodeFromIngest";
-    private static final String LOCATION = "uksouth";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
     private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
     private static final String SENT_FOR_ENCODING = "SENT_FOR_ENCODING";
@@ -121,6 +121,7 @@ public class MediaKind implements IMediaService {
         @Value("${mediakind.symmetricKey:}") String symmetricKey,
         @Value("${mediakind.vodStreamingEndpoint}") String vodStreamingEndpoint,
         @Value("${mediakind.liveStreamingEndpoint}") String liveStreamingEndpoint,
+        @Value("${mediakind.location}") String location,
         MediaKindClient mediaKindClient,
         AzureIngestStorageService azureIngestStorageService,
         AzureFinalStorageService azureFinalStorageService
@@ -133,6 +134,7 @@ public class MediaKind implements IMediaService {
         this.symmetricKey = symmetricKey;
         this.vodStreamingEndpoint = vodStreamingEndpoint;
         this.liveStreamingEndpoint = liveStreamingEndpoint;
+        this.location = location;
         this.mediaKindClient = mediaKindClient;
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
@@ -717,7 +719,7 @@ public class MediaKind implements IMediaService {
             mediaKindClient.putLiveEvent(
                 getSanitisedLiveEventId(captureSession.getId()),
                 MkLiveEvent.builder()
-                           .location(LOCATION)
+                           .location(location)
                            .tags(Map.of(
                                "environment", environmentTag,
                                "application", "pre-recorded evidence",
@@ -806,7 +808,7 @@ public class MediaKind implements IMediaService {
             var endpoint = mediaKindClient.createStreamingEndpoint(
                 endpointName,
                 MkStreamingEndpoint.builder()
-                    .location(LOCATION)
+                    .location(location)
                     .tags(Map.of(
                         "environment", environmentTag,
                         "application", "pre-recorded evidence"))
@@ -893,7 +895,7 @@ public class MediaKind implements IMediaService {
                + "-"
                + subscription
                + "."
-               + LOCATION
+               + location
                + ".streaming.mediakind.com";
     }
 
