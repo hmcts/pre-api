@@ -63,7 +63,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 
                 migrationRecordService.updateToFailed(
                     item.getPassItem().cleansedData().getArchiveId(), 
-                    "Processing_Error", 
+                    "Error", 
                     e.getMessage()
                 );
 
