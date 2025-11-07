@@ -96,7 +96,6 @@ class TestingSupportController {
     private final ScheduledTaskRunner scheduledTaskRunner;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MigrationRecordRepository migrationRecordRepository;
-    private final PortalAccessRepository portalAccessRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -114,8 +113,7 @@ class TestingSupportController {
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
                              final AzureFinalStorageService azureFinalStorageService,
-                             final MigrationRecordRepository migrationRecordRepository,
-                             final PortalAccessRepository portalAccessRepository) {
+                             final MigrationRecordRepository migrationRecordRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -132,7 +130,6 @@ class TestingSupportController {
         this.scheduledTaskRunner = scheduledTaskRunner;
         this.azureFinalStorageService = azureFinalStorageService;
         this.migrationRecordRepository = migrationRecordRepository;
-        this.portalAccessRepository = portalAccessRepository;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -339,53 +336,6 @@ class TestingSupportController {
             "accessId", appAccess.getId().toString(),
             "courtId", appAccess.getCourt().getId().toString()
         ));
-    }
-
-    @PostMapping("/create-invitation-sent-portal-access/{userId}")
-    public ResponseEntity<Map<String, String>> createInvitationSentPortalAccess(@PathVariable UUID userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("User: " + userId));
-        if (!user.getPortalAccess().isEmpty()) {
-            PortalAccess currentPortalAccess =  user.getPortalAccess().stream()
-                .filter(access -> !access.isDeleted())
-                .findFirst()
-                .orElse(null);
-            if (currentPortalAccess != null) {
-                return ResponseEntity.ok(Map.of("portalAccessId", currentPortalAccess.getId().toString()));
-            }
-        }
-
-        PortalAccess portalAccess = new PortalAccess();
-        portalAccess.setId(UUID.randomUUID());
-        portalAccess.setStatus(AccessStatus.INVITATION_SENT);
-        portalAccess.setUser(user);
-        portalAccess.setInvitedAt(Timestamp.from(Instant.now()));
-        portalAccessRepository.saveAndFlush(portalAccess);
-        return ResponseEntity.ok(Map.of("portalAccessId", portalAccess.getId().toString()));
-    }
-
-    @PostMapping("/create-active-portal-access/{userId}")
-    public ResponseEntity<Map<String, String>> createActivePortalAccess(@PathVariable UUID userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("User: " + userId));
-        if (!user.getPortalAccess().isEmpty()) {
-            PortalAccess currentPortalAccess =  user.getPortalAccess().stream()
-                .filter(access -> !access.isDeleted())
-                .findFirst()
-                .orElse(null);
-            if (currentPortalAccess != null) {
-                return ResponseEntity.ok(Map.of("portalAccessId", currentPortalAccess.getId().toString()));
-            }
-        }
-
-        PortalAccess portalAccess = new PortalAccess();
-        portalAccess.setId(UUID.randomUUID());
-        portalAccess.setStatus(AccessStatus.ACTIVE);
-        portalAccess.setUser(user);
-        portalAccess.setInvitedAt(Timestamp.from(Instant.now()));
-        portalAccess.setRegisteredAt(Timestamp.from(Instant.now()));
-        portalAccessRepository.saveAndFlush(portalAccess);
-        return ResponseEntity.ok(Map.of("portalAccessId", portalAccess.getId().toString()));
     }
 
     @PostMapping(value = "/create-ready-to-use-booking/{caseReference}", produces = MediaType.APPLICATION_JSON_VALUE)

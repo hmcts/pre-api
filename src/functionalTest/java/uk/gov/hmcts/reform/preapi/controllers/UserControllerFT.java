@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.PortalAccessDTO;
@@ -85,37 +86,33 @@ public class UserControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: Unregistered portal user is set to active")
     void shouldSetStatusToInvitationSentWhenActivatingUnregisteredPortalUser() throws JsonProcessingException {
-        // create a user
-        CreateUserDTO dto = createUserDto();
-        Response putUser1 = putUser(dto, TestingSupportRoles.SUPER_USER);
-        assertResponseCode(putUser1, 201);
-
-        // add new portal access in the invited status
-        Response createPortalAccessResponse = doPostRequest(
-            "/testing-support/create-invitation-sent-portal-access/" + dto.getId(),
-            TestingSupportRoles.LEVEL_3);
-        UUID portalAccessId = createPortalAccessResponse.jsonPath().getUUID("portalAccessId");
+        // create and invite a user
+        CreateUserDTO createUserDto = createUserDto();
+        CreateInviteDTO inviteDto = createInviteDto(createUserDto.getId(), createUserDto.getFirstName(),
+            createUserDto.getLastName(), createUserDto.getEmail());
+        Response putInviteResponse = putInvite(inviteDto);
+        assertResponseCode(putInviteResponse, 201);
 
         // check portal access
-        UserDTO userDto1 = getUserById(dto.getId());
+        UserDTO userDto1 = getUserById(inviteDto.getUserId());
         assertThat(userDto1.getPortalAccess()).isNotEmpty();
         PortalAccessDTO portalAccessDto1 = userDto1.getPortalAccess().getFirst();
-        assertThat(portalAccessDto1.getId()).isEqualTo(portalAccessId);
+        assertThat(portalAccessDto1.getId()).isNotNull();
         assertThat(portalAccessDto1.getRegisteredAt()).isNull();
         assertThat(portalAccessDto1.getStatus()).isEqualTo(AccessStatus.INVITATION_SENT);
 
         // update portal access to active
         CreatePortalAccessDTO updatedPortalAccess = new CreatePortalAccessDTO(portalAccessDto1);
         updatedPortalAccess.setStatus(AccessStatus.ACTIVE);
-        dto.setPortalAccess(Set.of(updatedPortalAccess));
-        Response putUser2 = putUser(dto, TestingSupportRoles.SUPER_USER);
+        createUserDto.setPortalAccess(Set.of(updatedPortalAccess));
+        Response putUser2 = putUser(createUserDto, TestingSupportRoles.SUPER_USER);
         assertResponseCode(putUser2, 204);
 
         // check status set to invitation sent
-        UserDTO userDto2 = getUserById(dto.getId());
+        UserDTO userDto2 = getUserById(createUserDto.getId());
         assertThat(userDto2.getPortalAccess()).isNotEmpty();
         PortalAccessDTO portalAccessDto2 = userDto2.getPortalAccess().getFirst();
-        assertThat(portalAccessDto2.getId()).isEqualTo(portalAccessId);
+        assertThat(portalAccessDto2.getId()).isEqualTo(portalAccessDto1.getId());
         assertThat(portalAccessDto2.getRegisteredAt()).isNull();
         assertThat(portalAccessDto2.getStatus()).isEqualTo(AccessStatus.INVITATION_SENT);
     }
@@ -123,37 +120,37 @@ public class UserControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: Registered portal user is set to active")
     void shouldSetStatusToActiveWhenActivatingRegisteredPortalUser() throws JsonProcessingException {
-        // create a user
-        CreateUserDTO dto = createUserDto();
-        Response putUser1 = putUser(dto, TestingSupportRoles.SUPER_USER);
-        assertResponseCode(putUser1, 201);
+        // create and invite a user
+        CreateUserDTO createUserDto = createUserDto();
+        CreateInviteDTO inviteDto = createInviteDto(createUserDto.getId(), createUserDto.getFirstName(),
+            createUserDto.getLastName(), createUserDto.getEmail());
+        Response putInviteResponse = putInvite(inviteDto);
+        assertResponseCode(putInviteResponse, 201);
 
-        // add new portal access in the active status
-        Response createPortalAccessResponse = doPostRequest(
-            "/testing-support/create-active-portal-access/" + dto.getId(),
-            TestingSupportRoles.LEVEL_3);
-        UUID portalAccessId = createPortalAccessResponse.jsonPath().getUUID("portalAccessId");
+        // register the user
+        Response redeemResponse = postRedeem(createUserDto.getEmail());
+        assertResponseCode(redeemResponse, 204);
 
         // check portal access
-        UserDTO userDto1 = getUserById(dto.getId());
+        UserDTO userDto1 = getUserById(createUserDto.getId());
         assertThat(userDto1.getPortalAccess()).isNotEmpty();
         PortalAccessDTO portalAccessDto1 = userDto1.getPortalAccess().getFirst();
-        assertThat(portalAccessDto1.getId()).isEqualTo(portalAccessId);
+        assertThat(portalAccessDto1.getId()).isNotNull();
         assertThat(portalAccessDto1.getRegisteredAt()).isNotNull();
         assertThat(portalAccessDto1.getStatus()).isEqualTo(AccessStatus.ACTIVE);
 
         // update portal access to active
         CreatePortalAccessDTO updatedPortalAccess = new CreatePortalAccessDTO(portalAccessDto1);
         updatedPortalAccess.setStatus(AccessStatus.ACTIVE);
-        dto.setPortalAccess(Set.of(updatedPortalAccess));
-        Response putUser2 = putUser(dto, TestingSupportRoles.SUPER_USER);
+        createUserDto.setPortalAccess(Set.of(updatedPortalAccess));
+        Response putUser2 = putUser(createUserDto, TestingSupportRoles.SUPER_USER);
         assertResponseCode(putUser2, 204);
 
         // check status set to active
-        UserDTO userDto2 = getUserById(dto.getId());
+        UserDTO userDto2 = getUserById(createUserDto.getId());
         assertThat(userDto2.getPortalAccess()).isNotEmpty();
         PortalAccessDTO portalAccessDto2 = userDto2.getPortalAccess().getFirst();
-        assertThat(portalAccessDto2.getId()).isEqualTo(portalAccessId);
+        assertThat(portalAccessDto2.getId()).isEqualTo(portalAccessDto1.getId());
         assertThat(portalAccessDto2.getRegisteredAt()).isEqualTo(portalAccessDto1.getRegisteredAt());
         assertThat(portalAccessDto2.getStatus()).isEqualTo(AccessStatus.ACTIVE);
     }
@@ -344,6 +341,17 @@ public class UserControllerFT extends FunctionalTestBase {
         dto.setRoleId(roleId);
         dto.setActive(true);
         dto.setDefaultCourt(true);
+        return dto;
+    }
+
+    private CreateInviteDTO createInviteDto(UUID userId, String firstName, String lastName, String email) {
+        var dto = new CreateInviteDTO();
+        dto.setUserId(userId);
+        dto.setFirstName(firstName);
+        dto.setLastName(lastName);
+        dto.setEmail(email);
+        dto.setOrganisation("Example Organisation");
+        dto.setPhone("1234567890");
         return dto;
     }
 
