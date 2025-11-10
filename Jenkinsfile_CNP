@@ -33,4 +33,12 @@ withPipeline(type, product, component) {
   afterSuccess('functionalTest:stg') {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
+
+  // The lines below are temporary for testing
+
+  enableFortifyScan()
+
+  afterSuccess('fortify-scan') {
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/Fortify Scan/**/*'
+  }
 }
