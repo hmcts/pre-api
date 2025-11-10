@@ -156,18 +156,16 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (status == VfMigrationStatus.SUBMITTED) {
             ExtractedMetadata extractedData = convertToExtractedMetadata(migrationRecord);
             
-            if (migrationRecord.getRecordingGroupKey() == null || migrationRecord.getRecordingGroupKey().isEmpty()) {
-                String groupKey = MigrationRecordService.generateRecordingGroupKey(
-                    extractedData.getUrn(),
-                    extractedData.getExhibitReference(),
-                    extractedData.getWitnessFirstName(),
-                    extractedData.getDefendantLastName(),
-                    extractedData.getDatePattern(),
-                    extractedData.getCreateTime()
-                );
-                migrationRecord.setRecordingGroupKey(groupKey);
-                migrationRecordRepository.save(migrationRecord);     
-            } 
+            String groupKey = MigrationRecordService.generateRecordingGroupKey(
+                extractedData.getUrn(),
+                extractedData.getExhibitReference(),
+                extractedData.getWitnessFirstName(),
+                extractedData.getDefendantLastName(),
+                extractedData.getDatePattern(),
+                extractedData.getCreateTime()
+            );
+            migrationRecord.setRecordingGroupKey(groupKey);
+            migrationRecordRepository.save(migrationRecord);     
             
             if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {
                 String origVersionStr = extractedData.getRecordingVersionNumber() != null 
