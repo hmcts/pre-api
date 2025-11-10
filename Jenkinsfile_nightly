@@ -13,4 +13,9 @@ def component = "api"
 
 withNightlyPipeline(type, product, component) {
    enableMutationTest()
+   enableFortifyScan()
+
+   afterSuccess('fortify-scan') {
+      steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/Fortify Scan/**/*'
+   }
 }
