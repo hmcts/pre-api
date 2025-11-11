@@ -36,7 +36,7 @@ withPipeline(type, product, component) {
 
   // The lines below are temporary for testing
 
-  enableFortifyScan()
+  enableFortifyScan('pre-hmctskv-stg')
 
   afterSuccess('fortify-scan') {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/Fortify Scan/**/*'
