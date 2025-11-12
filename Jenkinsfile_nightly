@@ -2,7 +2,10 @@
 
 properties([
   // H allow predefined but random minute see https://en.wikipedia.org/wiki/Cron#Non-standard_characters
-  pipelineTriggers([cron('H 07 * * 1-5')])
+  pipelineTriggers([cron('H 07 * * 1-5')]),
+  parameters([
+    string(name: 'ENVIRONMENT', defaultValue: 'stg', description: 'Environment to test')
+  ])
 ])
 
 @Library("Infrastructure")
@@ -13,9 +16,9 @@ def component = "api"
 
 withNightlyPipeline(type, product, component) {
    enableMutationTest()
-   enableFortifyScan('pre-hmctskv-${env}')
+   enableFortifyScan("pre-hmctskv-${params.ENVIRONMENT}")
 
    afterSuccess('fortify-scan') {
-      steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/Fortify Scan/**/*'
+     steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/Fortify Scan/**/*'
    }
 }
