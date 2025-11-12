@@ -1,4 +1,11 @@
 #!groovy
+
+properties([
+parameters([
+    string(name: 'ENVIRONMENT', defaultValue: 'stg', description: 'Environment to test')
+  ])
+])
+
 @Library("Infrastructure")
 def type = "java"
 def product = "pre"
@@ -36,7 +43,7 @@ withPipeline(type, product, component) {
 
   // The lines below are temporary for testing
 
-  enableFortifyScan('pre-hmctskv-${env}')
+  enableFortifyScan("pre-hmctskv-${params.ENVIRONMENT}")
 
   afterSuccess('fortify-scan') {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/Fortify Scan/**/*'
