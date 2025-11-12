@@ -584,7 +584,10 @@ public class MigrationRecordService {
         entity.setCourtReference(courtName);
         entity.setCourtId(dto.getCourtId());
         entity.setUrn(dto.getUrn());
-        entity.setExhibitReference(dto.getExhibitReference());
+        entity.setExhibitReference(dto.getExhibitReference() != null 
+            && !dto.getExhibitReference().trim().isEmpty() 
+            ? dto.getExhibitReference() 
+            : null);
         entity.setDefendantName(dto.getDefendantName());
         entity.setWitnessName(dto.getWitnessName());
         entity.setRecordingVersion(dto.getRecordingVersion().toString());

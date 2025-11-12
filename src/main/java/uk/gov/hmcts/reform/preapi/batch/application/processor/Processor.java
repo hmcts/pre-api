@@ -147,7 +147,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
             } catch (Exception e) {
                 loggingService.logError("Error processing archive %s: %s", archiveName, e.getMessage(), e);
-                migrationRecordService.updateToFailed(archiveId, "Error", e.getMessage());
+                migrationRecordService.updateToFailed(archiveId, VfFailureReason.GENERAL_ERROR.toString(), 
+                    e.getMessage());
                 handleError(migrationRecord, "Failed to create migrated item group: " + e.getMessage(), "Error");
                 return null;
             }
