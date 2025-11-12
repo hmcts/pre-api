@@ -13,7 +13,7 @@ def component = "api"
 
 withNightlyPipeline(type, product, component) {
    enableMutationTest()
-   enableFortifyScan('pre-hmctskv-stg')
+   enableFortifyScan('pre-hmctskv-${env}')
 
    afterSuccess('fortify-scan') {
       steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/Fortify Scan/**/*'
