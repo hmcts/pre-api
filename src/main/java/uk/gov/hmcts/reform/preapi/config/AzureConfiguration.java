@@ -27,35 +27,44 @@ public class AzureConfiguration {
     @Value("${azure.ingestStorage.connectionString}")
     private String ingestConnectionString;
 
+    @Value("${azure.vodafoneStorage.connectionString}")
+    private String vodafoneConnectionString;
+
     @Value("${azure.finalStorage.accountName}")
     private String finalStorageAccountName;
 
     @Value("${azure.ingestStorage.accountName}")
     private String ingestStorageAccountName;
 
+    @Value("${azure.vodafoneStorage.accountName}")
+    private String vodafoneStorageAccountName;
+
     @Value("${azure.managedIdentityClientId}")
     private String managedIdentityClientId;
 
     @Bean
     public BlobServiceClient ingestStorageClient() {
-        if (!managedIdentityClientId.isEmpty()) {
-            log.info("Using managed identity to authenticate with ingest storage account with clientId: {}",
-                     managedIdentityClientId);
-            return getBlobServiceClientUsingManagedIdentity(ingestStorageAccountName);
-        }
-        log.info("Using connection string to authenticate with ingest storage account");
-        return getBlobServiceClientUsingConnectionString(ingestConnectionString, ingestStorageAccountName);
+        return storageClient(ingestStorageAccountName, ingestConnectionString);
     }
 
     @Bean
     public BlobServiceClient finalStorageClient() {
+        return storageClient(finalStorageAccountName, finalConnectionString);
+    }
+
+    @Bean
+    public BlobServiceClient vodafoneStorageClient() {
+        return storageClient(vodafoneStorageAccountName, vodafoneConnectionString);
+    }
+
+    private BlobServiceClient storageClient(String storageAccountName, String connectionString) {
         if (!managedIdentityClientId.isEmpty()) {
-            log.info("Using managed identity to authenticate with final storage account with clientId: {}",
-                     managedIdentityClientId);
-            return getBlobServiceClientUsingManagedIdentity(finalStorageAccountName);
+            log.info("Using managed identity to authenticate with {} account with clientId: {}",
+                     storageAccountName, managedIdentityClientId);
+            return getBlobServiceClientUsingManagedIdentity(storageAccountName);
         }
-        log.info("Using connection string to authenticate with final storage account");
-        return getBlobServiceClientUsingConnectionString(finalConnectionString, finalStorageAccountName);
+        log.info("Using connection string to authenticate with {} storage account", storageAccountName);
+        return getBlobServiceClientUsingConnectionString(connectionString, storageAccountName);
     }
 
     @Nullable
