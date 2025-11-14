@@ -53,6 +53,12 @@
     <exclude name="UseObjectForClearerAPI"/>
     <exclude name="LawOfDemeter"/>
   </rule>
+  <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts">
+    <properties>
+      <property name="problemDepth" value="4" />
+    </properties>
+  </rule>
+
   <rule ref="category/java/design.xml/SignatureDeclareThrowsException">
     <properties>
       <property name="IgnoreJUnitCompletely" value="true"/>
@@ -66,6 +72,7 @@
   <rule ref="category/java/errorprone.xml">
     <exclude name="NonSerializableClass"/>
     <exclude name="AvoidDuplicateLiterals"/>
+    <exclude name="ReplaceJavaUtilDate"/>
   </rule>
   <rule ref="category/java/multithreading.xml">
     <exclude name="UseConcurrentHashMap"/>

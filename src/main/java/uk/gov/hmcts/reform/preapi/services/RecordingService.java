@@ -179,7 +179,7 @@ public class RecordingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public void deleteById(UUID recordingId) {
-        var recording = recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
+        Recording recording = recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
             .orElseThrow(() -> new NotFoundException("Recording: " + recordingId));
         recording.setDeleteOperation(true);
         recording.setDeletedAt(Timestamp.from(Instant.now()));

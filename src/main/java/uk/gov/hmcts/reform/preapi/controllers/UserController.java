@@ -29,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
@@ -168,13 +169,13 @@ public class UserController extends PreApiController {
         }
 
         // Prevent ROLE_LEVEL_1 users from uplifting to ROLE_SUPER_USER
-        var auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.hasRole("ROLE_LEVEL_1") && !auth.hasRole("ROLE_SUPER_USER")) {
             boolean hasSuperUserRole = createUserDTO.getAppAccess()
                 .stream()
                 .map(CreateAppAccessDTO::getRoleId)
                 .anyMatch(roleId -> {
-                    var role = userService.getRoleById(roleId);
+                    Role role = userService.getRoleById(roleId);
                     return "Super User".equals(role.getName());
                 });
 

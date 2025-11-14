@@ -69,6 +69,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -93,8 +94,6 @@ import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitised
     "PMD.TooManyMethods",
 })
 public class MediaKind implements IMediaService {
-    private final String ingestStorageAccount;
-    private final String finalStorageAccount;
     private final String environmentTag;
     private final String subscription;
     private final String issuer;
@@ -119,8 +118,6 @@ public class MediaKind implements IMediaService {
 
     @Autowired
     public MediaKind(
-        @Value("${azure.ingestStorage.accountName}") String ingestStorageAccount,
-        @Value("${azure.finalStorage.accountName}") String finalStorageAccount,
         @Value("${platform-env}") String env,
         @Value("${mediakind.subscription}") String subscription,
         @Value("${mediakind.issuer:}") String issuer,
@@ -132,8 +129,6 @@ public class MediaKind implements IMediaService {
         AzureIngestStorageService azureIngestStorageService,
         AzureFinalStorageService azureFinalStorageService
     ) {
-        this.ingestStorageAccount = ingestStorageAccount;
-        this.finalStorageAccount = finalStorageAccount;
         this.environmentTag = env;
         this.subscription = subscription;
         this.issuer = issuer;
@@ -154,11 +149,11 @@ public class MediaKind implements IMediaService {
         // todo check asset has files
         createContentKeyPolicy(userId, symmetricKey);
         getOrCreateStreamingPolicy(userId);
-        var streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
+        String streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
 
-        var hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(vodStreamingEndpoint)
+        String hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(vodStreamingEndpoint)
             .getProperties().getHostName();
-        var paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
+        MkStreamingLocatorUrlPaths paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
 
         String dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol() == StreamingProtocol.Dash)
             .findFirst().map(p -> p.getPaths().getFirst()).orElse(null);
@@ -242,7 +237,7 @@ public class MediaKind implements IMediaService {
 
     @Override
     public String playLiveEvent(UUID captureSessionId) throws InterruptedException {
-        var liveEventId = getSanitisedLiveEventId(captureSessionId);
+        String liveEventId = getSanitisedLiveEventId(captureSessionId);
         checkLiveEventExists(liveEventId);
         getOrCreateStreamingEndpoint(liveStreamingEndpoint);
 
@@ -408,7 +403,7 @@ public class MediaKind implements IMediaService {
 
     @Override
     public String triggerProcessingStep2(UUID recordingId, boolean isImport) {
-        var containerName = recordingId.toString() + (isImport ? "-input" : "");
+        String containerName = recordingId.toString() + (isImport ? "-input" : "");
         String filename = azureIngestStorageService.tryGetMp4FileName(containerName);
         if (filename == null) {
             log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
@@ -551,7 +546,7 @@ public class MediaKind implements IMediaService {
                                                             ContentKeyPolicyRestrictionTokenType.JWT)
                                                         .withPrimaryVerificationKey(
                                                             new ContentKeyPolicySymmetricTokenKey()
-                                                                .withKeyValue(key.getBytes())))
+                                                                .withKeyValue(key.getBytes(StandardCharsets.UTF_8))))
                                                 .configuration(new ContentKeyPolicyClearKeyConfiguration())
                                                 .build()))
                                 .build())
@@ -625,7 +620,7 @@ public class MediaKind implements IMediaService {
                                       String transformName,
                                       String fileName) {
         getOrCreateTransform(transformName);
-        var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        String jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         log.info("Creating job [{}]", jobName);
         mediaKindClient.putJob(
             transformName,
@@ -702,7 +697,6 @@ public class MediaKind implements IMediaService {
                     isFinal);
     }
 
-    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private void createAsset(String assetName,
                              String description,
                              String containerName,
@@ -714,7 +708,9 @@ public class MediaKind implements IMediaService {
                 MkAsset.builder()
                     .properties(MkAssetProperties.builder()
                                     .container(containerName)
-                                    .storageAccountName(isFinal ? finalStorageAccount : ingestStorageAccount)
+                                    .storageAccountName(isFinal ?
+                                                            azureFinalStorageService.getStorageAccountName() :
+                                                            azureIngestStorageService.getStorageAccountName())
                                     .description(description)
                                     .build())
                     .build()
@@ -799,7 +795,7 @@ public class MediaKind implements IMediaService {
     @SuppressWarnings("PMD.ExceptionAsFlowControl")
     private void checkLiveEventExists(String liveEventId) {
         try {
-            var liveEvent = mediaKindClient.getLiveEvent(liveEventId);
+            MkLiveEvent liveEvent = mediaKindClient.getLiveEvent(liveEventId);
             if (!liveEvent.getProperties().getResourceState().equals(LiveEventResourceState.RUNNING.toString())) {
                 throw new LiveEventNotRunningException(liveEventId);
             }
@@ -879,7 +875,7 @@ public class MediaKind implements IMediaService {
 
     private String constructManifestPath(String liveEventId) {
         log.info("Generating manifest path");
-        var localManifestPath = "/" + liveEventId + "/index.qfm/manifest(format=m3u8-cmaf)";
+        String localManifestPath = "/" + liveEventId + "/index.qfm/manifest(format=m3u8-cmaf)";
         log.info(localManifestPath);
         return HTTPS_PREFIX + getHostname(liveStreamingEndpoint) + localManifestPath;
     }

@@ -242,13 +242,13 @@ public class GlobalControllerExceptionHandler {
         throws JsonProcessingException {
         log.error("B2C Controller exception: {}", e.getMessage());
 
-        var error = new B2CErrorDTO();
-        var cause = e.getCause() != null ? e.getCause() : e;
+        B2CErrorDTO error = new B2CErrorDTO();
+        Throwable cause = e.getCause() != null ? e.getCause() : e;
         error.setUserMessage(cause.getMessage());
         // https://learn.microsoft.com/en-us/azure/active-directory-b2c/restful-technical-profile#returning-validation-error-message
         error.setStatus(HttpStatus.CONFLICT.value()); // Has to be 409...
 
-        HttpHeaders responseHeaders = new HttpHeaders();
+        MultiValueMap<String, String> responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
         return new ResponseEntity<>(
             new ObjectMapper().writeValueAsString(error),

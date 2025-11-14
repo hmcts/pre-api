@@ -45,6 +45,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -207,7 +208,6 @@ public class EditRequestService {
     }
 
     @Transactional
-    @SuppressWarnings("PMD.UnusedAssignment")
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
@@ -224,10 +224,12 @@ public class EditRequestService {
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
         EditInstructions prevInstructions = null;
-        boolean isInstructionCombination = !isOriginalRecordingEdit
-            && sourceRecording.getEditInstruction() != null
-            && !sourceRecording.getEditInstruction().isEmpty()
-            && (prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction())) != null
+        if (!isOriginalRecordingEdit) {
+            prevInstructions = getPreviousInstructions(sourceRecording.getEditInstruction());
+        }
+
+        boolean isInstructionCombination =
+            prevInstructions != null
             && prevInstructions.getFfmpegInstructions() != null
             && !prevInstructions.getFfmpegInstructions().isEmpty()
             && prevInstructions.getRequestedInstructions() != null
@@ -248,7 +250,8 @@ public class EditRequestService {
 
         List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
             requestedEdits,
-            isInstructionCombination ? request.getSourceRecording() : sourceRecording);
+            isInstructionCombination ? request.getSourceRecording() : sourceRecording
+        );
 
         request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
 
@@ -262,6 +265,14 @@ public class EditRequestService {
 
         editRequestRepository.save(request);
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    private EditInstructions getPreviousInstructions(String editInstruction) {
+        if (editInstruction != null
+            && !editInstruction.isEmpty()) {
+            return EditInstructions.tryFromJson(editInstruction);
+        }
+        return null;
     }
 
     @Transactional
@@ -283,7 +294,8 @@ public class EditRequestService {
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
         try {
-            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
+            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(),
+                                                                                      StandardCharsets.UTF_8));
             return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
                 .withType(EditCutInstructionDTO.class)
                 .build()
@@ -296,7 +308,7 @@ public class EditRequestService {
 
     @SuppressWarnings({"PMD.CognitiveComplexity", "PMD.AvoidLiteralsInIfCondition"})
     public List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
-                                                                final Recording recording) {
+                                                             final Recording recording) {
         long recordingDuration = recording.getDuration().toSeconds();
         if (instructions.size() == 1) {
             EditCutInstructionDTO firstInstruction = instructions.getFirst();
@@ -332,18 +344,20 @@ public class EditRequestService {
         // invert
         for (EditCutInstructionDTO instruction : instructions) {
             if (instruction.getStart() == instruction.getEnd()) {
-                throw new BadRequestException("Invalid instruction: Instruction with 0 second duration invalid: Start("
-                                                  + instruction.getStart()
-                                                  + "), End("
-                                                  + instruction.getEnd()
-                                                  + ")");
+                throw new BadRequestException(
+                    "Invalid instruction: Instruction with 0 second duration invalid: Start("
+                        + instruction.getStart()
+                        + "), End("
+                        + instruction.getEnd()
+                        + ")");
             }
             if (instruction.getEnd() < instruction.getStart()) {
-                throw new BadRequestException("Invalid instruction: Instruction with end time before start time: Start("
-                                                  + instruction.getStart()
-                                                  + "), End("
-                                                  + instruction.getEnd()
-                                                  + ")");
+                throw new BadRequestException(
+                    "Invalid instruction: Instruction with end time before start time: Start("
+                        + instruction.getStart()
+                        + "), End("
+                        + instruction.getEnd()
+                        + ")");
             }
             if (instruction.getEnd() > recordingDuration) {
                 throw new BadRequestException("Invalid instruction: Instruction end time exceeding duration: Start("
@@ -360,7 +374,7 @@ public class EditRequestService {
             currentTime = Math.max(currentTime, instruction.getEnd());
         }
         if (currentTime != recordingDuration) {
-            invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
+            invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime, recordingDuration));
         }
 
         return invertedInstructions;
@@ -402,7 +416,11 @@ public class EditRequestService {
                 long originalMappedStart = originalSegment.getStart() + offsetInSegment;
                 long originalMappedEnd = originalMappedStart + cutLength;
 
-                mappedCuts.add(new EditCutInstructionDTO(originalMappedStart, originalMappedEnd, newCut.getReason()));
+                mappedCuts.add(new EditCutInstructionDTO(
+                    originalMappedStart,
+                    originalMappedEnd,
+                    newCut.getReason()
+                ));
             }
         }
 

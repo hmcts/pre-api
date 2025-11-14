@@ -54,16 +54,16 @@ public class CleanupLiveEvents extends RobotUserTask {
     @Autowired
     @SuppressWarnings("PMD.ExcessiveParameterList")
     public CleanupLiveEvents(final MediaServiceBroker mediaServiceBroker,
-                      final CaptureSessionService captureSessionService,
-                      final BookingService bookingService,
-                      final UserService userService,
-                      final UserAuthenticationService userAuthenticationService,
-                      final AzureIngestStorageService azureIngestStorageService,
-                      final @Value("${cron-user-email}") String cronUserEmail,
-                      final @Value("${platform-env}") String platformEnv,
-                      final @Value("${tasks.cleanup-live-events.batch-size}") int batchSize,
-                      final @Value("${tasks.cleanup-live-events.cooldown}") int batchCooldownTime,
-                      final @Value("${tasks.cleanup-live-events.job-poll-interval}") int jobPollingInterval) {
+                             final CaptureSessionService captureSessionService,
+                             final BookingService bookingService,
+                             final UserService userService,
+                             final UserAuthenticationService userAuthenticationService,
+                             final AzureIngestStorageService azureIngestStorageService,
+                             @Value("${cron-user-email}") final String cronUserEmail,
+                             @Value("${platform-env}") final String platformEnv,
+                             @Value("${tasks.cleanup-live-events.batch-size}") final int batchSize,
+                             @Value("${tasks.cleanup-live-events.cooldown}") final int batchCooldownTime,
+                             @Value("${tasks.cleanup-live-events.job-poll-interval}") int jobPollingInterval) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
@@ -157,8 +157,10 @@ public class CleanupLiveEvents extends RobotUserTask {
                 captureSession.setBookingId(booking.getId());
                 captureSession.setOrigin(RecordingOrigin.PRE);
                 captureSession.setStatus(RecordingStatus.NO_RECORDING);
-                log.info("Found old booking: {}. Creating NO_RECORDING capture session: {}",
-                         booking.getId(), captureSession.getId());
+                log.info(
+                    "Found old booking: {}. Creating NO_RECORDING capture session: {}",
+                    booking.getId(), captureSession.getId()
+                );
                 captureSessionService.upsert(captureSession);
             });
 
@@ -277,9 +279,11 @@ public class CleanupLiveEvents extends RobotUserTask {
                 currentTask.setStatus(CleanupTaskStatus.PROCESSING_2);
             }
             case FAILURE -> {
-                log.error("Processing job {} failed for capture session {}",
-                          currentTask.getCurrentJobName(),
-                          captureSessionId);
+                log.error(
+                    "Processing job {} failed for capture session {}",
+                    currentTask.getCurrentJobName(),
+                    captureSessionId
+                );
                 captureSessionService.stopCaptureSession(
                     captureSessionId,
                     RecordingStatus.FAILURE,
@@ -321,9 +325,11 @@ public class CleanupLiveEvents extends RobotUserTask {
                 currentTask.setStatus(CleanupTaskStatus.RECORDING_AVAILABLE);
             }
             case FAILURE -> {
-                log.error("Processing job {} failed for capture session {}",
-                          currentTask.getCurrentJobName(),
-                          captureSessionId);
+                log.error(
+                    "Processing job {} failed for capture session {}",
+                    currentTask.getCurrentJobName(),
+                    captureSessionId
+                );
                 captureSessionService.stopCaptureSession(
                     captureSessionId,
                     RecordingStatus.FAILURE,

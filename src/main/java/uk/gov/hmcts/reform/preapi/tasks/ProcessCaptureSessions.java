@@ -141,7 +141,6 @@ public class ProcessCaptureSessions extends RobotUserTask {
         }
     }
 
-    @SuppressWarnings("PMD.TooFewBranchesForSwitch")
     private String getTransformName(EncodeTransform transform) {
         return switch (transform) {
             case ENCODE_FROM_INGEST -> MediaKind.ENCODE_FROM_INGEST_TRANSFORM;

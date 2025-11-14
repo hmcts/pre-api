@@ -69,10 +69,10 @@ public class CaseService {
                        final ParticipantRepository participantRepository,
                        final BookingService bookingService,
                        final ShareBookingService shareBookingService,
-                       final @Lazy BookingRepository bookingRepository,
+                       @Lazy final BookingRepository bookingRepository,
                        final EmailServiceFactory emailServiceFactory,
                        final EditRequestRepository editRequestRepository,
-                       final @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
+                       @Value("${migration.enableMigratedData:false}") final boolean enableMigratedData) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
@@ -151,13 +151,9 @@ public class CaseService {
                 && createCaseDTO.getState() == CaseState.PENDING_CLOSURE;
 
             if (isCasePendingClosure || isCaseClosure) {
-                if (bookingRepository.findAllByCaseIdAndDeletedAtIsNull(foundCase.get()).stream()
-                    .anyMatch(b -> b.getCaptureSessions().isEmpty() || b.getCaptureSessions().stream()
-                        .map(CaptureSession::getStatus)
-                        .anyMatch(s -> s != RecordingStatus.FAILURE
-                            && s != RecordingStatus.NO_RECORDING
-                            && s != RecordingStatus.RECORDING_AVAILABLE))) {
-
+                List<Booking> activeBookingsForCaseId = bookingRepository
+                    .findAllByCaseIdAndDeletedAtIsNull(foundCase.get());
+                if (activeBookingsForCaseId.stream().anyMatch(CaseService::bookingContainsOpenCaptureSessions)) {
                     throw new ResourceInWrongStateException(
                         "Resource Case("
                             + createCaseDTO.getId()
@@ -252,6 +248,14 @@ public class CaseService {
             });
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    private static boolean bookingContainsOpenCaptureSessions(Booking booking) {
+        return booking.getCaptureSessions().isEmpty()
+            || booking.getCaptureSessions().stream().map(CaptureSession::getStatus)
+            .anyMatch(s -> s != RecordingStatus.FAILURE
+                && s != RecordingStatus.NO_RECORDING
+                && s != RecordingStatus.RECORDING_AVAILABLE);
     }
 
     @Transactional

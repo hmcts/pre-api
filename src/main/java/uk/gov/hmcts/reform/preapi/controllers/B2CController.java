@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.dto.VerifyEmailRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.exception.B2CControllerException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -44,8 +46,8 @@ public class B2CController {
     )
     public void postEmailVerification(@Valid @RequestBody VerifyEmailRequestDTO request) {
         try {
-            var user = userService.findByEmail(request.getEmail()).getUser();
-            var emailService = this.emailServiceFactory.getEnabledEmailService(emailServiceName);
+            BaseUserDTO user = userService.findByEmail(request.getEmail()).getUser();
+            IEmailService emailService = this.emailServiceFactory.getEnabledEmailService(emailServiceName);
             emailService.emailVerification(
                 request.getEmail(),
                 user.getFirstName(),

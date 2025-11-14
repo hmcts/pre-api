@@ -44,18 +44,18 @@ public abstract class AzureStorageService {
     public boolean doesIsmFileExist(String containerName) {
         return doesContainerExist(containerName)
             && client
-                .getBlobContainerClient(containerName)
-                .listBlobs()
-                .stream()
-                .anyMatch(blobItem -> blobItem.getName().endsWith(".ism"));
+            .getBlobContainerClient(containerName)
+            .listBlobs()
+            .stream()
+            .anyMatch(blobItem -> blobItem.getName().endsWith(".ism"));
     }
 
     public String getMp4FileName(String containerName) {
         Optional<BlobItem> blob = client.getBlobContainerClient(containerName)
-                         .listBlobs()
-                         .stream()
-                         .filter(blobItem -> blobItem.getName().endsWith(".mp4"))
-                         .findFirst();
+            .listBlobs()
+            .stream()
+            .filter(blobItem -> blobItem.getName().endsWith(".mp4"))
+            .findFirst();
         if (blob.isPresent()) {
             return blob.get().getName();
         }
@@ -73,10 +73,10 @@ public abstract class AzureStorageService {
     public boolean doesBlobExist(String containerName, String blobName) {
         return doesContainerExist(containerName)
             && client
-                .getBlobContainerClient(containerName)
-                .listBlobs()
-                .stream()
-                .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase(blobName));
+            .getBlobContainerClient(containerName)
+            .listBlobs()
+            .stream()
+            .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase(blobName));
     }
 
     public BlobClient getBlob(String containerName, String blobName) {
@@ -175,16 +175,15 @@ public abstract class AzureStorageService {
             destinationContainerClient.create();
         }
 
-        if (!overwrite) {
-            if (destinationContainerClient.getBlobClient(destinationBlobName).exists()) {
-                log.info(
-                    "Skipped copying blob '{}/{}' to {}. Already exists.",
-                    destinationContainerName,
-                    destinationBlobName,
-                    getStorageAccountName()
-                );
-                return;
-            }
+        if (!overwrite && destinationContainerClient.getBlobClient(destinationBlobName).exists()) {
+            log.info(
+                "Skipped copying blob '{}/{}' to {}. Already exists.",
+                destinationContainerName,
+                destinationBlobName,
+                getStorageAccountName()
+            );
+            return;
+
         }
 
         SyncPoller<BlobCopyInfo, Void> poller = destinationContainerClient.getBlobClient(destinationBlobName)
@@ -205,9 +204,10 @@ public abstract class AzureStorageService {
         }
         return client.getBlobContainerClient(containerName).getBlobClient(blobName).getBlobUrl()
             + getBlobSasToken(
-                containerName,
-                blobName,
-                OffsetDateTime.now().plusHours(1),
-                new BlobSasPermission().setReadPermission(true));
+            containerName,
+            blobName,
+            OffsetDateTime.now().plusHours(1),
+            new BlobSasPermission().setReadPermission(true)
+        );
     }
 }

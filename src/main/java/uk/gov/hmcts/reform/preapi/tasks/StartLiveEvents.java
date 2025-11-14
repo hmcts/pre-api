@@ -153,7 +153,8 @@ public class StartLiveEvents extends RobotUserTask {
             .orElse(false);
     }
 
-    private @Nullable String getIngestAddress(LiveEventDTO liveEvent) {
+    @Nullable
+    private String getIngestAddress(LiveEventDTO liveEvent) {
         return liveEvent != null && liveEvent.getResourceState().equals("Running") && liveEvent.getInputRtmp() != null
             ? liveEvent.getInputRtmp()
             : null;

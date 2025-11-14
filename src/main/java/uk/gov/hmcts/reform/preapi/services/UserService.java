@@ -134,7 +134,6 @@ public class UserService {
     }
 
     @Transactional
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
         Optional<User> user = userRepository.findById(createUserDTO.getId());
 
@@ -187,7 +186,6 @@ public class UserService {
     }
 
     @Transactional
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
         Optional<User> user = userRepository.findById(createInviteDTO.getUserId());
         if (user.isPresent() && user.get().isDeleted()) {
