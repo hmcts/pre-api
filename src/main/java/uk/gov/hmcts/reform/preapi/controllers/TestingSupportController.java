@@ -406,7 +406,7 @@ class TestingSupportController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<Audit> assembler
     ) {
-        var resultPage = auditRepository.findLatest(pageable);
+        var resultPage = auditRepository.searchAll(null, null, null, null, null, null, null, pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());

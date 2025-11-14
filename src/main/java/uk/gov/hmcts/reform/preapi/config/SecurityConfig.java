@@ -43,6 +43,10 @@ public class SecurityConfig {
         "/invites",
     };
 
+    public static final String[] PERMITTED_URIS_PUT_ONLY = new String[]{
+        "/audit/**",
+    };
+
     public static final String[] PERMITTED_URIS_POST = new String[] {
         "/invites/redeem",
         "/batch",
@@ -64,6 +68,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authorize ->
                                        authorize
                                            .requestMatchers(HttpMethod.GET, PERMITTED_URIS_GET_ONLY).permitAll()
+                                           .requestMatchers(HttpMethod.PUT, PERMITTED_URIS_PUT_ONLY).permitAll()
                                            .requestMatchers(HttpMethod.POST,  PERMITTED_URIS_POST).permitAll()
                                            .requestMatchers(PERMITTED_URIS_ALL_REQUESTS).permitAll()
                                            .anyRequest().authenticated()

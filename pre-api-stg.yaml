@@ -1115,6 +1115,52 @@ definitions:
           - ERROR
         type: string
     type: object
+  EntityModelAuditDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      created_at:
+        description: AuditCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        $ref: '#/definitions/BaseUserDTO'
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - created_at
+      - created_by
+      - id
+      - source
+    type: object
   EntityModelBookingDTO:
     properties:
       _links:
@@ -1746,6 +1792,20 @@ definitions:
       totalPages:
         format: int64
         type: integer
+    type: object
+  PagedModelEntityModelAuditDTO:
+    properties:
+      _embedded:
+        properties:
+          auditDTOList:
+            items:
+              $ref: '#/definitions/EntityModelAuditDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
     type: object
   PagedModelEntityModelBookingDTO:
     properties:
@@ -2564,6 +2624,80 @@ paths:
       summary: Get the latest terms and conditions for the app
       tags:
         - terms-and-conditions-controller
+  /audit:
+    get:
+      operationId: getAuditLogs
+      parameters:
+        - description: The date time to search after
+          format: iso-date-time
+          in: query
+          name: after
+          type: string
+          x-example: '2021-01-01T00:00:00'
+        - description: The date time to search before
+          format: iso-date-time
+          in: query
+          name: before
+          type: string
+          x-example: '2021-01-01T00:00:00'
+        - description: The functional area to search by
+          in: query
+          name: functionalArea
+          type: string
+          x-example: API
+        - description: The source to search by
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          type: string
+        - description: Partial user's name to search by
+          in: query
+          name: userName
+          type: string
+        - description: The court id of the audit to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The case reference of the audit to search by
+          in: query
+          name: caseReference
+          type: string
+          x-example: CASE12345
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelAuditDTO'
+      summary: Search all Audits
+      tags:
+        - audit-controller
   '/audit/{id}':
     put:
       consumes:
