@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.batch.repositories;
 
-// import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,6 +20,16 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     List<MigrationRecord> findAllByStatus(VfMigrationStatus status);
 
+    @Query("""
+        SELECT mr FROM MigrationRecord mr
+        WHERE mr.status = :status
+        ORDER BY 
+            CASE WHEN UPPER(mr.recordingVersion) = 'ORIG' THEN 0 ELSE 1 END,
+            mr.recordingGroupKey,
+            mr.createTime
+        """)
+    List<MigrationRecord> findAllByStatusOrderedByVersion(@Param("status") VfMigrationStatus status);
+
     List<MigrationRecord> findByRecordingGroupKey(String recordingGroupKey);
 
     List<MigrationRecord> findByRecordingGroupKeyStartingWith(String baseGroupKey);
@@ -37,7 +46,16 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     @Query("""
         SELECT mr FROM MigrationRecord mr
-        WHERE (CAST(:status as text)IS NULL OR mr.status = :status)
+        WHERE CAST(mr.status as string) = 'SUCCESS'
+        AND UPPER(mr.recordingVersion) = 'ORIG'
+        AND mr.bookingId IS NOT null
+        AND mr.recordingGroupKey IS NOT null
+        """)
+    List<MigrationRecord> findShareableOrigs();
+
+    @Query("""
+        SELECT mr FROM MigrationRecord mr
+        WHERE (CAST(:status as text) IS NULL OR mr.status = :status)
         AND (:witnessName IS NULL OR mr.witnessName ILIKE %:witnessName%)
         AND (:defendantName IS NULL OR mr.defendantName ILIKE %:defendantName%)
         AND (:caseReference IS NULL
@@ -46,6 +64,7 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
         AND (CAST(:createDateFrom as Timestamp) IS NULL OR mr.createTime >= :createDateFrom)
         AND (CAST(:createDateTo as Timestamp) IS NULL OR mr.createTime <= :createDateTo)
         AND (:courtId IS NULL OR mr.courtId = :courtId)
+        AND (:courtReference IS NULL OR mr.courtReference ILIKE %:courtReference%)
         AND (:reasonIn IS NULL OR mr.reason IN :reasonIn)
         AND (:reasonNotIn IS NULL OR mr.reason NOT IN :reasonNotIn)
         """)
@@ -56,8 +75,8 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
                                     @Param("createDateFrom") Timestamp createDateFrom,
                                     @Param("createDateTo") Timestamp createDateTo,
                                     @Param("courtId") UUID courtId,
+                                    @Param("courtReference") String courtReference,
                                     @Param("reasonIn") List<String> reasonIn,
                                     @Param("reasonNotIn") List<String> reasonNotIn,
                                     Pageable pageable);
 }
-

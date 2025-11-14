@@ -17,10 +17,6 @@ import java.util.UUID;
 @Repository
 @SuppressWarnings({"PMD.MethodNamingConventions", "checkstyle:LineLength"})
 public interface RecordingRepository extends JpaRepository<Recording, UUID> {
-    Optional<Recording> findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-        UUID recordingId
-    );
-
     Optional<Recording> findByIdAndDeletedAtIsNull(UUID id);
 
     @Query(
@@ -81,6 +77,12 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
                 AND p.deletedAt IS NULL
             )
         )
+        AND (
+            :#{#searchParams.caseOpen} IS NULL
+            OR (:#{#searchParams.caseOpen} = TRUE
+                AND r.captureSession.booking.caseId.state IN ('OPEN', 'PENDING_CLOSURE'))
+            OR (:#{#searchParams.caseOpen} = FALSE
+                AND r.captureSession.booking.caseId.state = 'CLOSED'))
         """
     )
     Page<Recording> searchAllBy(
@@ -138,4 +140,13 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Recording> findAllOriginVodafone();
+
+    @Query("""
+        SELECT r FROM Recording r
+        WHERE r.captureSession.origin = 'VODAFONE'
+        AND r.duration IS NULL
+        AND r.deletedAt IS NULL
+        """
+    )
+    List<Recording> findAllOriginVodafoneNoDuration();
 }

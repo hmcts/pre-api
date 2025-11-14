@@ -11,6 +11,8 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.tasks.RobotUserTask;
 
+import java.util.Arrays;
+
 @Component
 public abstract class BaseTask extends RobotUserTask {
 
@@ -22,7 +24,7 @@ public abstract class BaseTask extends RobotUserTask {
     @Autowired
     public BaseTask(UserService userService,
                     UserAuthenticationService userAuthenticationService,
-                    @Value("${cron-user-email}") String cronUserEmail,
+                    @Value("${vodafone-user-email}") String cronUserEmail,
                     JobLauncher jobLauncher, LoggingService loggingService,
                     @Value("${migration.debug}") boolean debug,
                     @Value("${migration.dry-run:false}") boolean dryRun) {
@@ -51,7 +53,12 @@ public abstract class BaseTask extends RobotUserTask {
             loggingService.logInfo("Successfully completed " + jobName + " batch job");
 
         } catch (Exception e) {
-            loggingService.logError("Error starting " + jobName + " batch job", e);
+            var rootCause = e.getCause() != null ? e.getCause() : e;
+            loggingService.logError(
+                "Error starting " + jobName + " batch job."
+                    + " Root Cause: " + rootCause.getMessage()
+                    + " Stack trace: " + Arrays.toString(rootCause.getStackTrace()), e
+            );
         }
     }
 }

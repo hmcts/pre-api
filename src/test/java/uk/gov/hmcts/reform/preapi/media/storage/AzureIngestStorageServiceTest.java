@@ -258,4 +258,18 @@ public class AzureIngestStorageServiceTest {
         verify(blobContainerClient, never()).create();
         verify(blobClient, times(1)).beginCopy(sourceUrl, null);
     }
+
+    @Test
+    void copyBlobSkipOverwrite() {
+        when(blobContainerClient.exists()).thenReturn(true);
+        var blobClient = mock(BlobClient.class);
+        when(blobContainerClient.getBlobClient("index.mp4")).thenReturn(blobClient);
+        when(blobClient.exists()).thenReturn(true);
+
+        var sourceUrl = "example.com/index.mp4?sasToken";
+        azureIngestStorageService.copyBlobOverwritable("test-container", "index.mp4", sourceUrl, false);
+
+        verify(blobClient, never()).beginCopy(sourceUrl, null);
+
+    }
 }

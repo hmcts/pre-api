@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -30,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.tasks.migration.BatchImportMissingMkAssets;
 import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
 import java.util.Date;
@@ -38,17 +38,18 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/vf-migration-records")
-@ConditionalOnExpression("${feature-flags.enable-migration-admin-endpoints:false}")
 public class VfMigrationController extends PreApiController {
     private final MigrationRecordService migrationRecordService;
     private final MigrateResolved migrateResolved;
+    private final BatchImportMissingMkAssets batchImportMissingMkAssets;
 
     @Autowired
     public VfMigrationController(final MigrationRecordService migrationRecordService,
-                                 final MigrateResolved migrateResolved) {
-        super();
+                                 final MigrateResolved migrateResolved,
+                                 final BatchImportMissingMkAssets batchImportMissingMkAssets) {
         this.migrationRecordService = migrationRecordService;
         this.migrateResolved = migrateResolved;
+        this.batchImportMissingMkAssets = batchImportMissingMkAssets;
     }
 
     @GetMapping
@@ -69,6 +70,10 @@ public class VfMigrationController extends PreApiController {
         name = "courtId",
         description = "The court id to search for",
         schema = @Schema(implementation = UUID.class))
+    @Parameter(
+            name = "courtReference",
+            description = "The court reference to search for",
+            schema = @Schema(implementation = String.class))
     @Parameter(
         name = "status",
         description = "The status to search for",
@@ -136,6 +141,15 @@ public class VfMigrationController extends PreApiController {
         if (migrationRecordService.markReadyAsSubmitted()) {
             migrateResolved.asyncMigrateResolved();
         }
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/import-assets")
+    @Operation(operationId = "importVodafoneAssets", summary = "Imports Vodafone for resolbed migration records")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> importVodafoneAssets() {
+        batchImportMissingMkAssets.asyncRun();
 
         return ResponseEntity.noContent().build();
     }

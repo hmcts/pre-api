@@ -9,9 +9,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -43,7 +45,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = { MigrationWriter.class })
+@SpringBootTest(classes = { MigrationWriter.class, MigrationItemExecutor.class  })
 public class WriterTest {
     @MockitoBean
     private LoggingService loggingService;
@@ -56,6 +58,9 @@ public class WriterTest {
 
     @MockitoBean
     private RecordingService recordingService;
+
+    @MockitoBean
+    private MigrationRecordService migrationRecordService;
 
     @MockitoBean
     private CaptureSessionService captureSessionService;
@@ -90,6 +95,15 @@ public class WriterTest {
     }
     // ---------- tests ----------
 
+    private PassItem createMockPassItem() {
+        ProcessedRecording mockProcessedRecording = mock(ProcessedRecording.class);
+        when(mockProcessedRecording.getArchiveId()).thenReturn("test-archive-id");
+        
+        PassItem mockPassItem = mock(PassItem.class);
+        when(mockPassItem.cleansedData()).thenReturn(mockProcessedRecording);
+        return mockPassItem;
+    }
+
     @Test
     void writeMigratedItemsEmpty() {
         writer.write(Chunk.of());
@@ -117,7 +131,7 @@ public class WriterTest {
             .booking(null)  
             .captureSession(null) 
             .recording(null) 
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -138,6 +152,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
+            .passItem(createMockPassItem())
             .build();
 
         when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
@@ -182,7 +197,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -204,6 +219,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
+            .passItem(createMockPassItem())
             .build();
 
         doThrow(NotFoundException.class).when(caseService).upsert(any(CreateCaseDTO.class));
@@ -232,6 +248,7 @@ public class WriterTest {
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
+            .passItem(createMockPassItem())
             .build();
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
@@ -262,17 +279,17 @@ public class WriterTest {
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(createBookingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
         doThrow(NotFoundException.class).when(bookingService).upsert(any(CreateBookingDTO.class));
-
         writer.write(Chunk.of(itemGroup));
 
         verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(loggingService, times(1))
-            .logError(eq("Failed to upsert booking. Booking id: %s | %s"), eq(createBookingDTO.getId()), any());
+            .logError(eq("Failed to process migrated item: %s | %s"), eq("REFERENCE"), any());
     }
 
     @Test
@@ -301,6 +318,7 @@ public class WriterTest {
             .acase(createCaseDTO)
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -309,11 +327,7 @@ public class WriterTest {
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(loggingService, times(1))
-            .logError(
-                eq("Failed to upsert capture session. Capture Session id: %s | %s"),
-                eq(createCaptureSessionDTO.getId()),
-                any()
-            );
+            .logError(eq("Failed to process migrated item: %s | %s"), eq("REFERENCE"), any());
     }
 
     @Test
@@ -342,6 +356,7 @@ public class WriterTest {
             .acase(createCaseDTO)
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -387,6 +402,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -396,11 +412,7 @@ public class WriterTest {
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(loggingService, times(1))
-            .logError(
-                eq("Failed to upsert recording. Recording id: %s | %s"),
-                eq(createRecordingDTO.getId()),
-                any()
-            );
+            .logError(eq("Failed to process migrated item: %s | %s"), eq("REFERENCE"), any());
     }
 
     @Test
@@ -433,6 +445,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -479,6 +492,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -521,6 +535,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -562,6 +577,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -604,7 +620,7 @@ public class WriterTest {
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -631,7 +647,7 @@ public class WriterTest {
 
         MigratedItemGroup valid = MigratedItemGroup.builder()
             .acase(createCaseDTO)
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(null, valid)); 
@@ -657,7 +673,7 @@ public class WriterTest {
 
         MigratedItemGroup item = MigratedItemGroup.builder()
             .acase(createCaseDTO)
-            .passItem(mock(PassItem.class))
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(item));
@@ -701,6 +717,7 @@ public class WriterTest {
         MigratedItemGroup item = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(booking)
+            .passItem(createMockPassItem())
             .build();
 
         writer.write(Chunk.of(item));
@@ -713,6 +730,37 @@ public class WriterTest {
         var only = sent.getParticipants().iterator().next();
         assertThat(only.getFirstName()).isEqualTo("Jane");
         assertThat(only.getLastName()).isEqualTo("Doe");
+    }
+
+    @Test
+    void writeItemGroupCaseUpsertExceptionInProcessCaseDataOrThrow() {
+        var courtId = UUID.randomUUID();
+        CreateCaseDTO createCaseDTO = new CreateCaseDTO();
+        createCaseDTO.setId(UUID.randomUUID());
+        createCaseDTO.setReference("REFERENCE");
+        createCaseDTO.setCourtId(courtId);
+
+        when(caseService.searchBy(eq("REFERENCE"), eq(courtId), eq(false), any(PageRequest.class)))
+            .thenReturn(pageOf()) 
+            .thenReturn(pageOf()); 
+
+        when(caseService.upsert(any(CreateCaseDTO.class)))
+            .thenThrow(new RuntimeException("Database error"));
+
+        MigratedItemGroup itemGroup = MigratedItemGroup.builder()
+            .acase(createCaseDTO)
+            .passItem(createMockPassItem())
+            .build();
+
+        writer.write(Chunk.of(itemGroup));
+
+        verify(caseService, times(1)).upsert(any(CreateCaseDTO.class));
+        verify(loggingService, times(1))
+            .logError(eq("Create case failed (safe path). ref=%s court=%s | %s"), 
+                eq("REFERENCE"), eq(courtId), eq("Database error"));
+        verify(loggingService, times(1))
+            .logError(eq("Failed to process migrated item: %s | %s"), 
+                eq("REFERENCE"), eq("Database error"));
     }
 
     

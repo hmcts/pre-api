@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class ExtractedMetadata implements IArchiveData {
     private String courtReference;
     private UUID courtId;
+    private String datePattern;
     private String urn;
     private String exhibitReference;
     private String defendantLastName;
@@ -39,6 +40,7 @@ public class ExtractedMetadata implements IArchiveData {
     @SuppressWarnings("PMD.ExcessiveParameterList")
     public ExtractedMetadata(String courtReference,
                              UUID courtId,
+                             String datePattern,
                              String urn,
                              String exhibitReference,
                              String defendantLastName,
@@ -54,14 +56,11 @@ public class ExtractedMetadata implements IArchiveData {
                              String archiveName) {
         this.courtReference = courtReference;
         this.courtId = courtId;
-        if (urn != null) {
-            this.urn = urn.toUpperCase(Locale.UK);
-        }
-        if (exhibitReference != null) {
-            this.exhibitReference = exhibitReference.toUpperCase(Locale.UK);
-        }
-        this.defendantLastName = formatName(defendantLastName != null ? defendantLastName.toLowerCase(Locale.UK) : "");
-        this.witnessFirstName = formatName(witnessFirstName != null ? witnessFirstName.toLowerCase(Locale.UK) : "");
+        this.datePattern = datePattern;
+        this.urn = urn != null ? urn.toUpperCase() : null;
+        this.exhibitReference = exhibitReference != null ? exhibitReference.toUpperCase() : null;
+        this.defendantLastName = formatName(defendantLastName != null ? defendantLastName.toLowerCase() : "");
+        this.witnessFirstName = formatName(witnessFirstName != null ? witnessFirstName.toLowerCase() : "");
         this.recordingVersion = recordingVersion;
         this.recordingVersionNumber = recordingVersionNumber;
         this.fileExtension = fileExtension;

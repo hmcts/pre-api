@@ -112,11 +112,9 @@ public class ProcessCSVJobConfigTest {
 
     @Test
     void shouldCreateProcessCSVJobWithAllSteps() {
-        // Given
         when(batchConfiguration.fileAvailabilityDecider()).thenReturn(fileAvailabilityDecider);
         when(coreStepsConfig.startLogging()).thenReturn(startLoggingStep);
 
-        // When
         Job result = processCSVJobConfig.processCSVJob(
             createSitesDataStep,
             createChannelUserStep,
@@ -128,25 +126,21 @@ public class ProcessCSVJobConfigTest {
             pendingMigrationRecordStep
         );
 
-        // Then
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("processCSVJob");
     }
 
     @Test
     void shouldCreatePendingMigrationRecordStepWithDryRunWriter() {
-        // Given
         when(coreStepsConfig.isDryRun()).thenReturn(true);
         when(coreStepsConfig.noOpWriter()).thenReturn(noOpWriter);
 
-        // When
         Step result = processCSVJobConfig.pendingMigrationRecordStep(
             pendingMigrationRecordReader,
             processor,
             writer
         );
 
-        // Then
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("pendingMigrationRecordStep");
         verify(coreStepsConfig).isDryRun();
@@ -155,17 +149,14 @@ public class ProcessCSVJobConfigTest {
 
     @Test
     void shouldCreatePendingMigrationRecordStepWithRegularWriter() {
-        // Given
         when(coreStepsConfig.isDryRun()).thenReturn(false);
 
-        // When
         Step result = processCSVJobConfig.pendingMigrationRecordStep(
             pendingMigrationRecordReader,
             processor,
             writer
         );
 
-        // Then
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("pendingMigrationRecordStep");
         verify(coreStepsConfig).isDryRun();
@@ -173,18 +164,15 @@ public class ProcessCSVJobConfigTest {
 
     @Test
     void shouldCreatePendingMigrationRecordReaderWithRecords() {
-        // Given
         List<MigrationRecord> pendingRecords = Arrays.asList(migrationRecord1, migrationRecord2);
         when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
             .thenReturn(pendingRecords);
 
-        // When
         ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
             migrationRecordRepository,
             loggingService
         );
 
-        // Then
         assertThat(result).isNotNull();
         verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
         verify(loggingService).logInfo("Found %d pending migration records.", 2);
@@ -192,18 +180,15 @@ public class ProcessCSVJobConfigTest {
 
     @Test
     void shouldCreatePendingMigrationRecordReaderWithEmptyList() {
-        // Given
         List<MigrationRecord> emptyList = Collections.emptyList();
         when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
             .thenReturn(emptyList);
 
-        // When
         ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
             migrationRecordRepository,
             loggingService
         );
 
-        // Then
         assertThat(result).isNotNull();
         verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
         verify(loggingService).logInfo("No pending migration records found.");
@@ -211,7 +196,168 @@ public class ProcessCSVJobConfigTest {
 
     @Test
     void shouldHaveCorrectConstructorFields() {
-        // Then
         assertThat(processCSVJobConfig.transactionManager).isEqualTo(transactionManager);
     }
+
+
+    @Test
+    void shouldLogStartRunInPendingMigrationRecordReader() {
+        List<MigrationRecord> pendingRecords = Arrays.asList(migrationRecord1, migrationRecord2);
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+            .thenReturn(pendingRecords);
+
+        ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
+            migrationRecordRepository,
+            loggingService
+        );
+
+        assertThat(result).isNotNull();
+        verify(loggingService).startRun("pending migration records", 2);
+    }
+
+    @Test
+    void shouldLogStartRunWithEmptyListInPendingMigrationRecordReader() {
+        List<MigrationRecord> emptyList = Collections.emptyList();
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+            .thenReturn(emptyList);
+
+        ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
+            migrationRecordRepository,
+            loggingService
+        );
+
+        assertThat(result).isNotNull();
+        verify(loggingService).startRun("pending migration records", 0);
+    }
+
+    @Test
+    void shouldCreateProcessCSVJobWithCorrectFlow() {
+        when(batchConfiguration.fileAvailabilityDecider()).thenReturn(fileAvailabilityDecider);
+        when(coreStepsConfig.startLogging()).thenReturn(startLoggingStep);
+
+        Job result = processCSVJobConfig.processCSVJob(
+            createSitesDataStep,
+            createChannelUserStep,
+            createRobotUserSignInStep,
+            createPreProcessStep,
+            createPreProcessMetadataStep,
+            createArchiveListStep,
+            createWriteToCSVStep,
+            pendingMigrationRecordStep
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.getName()).isEqualTo("processCSVJob");
+        verify(batchConfiguration).fileAvailabilityDecider();
+        verify(coreStepsConfig).startLogging();
+    }
+
+    @Test
+    void shouldCreateProcessCSVJobWithAllRequiredSteps() {
+        when(batchConfiguration.fileAvailabilityDecider()).thenReturn(fileAvailabilityDecider);
+        when(coreStepsConfig.startLogging()).thenReturn(startLoggingStep);
+
+        Job job = processCSVJobConfig.processCSVJob(
+            createSitesDataStep,
+            createChannelUserStep,
+            createRobotUserSignInStep,
+            createPreProcessStep,
+            createPreProcessMetadataStep,
+            createArchiveListStep,
+            createWriteToCSVStep,
+            pendingMigrationRecordStep
+        );
+
+        assertThat(job).isNotNull();
+        assertThat(job.getName()).isEqualTo("processCSVJob");
+        assertThat(job.getJobParametersIncrementer()).isNotNull();
+    }
+
+    @Test
+    void shouldCreatePendingMigrationRecordStepWithCorrectConfiguration() {
+        when(coreStepsConfig.isDryRun()).thenReturn(false);
+
+        Step step = processCSVJobConfig.pendingMigrationRecordStep(
+            pendingMigrationRecordReader,
+            processor,
+            writer
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("pendingMigrationRecordStep");
+        verify(coreStepsConfig).isDryRun();
+    }
+
+    @Test
+    void shouldCreatePendingMigrationRecordStepWithFaultTolerance() {
+        when(coreStepsConfig.isDryRun()).thenReturn(false);
+
+        Step step = processCSVJobConfig.pendingMigrationRecordStep(
+            pendingMigrationRecordReader,
+            processor,
+            writer
+        );
+
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("pendingMigrationRecordStep");
+        assertThat(step).isNotNull();
+    }
+
+    @Test
+    void shouldCreatePendingMigrationRecordReaderWithSingleRecord() {
+        List<MigrationRecord> singleRecord = Collections.singletonList(migrationRecord1);
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+            .thenReturn(singleRecord);
+
+        ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
+            migrationRecordRepository,
+            loggingService
+        );
+
+        assertThat(result).isNotNull();
+        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(loggingService).startRun("pending migration records", 1);
+        verify(loggingService).logInfo("Found %d pending migration records.", 1);
+    }
+
+    @Test
+    void shouldCreatePendingMigrationRecordReaderWithLargeList() {
+        List<MigrationRecord> largeList = Collections.nCopies(100, migrationRecord1);
+        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+            .thenReturn(largeList);
+
+        ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
+            migrationRecordRepository,
+            loggingService
+        );
+
+        assertThat(result).isNotNull();
+        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(loggingService).startRun("pending migration records", 100);
+        verify(loggingService).logInfo("Found %d pending migration records.", 100);
+    }
+
+    @Test
+    void shouldCreateProcessCSVJobWithIncrementer() {
+        when(batchConfiguration.fileAvailabilityDecider()).thenReturn(fileAvailabilityDecider);
+        when(coreStepsConfig.startLogging()).thenReturn(startLoggingStep);
+
+        Job job = processCSVJobConfig.processCSVJob(
+            createSitesDataStep,
+            createChannelUserStep,
+            createRobotUserSignInStep,
+            createPreProcessStep,
+            createPreProcessMetadataStep,
+            createArchiveListStep,
+            createWriteToCSVStep,
+            pendingMigrationRecordStep
+        );
+
+        assertThat(job).isNotNull();
+        assertThat(job.getJobParametersIncrementer()).isNotNull();
+    }
+
+
 }
+
+

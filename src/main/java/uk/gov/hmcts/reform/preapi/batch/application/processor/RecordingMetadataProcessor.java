@@ -70,7 +70,9 @@ public class RecordingMetadataProcessor {
                 extractedData.getUrn(),
                 extractedData.getExhibitReference(),
                 extractedData.getWitnessFirstName(),
-                extractedData.getDefendantLastName()
+                extractedData.getDefendantLastName(),
+                extractedData.getDatePattern(),
+                extractedData.getCreateTime()
             );
 
             if (VfMigrationRecordingVersion.COPY.toString().equalsIgnoreCase(extractedData.getRecordingVersion())) {

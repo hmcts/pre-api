@@ -112,7 +112,7 @@ class ArchiveMetadataXmlExtractorTest {
             eq("Test-230101-CASE1-WITNESS-ORIG"),
             eq("1731681144000"),
             eq("100"),
-            eq("abc123/0x1e_test_file.mp4"),
+            eq("abc123/mp4/0x1e_test_file.mp4"),
             eq("2.00")
         );
 
@@ -153,10 +153,10 @@ class ArchiveMetadataXmlExtractorTest {
         InOrder inOrder = inOrder(migrationRecordService);
         inOrder.verify(migrationRecordService).insertPendingFromXml(
             eq("A1"), eq("Case-ORIG"), eq("1731681144000"), eq("100"),
-            eq("p/A1/a1.mp4"), eq("1.00"));
+            eq("p/A1/mp4/a1.mp4"), eq("1.00"));
         inOrder.verify(migrationRecordService).insertPendingFromXml(
             eq("A2"), eq("Case-COPY"), eq("1731681145000"), eq("100"),
-            eq("p/A2/a2.mp4"), eq("1.00"));
+            eq("p/A2/mp4/a2.mp4"), eq("1.00"));
     }
 
     // ------------------------------------
@@ -181,7 +181,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("X1"), eq("Name-ORIG"), eq("999"), eq("5"),
-            eq("pref/X1/x1.mp4"), eq("2.00"));
+            eq("pref/X1/mp4/x1.mp4"), eq("2.00"));
     }
 
     @Test
@@ -202,7 +202,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("X2"), eq("Name-ORIG"), eq("123456"), eq("5"),
-            eq("pref/X2/x2.mp4"), eq("2.00"));
+            eq("pref/X2/mp4/x2.mp4"), eq("2.00"));
     }
 
     // ------------------------------------
@@ -228,7 +228,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("W1"), eq("Pick-Watermark-ORIG"), eq("1"), eq("10"),
-            eq("pref/W1/b.mp4"), eq("0.88"));
+            eq("pref/W1/mp4/b.mp4"), eq("0.88"));
     }
 
     @Test
@@ -250,7 +250,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("U1"), eq("Pick-UGC-ORIG"), eq("2"), eq("10"),
-            eq("pref/U1/UGC_big.mp4"), eq("0.10"));
+            eq("pref/U1/mp4/UGC_big.mp4"), eq("0.10"));
     }
 
     @Test
@@ -272,7 +272,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("S1"), eq("Pick-Size-ORIG"), eq("3"), eq("10"),
-            eq("pref/S1/a.mp4"), eq("2.00"));
+            eq("pref/S1/mp4/a.mp4"), eq("2.00"));
     }
 
     @Test
@@ -294,7 +294,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("D1"), eq("Pick-Duration-ORIG"), eq("4"), eq("10"),
-            eq("pref/D1/b.mp4"), eq("0.98"));
+            eq("pref/D1/mp4/b.mp4"), eq("0.98"));
     }
 
     @Test
@@ -316,7 +316,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("N1"), eq("Pick-NameLen-ORIG"), eq("5"), eq("10"),
-            eq("pref/N1/longer_name.mp4"), eq("0.98"));
+            eq("pref/N1/mp4/longer_name.mp4"), eq("0.98"));
     }
 
     @Test
@@ -338,7 +338,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("T1"), eq("Tie-ORIG"), eq("6"), eq("10"),
-            eq("pref/T1/sameB.mp4"), eq("0.98"));
+            eq("pref/T1/mp4/sameB.mp4"), eq("0.98"));
     }
 
 
@@ -385,7 +385,7 @@ class ArchiveMetadataXmlExtractorTest {
         verify(loggingService).logWarning("Invalid file size: oops");
         verify(migrationRecordService).insertPendingFromXml(
             eq("A1"), eq("Case-ORIG"), eq("1"), eq("10"),
-            eq("pref/A1/a.mp4"), eq("0.00")
+            eq("pref/A1/mp4/a.mp4"), eq("0.00")
         );
     }
 
@@ -413,8 +413,8 @@ class ArchiveMetadataXmlExtractorTest {
     }
 
     @Test
-    @DisplayName("Should pick first file when more than two MP4 files exist")
-    void shouldPickFirstWhenMoreThanTwo() throws Exception {
+    @DisplayName("Should pick best MP4 when more than two files exist (largest size)")
+    void shouldPickBestWhenMoreThanTwo() throws Exception {
         String xml = """
             <ArchiveFiles>
             <ArchiveID>A1</ArchiveID>
@@ -433,7 +433,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("A1"), eq("Case-ORIG"), eq("1"), eq("10"),
-            eq("pref/A1/first.mp4"), eq("0.10")
+            eq("pref/A1/mp4/third.mp4"), eq("0.29")
         );
     }
 

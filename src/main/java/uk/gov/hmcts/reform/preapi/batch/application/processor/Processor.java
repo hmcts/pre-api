@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
@@ -23,6 +24,9 @@ import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
 import java.util.Optional;
 
@@ -39,6 +43,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
     private final MigrationRecordService migrationRecordService;
+    private final MigrationRecordRepository migrationRecordRepository;
+    private final CaseRepository caseRepository;
     private final LoggingService loggingService;
 
     @Autowired
@@ -50,6 +56,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                      final MigrationGroupBuilderService migrationService,
                      final MigrationTrackerService migrationTrackerService,
                      final MigrationRecordService migrationRecordService,
+                     final MigrationRecordRepository migrationRecordRepository,
+                     final CaseRepository caseRepository,
                      final LoggingService loggingService) {
         this.cacheService = cacheService;
         this.extractionService = extractionService;
@@ -59,6 +67,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         this.migrationService = migrationService;
         this.migrationTrackerService = migrationTrackerService;
         this.migrationRecordService = migrationRecordService;
+        this.migrationRecordRepository = migrationRecordRepository;
+        this.caseRepository = caseRepository;
         this.loggingService = loggingService;
     }
 
@@ -102,6 +112,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             try {
                 ExtractedMetadata extractedData = extractData(migrationRecord);
                 if (extractedData == null) {
+                    loggingService.markHandled();
                     return null;
                 }
 
@@ -110,26 +121,35 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 // Transformation
                 ProcessedRecording cleansedData = transformData(extractedData);
                 if (cleansedData == null) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 // Check if already migrated
                 if (isMigrated(migrationRecord)) {
+                    loggingService.markHandled();
                     return null;
                 }
 
                 // Validation
                 if (!isValidated(cleansedData, migrationRecord)) {
+                    loggingService.markHandled();
                     return null;
                 }
 
-                loggingService.incrementProgress();
+                if (!isCaseOpenAndNotDeleted(cleansedData, extractedData)) {
+                    loggingService.markHandled();
+                    return null; 
+                }
+
+                // loggingService.incrementProgress();
                 cacheService.dumpToFile();
 
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
             } catch (Exception e) {
                 loggingService.logError("Error processing archive %s: %s", archiveName, e.getMessage(), e);
-                migrationRecordService.updateToFailed(archiveId, "Error", e.getMessage());
+                migrationRecordService.updateToFailed(archiveId, VfFailureReason.GENERAL_ERROR.toString(), 
+                    e.getMessage());
                 handleError(migrationRecord, "Failed to create migrated item group: " + e.getMessage(), "Error");
                 return null;
             }
@@ -137,6 +157,31 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
         if (status == VfMigrationStatus.SUBMITTED) {
             ExtractedMetadata extractedData = convertToExtractedMetadata(migrationRecord);
+            
+            String groupKey = MigrationRecordService.generateRecordingGroupKey(
+                extractedData.getUrn(),
+                extractedData.getExhibitReference(),
+                extractedData.getWitnessFirstName(),
+                extractedData.getDefendantLastName(),
+                extractedData.getDatePattern(),
+                extractedData.getCreateTime()
+            );
+            migrationRecord.setRecordingGroupKey(groupKey);
+            migrationRecordRepository.save(migrationRecord);     
+            
+            if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {
+                String origVersionStr = extractedData.getRecordingVersionNumber() != null 
+                    ? extractedData.getRecordingVersionNumber().split("\\.")[0] 
+                    : "1";
+                
+                migrationRecordService.updateParentTempIdIfCopy(
+                    migrationRecord.getArchiveId(),
+                    migrationRecord.getRecordingGroupKey(),
+                    origVersionStr
+                );
+                loggingService.logInfo("Updated parent_temp_id for COPY record %s", migrationRecord.getArchiveId());
+            }
+            
             try {
                 ProcessedRecording cleansedData = transformData(extractedData);
                 if (cleansedData == null) {
@@ -147,9 +192,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                     return null;
                 }
 
-                loggingService.incrementProgress();
-                cacheService.dumpToFile();
+                if (!isCaseOpenAndNotDeleted(cleansedData, extractedData)) {
+                    return null; 
+                }
 
+                cacheService.dumpToFile();
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
             } catch (Exception e) {
@@ -288,6 +335,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return new ExtractedMetadata(
             migrationRecord.getCourtReference(),
             migrationRecord.getCourtId(),
+            null,
             migrationRecord.getUrn(),
             migrationRecord.getExhibitReference(),
             migrationRecord.getDefendantName(),
@@ -304,6 +352,26 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationRecord.getArchiveId(),
             migrationRecord.getArchiveName()
         );
+    }
+
+    private boolean isCaseOpenAndNotDeleted(ProcessedRecording recording, ExtractedMetadata extractedData) {
+        String caseRef = recording.getCaseReference();
+        var maybeCase = cacheService.getCase(caseRef);
+
+        boolean isClosed = maybeCase.isPresent() && maybeCase.get().getState() != CaseState.OPEN;
+        boolean isDeleted = caseRepository.findAllByReference(caseRef).stream().anyMatch(c -> c.getDeletedAt() != null);
+
+        if (isClosed || isDeleted) {
+            String msg = "Case %s is in a closed or deleted state; cannot create bookings/capture sessions/recordings"
+                .formatted(caseRef);
+
+            migrationRecordService.updateToFailed(extractedData.getArchiveId(), 
+                VfFailureReason.CASE_CLOSED.toString(), msg);
+            handleError(extractedData, msg, VfFailureReason.CASE_CLOSED.toString());   
+            loggingService.logError("Skipping item: %s", msg);
+            return false;
+        }
+        return true;
     }
 
     // =========================

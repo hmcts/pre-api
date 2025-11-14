@@ -120,6 +120,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("writeToCSVStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
+                    migrationTrackerService.startNewReportRun();
                     migrationTrackerService.writeAllToCsv();
                     return RepeatStatus.FINISHED;
                 }, transactionManager)

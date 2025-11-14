@@ -423,6 +423,23 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
 
         @ParameterizedTest
         @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to capture sessions with VODAFONE_VISIBLE case to non super user requests")
+        void getByIdVodafoneVisibleCase(TestingSupportRoles role) throws JsonProcessingException {
+            CreateCaptureSessionDTO dto = setupCaptureSessionWithOrigins(
+                RecordingOrigin.VODAFONE_VISIBLE,
+                RecordingOrigin.PRE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession = putCaptureSession(dto);
+            assertResponseCode(putCaptureSession, 201);
+            assertCaptureSessionExists(dto.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), role);
+            assertResponseCode(getResponse, 200);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
         @DisplayName("Should not allow access to VODAFONE capture sessions with PRE case to non super user requests")
         void getByIdVfCaptureSession(TestingSupportRoles role) throws JsonProcessingException {
             CreateCaptureSessionDTO dto = setupCaptureSessionWithOrigins(
@@ -436,6 +453,24 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
 
             Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), role);
             assertResponseCode(getResponse, 403);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName(
+            "Should allow access to VODAFONE_VISIBLE capture sessions with PRE case to non super user requests")
+        void getByIdVodafoneVisibleCaptureSession(TestingSupportRoles role) throws JsonProcessingException {
+            CreateCaptureSessionDTO dto = setupCaptureSessionWithOrigins(
+                RecordingOrigin.PRE,
+                RecordingOrigin.VODAFONE_VISIBLE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession = putCaptureSession(dto);
+            assertResponseCode(putCaptureSession, 201);
+            assertCaptureSessionExists(dto.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), role);
+            assertResponseCode(getResponse, 200);
         }
 
         @ParameterizedTest
@@ -475,6 +510,45 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
                 .map(CreateCaptureSessionDTO::getId)
                 .toList();
             assertThat(foundCaptureSessions).doesNotContainAnyElementsOf(List.of(dto1.getId(), dto2.getId()));
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to capture session with VODAFONE_VISIBLE origin to non super user in search")
+        void getCasesVodafoneVisible(TestingSupportRoles role) throws JsonProcessingException {
+            // vf case, pre capture session
+            CreateCaptureSessionDTO dto1 = setupCaptureSessionWithOrigins(
+                RecordingOrigin.VODAFONE_VISIBLE,
+                RecordingOrigin.PRE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession1 = putCaptureSession(dto1);
+            assertResponseCode(putCaptureSession1, 201);
+            assertCaptureSessionExists(dto1.getId(), true);
+
+            // pre case, vf capture session
+            CreateCaptureSessionDTO dto2 = setupCaptureSessionWithOrigins(
+                RecordingOrigin.PRE,
+                RecordingOrigin.VODAFONE_VISIBLE,
+                authenticatedUserIds.get(role).courtId()
+            );
+            Response putCaptureSession2 = putCaptureSession(dto2);
+            assertResponseCode(putCaptureSession2, 201);
+            assertCaptureSessionExists(dto2.getId(), true);
+
+            Response getResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT
+                                                    + "?courtId="
+                                                    + authenticatedUserIds.get(role).courtId(),
+                                                role);
+            assertResponseCode(getResponse, 200);
+
+            List<UUID> foundCaptureSessions = getResponse.getBody()
+                .jsonPath()
+                .getList("_embedded.captureSessionDTOList", CaptureSessionDTO.class)
+                .stream()
+                .map(CreateCaptureSessionDTO::getId)
+                .toList();
+            assertThat(foundCaptureSessions).containsAll(List.of(dto1.getId(), dto2.getId()));
         }
     }
 }

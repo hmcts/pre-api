@@ -2,10 +2,12 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
@@ -14,6 +16,9 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
 import java.util.HashSet;
 import java.util.Locale;
@@ -21,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.CASE_HAS_DELETED_PARTICIPANTS;
 
 @Service
 public class MigrationGroupBuilderService {
@@ -29,6 +35,7 @@ public class MigrationGroupBuilderService {
     private final InMemoryCacheService cacheService;
     private final MigrationRecordService migrationRecordService;
     private final MigrationTrackerService migrationTrackerService;
+    private final CaseRepository caseRepository;
 
     protected static final String BOOKING_FIELD = "booking";
     protected static final String CAPTURE_SESSION_FIELD = "captureSession";
@@ -40,12 +47,14 @@ public class MigrationGroupBuilderService {
                                         final EntityCreationService entityCreationService,
                                         final InMemoryCacheService cacheService,
                                         final MigrationRecordService migrationRecordService,
-                                        final MigrationTrackerService migrationTrackerService) {
+                                        final MigrationTrackerService migrationTrackerService,
+                                        final CaseRepository caseRepository) {
         this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
         this.cacheService = cacheService;
         this.migrationRecordService = migrationRecordService;
         this.migrationTrackerService = migrationTrackerService;
+        this.caseRepository = caseRepository;
     }
 
     // =========================
@@ -61,6 +70,16 @@ public class MigrationGroupBuilderService {
                 return null;
             }
             loggingService.logError("COPY file with missing case in cache: %s", cleansedData.getFileName());
+            return null;
+        }
+
+        if (caseHasDeletedParticipants(aCase.getReference())) {
+            loggingService.logWarning("Skipping migration for archiveId=%s: %s",
+                item.getArchiveId(), CASE_HAS_DELETED_PARTICIPANTS);
+            migrationTrackerService.addFailedItem(new FailedItem(item,
+                CASE_HAS_DELETED_PARTICIPANTS,  VfFailureReason.INCOMPLETE_DATA.toString()));
+            migrationRecordService.updateToFailed(cleansedData.getArchiveId(),
+                VfFailureReason.INCOMPLETE_DATA.toString(), CASE_HAS_DELETED_PARTICIPANTS);
             return null;
         }
 
@@ -87,8 +106,21 @@ public class MigrationGroupBuilderService {
         );
         loggingService.logDebug("Migrating group: %s", migrationGroup);
         migrationTrackerService.addMigratedItem(passItem);
-        migrationRecordService.updateToSuccess(item.getArchiveId());
         return migrationGroup;
+    }
+
+    private boolean caseHasDeletedParticipants(String caseReference) {
+        for (Case c : caseRepository.findAllByReference(caseReference)) {
+            if (c.getParticipants() != null) {
+                boolean anyDeleted = c.getParticipants().stream()
+                    .map(Participant::getDeletedAt)
+                    .anyMatch(ts -> ts != null);
+                if (anyDeleted) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     protected CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {

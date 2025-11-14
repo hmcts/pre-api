@@ -24,6 +24,9 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -31,6 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -61,12 +65,43 @@ public class MigrationRecordService {
 
     @Transactional(readOnly = true)
     public Optional<MigrationRecord> getOrigFromCopy(MigrationRecord copy) {
-        if (copy.getParentTempId() == null) {
-            return Optional.empty();
+        if (copy.getParentTempId() != null) {
+            Optional<MigrationRecord> result = migrationRecordRepository.findById(copy.getParentTempId());
+            if (result.isPresent()) {
+                log.warn("Found ORIG via parent_temp_id: {}", result.get().getArchiveId());
+                return result;
+            }
         }
-        Optional<MigrationRecord> result = migrationRecordRepository.findById(copy.getParentTempId());
-        log.info("ORIG::{}", result);
-        return result;
+
+        if (copy.getRecordingGroupKey() != null && !copy.getRecordingGroupKey().isEmpty()) {
+            List<MigrationRecord> groupRecords = migrationRecordRepository
+                .findByRecordingGroupKey(copy.getRecordingGroupKey());
+
+            Optional<MigrationRecord> origRecord = groupRecords.stream()
+                .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
+                .filter(r -> r.getStatus() == VfMigrationStatus.SUCCESS)
+                .filter(r -> r.getRecordingId() != null)
+                .sorted((a, b) -> {
+                    int preferredComparison = Boolean.compare(b.getIsPreferred(), a.getIsPreferred());
+                    if (preferredComparison != 0) {
+                        return preferredComparison;
+                    }
+                    boolean aIsMp4 = a.getArchiveName().toLowerCase().endsWith(".mp4");
+                    boolean bIsMp4 = b.getArchiveName().toLowerCase().endsWith(".mp4");
+                    if (aIsMp4 != bIsMp4) {
+                        return bIsMp4 ? 1 : -1;
+                    }
+                    return a.getCreatedAt().compareTo(b.getCreatedAt());
+                })
+                .findFirst();
+
+            if (origRecord.isPresent()) {
+                log.warn("Found ORIG via group key: {}", origRecord.get().getArchiveId());
+                return origRecord;
+            }
+        }
+
+        return Optional.empty();
     }
 
     public List<MigrationRecord> getPendingMigrationRecords() {
@@ -223,12 +258,14 @@ public class MigrationRecordService {
             record.setFileName(extracted.getFileName());
             record.setFileSizeMb(extracted.getFileSize());
 
-            String groupKey = String.join("|",
-                nullToEmpty(extracted.getUrn()),
-                nullToEmpty(extracted.getExhibitReference()),
-                nullToEmpty(extracted.getWitnessFirstName()),
-                nullToEmpty(extracted.getDefendantLastName())
-            ).toLowerCase(Locale.UK).trim();
+            String groupKey = generateRecordingGroupKey(
+                extracted.getUrn(),
+                extracted.getExhibitReference(),
+                extracted.getWitnessFirstName(),
+                extracted.getDefendantLastName(),
+                extracted.getDatePattern(),
+                extracted.getCreateTimeAsLocalDateTime()
+            );
 
             record.setRecordingGroupKey(groupKey);
             migrationRecordRepository.save(record);
@@ -296,15 +333,29 @@ public class MigrationRecordService {
 
     @Transactional
     public void updateParentTempIdIfCopy(String archiveId, String recordingGroupKey, String origVersionStr) {
-        Optional<MigrationRecord> maybeOrig = migrationRecordRepository
-            .findByRecordingGroupKey(recordingGroupKey)
+        log.warn("updateParentTempIdIfCopy called for archiveId: {}, groupKey: '{}', origVersionStr: '{}'",
+                 archiveId, recordingGroupKey, origVersionStr);
+
+        List<MigrationRecord> allGroupRecords = migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey);
+        log.warn("Found {} total records with group key: '{}'", allGroupRecords.size(), recordingGroupKey);
+
+        for (MigrationRecord record : allGroupRecords) {
+            log.warn("Group record: archiveId={}, version={}, preferred={}, versionNumber={}, archiveName={}",
+                     record.getArchiveId(), record.getRecordingVersion(), record.getIsPreferred(),
+                     record.getRecordingVersionNumber(), record.getArchiveName());
+        }
+
+        Optional<MigrationRecord> maybeOrig = allGroupRecords
             .stream()
             .filter(r -> !r.getArchiveName().toLowerCase(Locale.UK).endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
             .filter(MigrationRecord::getIsPreferred)
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
-                return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
+                boolean matches = recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
+                log.warn("Version filter: recVersion='{}', origVersionStr='{}', matches={}",
+                         recVersion, origVersionStr, matches);
+                return matches;
             })
             .sorted((a, b) -> {
                 boolean aIsMp4 = a.getArchiveName().toLowerCase(Locale.UK).endsWith(".mp4");
@@ -317,12 +368,15 @@ public class MigrationRecordService {
             .findFirst();
 
         if (maybeOrig.isEmpty()) {
+            log.warn("No suitable ORIG found for COPY archiveId: {}", archiveId);
             return;
         }
 
+        log.warn("Found ORIG for COPY: {} -> {}", archiveId, maybeOrig.get().getArchiveId());
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(copy -> {
             copy.setParentTempId(maybeOrig.get().getId());
             migrationRecordRepository.save(copy);
+            log.warn("Set parent_temp_id for COPY {} to ORIG {}", archiveId, maybeOrig.get().getId());
         });
     }
 
@@ -396,6 +450,11 @@ public class MigrationRecordService {
         return updated;
     }
 
+    @Transactional(readOnly = true)
+    public List<MigrationRecord> findShareableOrigs() {
+        return migrationRecordRepository.findShareableOrigs();
+    }
+
     public List<String> findOrigVersionsByBaseGroupKey(String baseGroupKey) {
         return migrationRecordRepository.findByRecordingGroupKeyStartingWith(baseGroupKey).stream()
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
@@ -414,15 +473,42 @@ public class MigrationRecordService {
     }
 
     public static String generateRecordingGroupKey(
-        String urn, String exhibitRef, String witnessName, String defendantName) {
+        String urn,
+        String exhibitRef,
+        String witnessName,
+        String defendantName,
+        String datePattern,
+        LocalDateTime createTime
+    ) {
 
-        return String.join("|",
-                           nullToEmpty(urn),
-                           nullToEmpty(exhibitRef),
-                           nullToEmpty(witnessName),
-                           nullToEmpty(defendantName))
-            .toLowerCase(Locale.UK)
-            .trim();
+        String datePart = normaliseDate(datePattern);
+
+        if (datePart == null || datePart.isEmpty()) {
+            if (createTime != null) {
+                datePart = createTime.toLocalDate().toString();
+            } else {
+                datePart = "";
+            }
+        }
+
+        return Stream.of(urn, exhibitRef, witnessName, defendantName, datePart)
+            .map(MigrationRecordService::nullToEmpty)
+            .map(String::trim)
+            .map(String::toLowerCase)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.joining("|"));
+
+    }
+
+    private static String normaliseDate(String in) {
+        if (in == null || in.isBlank()) {
+            return "";
+        }
+        if (in.matches("\\d{6}")) {
+            DateTimeFormatter f = DateTimeFormatter.ofPattern("yyMMdd");
+            return LocalDate.parse(in, f).toString();
+        }
+        return in.trim();
     }
 
     private void setMostRecentFlag(String groupKey) {
@@ -442,15 +528,24 @@ public class MigrationRecordService {
             .collect(Collectors.groupingBy(MigrationRecord::getParentTempId));
 
         for (List<MigrationRecord> copies : copiesGroupedByParent.values()) {
-            MigrationRecord mostRecent = copies.stream()
+            List<MigrationRecord> copiesPreferred = copies.stream()
+                .filter(MigrationRecord::getIsPreferred)
+                .toList();
+
+            List<MigrationRecord> candidates = copiesPreferred.isEmpty() ? copies : copiesPreferred;
+
+            MigrationRecord mostRecent = candidates.stream()
                 .max((r1, r2) -> RecordingUtils.compareVersionStrings(
                     r1.getRecordingVersionNumber(),
                     r2.getRecordingVersionNumber()
                 ))
                 .orElse(null);
 
-            for (MigrationRecord copy : copies) {
-                copy.setIsMostRecent(copy.equals(mostRecent));
+            if (mostRecent != null) {
+                String mostRecentArchiveId = mostRecent.getArchiveId();
+                for (MigrationRecord copy : copies) {
+                    copy.setIsMostRecent(mostRecentArchiveId.equals(copy.getArchiveId()));
+                }
             }
         }
 
@@ -467,6 +562,7 @@ public class MigrationRecordService {
                 params.getCreateDateFromTimestamp(),
                 params.getCreateDateToTimestamp(),
                 params.getCourtId(),
+                params.getCourtReference(),
                 params.getReasonIn(),
                 params.getReasonNotIn(),
                 pageable)
@@ -495,7 +591,10 @@ public class MigrationRecordService {
         entity.setCourtReference(courtName);
         entity.setCourtId(dto.getCourtId());
         entity.setUrn(dto.getUrn());
-        entity.setExhibitReference(dto.getExhibitReference());
+        entity.setExhibitReference(dto.getExhibitReference() != null
+            && !dto.getExhibitReference().trim().isEmpty()
+            ? dto.getExhibitReference()
+            : null);
         entity.setDefendantName(dto.getDefendantName());
         entity.setWitnessName(dto.getWitnessName());
         entity.setRecordingVersion(dto.getRecordingVersion().toString());

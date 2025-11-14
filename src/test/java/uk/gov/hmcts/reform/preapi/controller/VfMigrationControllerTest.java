@@ -10,7 +10,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
+import uk.gov.hmcts.reform.preapi.tasks.migration.BatchImportMissingMkAssets;
 import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
 import java.sql.Timestamp;
@@ -46,9 +46,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(VfMigrationController.class)
-@TestPropertySource(properties = {
-    "feature-flags.enable-migration-admin-endpoints=true"
-})
 @AutoConfigureMockMvc(addFilters = false)
 public class VfMigrationControllerTest {
     @Autowired
@@ -62,6 +59,9 @@ public class VfMigrationControllerTest {
 
     @MockitoBean
     private MigrateResolved migrateResolved;
+
+    @MockitoBean
+    private BatchImportMissingMkAssets batchImportMissingMkAssets;
 
     @MockitoBean
     private ScheduledTaskRunner taskRunner;
@@ -249,7 +249,7 @@ public class VfMigrationControllerTest {
         UUID mockId = UUID.randomUUID();
         CreateVfMigrationRecordDTO createDto = new CreateVfMigrationRecordDTO();
         createDto.setId(mockId);
-        createDto.setStatus(VfMigrationStatus.SUCCESS);
+        createDto.setStatus(VfMigrationStatus.READY);
         createDto.setExhibitReference("EXHIBIT");
         createDto.setDefendantName("defendant-name");
         createDto.setWitnessName("witness-name");
@@ -257,12 +257,12 @@ public class VfMigrationControllerTest {
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
         mockMvc.perform(put("/vf-migration-records/" + mockId)
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(createDto))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
+                        .with(csrf())
+                        .content(OBJECT_MAPPER.writeValueAsString(createDto))
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.urn").value("must be alphanumeric"));
+            .andExpect(jsonPath("$.urn").value("must not be null"));
     }
 
     @Test
@@ -340,20 +340,21 @@ public class VfMigrationControllerTest {
         UUID mockId = UUID.randomUUID();
         CreateVfMigrationRecordDTO createDto = new CreateVfMigrationRecordDTO();
         createDto.setId(mockId);
-        createDto.setStatus(VfMigrationStatus.SUCCESS);
+        createDto.setStatus(VfMigrationStatus.READY);
         createDto.setUrn("URN1234567");
         createDto.setDefendantName("defendant-name");
         createDto.setWitnessName("witness-name");
         createDto.setCourtId(UUID.randomUUID());
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+    
+        when(migrationRecordService.update(any(CreateVfMigrationRecordDTO.class))).thenReturn(UpsertResult.UPDATED);
 
         mockMvc.perform(put("/vf-migration-records/" + mockId)
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(createDto))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.exhibitReference").value("must be alphanumeric"));
+                        .with(csrf())
+                        .content(OBJECT_MAPPER.writeValueAsString(createDto))
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent()); 
     }
 
     @Test
@@ -377,6 +378,7 @@ public class VfMigrationControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.exhibitReference").value("must be alphanumeric"));
+
     }
 
     @Test
@@ -385,7 +387,7 @@ public class VfMigrationControllerTest {
         UUID mockId = UUID.randomUUID();
         CreateVfMigrationRecordDTO createDto = new CreateVfMigrationRecordDTO();
         createDto.setId(mockId);
-        createDto.setStatus(VfMigrationStatus.SUCCESS);
+        createDto.setStatus(VfMigrationStatus.READY); 
         createDto.setUrn("URN1234567");
         createDto.setExhibitReference("EX");
         createDto.setDefendantName("defendant-name");
@@ -393,13 +395,14 @@ public class VfMigrationControllerTest {
         createDto.setCourtId(UUID.randomUUID());
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
+        when(migrationRecordService.update(any(CreateVfMigrationRecordDTO.class))).thenReturn(UpsertResult.UPDATED);
+
         mockMvc.perform(put("/vf-migration-records/" + mockId)
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(createDto))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.exhibitReference").value("length must be between 7 and 11"));
+                        .with(csrf())
+                        .content(OBJECT_MAPPER.writeValueAsString(createDto))
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent()); 
     }
 
     @Test
@@ -408,7 +411,7 @@ public class VfMigrationControllerTest {
         UUID mockId = UUID.randomUUID();
         CreateVfMigrationRecordDTO createDto = new CreateVfMigrationRecordDTO();
         createDto.setId(mockId);
-        createDto.setStatus(VfMigrationStatus.SUCCESS);
+        createDto.setStatus(VfMigrationStatus.READY); 
         createDto.setUrn("URN1234567");
         createDto.setExhibitReference("EXHIBIT12345678901234567890");
         createDto.setDefendantName("defendant-name");
@@ -417,12 +420,12 @@ public class VfMigrationControllerTest {
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
         mockMvc.perform(put("/vf-migration-records/" + mockId)
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(createDto))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
+                        .with(csrf())
+                        .content(OBJECT_MAPPER.writeValueAsString(createDto))
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.exhibitReference").value("length must be between 7 and 11"));
+            .andExpect(jsonPath("$.exhibitReference").value("length must be between 0 and 11")); 
     }
 
     @Test
@@ -563,5 +566,18 @@ public class VfMigrationControllerTest {
 
         verify(migrationRecordService, times(1)).markReadyAsSubmitted();
         verifyNoInteractions(migrateResolved);
+    }
+
+    @Test
+    @DisplayName("Should trigger import of Vodafone assets")
+    public void importVodafoneAssets() throws Exception {
+        when(migrationRecordService.markReadyAsSubmitted()).thenReturn(false);
+
+        mockMvc.perform(post("/vf-migration-records/import-assets")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent());
+
+        verify(batchImportMissingMkAssets, times(1)).asyncRun();
     }
 }

@@ -32,7 +32,7 @@ public class PortalAccessService {
             .orElseThrow(() -> new NotFoundException("PortalAccess: " + createDto.getId()));
 
         entity.setLastAccess(createDto.getLastAccess());
-        entity.setStatus(createDto.getStatus());
+        entity.setStatus(getNewStatus(createDto));
         entity.setInvitedAt(createDto.getInvitedAt());
         entity.setRegisteredAt(createDto.getRegisteredAt());
         portalAccessRepository.save(entity);
@@ -51,5 +51,12 @@ public class PortalAccessService {
                     access.setDeletedAt(Timestamp.from(Instant.now()));
                     portalAccessRepository.save(access);
                 });
+    }
+
+    private AccessStatus getNewStatus(CreatePortalAccessDTO dto) {
+        if (dto.getStatus() == AccessStatus.ACTIVE && dto.getRegisteredAt() == null) {
+            return AccessStatus.INVITATION_SENT;
+        }
+        return dto.getStatus();
     }
 }

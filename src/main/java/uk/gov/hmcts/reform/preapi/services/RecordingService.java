@@ -66,16 +66,18 @@ public class RecordingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public RecordingDTO findById(UUID recordingId) {
-        return recordingRepository
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingId
-            )
+        return recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
             .map(RecordingDTO::new)
             .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
     }
 
     @Transactional
-    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
+    @PreAuthorize(
+        """
+        (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
+        and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
+        """
+    )
     public Page<RecordingDTO> findAll(
         SearchRecordings params,
         boolean includeDeleted,
@@ -120,12 +122,10 @@ public class RecordingService {
         recordingEntity.setId(createRecordingDTO.getId());
         recordingEntity.setCaptureSession(captureSession);
         if (createRecordingDTO.getParentRecordingId() != null) {
-            Optional<Recording> parentRecording = recordingRepository
-                .findById(createRecordingDTO.getParentRecordingId());
-            if (parentRecording.isEmpty()) {
-                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
-            }
-            recordingEntity.setParentRecording(parentRecording.get());
+            Recording parentRecording = recordingRepository
+                .findById(createRecordingDTO.getParentRecordingId())
+                .orElseThrow(() -> new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId()));
+            recordingEntity.setParentRecording(parentRecording);
         } else {
             recordingEntity.setParentRecording(null);
         }
@@ -179,20 +179,12 @@ public class RecordingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public void deleteById(UUID recordingId) {
-        Optional<Recording> recording = recordingRepository
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingId
-            );
+        var recording = recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
+            .orElseThrow(() -> new NotFoundException("Recording: " + recordingId));
+        recording.setDeleteOperation(true);
+        recording.setDeletedAt(Timestamp.from(Instant.now()));
 
-        if (recording.isEmpty() || recording.get().isDeleted()) {
-            throw new NotFoundException("Recording: " + recordingId);
-        }
-
-        Recording recordingEntity = recording.get();
-        recordingEntity.setDeleteOperation(true);
-        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
-
-        recordingRepository.saveAndFlush(recordingEntity);
+        recordingRepository.saveAndFlush(recording);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -260,8 +252,10 @@ public class RecordingService {
 
     @Transactional
     public List<RecordingDTO> findAllVodafoneRecordings() {
-        return recordingRepository.findAllOriginVodafone().stream()
+        // return recordingRepository.findAllOriginVodafone().stream()
+        return recordingRepository.findAllOriginVodafoneNoDuration().stream()
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
+
 }

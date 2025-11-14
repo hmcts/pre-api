@@ -163,9 +163,28 @@ public abstract class AzureStorageService {
     }
 
     public void copyBlob(String destinationContainerName, String destinationBlobName, String sourceUrl) {
+        copyBlobOverwritable(destinationContainerName, destinationBlobName, sourceUrl, true);
+    }
+
+    public void copyBlobOverwritable(String destinationContainerName,
+                                     String destinationBlobName,
+                                     String sourceUrl,
+                                     boolean overwrite) {
         BlobContainerClient destinationContainerClient = client.getBlobContainerClient(destinationContainerName);
         if (!destinationContainerClient.exists()) {
             destinationContainerClient.create();
+        }
+
+        if (!overwrite) {
+            if (destinationContainerClient.getBlobClient(destinationBlobName).exists()) {
+                log.info(
+                    "Skipped copying blob '{}/{}' to {}. Already exists.",
+                    destinationContainerName,
+                    destinationBlobName,
+                    getStorageAccountName()
+                );
+                return;
+            }
         }
 
         SyncPoller<BlobCopyInfo, Void> poller = destinationContainerClient.getBlobClient(destinationBlobName)

@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @UtilityClass
-@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
+@SuppressWarnings({"java:S5843", "checkstyle:HideUtilityClassConstructor"})
 public final class RegexPatterns {
     public static final Pattern NO_DIGIT_PATTERN = Pattern.compile("^[^\\d]+\\.(mp4)$",
         Pattern.CASE_INSENSITIVE);
@@ -118,7 +118,7 @@ public final class RegexPatterns {
 
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{6,9})";
     private static final String VERSION_PATTERN =
-        "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI|OR|CO|COP)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
+        "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI|OR|CO|COP|CP|CY)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
     private static final String EXTENSION_PATTERN = "(?i)(?:\\.(?<ext>mp4|raw))?";
 
     private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)"
@@ -190,7 +190,7 @@ public final class RegexPatterns {
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ONE
         + URN_PATTERN + SEPARATOR_ONE
-        + "(?<urn2>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE
+        + "(?<exhibitRef>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE
         + NAMES_PATTERN + SEPARATOR_ONE
         + VERSION_PATTERN
         + EXTENSION_PATTERN + "$"

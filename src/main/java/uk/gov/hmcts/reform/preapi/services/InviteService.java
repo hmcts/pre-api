@@ -2,8 +2,6 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -73,10 +71,6 @@ public class InviteService {
         return result;
     }
 
-
-    @Caching(evict = {
-        @CacheEvict(value = "users", key = "#email.toLowerCase()")
-    })
     public UpsertResult redeemInvite(String email) {
         PortalAccess portalAccess = portalAccessRepository
             .findByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(email)

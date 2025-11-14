@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class SearchRecordingsTest {
-
     @Test
     public void getCaseReference() {
         var searchRecordings = new SearchRecordings();
