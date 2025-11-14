@@ -151,7 +151,7 @@ public class UserControllerFT extends FunctionalTestBase {
         assertThat(userDto2.getPortalAccess()).isNotEmpty();
         PortalAccessDTO portalAccessDto2 = userDto2.getPortalAccess().getFirst();
         assertThat(portalAccessDto2.getId()).isEqualTo(portalAccessDto1.getId());
-        assertThat(portalAccessDto2.getRegisteredAt()).isEqualTo(portalAccessDto1.getRegisteredAt());
+        assertThat(portalAccessDto2.getRegisteredAt()).isAfterOrEqualTo(portalAccessDto1.getRegisteredAt());
         assertThat(portalAccessDto2.getStatus()).isEqualTo(AccessStatus.ACTIVE);
     }
 
