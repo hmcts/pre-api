@@ -18,7 +18,6 @@ java:
     POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
     APIM_ENABLED: false
-    MEDIA_KIND_SUBSCRIPTION: pre-mediakind-stg
     PLATFORM_ENV_TAG: Staging
     MEDIA_SERVICE: MediaKind
     AZURE_INGEST_SA: preingestsastg
@@ -31,6 +30,9 @@ java:
     TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE: 50
     TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL: 10000
     ENABLE_V2_B2C: true
+    MEDIA_KIND_SUBSCRIPTION: pre-mkio-dev
+    MEDIA_KIND_SUBSCRIPTION_ID: 666555e9-ce08-4fd5-8649-ed2f64792b99
+    MEDIA_KIND_LOCATION: uksouth-4
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
