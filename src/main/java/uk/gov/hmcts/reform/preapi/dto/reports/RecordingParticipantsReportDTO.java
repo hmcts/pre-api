@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Data
 @NoArgsConstructor
-@Schema(description = "RecordingParticipantsReportDTO")
+@Schema(description = "RecordingParticipantsReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class RecordingParticipantsReportDTO {
 

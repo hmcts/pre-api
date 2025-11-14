@@ -1,8 +1,10 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import com.microsoft.applicationinsights.TelemetryClient;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,10 +14,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -23,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -30,9 +35,11 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,6 +52,11 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
+    private final AzureFinalStorageService azureFinalStorageService;
+    private final AuditService auditService;
+
+    @Setter
+    private boolean enableMigratedData;
 
     private final TelemetryClient telemetry = new TelemetryClient();
 
@@ -53,12 +65,18 @@ public class CaptureSessionService {
                                  CaptureSessionRepository captureSessionRepository,
                                  BookingRepository bookingRepository,
                                  UserRepository userRepository,
-                                 @Lazy BookingService bookingService) {
+                                 @Lazy BookingService bookingService,
+                                 AzureFinalStorageService azureFinalStorageService,
+                                 AuditService auditService,
+                                 @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
+        this.azureFinalStorageService = azureFinalStorageService;
+        this.auditService = auditService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @Transactional
@@ -112,9 +130,19 @@ public class CaptureSessionService {
                 until,
                 authorisedBookings,
                 authorisedCourt,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
             .map(CaptureSessionDTO::new);
+    }
+
+    @Transactional
+    public List<CaptureSession> findSessionsByDate(LocalDate date) {
+        Timestamp fromTime = Timestamp.valueOf(date.atStartOfDay());
+        Timestamp toTime = Timestamp.valueOf(date.atStartOfDay().plusDays(1));
+
+        return captureSessionRepository
+            .findAllByStartedAtIsBetweenAndDeletedAtIsNull(fromTime, toTime);
     }
 
     @Transactional
@@ -130,12 +158,13 @@ public class CaptureSessionService {
             throw new ResourceInWrongStateException(
                 "Capture Session ("
                     + id
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is "
                     + captureSession.getStatus()
             );
         }
 
-        recordingService.deleteCascade(captureSession);
+        recordingService.checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         captureSession.setDeleteOperation(true);
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
         captureSessionRepository.saveAndFlush(captureSession);
@@ -152,11 +181,12 @@ public class CaptureSessionService {
                     throw new ResourceInWrongStateException(
                         "Capture Session ("
                             + captureSession.getId()
-                            + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                            + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                            + "Current state is "
                             + captureSession.getStatus()
                     );
                 }
-                recordingService.deleteCascade(captureSession);
+                recordingService.checkIfCaptureSessionHasAssociatedRecordings(captureSession);
                 captureSession.setDeleteOperation(true);
                 captureSession.setDeletedAt(Timestamp.from(Instant.now()));
                 captureSessionRepository.save(captureSession);
@@ -257,7 +287,7 @@ public class CaptureSessionService {
         return new CaptureSessionDTO(captureSession);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     public CaptureSessionDTO stopCaptureSession(UUID captureSessionId,
                                                 RecordingStatus status,
                                                 UUID recordingId) {
@@ -272,9 +302,10 @@ public class CaptureSessionService {
         properties.put("captureSession_STATUS", captureSession.getStatus().name());
         telemetry.trackEvent(properties.toString());
 
+        UUID userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+
         switch (status) {
             case PROCESSING -> {
-                var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
                 var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
 
                 captureSession.setFinishedByUser(user);
@@ -285,9 +316,15 @@ public class CaptureSessionService {
                 recording.setId(recordingId);
                 recording.setCaptureSessionId(captureSessionId);
                 recording.setVersion(1);
-                recording.setFilename("index_1280x720_4500k.mp4");
+                try {
+                    recording.setFilename(azureFinalStorageService.getMp4FileName(recordingId.toString()));
+                } catch (Exception e) {
+                    log.error("Failed to get recording filename for capture session {}", captureSessionId);
+                }
                 recordingService.upsert(recording);
+                auditService.upsert(createStopAudit(captureSessionId), userId);
             }
+            case NO_RECORDING, FAILURE -> auditService.upsert(createStopAudit(captureSessionId), userId);
             default -> {
             }
         }
@@ -308,5 +345,25 @@ public class CaptureSessionService {
 
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
+    }
+
+    @Transactional
+    public List<CaptureSessionDTO> findAllPastIncompleteCaptureSessions() {
+        return captureSessionRepository.findAllPastIncompleteCaptureSessions(Timestamp.from(Instant.now())).stream()
+            .map(CaptureSessionDTO::new)
+            .toList();
+    }
+
+    private CreateAuditDTO createStopAudit(UUID captureSessionId) {
+        CreateAuditDTO audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setTableName("capture_sessions");
+        audit.setTableRecordId(captureSessionId);
+        audit.setSource(AuditLogSource.AUTO);
+        audit.setCategory("CaptureSession");
+        audit.setActivity("Stop");
+        audit.setFunctionalArea("API");
+        audit.setAuditDetails(null);
+        return audit;
     }
 }

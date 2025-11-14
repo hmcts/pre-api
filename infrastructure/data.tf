@@ -8,4 +8,3 @@ data "azurerm_application_insights" "app_insights" {
   name                = "pre-${var.env}-appinsights"
   resource_group_name = "${var.product}-${var.env}"
 }
-

@@ -8,12 +8,15 @@ import org.springframework.stereotype.Service;
 
 import static java.lang.Character.toLowerCase;
 
-@Service
 @Slf4j
+@Service
 public class ScheduledTaskRunner {
 
-    @Autowired
-    ApplicationContext context;
+    private final ApplicationContext context;
+
+    public ScheduledTaskRunner(@Autowired ApplicationContext context) {
+        this.context = context;
+    }
 
     public void run(String taskName) {
         final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
@@ -28,7 +31,7 @@ public class ScheduledTaskRunner {
     }
 
     @Nullable
-    private Runnable getTask(String beanName) {
+    public Runnable getTask(String beanName) {
         try {
             return (Runnable) context.getBean(beanName);
         } catch (Exception e) {

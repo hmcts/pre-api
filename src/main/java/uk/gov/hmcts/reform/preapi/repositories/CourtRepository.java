@@ -15,7 +15,6 @@ import java.util.UUID;
 
 @Repository
 public interface CourtRepository extends JpaRepository<Court, UUID> {
-
     @Query(
         """
         SELECT c FROM Court c

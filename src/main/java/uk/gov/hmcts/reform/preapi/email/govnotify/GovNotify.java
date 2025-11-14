@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.templates.BaseTemplate;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailVerification;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
@@ -68,7 +69,8 @@ public class GovNotify implements IEmailService {
         var template = new PortalInvite(to.getEmail(), to.getFirstName(), to.getLastName(), portalUrl,
                                         portalUrl + "/assets/files/user-guide.pdf",
                                         portalUrl + "/assets/files/process-guide.pdf",
-                                        portalUrl + "/assets/files/faqs.pdf");
+                                        portalUrl + "/assets/files/faqs.pdf",
+                                        portalUrl + "/assets/files/pre-editing-request-form.xlsx");
         try {
             log.info("Portal invite email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -113,6 +115,20 @@ public class GovNotify implements IEmailService {
         } catch (NotificationClientException e) {
             log.error("Failed to send case closure cancelled email to {}", to.getEmail(), e);
             throw new EmailFailedToSendException(to.getEmail());
+        }
+    }
+
+    @Override
+    public EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode) {
+        var template = new EmailVerification(
+            email, firstName, lastName, verificationCode
+        );
+        try {
+            log.info("Email verification sent to {}", email);
+            return EmailResponse.fromGovNotifyResponse(sendEmail(template));
+        } catch (NotificationClientException e) {
+            log.error("Failed to send email verification to {}", email, e);
+            throw new EmailFailedToSendException(email);
         }
     }
 

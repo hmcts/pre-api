@@ -30,6 +30,17 @@ public class UserTermsAcceptedService {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
     }
 
+    /**
+     * Accepts the specified terms and conditions for a user.
+     *
+     * <p>
+     * Retrieves the user from the database via security context. Gets the specified terms
+     * and conditions then creates and persists a record of the user's acceptance of those terms.
+     * </p>
+     *
+     * @param termsId the UUID of the terms and conditions to accept
+     * @throws uk.gov.hmcts.reform.preapi.exception.NotFoundException if the user or terms and conditions are not found
+     */
     @Transactional
     public void acceptTermsAndConditions(UUID termsId) {
         var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
