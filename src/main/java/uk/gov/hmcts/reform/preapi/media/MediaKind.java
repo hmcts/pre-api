@@ -708,9 +708,9 @@ public class MediaKind implements IMediaService {
                 MkAsset.builder()
                     .properties(MkAssetProperties.builder()
                                     .container(containerName)
-                                    .storageAccountName(isFinal ?
-                                                            azureFinalStorageService.getStorageAccountName() :
-                                                            azureIngestStorageService.getStorageAccountName())
+                                    .storageAccountName(isFinal
+                                                            ? azureFinalStorageService.getStorageAccountName()
+                                                            : azureIngestStorageService.getStorageAccountName())
                                     .description(description)
                                     .build())
                     .build()

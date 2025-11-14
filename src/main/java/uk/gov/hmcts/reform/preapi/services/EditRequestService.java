@@ -207,6 +207,14 @@ public class EditRequestService {
         return azureFinalStorageService.getMp4FileName(newRecordingId.toString());
     }
 
+    private EditInstructions getPreviousInstructions(String editInstruction) {
+        if (editInstruction != null
+            && !editInstruction.isEmpty()) {
+            return EditInstructions.tryFromJson(editInstruction);
+        }
+        return null;
+    }
+
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
@@ -265,14 +273,6 @@ public class EditRequestService {
 
         editRequestRepository.save(request);
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
-    }
-
-    private EditInstructions getPreviousInstructions(String editInstruction) {
-        if (editInstruction != null
-            && !editInstruction.isEmpty()) {
-            return EditInstructions.tryFromJson(editInstruction);
-        }
-        return null;
     }
 
     @Transactional
