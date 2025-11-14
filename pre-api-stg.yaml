@@ -4734,6 +4734,14 @@ paths:
           in: query
           name: name
           type: string
+        - description: The first name of the user to search by
+          in: query
+          name: firstName
+          type: string
+        - description: The last name of the user to search by
+          in: query
+          name: lastName
+          type: string
         - description: The email of the user to search by
           in: query
           name: email
