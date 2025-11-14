@@ -15,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.UUID;
 
 @Service

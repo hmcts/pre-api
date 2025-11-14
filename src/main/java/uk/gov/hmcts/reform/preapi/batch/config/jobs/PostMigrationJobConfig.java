@@ -172,7 +172,7 @@ public class PostMigrationJobConfig {
     @Bean
     @StepScope
     public ItemReader<PostMigratedItemGroup> postMigrationItemReaderBean() {
-        boolean dryRun = coreSteps.getDryRunFlag();
+        boolean dryRun = coreSteps.isDryRun();
         return postMigrationItemReader.createReader(dryRun);
     }
 

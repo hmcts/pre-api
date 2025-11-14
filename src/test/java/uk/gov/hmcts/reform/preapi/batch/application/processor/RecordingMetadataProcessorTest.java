@@ -66,7 +66,7 @@ class RecordingMetadataProcessorTest {
         when(migrationRecordService.findByArchiveId("B456"))
             .thenReturn(Optional.of(record));
         when(extractionService.process(record))
-            .thenReturn(ServiceResult.createErrorResult("Error", "Mock failure"));
+            .thenReturn(ServiceResult.error("Error", "Mock failure"));
 
         processor.processRecording(record);
 
@@ -91,7 +91,7 @@ class RecordingMetadataProcessorTest {
             true
         );
 
-        ServiceResult<TestItem> testResult = ServiceResult.createTestResult(testItem);
+        ServiceResult<TestItem> testResult = ServiceResult.test(testItem);
 
         when(extractionService.process(record))
             .thenAnswer(invocation -> testResult);
@@ -117,10 +117,10 @@ class RecordingMetadataProcessorTest {
             .thenReturn(Optional.of(record));
 
         when(extractionService.process(record))
-            .thenAnswer(invocation -> ServiceResult.createSuccessResult(extracted));
+            .thenAnswer(invocation -> ServiceResult.success(extracted));
 
         when(transformationService.transformData(extracted))
-            .thenAnswer(invocation -> ServiceResult.createErrorResult("Error", "Missing"));
+            .thenAnswer(invocation -> ServiceResult.error("Error", "Missing"));
 
         processor.processRecording(record);
 
@@ -147,10 +147,10 @@ class RecordingMetadataProcessorTest {
             .thenReturn(Optional.of(record));
 
         when(extractionService.process(record))
-            .thenAnswer(invocation -> ServiceResult.createSuccessResult(extracted));
+            .thenAnswer(invocation -> ServiceResult.success(extracted));
 
         when(transformationService.transformData(extracted))
-            .thenAnswer(invocation -> ServiceResult.createSuccessResult(processed));
+            .thenAnswer(invocation -> ServiceResult.success(processed));
 
         processor.processRecording(record);
 

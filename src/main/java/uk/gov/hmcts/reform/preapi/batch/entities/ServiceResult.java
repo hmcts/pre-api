@@ -39,15 +39,15 @@ public class ServiceResult<T> {
         this.test = false;
     }
 
-    public static <T> ServiceResult<T> createSuccessResult(T data) {
+    public static <T> ServiceResult<T> success(T data) {
         return new ServiceResult<>(data);
     }
 
-    public static <T> ServiceResult<T> createErrorResult(String message, String category) {
+    public static <T> ServiceResult<T> error(String message, String category) {
         return new ServiceResult<>(message, category);
     }
 
-    public static ServiceResult<TestItem> createTestResult(TestItem testItem) {
+    public static ServiceResult<TestItem> test(TestItem testItem) {
         return new ServiceResult<>(testItem, true);
     }
 }

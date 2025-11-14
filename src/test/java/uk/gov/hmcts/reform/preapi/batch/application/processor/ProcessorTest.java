@@ -155,7 +155,8 @@ class ProcessorTest {
         MigratedItemGroup result = processor.process(mockRecord);
 
         assertNull(result);
-        verify(loggingService).logError(eq("Processor - Error: %s"), eq("Test exception"), any(Exception.class));
+        verify(loggingService).logError(eq("Processor - Error: %s"), eq("Test exception"),
+                                        any(Exception.class));
     }
 
 
@@ -163,7 +164,7 @@ class ProcessorTest {
     void shouldHandleExtractionFailure() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         when(extractionService.process(any(MigrationRecord.class)))
-            .thenReturn(ServiceResult.createErrorResult("Extraction failed", "ExtractionError"));
+            .thenReturn(ServiceResult.error("Extraction failed", "ExtractionError"));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
@@ -178,7 +179,7 @@ class ProcessorTest {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
         when(validationService.validateProcessedRecording(any()))
-            .thenReturn(ServiceResult.createErrorResult("Validation failed", "ValidationError"));
+            .thenReturn(ServiceResult.error("Validation failed", "ValidationError"));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
@@ -213,7 +214,7 @@ class ProcessorTest {
         verify(migrationRecordService).findByArchiveId(testMigrationRecord.getArchiveId());
         verify(migrationTrackerService).addFailedItem(any());
     }
-    
+
     // =========================
     // Pending Status Processing Tests
     // =========================
@@ -235,7 +236,7 @@ class ProcessorTest {
     @Test
     void shouldHandlePreExistingFailureFromExtraction() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        doReturn(ServiceResult.createErrorResult("Keyword 'PRE' found", "Pre_Existing"))
+        doReturn(ServiceResult.error("Keyword 'PRE' found", "Pre_Existing"))
             .when(extractionService).process(any(MigrationRecord.class));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -253,7 +254,7 @@ class ProcessorTest {
     @Test
     void shouldHandleRawFileFailureFromExtraction() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        doReturn(ServiceResult.createErrorResult(Constants.ErrorMessages.RAW_FILE, "Raw_Files"))
+        doReturn(ServiceResult.error(Constants.ErrorMessages.RAW_FILE, "Raw_Files"))
             .when(extractionService).process(any(MigrationRecord.class));
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -349,15 +350,14 @@ class ProcessorTest {
     @Test
     void shouldProcessResolvedRecordingSuccessfully() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
-        ServiceResult<ProcessedRecording> transformationResult = ServiceResult
-            .createSuccessResult(testProcessedRecording);
-        ServiceResult<ProcessedRecording> validationResult = ServiceResult.createSuccessResult(testProcessedRecording);
+        ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
+        ServiceResult<ProcessedRecording> validationResult = ServiceResult.success(testProcessedRecording);
 
         when(transformationService.transformData(any(ExtractedMetadata.class))).thenReturn(transformationResult);
         when(validationService.validateResolvedRecording(
             testProcessedRecording, testMigrationRecord.getArchiveName())).thenReturn(validationResult);
         when(migrationService.createMigratedItemGroup(any(ExtractedMetadata.class),
-            eq(testProcessedRecording))).thenReturn(testMigratedItemGroup);
+                                                      eq(testProcessedRecording))).thenReturn(testMigratedItemGroup);
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
@@ -370,9 +370,8 @@ class ProcessorTest {
     @Test
     void shouldHandleResolvedValidationFailure() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
-        ServiceResult<ProcessedRecording> transformationResult = ServiceResult
-            .createSuccessResult(testProcessedRecording);
-        ServiceResult<ProcessedRecording> validationResult = ServiceResult.createErrorResult(
+        ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
+        ServiceResult<ProcessedRecording> validationResult = ServiceResult.error(
             "Resolved validation failed", "ResolvedValidationError");
 
         when(transformationService.transformData(any(ExtractedMetadata.class))).thenReturn(transformationResult);
@@ -423,7 +422,7 @@ class ProcessorTest {
         processor.process(testMigrationRecord);
 
         verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Double-barrelled name")
+                                                                  item.getNotification().equals("Double-barrelled name")
         ));
     }
 
@@ -443,7 +442,7 @@ class ProcessorTest {
         processor.process(testMigrationRecord);
 
         verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Double-barrelled name")
+                                                                  item.getNotification().equals("Double-barrelled name")
         ));
     }
 
@@ -463,8 +462,9 @@ class ProcessorTest {
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Used Xhibit reference as URN did not meet requirements")
+        verify(migrationTrackerService)
+            .addNotifyItem(argThat(item -> item.getNotification()
+                .equals("Used Xhibit reference as URN did not meet requirements")
         ));
     }
 
@@ -503,7 +503,8 @@ class ProcessorTest {
 
         assertNull(result);
         verify(migrationTrackerService).addTestItem(testItem);
-        verify(migrationRecordService).updateToFailed(eq(testMigrationRecord.getArchiveId()), eq("Test"), anyString());
+        verify(migrationRecordService).updateToFailed(eq(testMigrationRecord.getArchiveId()),
+                                                      eq("Test"), anyString());
     }
 
     @Test
@@ -512,26 +513,27 @@ class ProcessorTest {
         testMigrationRecord.setRecordingGroupKey("test-group");
         testMigrationRecord.setRecordingVersion("COPY");
         testMigrationRecord.setRecordingVersionNumber(null);
-        
+
         setupSuccessfulProcessingMocks();
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
         String expectedGroupKey = MigrationRecordService.generateRecordingGroupKey(
-            "12345678901", 
-            "EXHIBIT123",   
-            "Jane Smith",   
-            "John Doe",     
-            null,           
-            testMigrationRecord.getCreateTime() != null 
-                ? testMigrationRecord.getCreateTime().toLocalDateTime() 
+            "12345678901",
+            "EXHIBIT123",
+            "Jane Smith",
+            "John Doe",
+            null,
+            testMigrationRecord.getCreateTime() != null
+                ? testMigrationRecord.getCreateTime().toLocalDateTime()
                 : LocalDateTime.now()
         );
 
         assertNotNull(result);
         verify(migrationRecordService).updateParentTempIdIfCopy(
             testMigrationRecord.getArchiveId(), expectedGroupKey, "1");
-        verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s", testMigrationRecord.getArchiveId());
+        verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s",
+                                       testMigrationRecord.getArchiveId());
     }
 
     @Test
@@ -540,26 +542,27 @@ class ProcessorTest {
         testMigrationRecord.setRecordingGroupKey("test-group");
         testMigrationRecord.setRecordingVersion("COPY");
         testMigrationRecord.setRecordingVersionNumber("");
-        
+
         setupSuccessfulProcessingMocks();
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
 
         String expectedGroupKey = MigrationRecordService.generateRecordingGroupKey(
-            "12345678901", 
-            "EXHIBIT123",   
-            "Jane Smith",   
-            "John Doe",     
-            null,           
-            testMigrationRecord.getCreateTime() != null 
-                ? testMigrationRecord.getCreateTime().toLocalDateTime() 
+            "12345678901",
+            "EXHIBIT123",
+            "Jane Smith",
+            "John Doe",
+            null,
+            testMigrationRecord.getCreateTime() != null
+                ? testMigrationRecord.getCreateTime().toLocalDateTime()
                 : LocalDateTime.now()
         );
 
         assertNotNull(result);
         verify(migrationRecordService).updateParentTempIdIfCopy(
             testMigrationRecord.getArchiveId(), expectedGroupKey, "");
-        verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s", testMigrationRecord.getArchiveId());
+        verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s",
+                                       testMigrationRecord.getArchiveId());
     }
 
     @Test
@@ -568,17 +571,17 @@ class ProcessorTest {
         testMigrationRecord.setRecordingGroupKey("test-group");
         testMigrationRecord.setRecordingVersion("COPY");
         testMigrationRecord.setRecordingVersionNumber("2.5.1");
-        
+
         setupSuccessfulProcessingMocks();
 
         String expectedGroupKey = MigrationRecordService.generateRecordingGroupKey(
-            "12345678901", 
-            "EXHIBIT123",   
-            "Jane Smith",   
-            "John Doe",     
-            null,           
-            testMigrationRecord.getCreateTime() != null 
-                ? testMigrationRecord.getCreateTime().toLocalDateTime() 
+            "12345678901",
+            "EXHIBIT123",
+            "Jane Smith",
+            "John Doe",
+            null,
+            testMigrationRecord.getCreateTime() != null
+                ? testMigrationRecord.getCreateTime().toLocalDateTime()
                 : LocalDateTime.now()
         );
 
@@ -587,7 +590,8 @@ class ProcessorTest {
         assertNotNull(result);
         verify(migrationRecordService).updateParentTempIdIfCopy(
             testMigrationRecord.getArchiveId(),  expectedGroupKey, "2");
-        verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s", testMigrationRecord.getArchiveId());
+        verify(loggingService).logInfo("Updated parent_temp_id for COPY record %s",
+                                       testMigrationRecord.getArchiveId());
     }
 
     @Test
@@ -595,7 +599,7 @@ class ProcessorTest {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
         testMigrationRecord.setRecordingVersion("ORIG");
-        
+
         setupSuccessfulProcessingMocks();
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -657,15 +661,15 @@ class ProcessorTest {
     void shouldHandleNotifyItemWithNullCaseReference() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(true);
         testProcessedRecording.setCaseReference(null);
         testProcessedRecording.setExhibitReference("EXHIBIT123");
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Invalid case reference")
+        verify(migrationTrackerService).addNotifyItem(
+            argThat(item -> item.getNotification().equals("Invalid case reference")
         ));
     }
 
@@ -673,15 +677,15 @@ class ProcessorTest {
     void shouldHandleNotifyItemWithBlankCaseReference() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(true);
         testProcessedRecording.setCaseReference("   ");
         testProcessedRecording.setExhibitReference("EXHIBIT123");
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Invalid case reference")
+        verify(migrationTrackerService).addNotifyItem(
+            argThat(item -> item.getNotification().equals("Invalid case reference")
         ));
     }
 
@@ -689,15 +693,15 @@ class ProcessorTest {
     void shouldHandleNotifyItemWithExhibitBasedCaseReference() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(true);
         testProcessedRecording.setCaseReference("EXHIBIT123");
         testProcessedRecording.setExhibitReference("EXHIBIT123");
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Used Xhibit reference as URN did not meet requirements")
+        verify(migrationTrackerService).addNotifyItem(argThat(
+            item -> item.getNotification().equals("Used Xhibit reference as URN did not meet requirements")
         ));
     }
 
@@ -705,16 +709,16 @@ class ProcessorTest {
     void shouldHandleNotifyItemWithExhibitBasedCaseReferenceTooShort() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(true);
         testProcessedRecording.setCaseReference("EXHIBIT");
         testProcessedRecording.setExhibitReference("EXHIBIT");
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals(
-                "Used Xhibit reference as URN did not meet requirements (length outside 9–20)")
+        verify(migrationTrackerService).addNotifyItem(
+            argThat(item -> item.getNotification()
+                .equals("Used Xhibit reference as URN did not meet requirements (length outside 9–20)")
         ));
     }
 
@@ -722,32 +726,31 @@ class ProcessorTest {
     void shouldHandleNotifyItemWithExhibitBasedCaseReferenceTooLong() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(true);
         testProcessedRecording.setCaseReference("EXHIBIT12345678901234567890");
         testProcessedRecording.setExhibitReference("EXHIBIT12345678901234567890");
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals(
-                "Used Xhibit reference as URN did not meet requirements (length outside 9–20)")
-        ));
+        verify(migrationTrackerService).addNotifyItem(
+            argThat(item -> item.getNotification().equals(
+                "Used Xhibit reference as URN did not meet requirements (length outside 9–20)")));
     }
 
     @Test
     void shouldHandleNotifyItemWithNonExhibitBasedCaseReferenceTooShort() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(true);
         testProcessedRecording.setCaseReference("12345678");
         testProcessedRecording.setExhibitReference("EXHIBIT123");
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Invalid case reference length")
+        verify(migrationTrackerService).addNotifyItem(argThat(
+            item -> item.getNotification().equals("Invalid case reference length")
         ));
     }
 
@@ -755,15 +758,15 @@ class ProcessorTest {
     void shouldHandleNotifyItemWithNonExhibitBasedCaseReferenceTooLong() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(true);
         testProcessedRecording.setCaseReference("123456789012345678901");
         testProcessedRecording.setExhibitReference("EXHIBIT123");
 
         processor.process(testMigrationRecord);
 
-        verify(migrationTrackerService).addNotifyItem(argThat(item ->
-            item.getNotification().equals("Invalid case reference length")
+        verify(migrationTrackerService).addNotifyItem(argThat(
+            item -> item.getNotification().equals("Invalid case reference length")
         ));
     }
 
@@ -771,7 +774,7 @@ class ProcessorTest {
     void shouldHandleNotifyItemWithValidCaseReference() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(true);
         testProcessedRecording.setCaseReference("1234567890");
         testProcessedRecording.setExhibitReference("EXHIBIT123");
@@ -785,7 +788,7 @@ class ProcessorTest {
     void shouldHandleNotifyItemWithNonPreferredRecording() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
         setupSuccessfulProcessingMocks();
-        
+
         testProcessedRecording.setPreferred(false);
         testProcessedRecording.setCaseReference("12345678");
         testProcessedRecording.setExhibitReference("EXHIBIT123");
@@ -799,8 +802,8 @@ class ProcessorTest {
     void shouldHandleConvertToExtractedMetadataWithNullFileName() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setFileName(null);
-        testMigrationRecord.setRecordingGroupKey(null); 
-        
+        testMigrationRecord.setRecordingGroupKey(null);
+
         setupSuccessfulProcessingMocks();
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -813,8 +816,8 @@ class ProcessorTest {
     void shouldHandleConvertToExtractedMetadataWithNullDuration() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setDuration(null);
-        testMigrationRecord.setRecordingGroupKey(null); 
-        
+        testMigrationRecord.setRecordingGroupKey(null);
+
         setupSuccessfulProcessingMocks();
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -827,7 +830,7 @@ class ProcessorTest {
     void shouldHandleSubmittedRecordingWithNullRecordingGroupKey() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey(null);
-        
+
         setupSuccessfulProcessingMocks();
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -840,7 +843,7 @@ class ProcessorTest {
     void shouldHandleSubmittedRecordingWithEmptyRecordingGroupKey() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("");
-        
+
         setupSuccessfulProcessingMocks();
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -852,7 +855,7 @@ class ProcessorTest {
     @Test
     void shouldHandleTransformationReturningNull() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        
+
         doReturn(ServiceResult.success(testExtractedMetadata)).when(extractionService)
             .process(any(MigrationRecord.class));
         doNothing().when(migrationRecordService).updateMetadataFields(anyString(), any(ExtractedMetadata.class));
@@ -869,7 +872,7 @@ class ProcessorTest {
     void shouldHandleSubmittedTransformationReturningNull() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
-        
+
         when(transformationService.transformData(any(ExtractedMetadata.class)))
             .thenReturn(ServiceResult.success(null));
 
@@ -881,7 +884,7 @@ class ProcessorTest {
     @Test
     void shouldHandleExtractionReturningNull() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.PENDING);
-        
+
         doReturn(ServiceResult.success(null)).when(extractionService)
             .process(any(MigrationRecord.class));
 
@@ -895,7 +898,7 @@ class ProcessorTest {
     void shouldHandleSubmittedValidationFailure() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
-        
+
         when(transformationService.transformData(any(ExtractedMetadata.class)))
             .thenReturn(ServiceResult.success(testProcessedRecording));
         when(validationService.validateResolvedRecording(any(ProcessedRecording.class), anyString()))
@@ -913,7 +916,7 @@ class ProcessorTest {
     void shouldHandleSubmittedCaseClosed() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
-        
+
         when(transformationService.transformData(any(ExtractedMetadata.class)))
             .thenReturn(ServiceResult.success(testProcessedRecording));
         when(validationService.validateResolvedRecording(any(ProcessedRecording.class), anyString()))
@@ -938,7 +941,7 @@ class ProcessorTest {
     void shouldHandleSubmittedCaseDeleted() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
-        
+
         when(transformationService.transformData(any(ExtractedMetadata.class)))
             .thenReturn(ServiceResult.success(testProcessedRecording));
         when(validationService.validateResolvedRecording(any(ProcessedRecording.class), anyString()))
@@ -963,13 +966,13 @@ class ProcessorTest {
     void shouldHandleSubmittedCaseOpen() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
-        
+
         setupSuccessfulProcessingMocks();
 
         CreateCaseDTO openCase = mock(CreateCaseDTO.class);
         when(openCase.getState()).thenReturn(CaseState.OPEN);
         doReturn(Optional.of(openCase)).when(cacheService).getCase("1234567890");
-        
+
         when(caseRepository.findAllByReference("1234567890")).thenReturn(List.of());
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -982,11 +985,11 @@ class ProcessorTest {
     void shouldHandleSubmittedCaseAbsent() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
-        
+
         setupSuccessfulProcessingMocks();
 
         doReturn(Optional.empty()).when(cacheService).getCase("1234567890");
-        
+
         when(caseRepository.findAllByReference("1234567890")).thenReturn(List.of());
 
         MigratedItemGroup result = processor.process(testMigrationRecord);
@@ -999,7 +1002,7 @@ class ProcessorTest {
     void shouldHandleSubmittedCaseRepositoryWithMultipleCases() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
-        
+
         when(transformationService.transformData(any(ExtractedMetadata.class)))
             .thenReturn(ServiceResult.success(testProcessedRecording));
         when(validationService.validateResolvedRecording(any(ProcessedRecording.class), anyString()))
@@ -1026,7 +1029,7 @@ class ProcessorTest {
     void shouldHandleSubmittedCaseRepositoryWithMultipleActiveCases() throws Exception {
         testMigrationRecord.setStatus(VfMigrationStatus.SUBMITTED);
         testMigrationRecord.setRecordingGroupKey("test-group");
-        
+
         setupSuccessfulProcessingMocks();
 
         CreateCaseDTO openCase = mock(CreateCaseDTO.class);
@@ -1051,11 +1054,10 @@ class ProcessorTest {
 
     @SuppressWarnings("unchecked")
     private void setupSuccessfulProcessingMocks() {
-        ServiceResult<ProcessedRecording> transformationResult = ServiceResult
-            .createSuccessResult(testProcessedRecording);
-        ServiceResult<ProcessedRecording> validationResult = ServiceResult.createSuccessResult(testProcessedRecording);
+        ServiceResult<ProcessedRecording> transformationResult = ServiceResult.success(testProcessedRecording);
+        ServiceResult<ProcessedRecording> validationResult = ServiceResult.success(testProcessedRecording);
 
-        doReturn(ServiceResult.createSuccessResult(testExtractedMetadata)).when(extractionService)
+        doReturn(ServiceResult.success(testExtractedMetadata)).when(extractionService)
             .process(any(MigrationRecord.class));
         when(transformationService.transformData(any(ExtractedMetadata.class))).thenReturn(transformationResult);
         when(migrationRecordService.findByArchiveId(anyString())).thenReturn(Optional.empty());
