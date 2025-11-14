@@ -10,7 +10,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
-public class XUserIdFilterFT extends FunctionalTestBase {
+class XUserIdFilterFT extends FunctionalTestBase {
 
     private static final String ENDPOINT = "/roles";
 

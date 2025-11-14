@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -54,8 +55,8 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("portalAccessUserEmail", user.getEmail());
         details.put("portalAccessStatus", status);
         details.put("portalAccessInvitedAt", invitedAt);

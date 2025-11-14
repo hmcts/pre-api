@@ -56,14 +56,14 @@ public class EditCutInstructionDTO {
 
     private static long parseTime(String time) {
         try {
-            var units = time.split(":");
+            String[] units = time.split(":");
             int hours = Integer.parseInt(units[0]);
             int minutes = Integer.parseInt(units[1]);
             int seconds = Integer.parseInt(units[2]);
 
             return hours * 3600L + minutes * 60L + seconds;
         } catch (Exception e) {
-            throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS");
+            throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS", e);
         }
     }
 
@@ -73,7 +73,7 @@ public class EditCutInstructionDTO {
         }
 
         long hours = time / 3600;
-        long minutes = (time % 3600) / 60;
+        long minutes = time % 3600 / 60;
         long seconds = time % 60;
 
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);

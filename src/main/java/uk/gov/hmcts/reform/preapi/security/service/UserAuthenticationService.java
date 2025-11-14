@@ -71,7 +71,7 @@ public class UserAuthenticationService {
             return Optional.empty();
         }
 
-        var user = appAccessRepository
+        Optional<UserAuthentication> user = appAccessRepository
             .findByIdValidUser(id)
             .map(this::getAuthentication);
 
@@ -83,7 +83,7 @@ public class UserAuthenticationService {
 
     private List<GrantedAuthority> getAuthorities(AppAccess access) {
         try {
-            var role = access.getRole().getName().toUpperCase(Locale.ROOT).replace(' ', '_');
+            String role = access.getRole().getName().toUpperCase(Locale.ROOT).replace(' ', '_');
             return List.of(new SimpleGrantedAuthority("ROLE_" + role));
         } catch (Exception ignored) {
             return AuthorityUtils.NO_AUTHORITIES;

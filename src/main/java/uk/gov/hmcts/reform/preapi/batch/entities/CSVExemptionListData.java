@@ -28,7 +28,7 @@ public class CSVExemptionListData implements IArchiveData  {
         "d-M-yyyy HH:mm", "d-M-yyyy H:mm",
         "yyyy-MM-dd HH:mm:ss"
     );
-    
+
     private String archiveId;
     private String archiveName;
     private String createTime;
@@ -46,6 +46,7 @@ public class CSVExemptionListData implements IArchiveData  {
     private String reason;
     private String addedBy;
 
+    @Override
     public LocalDateTime getCreateTimeAsLocalDateTime() {
         if (createTime == null || createTime.isEmpty()) {
             return null;

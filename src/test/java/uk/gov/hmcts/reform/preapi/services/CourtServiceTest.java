@@ -44,7 +44,7 @@ public class CourtServiceTest {
     @Autowired
     private CourtService courtService;
 
-    private Pageable pageable = PageRequest.of(0, 20);
+    private final Pageable pageable = PageRequest.of(0, 20);
 
     @BeforeAll
     static void setUp() {

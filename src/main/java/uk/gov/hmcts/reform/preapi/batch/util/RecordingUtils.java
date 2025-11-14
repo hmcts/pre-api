@@ -4,6 +4,7 @@ import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 @UtilityClass
@@ -20,7 +21,7 @@ public class RecordingUtils {
             return "ORIG";
         }
 
-        String upper = input.trim().toUpperCase();
+        String upper = input.trim().toUpperCase(Locale.UK);
         if (Constants.VALID_ORIG_TYPES.contains(upper)) {
             return "ORIG";
         }
@@ -31,23 +32,19 @@ public class RecordingUtils {
     }
 
     public int getStandardizedVersionNumberFromType(String recordingVersion) {
-        return Constants.VALID_ORIG_TYPES.contains(recordingVersion.toUpperCase()) ? 1 : 2;
+        return Constants.VALID_ORIG_TYPES.contains(recordingVersion.toUpperCase(Locale.UK)) ? 1 : 2;
     }
 
     public String getValidVersionNumber(String versionNumStr) {
-        return (versionNumStr == null || versionNumStr.trim().isEmpty()) ? "1" : versionNumStr.trim();
+        return (versionNumStr == null || versionNumStr.isBlank()) ? "1" : versionNumStr.trim();
     }
 
-    public int compareVersionStrings(String v1, String v2) {
-        if (v1 == null || v1.isBlank()) {
-            v1 = "0";
-        }
-        if (v2 == null || v2.isBlank()) {
-            v2 = "0";
-        }
+    public int compareVersionStrings(final String v1, final String v2) {
+        final String versionString1 = v1 == null || v1.isBlank() ? "0" : v1;
+        final String versionString2 = v2 == null || v2.isBlank() ? "0" : v2;
 
-        String[] v1Parts = v1.split("\\.");
-        String[] v2Parts = v2.split("\\.");
+        final String[] v1Parts = versionString1.split("\\.");
+        final String[] v2Parts = versionString2.split("\\.");
 
         int length = Math.max(v1Parts.length, v2Parts.length);
         for (int i = 0; i < length; i++) {

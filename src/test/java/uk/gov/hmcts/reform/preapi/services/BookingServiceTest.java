@@ -33,7 +33,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -98,19 +97,9 @@ class BookingServiceTest {
         var bookingModel2 = new BookingDTO(bookingEntity2);
 
         when(bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseEntity.getId(), null))
-            .thenReturn(new PageImpl<>(new ArrayList<>() {
-                {
-                    add(bookingEntity1);
-                    add(bookingEntity2);
-                }
-            }));
+            .thenReturn(new PageImpl<>(List.of(bookingEntity1, bookingEntity2)));
         assertThat(bookingService.findAllByCaseId(caseEntity.getId(), null).getContent())
-            .isEqualTo(new ArrayList<>() {
-                {
-                    add(bookingModel1);
-                    add(bookingModel2);
-                }
-            });
+            .isEqualTo(List.of(bookingModel1, bookingModel2));
     }
 
     @DisplayName("Search By Case Ref")
@@ -155,13 +144,7 @@ class BookingServiceTest {
             null,
             false,
             null
-        ))
-            .thenReturn(new PageImpl<>(new ArrayList<>() {
-                {
-                    add(bookingEntity1);
-                    add(bookingEntity2);
-                }
-            }));
+        )).thenReturn(new PageImpl<>(List.of(bookingEntity1, bookingEntity2)));
         assertThat(
             bookingService
                 .searchBy(null, "MyRef", null, Optional.empty(), null, null, null, null, null)

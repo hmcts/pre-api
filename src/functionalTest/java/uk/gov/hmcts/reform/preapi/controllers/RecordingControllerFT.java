@@ -24,9 +24,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RecordingControllerFT extends FunctionalTestBase {
-    @Test
+class RecordingControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Restore recording")
+    @Test
     void undeleteRecording() {
         var recordingDetails = createRecording();
         assertRecordingExists(recordingDetails.recordingId(), true);

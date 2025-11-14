@@ -10,6 +10,7 @@ import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.listeners.AuditListener;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @MappedSuperclass
@@ -29,7 +30,7 @@ public class BaseEntity {
         }
     }
 
-    public HashMap<String, Object> getDetailsForAudit() {
+    public Map<String, Object> getDetailsForAudit() {
         return new HashMap<>();
     }
 }

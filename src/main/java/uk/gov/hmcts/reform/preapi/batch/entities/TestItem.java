@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@SuppressWarnings("PMD.TestClassWithoutTestCases")
 public class TestItem {
     private MigrationRecord archiveItem;
     private String reason;

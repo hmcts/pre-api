@@ -27,7 +27,7 @@ public class PostProcessMigration extends BaseTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    public void run() {
         startJob(postMigrationJob, "Post Migration");
     }
 }
