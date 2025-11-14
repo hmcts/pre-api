@@ -530,12 +530,24 @@ public class MigrationRecordService {
             .orElseThrow(() -> new NotFoundException("Migration Record: " + dto.getId()));
 
         if (entity.getStatus() == VfMigrationStatus.SUCCESS
-            || entity.getStatus() == VfMigrationStatus.SUBMITTED) {
+            || entity.getStatus() == VfMigrationStatus.SUBMITTED
+        ) {
             throw new ResourceInWrongStateException(
                 "MigrationRecord",
                 dto.getId().toString(),
                 entity.getStatus().toString(),
-                "PENDING, FAILED or READY"
+                "PENDING, FAILED, IGNORED or READY"
+            );
+        }
+
+        //only entities in FAILED status can be marked as IGNORED
+        if (dto.getStatus() == VfMigrationStatus.IGNORED 
+            && entity.getStatus() != VfMigrationStatus.FAILED) {
+            throw new ResourceInWrongStateException(
+                "MigrationRecord",
+                dto.getId().toString(),
+                entity.getStatus().toString(),
+                "FAILED (only FAILED records can be marked as IGNORED)"
             );
         }
 

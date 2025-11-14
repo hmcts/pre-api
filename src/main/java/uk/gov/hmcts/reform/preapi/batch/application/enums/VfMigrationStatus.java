@@ -5,5 +5,6 @@ public enum VfMigrationStatus {
     SUCCESS,
     FAILED,
     READY,
-    SUBMITTED
+    SUBMITTED,
+    IGNORED
 }
