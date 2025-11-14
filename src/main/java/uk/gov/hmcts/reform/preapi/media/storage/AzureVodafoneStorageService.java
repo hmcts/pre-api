@@ -1,0 +1,77 @@
+package uk.gov.hmcts.reform.preapi.media.storage;
+
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.ListBlobsOptions;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.List;
+
+@Service
+@Slf4j
+public class AzureVodafoneStorageService extends AzureStorageService {
+    @Autowired
+    public AzureVodafoneStorageService(BlobServiceClient vodafoneStorageClient, AzureConfiguration azureConfiguration) {
+        super(vodafoneStorageClient, azureConfiguration);
+    }
+
+    public List<String> fetchBlobNames(String containerName) {
+        var containerClient = client.getBlobContainerClient(containerName);
+
+        return containerClient.listBlobs().stream()
+                              .map(BlobItem::getName)
+                              .filter(name -> name.endsWith(".xml"))
+                              .toList();
+    }
+
+    public List<String> fetchBlobNamesWithPrefix(String containerName, String prefix) {
+        var containerClient = client.getBlobContainerClient(containerName);
+
+        return containerClient.listBlobs(new ListBlobsOptions().setPrefix(prefix), null)
+            .stream()
+            .map(BlobItem::getName)
+            .filter(name -> name.endsWith(".xml"))
+            .toList();
+    }
+
+    public InputStreamResource fetchSingleXmlBlob(String containerName, String blobName) {
+        try {
+            BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(blobName);
+
+            if (!blobClient.exists()) {
+                log.warn("Blob not found: {}", blobName);
+                return null;
+            }
+
+            return new InputStreamResource(blobClient.openInputStream(), blobName);
+        } catch (Exception e) {
+            log.error("Failed to fetch blob: {} - {}", blobName, e.getMessage());
+            return null;
+        }
+    }
+
+    public void uploadCsvFile(String containerName, String blobPath, File file) {
+        try {
+            BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(blobPath);
+
+            try (FileInputStream fis = new FileInputStream(file)) {
+                blobClient.upload(fis, file.length(), true);
+                log.info("Uploaded CSV to Azure: {}/{}", containerName, blobPath);
+            }
+        } catch (IOException e) {
+            log.error("Failed to upload CSV file to Azure: {} - {}", blobPath, e.getMessage());
+        }
+    }
+
+}

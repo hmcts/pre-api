@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -8,9 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CourtController;
@@ -46,13 +45,13 @@ public class CourtControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private CourtService courtService;
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
+    @MockitoBean
     private ScheduledTaskRunner taskRunner;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -184,40 +183,6 @@ public class CourtControllerTest {
             .isEqualTo("{\"message\":\"Not found: Region: " + mockCourt.getRegions().getFirst() + "\"}");
     }
 
-    @DisplayName("Should fail to create/update a court with 404 response code when room does not exist")
-    @Test
-    void updateCourtRoomNotFound() throws Exception {
-        var mockCourt = createMockCreateCourt();
-
-        doThrow(new NotFoundException("Room: " + mockCourt.getRooms().getFirst())).when(courtService).upsert(any());
-
-        MvcResult response = mockMvc.perform(put(getPath(mockCourt.getId()))
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(mockCourt))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNotFound())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Not found: Room: " + mockCourt.getRooms().getFirst() + "\"}");
-    }
-
-    @DisplayName("Should fail to create/update a court with 404 response code when id is null")
-    @Test
-    void createCourtIdNullBadRequest() throws Exception {
-        var mockCourt = createMockCreateCourt();
-        mockCourt.setId(null);
-
-        mockMvc.perform(put(getPath(UUID.randomUUID()))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(mockCourt))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.id").value("id is required"));
-    }
-
     @DisplayName("Should fail to create/update a court with 404 response code when name is null")
     @Test
     void createCourtNameNullBadRequest() throws Exception {
@@ -293,36 +258,6 @@ public class CourtControllerTest {
             .andExpect(jsonPath("$.regions").value("must contain at least 1"));
     }
 
-    @DisplayName("Should fail to create/update a court with 404 response code when rooms is null")
-    @Test
-    void createCourtRoomsNullBadRequest() throws Exception {
-        var mockCourt = createMockCreateCourt();
-        mockCourt.setRooms(null);
-
-        mockMvc.perform(put(getPath(mockCourt.getId()))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(mockCourt))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.rooms").value("rooms is required and must contain at least 1"));
-    }
-
-    @DisplayName("Should fail to create/update a court with 404 response code when rooms is empty")
-    @Test
-    void createCourtRoomsEmptyBadRequest() throws Exception {
-        var mockCourt = createMockCreateCourt();
-        mockCourt.setRooms(List.of());
-
-        mockMvc.perform(put(getPath(mockCourt.getId()))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(mockCourt))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.rooms").value("must contain at least 1"));
-    }
-
     @DisplayName("Should return 400 when court id is not a uuid")
     @Test
     void testFindByIdBadRequest() throws Exception {
@@ -343,7 +278,6 @@ public class CourtControllerTest {
         mockCourt.setCourtType(CourtType.CROWN);
         mockCourt.setName("Example court");
         mockCourt.setLocationCode("1234567890");
-        mockCourt.setRooms(List.of(UUID.randomUUID()));
         mockCourt.setRegions(List.of(UUID.randomUUID()));
         return mockCourt;
     }
