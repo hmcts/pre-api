@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.validators.BookingScheduledForNotPastOrNotChangedConstraint;
 import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 
@@ -20,7 +19,6 @@ import java.util.stream.Stream;
 @NoArgsConstructor
 @Schema(description = "CreateBookingDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-@BookingScheduledForNotPastOrNotChangedConstraint(message = "scheduled_for is required and must not be before today")
 public class CreateBookingDTO {
     @Schema(description = "CreateBookingId")
     @NotNull(message = "id is required")

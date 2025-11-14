@@ -58,7 +58,11 @@ class CaseControllerFT extends FunctionalTestBase {
 
         // attempt update case
         dto.setTest(true);
-        var putCase2 = putCase(dto);
+        var putCase2 = doPutRequest(
+            CASES_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putCase2, 400);
         assertThat(putCase2.body().jsonPath().getString("message"))
             .isEqualTo("Resource Case("
