@@ -1,11 +1,19 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.PortalAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.Set;
@@ -65,31 +73,86 @@ public class UserControllerFT extends FunctionalTestBase {
         assertPutResponseMatchesDto(dto);
     }
 
-    @DisplayName("Scenario: Put user as 'Level 2' role")
-    @Test
-    void shouldCreateUserAsLevel2() throws JsonProcessingException {
-        var dto = createUserDto();
+    @ParameterizedTest
+    @DisplayName("Scenario: Put user as non-admin")
+    @EnumSource(value = TestingSupportRoles.class, names = {"SUPER_USER", "LEVEL_1"}, mode = EnumSource.Mode.EXCLUDE)
+    void shouldFailToCreateUserAsNonAdmin(TestingSupportRoles role) throws JsonProcessingException {
+        CreateUserDTO dto = createUserDto();
+        Response createResponse = putUser(dto, role);
 
-        var createResponse = putUser(dto, TestingSupportRoles.LEVEL_2);
         assertResponseCode(createResponse, 403);
     }
 
-    @DisplayName("Scenario: Put user as 'Level 3' role")
     @Test
-    void shouldCreateUserAsLevel3() throws JsonProcessingException {
-        var dto = createUserDto();
+    @DisplayName("Scenario: Unregistered portal user is changed to active")
+    void shouldUpdateStatusWhenActivatingUnregisteredPortalUser() throws JsonProcessingException {
+        // create and invite a user
+        CreateUserDTO createUserDto = createUserDto();
+        CreateInviteDTO inviteDto = createInviteDto(createUserDto.getId(), createUserDto.getFirstName(),
+            createUserDto.getLastName(), createUserDto.getEmail());
+        Response putInviteResponse = putInvite(inviteDto);
+        assertResponseCode(putInviteResponse, 201);
 
-        var createResponse = putUser(dto, TestingSupportRoles.LEVEL_3);
-        assertResponseCode(createResponse, 403);
+        // check portal access
+        UserDTO userDto1 = getUserById(inviteDto.getUserId());
+        assertThat(userDto1.getPortalAccess()).isNotEmpty();
+        PortalAccessDTO portalAccessDto1 = userDto1.getPortalAccess().getFirst();
+        assertThat(portalAccessDto1.getId()).isNotNull();
+        assertThat(portalAccessDto1.getRegisteredAt()).isNull();
+        assertThat(portalAccessDto1.getStatus()).isEqualTo(AccessStatus.INVITATION_SENT);
+
+        // update portal access to active
+        CreatePortalAccessDTO updatedPortalAccess = new CreatePortalAccessDTO(portalAccessDto1);
+        updatedPortalAccess.setStatus(AccessStatus.ACTIVE);
+        createUserDto.setPortalAccess(Set.of(updatedPortalAccess));
+        Response putUser2 = putUser(createUserDto, TestingSupportRoles.SUPER_USER);
+        assertResponseCode(putUser2, 204);
+
+        // check status set to invitation sent
+        UserDTO userDto2 = getUserById(createUserDto.getId());
+        assertThat(userDto2.getPortalAccess()).isNotEmpty();
+        PortalAccessDTO portalAccessDto2 = userDto2.getPortalAccess().getFirst();
+        assertThat(portalAccessDto2.getId()).isEqualTo(portalAccessDto1.getId());
+        assertThat(portalAccessDto2.getRegisteredAt()).isNull();
+        assertThat(portalAccessDto2.getStatus()).isEqualTo(AccessStatus.INVITATION_SENT);
     }
 
-    @DisplayName("Scenario: Put user as 'Level 4' role")
     @Test
-    void shouldCreateUserAsLevel4() throws JsonProcessingException {
-        var dto = createUserDto();
+    @DisplayName("Scenario: Registered portal user is changed to active")
+    void shouldUpdateStatusWhenActivatingRegisteredPortalUser() throws JsonProcessingException {
+        // create and invite a user
+        CreateUserDTO createUserDto = createUserDto();
+        CreateInviteDTO inviteDto = createInviteDto(createUserDto.getId(), createUserDto.getFirstName(),
+            createUserDto.getLastName(), createUserDto.getEmail());
+        Response putInviteResponse = putInvite(inviteDto);
+        assertResponseCode(putInviteResponse, 201);
 
-        var createResponse = putUser(dto, TestingSupportRoles.LEVEL_4);
-        assertResponseCode(createResponse, 403);
+        // register the user
+        Response redeemResponse = postRedeem(createUserDto.getEmail());
+        assertResponseCode(redeemResponse, 204);
+
+        // check portal access
+        UserDTO userDto1 = getUserById(createUserDto.getId());
+        assertThat(userDto1.getPortalAccess()).isNotEmpty();
+        PortalAccessDTO portalAccessDto1 = userDto1.getPortalAccess().getFirst();
+        assertThat(portalAccessDto1.getId()).isNotNull();
+        assertThat(portalAccessDto1.getRegisteredAt()).isNotNull();
+        assertThat(portalAccessDto1.getStatus()).isEqualTo(AccessStatus.ACTIVE);
+
+        // update portal access to active
+        CreatePortalAccessDTO updatedPortalAccess = new CreatePortalAccessDTO(portalAccessDto1);
+        updatedPortalAccess.setStatus(AccessStatus.ACTIVE);
+        createUserDto.setPortalAccess(Set.of(updatedPortalAccess));
+        Response putUser2 = putUser(createUserDto, TestingSupportRoles.SUPER_USER);
+        assertResponseCode(putUser2, 204);
+
+        // check status set to active
+        UserDTO userDto2 = getUserById(createUserDto.getId());
+        assertThat(userDto2.getPortalAccess()).isNotEmpty();
+        PortalAccessDTO portalAccessDto2 = userDto2.getPortalAccess().getFirst();
+        assertThat(portalAccessDto2.getId()).isEqualTo(portalAccessDto1.getId());
+        assertThat(portalAccessDto2.getRegisteredAt()).isEqualTo(portalAccessDto1.getRegisteredAt());
+        assertThat(portalAccessDto2.getStatus()).isEqualTo(AccessStatus.ACTIVE);
     }
 
     @DisplayName("Scenario: Duplicate email address should fail")
@@ -241,6 +304,12 @@ public class UserControllerFT extends FunctionalTestBase {
             .isEqualTo(0);
     }
 
+    private UserDTO getUserById(UUID userId) {
+        Response response = doGetRequest(USERS_ENDPOINT + "/" + userId, TestingSupportRoles.SUPER_USER);
+        assertResponseCode(response, 200);
+        return response.getBody().jsonPath().getObject("", UserDTO.class);
+    }
+
     private void assertPutResponseMatchesDto(CreateUserDTO dto) {
         var getResponse = doGetRequest(USERS_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getResponse, 200);
@@ -272,6 +341,17 @@ public class UserControllerFT extends FunctionalTestBase {
         dto.setRoleId(roleId);
         dto.setActive(true);
         dto.setDefaultCourt(true);
+        return dto;
+    }
+
+    private CreateInviteDTO createInviteDto(UUID userId, String firstName, String lastName, String email) {
+        var dto = new CreateInviteDTO();
+        dto.setUserId(userId);
+        dto.setFirstName(firstName);
+        dto.setLastName(lastName);
+        dto.setEmail(email);
+        dto.setOrganisation("Example Organisation");
+        dto.setPhone("1234567890");
         return dto;
     }
 

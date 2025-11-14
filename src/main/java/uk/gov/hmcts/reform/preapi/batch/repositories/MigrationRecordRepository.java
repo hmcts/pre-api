@@ -20,6 +20,16 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     List<MigrationRecord> findAllByStatus(VfMigrationStatus status);
 
+    @Query("""
+        SELECT mr FROM MigrationRecord mr
+        WHERE mr.status = :status
+        ORDER BY 
+            CASE WHEN UPPER(mr.recordingVersion) = 'ORIG' THEN 0 ELSE 1 END,
+            mr.recordingGroupKey,
+            mr.createTime
+        """)
+    List<MigrationRecord> findAllByStatusOrderedByVersion(@Param("status") VfMigrationStatus status);
+
     List<MigrationRecord> findByRecordingGroupKey(String recordingGroupKey);
 
     List<MigrationRecord> findByRecordingGroupKeyStartingWith(String baseGroupKey);
@@ -45,7 +55,7 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     @Query("""
         SELECT mr FROM MigrationRecord mr
-        WHERE (CAST(:status as text)IS NULL OR mr.status = :status)
+        WHERE (CAST(:status as text) IS NULL OR mr.status = :status)
         AND (:witnessName IS NULL OR mr.witnessName ILIKE %:witnessName%)
         AND (:defendantName IS NULL OR mr.defendantName ILIKE %:defendantName%)
         AND (:caseReference IS NULL
@@ -70,4 +80,3 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
                                     @Param("reasonNotIn") List<String> reasonNotIn,
                                     Pageable pageable);
 }
-

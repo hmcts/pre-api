@@ -1020,6 +1020,7 @@ definitions:
       - id
       - recording_version
       - status
+      - urn
       - witness_name
     type: object
   EditReportDTO:

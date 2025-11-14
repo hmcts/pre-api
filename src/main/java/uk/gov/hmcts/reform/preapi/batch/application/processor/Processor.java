@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
@@ -42,6 +43,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
     private final MigrationRecordService migrationRecordService;
+    private final MigrationRecordRepository migrationRecordRepository;
     private final CaseRepository caseRepository;
     private final LoggingService loggingService;
 
@@ -54,6 +56,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                      final MigrationGroupBuilderService migrationService,
                      final MigrationTrackerService migrationTrackerService,
                      final MigrationRecordService migrationRecordService,
+                     final MigrationRecordRepository migrationRecordRepository,
                      final CaseRepository caseRepository,
                      final LoggingService loggingService) {
         this.cacheService = cacheService;
@@ -64,6 +67,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         this.migrationService = migrationService;
         this.migrationTrackerService = migrationTrackerService;
         this.migrationRecordService = migrationRecordService;
+        this.migrationRecordRepository = migrationRecordRepository;
         this.caseRepository = caseRepository;
         this.loggingService = loggingService;
     }
@@ -143,7 +147,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 return migrationService.createMigratedItemGroup(extractedData, cleansedData);
             } catch (Exception e) {
                 loggingService.logError("Error processing archive %s: %s", archiveName, e.getMessage(), e);
-                migrationRecordService.updateToFailed(archiveId, "Error", e.getMessage());
+                migrationRecordService.updateToFailed(archiveId, VfFailureReason.GENERAL_ERROR.toString(), 
+                    e.getMessage());
                 handleError(migrationRecord, "Failed to create migrated item group: " + e.getMessage(), "Error");
                 return null;
             }
@@ -151,6 +156,31 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
         if (status == VfMigrationStatus.SUBMITTED) {
             ExtractedMetadata extractedData = convertToExtractedMetadata(migrationRecord);
+            
+            String groupKey = MigrationRecordService.generateRecordingGroupKey(
+                extractedData.getUrn(),
+                extractedData.getExhibitReference(),
+                extractedData.getWitnessFirstName(),
+                extractedData.getDefendantLastName(),
+                extractedData.getDatePattern(),
+                extractedData.getCreateTime()
+            );
+            migrationRecord.setRecordingGroupKey(groupKey);
+            migrationRecordRepository.save(migrationRecord);     
+            
+            if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {
+                String origVersionStr = extractedData.getRecordingVersionNumber() != null 
+                    ? extractedData.getRecordingVersionNumber().split("\\.")[0] 
+                    : "1";
+                
+                migrationRecordService.updateParentTempIdIfCopy(
+                    migrationRecord.getArchiveId(),
+                    migrationRecord.getRecordingGroupKey(),
+                    origVersionStr
+                );
+                loggingService.logInfo("Updated parent_temp_id for COPY record %s", migrationRecord.getArchiveId());
+            }
+            
             try {
                 ProcessedRecording cleansedData = transformData(extractedData);
                 if (cleansedData == null) {
