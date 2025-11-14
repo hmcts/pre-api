@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
@@ -63,11 +64,12 @@ public class MigrationRecordService {
         if (copy.getParentTempId() != null) {
             Optional<MigrationRecord> result = migrationRecordRepository.findById(copy.getParentTempId());
             if (result.isPresent()) {
+                log.warn("Found ORIG via parent_temp_id: {}", result.get().getArchiveId());
                 return result;
-            }
+            } 
         }
         
-        if (copy.getRecordingGroupKey() != null) {
+        if (copy.getRecordingGroupKey() != null && !copy.getRecordingGroupKey().isEmpty()) {
             List<MigrationRecord> groupRecords = migrationRecordRepository
                 .findByRecordingGroupKey(copy.getRecordingGroupKey());
             
@@ -90,9 +92,10 @@ public class MigrationRecordService {
                 .findFirst();
                 
             if (origRecord.isPresent()) {
+                log.warn("Found ORIG via group key: {}", origRecord.get().getArchiveId());
                 return origRecord;
-            }
-        }
+            } 
+        } 
         
         return Optional.empty();
     }
@@ -253,7 +256,8 @@ public class MigrationRecordService {
                 extracted.getExhibitReference(),
                 extracted.getWitnessFirstName(),
                 extracted.getDefendantLastName(),
-                extracted.getDatePattern()
+                extracted.getDatePattern(),
+                extracted.getCreateTimeAsLocalDateTime()
             );
 
             record.setRecordingGroupKey(groupKey);
@@ -322,15 +326,29 @@ public class MigrationRecordService {
 
     @Transactional
     public void updateParentTempIdIfCopy(String archiveId, String recordingGroupKey, String origVersionStr) {
-        Optional<MigrationRecord> maybeOrig = migrationRecordRepository
-            .findByRecordingGroupKey(recordingGroupKey)
+        log.warn("updateParentTempIdIfCopy called for archiveId: {}, groupKey: '{}', origVersionStr: '{}'", 
+                 archiveId, recordingGroupKey, origVersionStr);
+        
+        List<MigrationRecord> allGroupRecords = migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey);
+        log.warn("Found {} total records with group key: '{}'", allGroupRecords.size(), recordingGroupKey);
+        
+        for (MigrationRecord record : allGroupRecords) {
+            log.warn("Group record: archiveId={}, version={}, preferred={}, versionNumber={}, archiveName={}", 
+                     record.getArchiveId(), record.getRecordingVersion(), record.getIsPreferred(), 
+                     record.getRecordingVersionNumber(), record.getArchiveName());
+        }
+        
+        Optional<MigrationRecord> maybeOrig = allGroupRecords
             .stream()
             .filter(r -> !r.getArchiveName().toLowerCase().endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
             .filter(MigrationRecord::getIsPreferred)
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
-                return recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
+                boolean matches = recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
+                log.warn("Version filter: recVersion='{}', origVersionStr='{}', matches={}", 
+                         recVersion, origVersionStr, matches);
+                return matches;
             })
             .sorted((a, b) -> {
                 boolean aIsMp4 = a.getArchiveName().toLowerCase().endsWith(".mp4");
@@ -343,12 +361,15 @@ public class MigrationRecordService {
             .findFirst();
 
         if (maybeOrig.isEmpty()) {
+            log.warn("No suitable ORIG found for COPY archiveId: {}", archiveId);
             return;
         }
 
+        log.warn("Found ORIG for COPY: {} -> {}", archiveId, maybeOrig.get().getArchiveId());
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(copy -> {
             copy.setParentTempId(maybeOrig.get().getId());
             migrationRecordRepository.save(copy);
+            log.warn("Set parent_temp_id for COPY {} to ORIG {}", archiveId, maybeOrig.get().getId());
         });
     }
 
@@ -445,9 +466,23 @@ public class MigrationRecordService {
     }
 
     public static String generateRecordingGroupKey(
-        String urn, String exhibitRef, String witnessName, String defendantName, String datePattern) {
+        String urn, 
+        String exhibitRef, 
+        String witnessName, 
+        String defendantName, 
+        String datePattern, 
+        LocalDateTime createTime
+    ) {
         
         String datePart = normaliseDate(datePattern);
+        
+        if (datePart == null || datePart.isEmpty()) {
+            if (createTime != null) {
+                datePart = createTime.toLocalDate().toString();
+            } else {
+                datePart = "";
+            }
+        }
 
         return Stream.of(urn, exhibitRef, witnessName, defendantName, datePart)
             .map(MigrationRecordService::nullToEmpty)
@@ -499,8 +534,11 @@ public class MigrationRecordService {
                 ))
                 .orElse(null);
 
-            for (MigrationRecord copy : copies) {
-                copy.setIsMostRecent(copy.equals(mostRecent));
+            if (mostRecent != null) {
+                String mostRecentArchiveId = mostRecent.getArchiveId();
+                for (MigrationRecord copy : copies) {
+                    copy.setIsMostRecent(mostRecentArchiveId.equals(copy.getArchiveId()));
+                }
             }
         }
 
@@ -558,7 +596,10 @@ public class MigrationRecordService {
         entity.setCourtReference(courtName);
         entity.setCourtId(dto.getCourtId());
         entity.setUrn(dto.getUrn());
-        entity.setExhibitReference(dto.getExhibitReference());
+        entity.setExhibitReference(dto.getExhibitReference() != null 
+            && !dto.getExhibitReference().trim().isEmpty() 
+            ? dto.getExhibitReference() 
+            : null);
         entity.setDefendantName(dto.getDefendantName());
         entity.setWitnessName(dto.getWitnessName());
         entity.setRecordingVersion(dto.getRecordingVersion().toString());

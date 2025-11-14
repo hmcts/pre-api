@@ -88,7 +88,8 @@ public class DataTransformationService {
                 extracted.getExhibitReference(),
                 extracted.getWitnessFirstName(),
                 extracted.getDefendantLastName(),
-                extracted.getDatePattern()
+                extracted.getDatePattern(),
+                extracted.getCreateTime()
             );
 
             String versionPrefix = versionNumber.contains(".")
@@ -140,7 +141,8 @@ public class DataTransformationService {
             extracted.getExhibitReference(),
             extracted.getWitnessFirstName(),
             extracted.getDefendantLastName(),
-            extracted.getDatePattern()
+            extracted.getDatePattern(),
+            extracted.getCreateTime()
         );
 
         boolean isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)

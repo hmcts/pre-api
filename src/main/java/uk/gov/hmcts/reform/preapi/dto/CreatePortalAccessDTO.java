@@ -32,4 +32,12 @@ public class CreatePortalAccessDTO {
 
     @Schema(description = "PortalAccessRegisteredAt")
     private Timestamp registeredAt;
+
+    public CreatePortalAccessDTO(PortalAccessDTO portalAccessDTO) {
+        this.id = portalAccessDTO.getId();
+        this.lastAccess = portalAccessDTO.getLastAccess();
+        this.status = portalAccessDTO.getStatus();
+        this.invitedAt = portalAccessDTO.getInvitedAt();
+        this.registeredAt = portalAccessDTO.getRegisteredAt();
+    }
 }

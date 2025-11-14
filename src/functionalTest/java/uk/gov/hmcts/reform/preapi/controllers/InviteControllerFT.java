@@ -193,14 +193,6 @@ public class InviteControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private Response putInvite(CreateInviteDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            INVITES_ENDPOINT + "/" + dto.getUserId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
-    }
-
     private Response postRedeem(CreateInviteDTO dto) {
         return doPostRequest(INVITES_ENDPOINT + "/redeem?email=" + dto.getEmail(), null);
     }
