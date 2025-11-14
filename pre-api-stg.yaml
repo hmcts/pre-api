@@ -1006,6 +1006,7 @@ definitions:
           - FAILED
           - READY
           - SUBMITTED
+          - IGNORED
         type: string
       urn:
         description: CreateMigrationRecordUrn
@@ -1614,6 +1615,7 @@ definitions:
           - FAILED
           - READY
           - SUBMITTED
+          - IGNORED
         type: string
       urn:
         description: MigrationRecordUrn
@@ -4955,6 +4957,7 @@ paths:
             - FAILED
             - READY
             - SUBMITTED
+            - IGNORED
           in: query
           name: status
           type: string
