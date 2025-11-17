@@ -250,7 +250,7 @@ class ArchiveMetadataXmlExtractorTest {
 
         verify(migrationRecordService).insertPendingFromXml(
             eq("U1"), eq("Pick-UGC-ORIG"), eq("2"), eq("10"),
-            eq("pref/U1/mp4/UGC_big.mp4"), eq("0.10"));
+            eq("pref/U1/mp4/plain.mp4"), eq("9.76"));
     }
 
     @Test
