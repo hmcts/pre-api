@@ -6,6 +6,9 @@ import jakarta.validation.ConstraintValidatorContext;
 public class AlphanumericValidator implements ConstraintValidator<AlphanumericConstraint, String> {
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        return value != null && value.matches("^[a-zA-Z0-9]*$");
+        if (value == null || value.isEmpty()) {
+            return true;
+        }
+        return value.matches("^[a-zA-Z0-9]*$");
     }
 }

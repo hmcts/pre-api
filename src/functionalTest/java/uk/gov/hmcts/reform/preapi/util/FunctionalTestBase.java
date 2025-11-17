@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -470,5 +471,18 @@ public class FunctionalTestBase {
     }
 
     protected record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
+    }
+
+    protected Response putInvite(CreateInviteDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            INVITES_ENDPOINT + "/" + dto.getUserId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER);
+    }
+
+    protected Response postRedeem(String email) {
+        return doPostRequest(
+            INVITES_ENDPOINT + "/redeem?email=" + email,
+            TestingSupportRoles.LEVEL_3);
     }
 }
