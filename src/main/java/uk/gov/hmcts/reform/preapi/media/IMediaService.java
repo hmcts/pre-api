@@ -50,4 +50,6 @@ public interface IMediaService {
     RecordingStatus verifyFinalAssetExists(UUID recordingId);
 
     RecordingStatus hasJobCompleted(String transformName, String jobName);
+
+    boolean checkLiveFeedAvailable(UUID captureSessionId);
 }
