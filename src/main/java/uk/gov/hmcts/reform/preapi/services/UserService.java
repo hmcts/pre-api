@@ -99,6 +99,8 @@ public class UserService {
     @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public Page<UserDTO> findAllBy(
         String name,
+        String firstName,
+        String lastName,
         String email,
         String organisation,
         UUID court,
@@ -112,14 +114,23 @@ public class UserService {
             throw new NotFoundException("Court: " + court);
         }
 
-        if (role != null && !roleRepository.existsById(role)) {
-            throw new NotFoundException("Role: " + role);
+        if (role != null) {
+            var r = roleRepository.findById(role);
+            if (r.isEmpty()) {
+                throw new NotFoundException("Role: " + role);
+            }
+            if (r.get().getName().equals("Level 3") && accessType == null) {
+                role = null;
+                accessType = AccessType.PORTAL;
+            }
         }
 
         var allLatestTermsAndConditions = getAllLatestTermsAndConditions();
 
         return userRepository.searchAllBy(
             name,
+            firstName,
+            lastName,
             email,
             organisation,
             court,
