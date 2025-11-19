@@ -35,6 +35,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             (:reference IS NULL OR b.caseId.reference ILIKE %:reference%)
             AND (CAST(:caseId as uuid) IS NULL OR b.caseId.id = :caseId)
             AND (CAST(:courtId as uuid) IS NULL OR b.caseId.court.id = :courtId)
+            AND (:includeDeleted = TRUE OR b.deletedAt IS NULL)
             AND (CAST(:scheduledForFrom as Timestamp) IS NULL OR
                 CAST(:scheduledForUntil as Timestamp) IS NULL OR
                 CAST(FUNCTION('TIMEZONE', 'Europe/London', b.scheduledFor) as Timestamp)
@@ -79,6 +80,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("authorisedBookings") List<UUID> authorisedBookings,
         @Param("authCourtId") UUID authCourtId,
         @Param("hasRecordings") Boolean hasRecordings,
+        @Param("includeDeleted") Boolean includeDeleted,
         @Param("statuses") List<RecordingStatus> statuses,
         @Param("notStatuses") List<RecordingStatus> notStatuses,
         @Param("includeVodafone") boolean includeVodafone,

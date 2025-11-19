@@ -99,6 +99,12 @@ public class BookingController extends PreApiController {
         description = "If the booking has any recordings",
         schema = @Schema(implementation = Boolean.class)
     )
+
+    @Parameter(
+        name = "includeDeleted",
+        description = "Include bookings marked as deleted",
+        schema = @Schema(implementation = Boolean.class)
+    )
     @Parameter(
         name = "captureSessionStatusIn",
         description = "Search bookings with at least one associated capture session with one of the statuses listed",
@@ -144,12 +150,14 @@ public class BookingController extends PreApiController {
                 : Optional.empty(),
             params.getParticipantId(),
             params.getHasRecordings(),
+            params.getIncludeDeleted() != null && params.getIncludeDeleted(),
             params.getCaptureSessionStatusIn() == null || params.getCaptureSessionStatusIn().isEmpty()
                 ? null
                 : params.getCaptureSessionStatusIn(),
             params.getCaptureSessionStatusNotIn() == null || params.getCaptureSessionStatusNotIn().isEmpty()
                 ? null
                 : params.getCaptureSessionStatusNotIn(),
+
             pageable
         );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {

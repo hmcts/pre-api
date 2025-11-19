@@ -143,6 +143,7 @@ public class GetScheduledBookingsTest {
                 any(),
                 any(),
                 any(),
+                any(),
                 any()))
                 .thenReturn(new PageImpl<>(List.of()));
 

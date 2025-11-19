@@ -153,6 +153,7 @@ class BookingServiceTest {
             null,
             null,
             null,
+            null,
             false,
             null
         ))
@@ -164,7 +165,7 @@ class BookingServiceTest {
             }));
         assertThat(
             bookingService
-                .searchBy(null, "MyRef", null, Optional.empty(), null, null, null, null, null)
+                .searchBy(null, "MyRef", null, Optional.empty(), null, null, null, null, null, null)
                 .getContent()).isEqualTo(List.of(bookingModel1, bookingModel2));
     }
 
@@ -636,6 +637,7 @@ class BookingServiceTest {
             any(),
             any(),
             any(),
+            any(),
             anyBoolean(),
             any())).thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
@@ -649,6 +651,7 @@ class BookingServiceTest {
                 any(),
                 eq(Timestamp.valueOf(currentDate.atStartOfDay())),
                 eq(Timestamp.valueOf(currentDate.atTime(23, 59, 59))),
+                any(),
                 any(),
                 any(),
                 any(),

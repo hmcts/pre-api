@@ -89,6 +89,7 @@ public class BookingService {
         Optional<Timestamp> scheduledFor,
         UUID participantId,
         Boolean hasRecordings,
+        Boolean includeDeleted,
         List<RecordingStatus> statuses,
         List<RecordingStatus> notStatuses,
         Pageable pageable
@@ -114,6 +115,7 @@ public class BookingService {
                 authorisedBookings,
                 authorisedCourt,
                 hasRecordings,
+                includeDeleted,
                 statuses,
                 notStatuses,
                 enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
@@ -248,6 +250,7 @@ public class BookingService {
             null,
             null,
             Optional.of(Timestamp.valueOf(currentDate.atStartOfDay())),
+            null,
             null,
             null,
             null,
