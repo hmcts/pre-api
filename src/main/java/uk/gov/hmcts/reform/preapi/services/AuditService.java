@@ -27,7 +27,7 @@ public class AuditService {
             throw new ImmutableDataException(createAuditDTO.getId().toString());
         }
 
-        var audit = new Audit();
+        Audit audit = new Audit();
         audit.setId(createAuditDTO.getId());
         audit.setAuditDetails(createAuditDTO.getAuditDetails());
         audit.setActivity(createAuditDTO.getActivity());

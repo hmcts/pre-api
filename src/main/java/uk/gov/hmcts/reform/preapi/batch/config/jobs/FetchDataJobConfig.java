@@ -19,6 +19,8 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingSe
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 
+import java.util.Map;
+
 @Configuration
 public class FetchDataJobConfig {
     private final JobRepository jobRepository;
@@ -34,7 +36,8 @@ public class FetchDataJobConfig {
     public static final String XML_PREFIX = "";
     public static final String CONTAINER_NAME = "prod-migration-1";
     public static final String FULL_PATH = "src/main/resources/batch";
-    
+    private static final String CSV = "csv";
+
     public FetchDataJobConfig(final JobRepository jobRepository,
                               final PlatformTransactionManager transactionManager,
                               final CoreStepsConfig coreSteps,
@@ -62,14 +65,14 @@ public class FetchDataJobConfig {
     public Step createXmlFetchStep() {
         return new StepBuilder("fetchAndConvertXmlFileStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
-                var jobParams = chunkContext.getStepContext().getJobParameters();
+                Map<String, Object> jobParams = chunkContext.getStepContext().getJobParameters();
 
                 String outputFileName = "Archive_List_initial";
                 String sourceType = (String) jobParams.getOrDefault("sourceType", "xml");
-                if ("csv".equalsIgnoreCase(sourceType)) {
+                if (CSV.equalsIgnoreCase(sourceType)) {
                     loggingService.logInfo(
                         "FetchDataJob - Skipping XML fetch. Using pre-generated CSV file: %s.csv%n", outputFileName);
-                    var resource = new FileSystemResource(FULL_PATH + "/" + outputFileName + ".csv");
+                    FileSystemResource resource = new FileSystemResource(FULL_PATH + "/" + outputFileName + ".csv");
 
                     FlatFileItemReader<CSVArchiveListData> reader = CSVReader.createReader(
                         resource,
@@ -79,9 +82,8 @@ public class FetchDataJobConfig {
 
                     reader.open(chunkContext.getStepContext().getStepExecution().getExecutionContext());
 
-                    CSVArchiveListData record;
                     int count = 0;
-                    while ((record = reader.read()) != null) {
+                    for (CSVArchiveListData record = reader.read(); record != null; record = reader.read()) {
                         migrationRecordService.insertPending(record);
                         count++;
                     }

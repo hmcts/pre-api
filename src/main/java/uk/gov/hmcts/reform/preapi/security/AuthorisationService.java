@@ -9,8 +9,12 @@ import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -21,10 +25,12 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class AuthorisationService {
     private final BookingRepository bookingRepository;
     private final CaseRepository caseRepository;
@@ -34,6 +40,8 @@ public class AuthorisationService {
     private final EditRequestRepository editRequestRepository;
 
     private final boolean enableMigratedData;
+
+    private static final String ROLE_LEVEL_2 = "ROLE_LEVEL_2";
 
     public AuthorisationService(BookingRepository bookingRepository,
                                 CaseRepository caseRepository,
@@ -52,7 +60,7 @@ public class AuthorisationService {
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
-        var booking = bookingRepository.findById(bookingId);
+        Optional<Booking> booking = bookingRepository.findById(bookingId);
 
         return booking.isPresent() && (authentication.isAppUser()
             && booking.get().getCaseId().getCourt().getId().equals(authentication.getCourtId()
@@ -70,7 +78,7 @@ public class AuthorisationService {
         if (bookingId == null) {
             return true;
         }
-        var booking = bookingRepository.findById(bookingId).orElse(null);
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
         if (booking == null) {
             return true;
         }
@@ -101,7 +109,7 @@ public class AuthorisationService {
         if (recordingId == null || (enableMigratedData && authentication.isAdmin())) {
             return true;
         }
-        var entity = recordingRepository.findById(recordingId).orElse(null);
+        Recording entity = recordingRepository.findById(recordingId).orElse(null);
         return entity == null || hasCaptureSessionAccess(authentication, entity.getCaptureSession().getId());
     }
 
@@ -110,7 +118,7 @@ public class AuthorisationService {
             return true;
         }
 
-        var participant = participantRepository.findById(participantId).orElse(null);
+        Participant participant = participantRepository.findById(participantId).orElse(null);
         return participant == null || hasCaseAccess(authentication, participant.getCaseId().getId());
     }
 
@@ -137,7 +145,7 @@ public class AuthorisationService {
             return true;
         }
         try {
-            var request = editRequestRepository.findByIdNotLocked(id).orElse(null);
+            EditRequest request = editRequestRepository.findByIdNotLocked(id).orElse(null);
             return request == null || hasRecordingAccess(authentication, request.getSourceRecording().getId());
         } catch (Exception e) {
             return false;
@@ -201,7 +209,7 @@ public class AuthorisationService {
             .map(c -> (dto.getState() == null && c.getState() == CaseState.OPEN) || c.getState() == dto.getState())
             .orElse(true)
             || authentication.isAdmin()
-            || authentication.hasRole("ROLE_LEVEL_2");
+            || authentication.hasRole(ROLE_LEVEL_2);
     }
 
     public boolean canSearchByCaseClosed(UserAuthentication authentication, Boolean caseOpen) {

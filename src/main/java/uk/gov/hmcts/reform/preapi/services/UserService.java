@@ -36,12 +36,14 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class UserService {
 
     private final AppAccessRepository appAccessRepository;
@@ -96,7 +98,6 @@ public class UserService {
 
     @Transactional
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
-    @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public Page<UserDTO> findAllBy(
         String name,
         String email,
@@ -116,7 +117,7 @@ public class UserService {
             throw new NotFoundException("Role: " + role);
         }
 
-        var allLatestTermsAndConditions = getAllLatestTermsAndConditions();
+        Set<TermsAndConditions> allLatestTermsAndConditions = getAllLatestTermsAndConditions();
 
         return userRepository.searchAllBy(
             name,
@@ -133,11 +134,10 @@ public class UserService {
     }
 
     @Transactional
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
-        var user = userRepository.findById(createUserDTO.getId());
+        Optional<User> user = userRepository.findById(createUserDTO.getId());
 
-        var isUpdate = user.isPresent();
+        boolean isUpdate = user.isPresent();
         if (isUpdate && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
         }
@@ -152,7 +152,7 @@ public class UserService {
             }
         });
 
-        var entity = user.orElse(new User());
+        User entity = user.orElse(new User());
         entity.setId(createUserDTO.getId());
         entity.setFirstName(createUserDTO.getFirstName());
         entity.setLastName(createUserDTO.getLastName());
@@ -186,9 +186,8 @@ public class UserService {
     }
 
     @Transactional
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
-        var user = userRepository.findById(createInviteDTO.getUserId());
+        Optional<User> user = userRepository.findById(createInviteDTO.getUserId());
         if (user.isPresent() && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createInviteDTO.getUserId().toString());
         } else if (user.isPresent() && portalAccessRepository
@@ -197,7 +196,7 @@ public class UserService {
             return UpsertResult.UPDATED;
         }
 
-        var userEntity = user.orElse(new User());
+        User userEntity = user.orElse(new User());
 
         userEntity.setId(createInviteDTO.getUserId());
         userEntity.setFirstName(createInviteDTO.getFirstName());
@@ -207,7 +206,7 @@ public class UserService {
         userEntity.setPhone(createInviteDTO.getPhone());
         userRepository.save(userEntity);
 
-        var portalAccessEntity = portalAccessRepository
+        PortalAccess portalAccessEntity = portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createInviteDTO.getUserId())
             .orElse(new PortalAccess());
 
@@ -246,7 +245,7 @@ public class UserService {
 
     @Transactional
     public void undelete(UUID id) {
-        var entity = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User: " + id));
+        User entity = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User: " + id));
         if (!entity.isDeleted()) {
             return;
         }

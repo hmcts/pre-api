@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -45,7 +46,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
         signInRobotUser();
         log.info("Starting process capture session task");
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
         encodeJobService.findAllProcessing().forEach(job -> checkJob(job, mediaService));
 
         encodeJobService.findAllProcessing()
@@ -108,7 +109,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
 
     private void onEncodeFromIngestProcessingComplete(EncodeJobDTO job, IMediaService mediaService) {
         log.info("EncodeFromIngest for capture session {} is complete", job.getCaptureSessionId());
-        var jobName = mediaService.triggerProcessingStep2(job.getRecordingId(), false);
+        String jobName = mediaService.triggerProcessingStep2(job.getRecordingId(), false);
 
         if (jobName == null) {
             log.info("No recording found for capture session {}", job.getCaptureSessionId());
@@ -127,7 +128,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
         encodeJobService.delete(job.getId());
         if (mediaService.verifyFinalAssetExists(job.getRecordingId()) == RecordingStatus.RECORDING_AVAILABLE) {
             log.info("Final asset found for capture session {}", job.getCaptureSessionId());
-            var captureSession = captureSessionService.stopCaptureSession(
+            CaptureSessionDTO captureSession = captureSessionService.stopCaptureSession(
                 job.getCaptureSessionId(),
                 RecordingStatus.RECORDING_AVAILABLE,
                 job.getRecordingId()

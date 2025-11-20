@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 @Data
@@ -37,7 +38,7 @@ public class AccessRemovedReportDTOV2 extends BaseReportDTO {
         removedTime = DateTimeUtils.formatTime(shareBooking.getDeletedAt());
         removedTimezone = DateTimeUtils.getTimezoneAbbreviation(shareBooking.getDeletedAt());
 
-        var user = shareBooking.getSharedWith();
+        User user = shareBooking.getSharedWith();
         fullName = user.getFullName();
         userEmail = user.getEmail();
     }

@@ -29,10 +29,10 @@ public class CaseStateChangeNotificationDTO {
         CLOSURE_CANCELLATION
     }
 
-    public CaseStateChangeNotificationDTO(EmailType notificationType, Case c, ShareBooking share) {
+    public CaseStateChangeNotificationDTO(EmailType notificationType, Case aCase, ShareBooking share) {
         emailType = notificationType;
-        caseReference = c.getReference();
-        closeDate = c.getClosedAt();
+        caseReference = aCase.getReference();
+        closeDate = aCase.getClosedAt();
         firstName = share.getSharedWith().getFirstName();
         lastName = share.getSharedWith().getLastName();
         email = share.getSharedWith().getEmail();

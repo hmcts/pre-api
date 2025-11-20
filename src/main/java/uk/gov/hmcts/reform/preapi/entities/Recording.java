@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.entities.listeners.RecordingListener;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Getter
@@ -77,8 +78,8 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("parentRecordingId", parentRecording != null ? parentRecording.getId() : null);
         details.put("recordingVersion", version);
         details.put("recordingFilename", filename);
