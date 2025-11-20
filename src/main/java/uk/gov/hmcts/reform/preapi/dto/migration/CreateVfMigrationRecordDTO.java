@@ -25,11 +25,9 @@ public class CreateVfMigrationRecordDTO {
     @Schema(description = "CreateMigrationRecordId")
     private UUID id;
 
-    @NotNull
     @Schema(description = "CreateMigrationRecordCourtId")
     private UUID courtId;
 
-    @NotNull
     @AlphanumericConstraint
     @Length(min = 9, max = 13)
     @Schema(description = "CreateMigrationRecordUrn")
@@ -40,17 +38,14 @@ public class CreateVfMigrationRecordDTO {
     @Schema(description = "CreateMigrationRecordExhibitReference")
     private String exhibitReference;
 
-    @NotEmpty
     @Length(max = 25)
     @Schema(description = "CreateMigrationRecordDefendantName")
     private String defendantName;
 
-    @NotEmpty
     @Length(max = 25)
     @Schema(description = "CreateMigrationRecordWitnessName")
     private String witnessName;
 
-    @NotNull
     @Schema(description = "CreateMigrationRecordRecordingVersion")
     private VfMigrationRecordingVersion recordingVersion;
 
