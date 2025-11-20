@@ -1086,9 +1086,13 @@ public class MigrationRecordServiceTest {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
         dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(createMigrationRecord()));
-        when(courtRepository.existsById(dto.getCourtId())).thenReturn(false);
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.empty());
 
         String message = assertThrows(
             NotFoundException.class,
@@ -1225,6 +1229,9 @@ public class MigrationRecordServiceTest {
         CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(testId);
         dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
         dto.setRecordingVersionNumber(null);
         dto.setRecordingVersion(VfMigrationRecordingVersion.COPY);
 
