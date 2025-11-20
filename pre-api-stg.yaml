@@ -970,7 +970,6 @@ definitions:
         type: string
       defendant_name:
         description: CreateMigrationRecordDefendantName
-        minLength: 1
         type: string
       exhibit_reference:
         description: CreateMigrationRecordExhibitReference
@@ -1013,16 +1012,10 @@ definitions:
         type: string
       witness_name:
         description: CreateMigrationRecordWitnessName
-        minLength: 1
         type: string
     required:
-      - court_id
-      - defendant_name
       - id
-      - recording_version
       - status
-      - urn
-      - witness_name
     type: object
   EditReportDTO:
     description: EditReportDTO
