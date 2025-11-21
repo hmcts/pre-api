@@ -579,6 +579,7 @@ public class MigrationRecordService {
             );
         }
 
+        // Only FAILED records can be marked as IGNORED
         if (dto.getStatus() == VfMigrationStatus.IGNORED 
             && entity.getStatus() != VfMigrationStatus.FAILED) {
             throw new ResourceInWrongStateException(
@@ -590,10 +591,11 @@ public class MigrationRecordService {
         }
 
         boolean isIgnoredRecord = entity.getStatus() == VfMigrationStatus.IGNORED;
+        boolean isMarkingAsIgnored = dto.getStatus() == VfMigrationStatus.IGNORED;
 
-        // Validate required fields for all updates EXCEPT when record is IGNORED
-        // (IGNORED records can have blank values when unignoring)
-        if (!isIgnoredRecord) {
+        // Validate required fields for all updates EXCEPT when record is IGNORED or being marked as IGNORED
+        // (IGNORED records can have blank values when unignoring or when being marked as ignored)
+        if (!isIgnoredRecord && !isMarkingAsIgnored) {
             if (dto.getCourtId() == null) {
                 throw new BadRequestException("Court ID is required");
             }
