@@ -620,7 +620,7 @@ public class MigrationRecordService {
                 recordingVersion = VfMigrationRecordingVersion.valueOf(entity.getRecordingVersion());
             } catch (IllegalArgumentException e) {
                 // Ignore if can't parse existing recording version
-                console.log("Error parsing recording version: " + e.getMessage());
+                loggingService.logInfo("Error parsing recording version: " + e.getMessage());
             }
         }
 
