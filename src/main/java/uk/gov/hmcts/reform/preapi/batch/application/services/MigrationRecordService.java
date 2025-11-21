@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
@@ -19,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -577,6 +579,7 @@ public class MigrationRecordService {
             );
         }
 
+        // Only FAILED records can be marked as IGNORED
         if (dto.getStatus() == VfMigrationStatus.IGNORED 
             && entity.getStatus() != VfMigrationStatus.FAILED) {
             throw new ResourceInWrongStateException(
@@ -587,20 +590,73 @@ public class MigrationRecordService {
             );
         }
 
-        String courtName = courtRepository.findById(dto.getCourtId())
-            .map(Court::getName)
-            .orElseThrow(() -> new NotFoundException("Court: " + dto.getCourtId()));
+        boolean isIgnoredRecord = entity.getStatus() == VfMigrationStatus.IGNORED;
+        boolean isMarkingAsIgnored = dto.getStatus() == VfMigrationStatus.IGNORED;
 
-        entity.setCourtReference(courtName);
-        entity.setCourtId(dto.getCourtId());
-        entity.setUrn(dto.getUrn());
+        // Validate required fields for all updates EXCEPT when record is IGNORED or being marked as IGNORED
+        // (IGNORED records can have blank values when unignoring or when being marked as ignored)
+        if (!isIgnoredRecord && !isMarkingAsIgnored) {
+            if (dto.getCourtId() == null) {
+                throw new BadRequestException("Court ID is required");
+            }
+            if (dto.getUrn() == null || dto.getUrn().trim().isEmpty()) {
+                throw new BadRequestException("URN is required");
+            }
+            if (dto.getDefendantName() == null || dto.getDefendantName().trim().isEmpty()) {
+                throw new BadRequestException("Defendant name is required");
+            }
+            if (dto.getWitnessName() == null || dto.getWitnessName().trim().isEmpty()) {
+                throw new BadRequestException("Witness name is required");
+            }
+            if (dto.getRecordingVersion() == null) {
+                throw new BadRequestException("Recording version is required");
+            }
+        }
+
+        // For IGNORED records: use DTO values if provided, otherwise use existing (even if blank)
+        UUID courtId = dto.getCourtId() != null ? dto.getCourtId() : entity.getCourtId();
+        
+        VfMigrationRecordingVersion recordingVersion = dto.getRecordingVersion();
+        if (recordingVersion == null && entity.getRecordingVersion() != null) {
+            try {
+                recordingVersion = VfMigrationRecordingVersion.valueOf(entity.getRecordingVersion());
+            } catch (IllegalArgumentException e) {
+                // Ignore if can't parse existing recording version
+                loggingService.logInfo("Error parsing recording version: " + e.getMessage());
+            }
+        }
+
+        String courtName = null;
+        if (courtId != null) {
+            courtName = courtRepository.findById(courtId)
+                .map(Court::getName)
+                .orElseThrow(() -> new NotFoundException("Court: " + courtId));
+        } else if (isIgnoredRecord) {
+            courtName = entity.getCourtReference();
+        }
+
+        if (courtName != null) {
+            entity.setCourtReference(courtName);
+        }
+        if (courtId != null) {
+            entity.setCourtId(courtId);
+        }
+        entity.setUrn((dto.getUrn() != null && !dto.getUrn().trim().isEmpty()) 
+            ? dto.getUrn() 
+            : entity.getUrn());
         entity.setExhibitReference(dto.getExhibitReference() != null 
             && !dto.getExhibitReference().trim().isEmpty() 
             ? dto.getExhibitReference() 
             : null);
-        entity.setDefendantName(dto.getDefendantName());
-        entity.setWitnessName(dto.getWitnessName());
-        entity.setRecordingVersion(dto.getRecordingVersion().toString());
+        entity.setDefendantName((dto.getDefendantName() != null && !dto.getDefendantName().trim().isEmpty())
+            ? dto.getDefendantName()
+            : entity.getDefendantName());
+        entity.setWitnessName((dto.getWitnessName() != null && !dto.getWitnessName().trim().isEmpty())
+            ? dto.getWitnessName()
+            : entity.getWitnessName());
+        if (recordingVersion != null) {
+            entity.setRecordingVersion(recordingVersion.toString());
+        }
         entity.setRecordingVersionNumber(dto.getRecordingVersionNumber() != null
                                              ? dto.getRecordingVersionNumber().toString()
                                              : null);
