@@ -39,9 +39,11 @@ import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -57,6 +59,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -595,5 +598,175 @@ class PostMigrationJobConfigTest {
         participant.setLastName("Doe");
         participant.setParticipantType(ParticipantType.WITNESS);
         return participant;
+    }
+
+    @Test
+    void createMarkCasesClosedStep_withNonDryRun_shouldCloseCase() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(caseService).upsert(any());
+        verify(migrationTrackerService).addCaseClosureEntry(any());
+    }
+
+    @Test
+    void createConditionalWriter_withNonDryRun_shouldCallPostMigrationWriter() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
+            PostMigrationWriter.class);
+        method.setAccessible(true);
+        
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
+        chunk.add(item);
+        
+        JobParameters jobParams = new JobParametersBuilder()
+            .addString("dryRun", "false")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(1L, jobParams);
+        JobSynchronizationManager.register(jobExecution);
+        
+        try {
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
+            assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(mockWriter).write(chunk);
+            verify(loggingService, never()).logInfo(anyString(), any());
+            
+        } finally {
+            JobSynchronizationManager.close();
+        }
+    }
+
+    @Test
+    void resolveEmailForShare_shouldHandleNotFoundException() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("resolveEmailForShare", 
+            PostMigratedItemGroup.class, CreateShareBookingDTO.class);
+        method.setAccessible(true);
+        
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
+        UUID userId = UUID.randomUUID();
+        share.setSharedWithUser(userId);
+        
+        when(userService.findById(userId)).thenThrow(new NotFoundException("User not found"));
+        
+        String result = (String) method.invoke(config, item, share);
+        
+        assertThat(result).isEqualTo("");
+        verify(loggingService).logWarning(
+            "Could not find user email for ID: %s - %s", userId, "Not found: User not found");
+    }
+
+    @Test
+    void createConditionalWriter_withDryRunAndInactiveUser_shouldSkip() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
+            PostMigrationWriter.class);
+        method.setAccessible(true);
+        
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        UUID userId = UUID.randomUUID();
+        CreateInviteDTO invite = new CreateInviteDTO();
+        invite.setUserId(userId);
+        invite.setEmail("inactive@example.com");
+        item.setInvites(List.of(invite));
+        
+        UserDTO inactiveUser = new UserDTO();
+        inactiveUser.setId(userId);
+        inactiveUser.setEmail("inactive@example.com");
+        inactiveUser.setDeletedAt(null);
+        
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setStatus(AccessStatus.INACTIVE);
+        
+        when(userService.findById(userId)).thenReturn(inactiveUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.of(portalAccess));
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
+        chunk.add(item);
+        
+        JobParameters jobParams = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(1L, jobParams);
+        JobSynchronizationManager.register(jobExecution);
+        
+        try {
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
+            assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(migrationTrackerService).addShareInviteFailure(any());
+            verify(migrationTrackerService, never()).addInvitedUser(any());
+            verify(mockWriter, never()).write(any());
+            
+        } finally {
+            JobSynchronizationManager.close();
+        }
+    }
+
+    @Test
+    void createConditionalWriter_withDryRunAndNullSharedWithUser_shouldSkip() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
+            PostMigrationWriter.class);
+        method.setAccessible(true);
+        
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
+        share.setId(UUID.randomUUID());
+        share.setSharedWithUser(null);
+        item.setShareBookings(List.of(share));
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
+        chunk.add(item);
+        
+        JobParameters jobParams = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(1L, jobParams);
+        JobSynchronizationManager.register(jobExecution);
+        
+        try {
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
+            assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(migrationTrackerService).addShareInviteFailure(any());
+            verify(migrationTrackerService, never()).addShareBooking(any());
+            verify(mockWriter, never()).write(any());
+            
+        } finally {
+            JobSynchronizationManager.close();
+        }
     }
 }

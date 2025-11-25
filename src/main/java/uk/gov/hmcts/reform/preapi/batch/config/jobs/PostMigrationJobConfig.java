@@ -364,8 +364,22 @@ public class PostMigrationJobConfig {
                         if (item.getShareBookings() != null) {
                             for (CreateShareBookingDTO share : item.getShareBookings()) {
                                 String email = resolveEmailForShare(item, share);
-                                if (share.getSharedWithUser() != null 
-                                    && !isUserActiveForMigration(share.getSharedWithUser(), email)) {
+                                if (share.getSharedWithUser() == null) {
+                                    loggingService.logWarning(
+                                        "[DRY RUN] Skipping share booking - sharedWithUser is null for share: %s", 
+                                        share.getId() != null ? share.getId().toString() : "unknown");
+                                    migrationTrackerService.addShareInviteFailure(
+                                        new MigrationTrackerService.ShareInviteFailureEntry(
+                                            "ShareBooking",
+                                            share.getId() != null ? share.getId().toString() : "",
+                                            email.isEmpty() ? "unknown" : email,
+                                            "SKIPPED",
+                                            "SharedWithUser is null",
+                                            DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
+                                    ));
+                                    continue;
+                                }
+                                if (!isUserActiveForMigration(share.getSharedWithUser(), email)) {
                                     loggingService.logWarning(
                                         "[DRY RUN] Skipping share booking for inactive/deleted user: %s", email);
                                     migrationTrackerService.addShareInviteFailure(
