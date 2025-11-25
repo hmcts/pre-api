@@ -970,7 +970,6 @@ definitions:
         type: string
       defendant_name:
         description: CreateMigrationRecordDefendantName
-        minLength: 1
         type: string
       exhibit_reference:
         description: CreateMigrationRecordExhibitReference
@@ -1006,21 +1005,17 @@ definitions:
           - FAILED
           - READY
           - SUBMITTED
+          - IGNORED
         type: string
       urn:
         description: CreateMigrationRecordUrn
         type: string
       witness_name:
         description: CreateMigrationRecordWitnessName
-        minLength: 1
         type: string
     required:
-      - court_id
-      - defendant_name
       - id
-      - recording_version
       - status
-      - witness_name
     type: object
   EditReportDTO:
     description: EditReportDTO
@@ -1613,6 +1608,7 @@ definitions:
           - FAILED
           - READY
           - SUBMITTED
+          - IGNORED
         type: string
       urn:
         description: MigrationRecordUrn
@@ -4954,6 +4950,7 @@ paths:
             - FAILED
             - READY
             - SUBMITTED
+            - IGNORED
           in: query
           name: status
           type: string

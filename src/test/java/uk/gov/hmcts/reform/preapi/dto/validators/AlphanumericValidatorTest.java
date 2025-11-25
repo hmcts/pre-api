@@ -34,10 +34,10 @@ public class AlphanumericValidatorTest {
     }
 
     @Test
-    void shouldReturnFalseForNullValue() {
+    void shouldReturnTrueForNullValue() {
         AlphanumericValidator validator = new AlphanumericValidator();
         boolean result = validator.isValid(null, null);
-        assertThat(result).isFalse();
+        assertThat(result).isTrue();
     }
 
     @Test

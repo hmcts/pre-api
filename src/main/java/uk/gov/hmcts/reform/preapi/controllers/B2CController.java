@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -19,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 @RestController
 @RequestMapping("/b2c")
+@Log4j2
 @ConditionalOnExpression("${feature-flags.enable-v2-b2c:true}")
 public class B2CController {
 
@@ -51,7 +53,9 @@ public class B2CController {
                 request.getVerificationCode()
             );
         } catch (NotFoundException e) {
-            throw new B2CControllerException("Unable to send email verification");
+            // don't leak the which email addresses are present in the db
+            // return 200 and log the error
+            log.warn(e.getMessage());
         } catch (Exception e) {
             throw new B2CControllerException("Failed to send email verification", e);
         }

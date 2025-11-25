@@ -21,12 +21,14 @@ import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -73,7 +76,9 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should return lowercase combined string from non-null parameters")
     void generateRecordingGroupKeyShouldReturnLowercaseCombinedString() {
-        String result = MigrationRecordService.generateRecordingGroupKey("URN123", "EXHIBIT1", "John", "Doe", "241211");
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
+        String result = MigrationRecordService.generateRecordingGroupKey(
+            "URN123", "EXHIBIT1", "John", "Doe", "241211",createTime);
 
         assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
@@ -81,7 +86,9 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should handle null values by replacing with empty strings")
     void generateRecordingGroupKeyShouldHandleNullValues() {
-        String result = MigrationRecordService.generateRecordingGroupKey(null, "EXHIBIT1", null, "Doe","241211");
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
+        String result = MigrationRecordService.generateRecordingGroupKey(
+            null, "EXHIBIT1", null, "Doe","241211", createTime);
 
         assertThat(result).isEqualTo("exhibit1|doe|2024-12-11");
     }
@@ -89,8 +96,9 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should trim leading and trailing whitespace")
     void generateRecordingGroupKeyShouldTrimWhitespace() {
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
         String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ",
-            " John ", " Doe ","241211");
+            " John ", " Doe ","241211", createTime);
 
         assertThat(result).isEqualTo("urn123|exhibit1|john|doe|2024-12-11");
     }
@@ -516,11 +524,12 @@ public class MigrationRecordServiceTest {
         metadata.setRecordingVersionNumber("1");
         metadata.setFileName("video.mp4");
         metadata.setFileSize("20MB");
+        metadata.setCreateTime(LocalDateTime.of(2024, 12, 11, 10, 0));
 
         migrationRecordService.updateMetadataFields("123", metadata);
 
         assertThat(record.getCourtReference()).isEqualTo("CourtRef");
-        assertThat(record.getRecordingGroupKey()).isEqualTo("urn1|ex1|anna|smith");
+        assertThat(record.getRecordingGroupKey()).isEqualTo("urn1|ex1|anna|smith|2024-12-11");
 
         verify(migrationRecordRepository, times(1)).save(record);
     }
@@ -875,12 +884,13 @@ public class MigrationRecordServiceTest {
         MigrationRecord record = new MigrationRecord();
         record.setArchiveId("id1");
         record.setRecordingVersion("ORIG");
-        record.setRecordingGroupKey("urn|ex|wit|def");
+        record.setRecordingGroupKey("urn|ex|wit|def|2024-12-11");
         record.setRecordingVersionNumber("1");
         record.setIsMostRecent(false);
 
         when(migrationRecordRepository.findByArchiveId("id1")).thenReturn(Optional.of(record));
-        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(record));
+        when(migrationRecordRepository.findByRecordingGroupKey(
+            "urn|ex|wit|def|2024-12-11")).thenReturn(List.of(record));
 
         ExtractedMetadata metadata = new ExtractedMetadata();
         metadata.setCourtReference("Court");
@@ -892,6 +902,7 @@ public class MigrationRecordServiceTest {
         metadata.setRecordingVersionNumber("1");
         metadata.setFileName("file.mp4");
         metadata.setFileSize("10MB");
+        metadata.setCreateTime(LocalDateTime.of(2024, 12, 11, 10, 0));
 
         migrationRecordService.updateMetadataFields("id1", metadata);
 
@@ -906,14 +917,14 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setArchiveId("id2");
         copy.setRecordingVersion("COPY");
-        copy.setRecordingGroupKey("urn|ex|wit|def");
+        copy.setRecordingGroupKey("urn|ex|wit|def|2024-12-11");
         copy.setRecordingVersionNumber("2");
         copy.setIsMostRecent(false);
         copy.setIsPreferred(false);
         copy.setParentTempId(UUID.randomUUID());
 
         when(migrationRecordRepository.findByArchiveId("id2")).thenReturn(Optional.of(copy));
-        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(copy));
+        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def|2024-12-11")).thenReturn(List.of(copy));
 
         ExtractedMetadata metadata = new ExtractedMetadata();
         metadata.setCourtReference("Court");
@@ -924,7 +935,10 @@ public class MigrationRecordServiceTest {
         metadata.setRecordingVersion("COPY");
         metadata.setRecordingVersionNumber("2");
         metadata.setFileName("file.mp4");
+        metadata.setDatePattern("241211");
         metadata.setFileSize("10MB");
+        metadata.setCreateTime(LocalDateTime.of(2024, 12, 11, 10, 0));
+
 
         migrationRecordService.updateMetadataFields("id2", metadata);
 
@@ -941,7 +955,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy1 = new MigrationRecord();
         copy1.setArchiveId("id3");
         copy1.setRecordingVersion("COPY");
-        copy1.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
+        copy1.setRecordingGroupKey("urn|ex|wit|def|2024-12-11"); // Set the same groupKey that will be generated
         copy1.setRecordingVersionNumber("1");
         copy1.setIsMostRecent(false);
         copy1.setIsPreferred(false);
@@ -950,14 +964,15 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy2 = new MigrationRecord();
         copy2.setArchiveId("id4");
         copy2.setRecordingVersion("COPY");
-        copy2.setRecordingGroupKey("urn|ex|wit|def"); // Set the same groupKey that will be generated
+        copy2.setRecordingGroupKey("urn|ex|wit|def|2024-12-11"); // Set the same groupKey that will be generated
         copy2.setRecordingVersionNumber("2");
         copy2.setIsMostRecent(false);
         copy2.setIsPreferred(false);
         copy2.setParentTempId(parentId);
 
         when(migrationRecordRepository.findByArchiveId("id4")).thenReturn(Optional.of(copy2));
-        when(migrationRecordRepository.findByRecordingGroupKey("urn|ex|wit|def")).thenReturn(List.of(copy1, copy2));
+        when(migrationRecordRepository.findByRecordingGroupKey(
+            "urn|ex|wit|def|2024-12-11")).thenReturn(List.of(copy1, copy2));
 
         ExtractedMetadata metadata = new ExtractedMetadata();
         metadata.setCourtReference("Court");
@@ -969,6 +984,7 @@ public class MigrationRecordServiceTest {
         metadata.setRecordingVersionNumber("2");
         metadata.setFileName("file.mp4");
         metadata.setFileSize("10MB");
+        metadata.setCreateTime(LocalDateTime.of(2024, 12, 11, 10, 0));
 
         migrationRecordService.updateMetadataFields("id4", metadata);
 
@@ -1072,9 +1088,13 @@ public class MigrationRecordServiceTest {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
         dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(createMigrationRecord()));
-        when(courtRepository.existsById(dto.getCourtId())).thenReturn(false);
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.empty());
 
         String message = assertThrows(
             NotFoundException.class,
@@ -1211,6 +1231,9 @@ public class MigrationRecordServiceTest {
         CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(testId);
         dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
         dto.setRecordingVersionNumber(null);
         dto.setRecordingVersion(VfMigrationRecordingVersion.COPY);
 
@@ -1224,6 +1247,437 @@ public class MigrationRecordServiceTest {
 
         assertEquals(UpsertResult.UPDATED, result);
         verify(migrationRecordRepository).saveAndFlush(testRecord);
+    }
+
+    @Test
+    @DisplayName("Should successfully update status from FAILED to IGNORED")
+    void updateFromFailedToIgnored() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("urn");
+        dto.setExhibitReference("exhibitReference");
+        dto.setWitnessName("witnessName");
+        dto.setDefendantName("defendantName");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.IGNORED);
+        dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.FAILED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.IGNORED);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceInWrongStateException when trying to set IGNORED from PENDING status")
+    void updateThrowsExceptionWhenSettingIgnoredFromPending() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setStatus(VfMigrationStatus.IGNORED);
+
+        final MigrationRecord migrationRecord = new MigrationRecord();
+        migrationRecord.setId(dto.getId());
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        final String message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> migrationRecordService.update(dto)
+        ).getMessage();
+        assertThat(message).contains("FAILED (only FAILED records can be marked as IGNORED)");
+
+        verify(migrationRecordRepository, times(1)).findById(dto.getId());
+        verifyNoMoreInteractions(migrationRecordRepository);
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceInWrongStateException when trying to set IGNORED from READY status")
+    void updateThrowsExceptionWhenSettingIgnoredFromReady() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setStatus(VfMigrationStatus.IGNORED);
+
+        final MigrationRecord migrationRecord = new MigrationRecord();
+        migrationRecord.setId(dto.getId());
+        migrationRecord.setStatus(VfMigrationStatus.READY);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        final String message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> migrationRecordService.update(dto)
+        ).getMessage();
+        assertThat(message).contains("FAILED (only FAILED records can be marked as IGNORED)");
+
+        verify(migrationRecordRepository, times(1)).findById(dto.getId());
+        verifyNoMoreInteractions(migrationRecordRepository);
+    }
+
+    @Test
+    @DisplayName("Should successfully update status from IGNORED to FAILED (unignore)")
+    void updateFromIgnoredToFailed() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("urn");
+        dto.setExhibitReference("exhibitReference");
+        dto.setWitnessName("witnessName");
+        dto.setDefendantName("defendantName");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+        dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.FAILED);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should successfully update status from IGNORED to READY (unignore and mark ready)")
+    void updateFromIgnoredToReady() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("urn");
+        dto.setExhibitReference("exhibitReference");
+        dto.setWitnessName("witnessName");
+        dto.setDefendantName("defendantName");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.READY);
+        dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.READY);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should successfully update IGNORED record to PENDING (not blocked)")
+    void updateIgnoredRecord() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("updated-urn");
+        dto.setExhibitReference("updated-exhibit");
+        dto.setWitnessName("updated-witness");
+        dto.setDefendantName("updated-defendant");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.COPY);
+        dto.setStatus(VfMigrationStatus.PENDING);
+        dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.PENDING);
+        assertThat(migrationRecord.getUrn()).isEqualTo("updated-urn");
+        assertThat(migrationRecord.getExhibitReference()).isEqualTo("updated-exhibit");
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should update IGNORED record with null courtId (uses existing courtReference)")
+    void updateIgnoredRecordWithNullCourtId() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(null); // null courtId
+        dto.setUrn("updated-urn");
+        dto.setDefendantName("updated-defendant");
+        dto.setWitnessName("updated-witness");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+        migrationRecord.setCourtReference("Existing Court Reference");
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.FAILED);
+        assertThat(migrationRecord.getCourtReference()).isEqualTo("Existing Court Reference");
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should update IGNORED record with null/empty fields (uses existing values)")
+    void updateIgnoredRecordWithNullFieldsUsesExisting() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn(null); // null urn
+        dto.setDefendantName(""); // empty defendantName
+        dto.setWitnessName(null); // null witnessName
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final Court court = new Court();
+        court.setName("Test Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+        migrationRecord.setUrn("existing-urn");
+        migrationRecord.setDefendantName("existing-defendant");
+        migrationRecord.setWitnessName("existing-witness");
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getUrn()).isEqualTo("existing-urn");
+        assertThat(migrationRecord.getDefendantName()).isEqualTo("existing-defendant");
+        assertThat(migrationRecord.getWitnessName()).isEqualTo("existing-witness");
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should handle invalid recording version in existing entity gracefully")
+    void updateHandlesInvalidRecordingVersionInEntity() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(null); // null - should try to parse from entity
+        dto.setRecordingVersionNumber(null);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final Court court = new Court();
+        court.setName("Test Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED); // / so validation is skipped
+        migrationRecord.setRecordingVersion("INVALID_VERSION"); // Invalid enum value
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        verify(loggingService, times(1)).logInfo(contains("Error parsing recording version"));
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null courtId")
+    void updateNonIgnoredRecordWithNullCourtIdThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(null);
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("Court ID is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null urn")
+    void updateNonIgnoredRecordWithNullUrnThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn(null);
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("URN is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with empty urn")
+    void updateNonIgnoredRecordWithEmptyUrnThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("   "); // Empty/whitespace
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("URN is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null defendantName")
+    void updateNonIgnoredRecordWithNullDefendantNameThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName(null);
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("Defendant name is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null witnessName")
+    void updateNonIgnoredRecordWithNullWitnessNameThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName(null);
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("Witness name is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null recordingVersion")
+    void updateNonIgnoredRecordWithNullRecordingVersionThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(null);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("Recording version is required");
+    }
+
+    @Test
+    @DisplayName("Should update IGNORED record when recordingVersion is null and entity has no recordingVersion")
+    void updateIgnoredRecordWithNullRecordingVersionAndNoEntityVersion() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(null); // null and entity also has null
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final Court court = new Court();
+        court.setName("Test Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+        migrationRecord.setRecordingVersion(null); // Also null
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
     }
 
     @Test
@@ -1291,29 +1745,6 @@ public class MigrationRecordServiceTest {
     }
 
     @Test
-    @DisplayName("Should return false in markNonMp4AsNotPreferred when groupKey is null")
-    void markNonMp4AsNotPreferredShouldReturnFalseWhenGroupKeyNull() {
-        testRecord.setRecordingGroupKey(null);
-        when(migrationRecordRepository.findByArchiveId("test-id")).thenReturn(Optional.of(testRecord));
-
-        boolean result = migrationRecordService.markNonMp4AsNotPreferred("test-id");
-
-        assertFalse(result);
-    }
-
-    @Test
-    @DisplayName("Should return false in markNonMp4AsNotPreferred when version is null")
-    void markNonMp4AsNotPreferredShouldReturnFalseWhenVersionNull() {
-        testRecord.setRecordingGroupKey("test-group");
-        testRecord.setRecordingVersionNumber(null);
-        when(migrationRecordRepository.findByArchiveId("test-id")).thenReturn(Optional.of(testRecord));
-
-        boolean result = migrationRecordService.markNonMp4AsNotPreferred("test-id");
-
-        assertFalse(result);
-    }
-
-    @Test
     @DisplayName("Should return original record from group when parentTempId is null but groupKey exists")
     void getOrigFromCopyShouldReturnOriginalFromGroupWhenParentTempIdIsNull() {
         MigrationRecord copy = new MigrationRecord();
@@ -1346,6 +1777,143 @@ public class MigrationRecordServiceTest {
         
         assertTrue(result.isPresent());
         assertThat(result.get()).isEqualTo(orig2); 
+    }
+
+    @Test
+    @DisplayName("Should return original record with MP4 extension when no preferred flag")
+    void getOrigFromCopyShouldReturnMp4RecordWhenNoPreferredFlag() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord orig1 = new MigrationRecord();
+        orig1.setId(UUID.randomUUID());
+        orig1.setRecordingVersion("ORIG");
+        orig1.setStatus(VfMigrationStatus.SUCCESS);
+        orig1.setRecordingId(UUID.randomUUID());
+        orig1.setIsPreferred(false);
+        orig1.setArchiveName("test1.raw");
+        orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
+        
+        MigrationRecord orig2 = new MigrationRecord();
+        orig2.setId(UUID.randomUUID());
+        orig2.setRecordingVersion("ORIG");
+        orig2.setStatus(VfMigrationStatus.SUCCESS);
+        orig2.setRecordingId(UUID.randomUUID());
+        orig2.setIsPreferred(false);
+        orig2.setArchiveName("test2.mp4");
+        orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
+        
+        List<MigrationRecord> groupRecords = List.of(orig1, orig2);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isPresent());
+        assertThat(result.get()).isEqualTo(orig2); 
+    }
+
+    @Test
+    @DisplayName("Should return original record by creation time when no preferred flag and no MP4")
+    void getOrigFromCopyShouldReturnByCreationTimeWhenNoPreferredOrMp4() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord orig1 = new MigrationRecord();
+        orig1.setId(UUID.randomUUID());
+        orig1.setRecordingVersion("ORIG");
+        orig1.setStatus(VfMigrationStatus.SUCCESS);
+        orig1.setRecordingId(UUID.randomUUID());
+        orig1.setIsPreferred(false);
+        orig1.setArchiveName("test1.raw");
+        orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
+        
+        MigrationRecord orig2 = new MigrationRecord();
+        orig2.setId(UUID.randomUUID());
+        orig2.setRecordingVersion("ORIG");
+        orig2.setStatus(VfMigrationStatus.SUCCESS);
+        orig2.setRecordingId(UUID.randomUUID());
+        orig2.setIsPreferred(false);
+        orig2.setArchiveName("test2.raw");
+        orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
+        
+        List<MigrationRecord> groupRecords = List.of(orig1, orig2);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isPresent());
+        assertThat(result.get()).isEqualTo(orig1);
+    }
+
+    @Test
+    @DisplayName("Should return empty when no ORIG records found in group")
+    void getOrigFromCopyShouldReturnEmptyWhenNoOrigRecordsInGroup() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord copyRecord = new MigrationRecord();
+        copyRecord.setId(UUID.randomUUID());
+        copyRecord.setRecordingVersion("COPY");
+        copyRecord.setStatus(VfMigrationStatus.SUCCESS);
+        copyRecord.setRecordingId(UUID.randomUUID());
+        
+        List<MigrationRecord> groupRecords = List.of(copyRecord);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Should return empty when ORIG records have no recording ID")
+    void getOrigFromCopyShouldReturnEmptyWhenOrigRecordsHaveNoRecordingId() {
+        MigrationRecord copy = new MigrationRecord();
+        copy.setParentTempId(null);
+        copy.setRecordingGroupKey("test-group");
+        
+        MigrationRecord orig = new MigrationRecord();
+        orig.setId(UUID.randomUUID());
+        orig.setRecordingVersion("ORIG");
+        orig.setStatus(VfMigrationStatus.SUCCESS);
+        orig.setRecordingId(null);
+        
+        List<MigrationRecord> groupRecords = List.of(orig);
+        
+        when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
+        
+        Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
+        
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Should return false in markNonMp4AsNotPreferred when groupKey is null")
+    void markNonMp4AsNotPreferredShouldReturnFalseWhenGroupKeyNull() {
+        testRecord.setRecordingGroupKey(null);
+        when(migrationRecordRepository.findByArchiveId("test-id")).thenReturn(Optional.of(testRecord));
+
+        boolean result = migrationRecordService.markNonMp4AsNotPreferred("test-id");
+
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("Should return false in markNonMp4AsNotPreferred when version is null")
+    void markNonMp4AsNotPreferredShouldReturnFalseWhenVersionNull() {
+        testRecord.setRecordingGroupKey("test-group");
+        testRecord.setRecordingVersionNumber(null);
+        when(migrationRecordRepository.findByArchiveId("test-id")).thenReturn(Optional.of(testRecord));
+
+        boolean result = migrationRecordService.markNonMp4AsNotPreferred("test-id");
+
+        assertFalse(result);
     }
 
     @Test
