@@ -196,7 +196,7 @@ module "pre_api_b2c" {
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API B2C"
   revision              = local.api_revision
-  product_id            = module.pre_b2c_product[0].product_id
+  product_id            = module.pre_b2c_product.product_id
   path                  = "pre-api-b2c"
   service_url           = local.apim_service_url
   swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api-b2c.json"
@@ -207,7 +207,7 @@ module "pre_api_b2c" {
 
 module "pre-api-b2c-mgmt-api-policy" {
   source        = "git@github.com:hmcts/cnp-module-api-mgmt-api-policy?ref=master"
-  api_name      = module.pre_api_b2c[0].name
+  api_name      = module.pre_api_b2c.name
   api_mgmt_name = "sds-api-mgmt-${var.env}"
   api_mgmt_rg   = "ss-${var.env}-network-rg"
   api_policy_xml_content = <<XML
