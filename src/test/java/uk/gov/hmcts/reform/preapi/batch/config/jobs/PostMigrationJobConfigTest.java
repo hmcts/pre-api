@@ -21,6 +21,9 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
@@ -39,12 +42,14 @@ import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -103,6 +108,9 @@ class PostMigrationJobConfigTest {
     private PortalAccessRepository portalAccessRepository;
 
     @Mock
+    private BookingService bookingService;
+
+    @Mock
     private StepContribution stepContribution;
 
     @Mock
@@ -126,7 +134,8 @@ class PostMigrationJobConfigTest {
             postMigrationItemReader,
             postMigrationItemProcessor,
             userService,
-            portalAccessRepository
+            portalAccessRepository,
+            bookingService
         );
 
         Field emailField = PostMigrationJobConfig.class.getDeclaredField("vodafoneUserEmail");
@@ -235,6 +244,10 @@ class PostMigrationJobConfigTest {
         CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         
+        Page<BookingDTO> emptyBookings = new PageImpl<>(Collections.emptyList());
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(emptyBookings);
+        
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         String[] userData = {"user", "email"};
         channelUsersMap.put("test-case", Collections.singletonList(userData));
@@ -261,6 +274,10 @@ class PostMigrationJobConfigTest {
         CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         
+        Page<BookingDTO> emptyBookings = new PageImpl<>(Collections.emptyList());
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(emptyBookings);
+        
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
         
@@ -284,7 +301,7 @@ class PostMigrationJobConfigTest {
         CaseDTO caseDTO = createTestCaseDTO();
         caseDTO.setState(CaseState.CLOSED);
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
-        
+                
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
 
@@ -306,6 +323,10 @@ class PostMigrationJobConfigTest {
         
         CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Page<BookingDTO> emptyBookings = new PageImpl<>(Collections.emptyList());
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(emptyBookings);
         
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
@@ -331,6 +352,10 @@ class PostMigrationJobConfigTest {
         
         CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Page<BookingDTO> emptyBookings = new PageImpl<>(Collections.emptyList());
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(emptyBookings);
         
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         String[] userData = {"user", "email"};
@@ -609,6 +634,10 @@ class PostMigrationJobConfigTest {
         
         CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Page<BookingDTO> emptyBookings = new PageImpl<>(Collections.emptyList());
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(emptyBookings);
         
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);

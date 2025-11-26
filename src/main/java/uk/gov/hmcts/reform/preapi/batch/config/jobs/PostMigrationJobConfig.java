@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
@@ -37,12 +39,14 @@ import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +72,7 @@ public class PostMigrationJobConfig {
     private final PostMigrationItemProcessor postMigrationItemProcessor;
     private final UserService userService;
     private final PortalAccessRepository portalAccessRepository;
+    private final BookingService bookingService;
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
@@ -82,7 +87,8 @@ public class PostMigrationJobConfig {
                                   final PostMigrationItemReader postMigrationItemReader,
                                   final PostMigrationItemProcessor postMigrationItemProcessor,
                                   final UserService userService,
-                                  final PortalAccessRepository portalAccessRepository) {
+                                  final PortalAccessRepository portalAccessRepository,
+                                  final BookingService bookingService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.coreSteps = coreSteps;
@@ -94,6 +100,7 @@ public class PostMigrationJobConfig {
         this.postMigrationItemProcessor = postMigrationItemProcessor;
         this.userService = userService;
         this.portalAccessRepository = portalAccessRepository;
+        this.bookingService = bookingService;
     }
 
     @Bean
@@ -202,6 +209,34 @@ public class PostMigrationJobConfig {
         return cases;
     }
 
+    private boolean hasRecentBookings(CaseDTO caseDTO) {
+        if (caseDTO.getId() == null) {
+            return false;
+        }
+        
+        try {
+            LocalDateTime sixMonthsAgoLocal = LocalDateTime.now().minusMonths(6);
+            Timestamp sixMonthsAgo = Timestamp.from(
+                sixMonthsAgoLocal.atZone(ZoneId.systemDefault()).toInstant()
+            );
+            
+            Pageable pageable = PageRequest.of(0, 1000);
+            var bookings = bookingService.findAllByCaseId(caseDTO.getId(), pageable);
+            
+            return bookings.getContent().stream()
+                .anyMatch(booking -> 
+                    booking.getScheduledFor() != null 
+                    && booking.getScheduledFor().after(sixMonthsAgo)
+                );
+        } catch (Exception e) {
+            loggingService.logWarning(
+                "Error checking bookings for case %s: %s", 
+                caseDTO.getReference(), e.getMessage()
+            );
+            return true;
+        }
+    }
+
     private void processCase(CaseDTO caseDTO, Map<String, List<String[]>> channelUsersMap,
         AtomicInteger closed, AtomicInteger skipped, boolean dryRun) {
         String reference = caseDTO.getReference();
@@ -215,6 +250,20 @@ public class PostMigrationJobConfig {
                 "ALREADY_CLOSED",
                 "Case already in CLOSED state"
             ));
+            return;
+        }
+
+        // Check for recent bookings (less than 6 months old)
+        if (hasRecentBookings(caseDTO)) {
+            loggingService.logInfo("Skipping case %s — has bookings less than 6 months old.", reference);
+            skipped.incrementAndGet();
+            CaseClosureReportEntry entry = new CaseClosureReportEntry(
+                caseDTO.getId() != null ? caseDTO.getId().toString() : "",
+                reference,
+                "SKIPPED",
+                "Case has bookings less than 6 months old"
+            );
+            migrationTrackerService.addCaseClosureEntry(entry);
             return;
         }
 
