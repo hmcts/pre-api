@@ -180,7 +180,6 @@ XML
 }
 
 module "pre_b2c_product" {
-  count                 = var.env == "prod" ? 0 : 1
   source                = "git@github.com:hmcts/cnp-module-api-mgmt-product?ref=master"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   api_mgmt_rg           = "ss-${var.env}-network-rg"
@@ -191,7 +190,6 @@ module "pre_b2c_product" {
 }
 
 module "pre_api_b2c" {
-  count                 = var.env == "prod" ? 0 : 1
   source                = "git@github.com:hmcts/cnp-module-api-mgmt-api?ref=master"
   name                  = "pre-api-b2c"
   api_mgmt_rg           = "ss-${var.env}-network-rg"
@@ -208,7 +206,6 @@ module "pre_api_b2c" {
 }
 
 module "pre-api-b2c-mgmt-api-policy" {
-  count         = var.env == "prod" ? 0 : 1
   source        = "git@github.com:hmcts/cnp-module-api-mgmt-api-policy?ref=master"
   api_name      = module.pre_api_b2c[0].name
   api_mgmt_name = "sds-api-mgmt-${var.env}"
