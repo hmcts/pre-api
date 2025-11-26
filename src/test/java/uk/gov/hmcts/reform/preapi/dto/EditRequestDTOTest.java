@@ -23,7 +23,7 @@ public class EditRequestDTOTest {
     static void setUp() {
         editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setEditInstruction("{}");
+        editRequest.setEditInstruction("{\"requestedInstructions\": [], \"ffmpegInstructions\": []}");
         editRequest.setStatus(EditRequestStatus.COMPLETE);
         editRequest.setStartedAt(Timestamp.from(Instant.now()));
         editRequest.setFinishedAt(Timestamp.from(Instant.now()));
@@ -59,7 +59,46 @@ public class EditRequestDTOTest {
         var dto = new EditRequestDTO(editRequest);
 
         assertThat(dto.getId()).isEqualTo(editRequest.getId());
-        assertThat(dto.getEditInstruction()).isEqualTo(editRequest.getEditInstruction());
+        assertThat(dto.getEditInstruction().getRequestedInstructions()).isEmpty();
+        assertThat(dto.getEditInstruction().getFfmpegInstructions()).isEmpty();
+        assertThat(dto.getStatus()).isEqualTo(editRequest.getStatus());
+        assertThat(dto.getStartedAt()).isEqualTo(editRequest.getStartedAt());
+        assertThat(dto.getFinishedAt()).isEqualTo(editRequest.getFinishedAt());
+        assertThat(dto.getCreatedAt()).isEqualTo(editRequest.getCreatedAt());
+        assertThat(dto.getModifiedAt()).isEqualTo(editRequest.getModifiedAt());
+        assertThat(dto.getCreatedById()).isEqualTo(editRequest.getCreatedBy().getId());
+        assertThat(dto.getSourceRecording().getId()).isEqualTo(editRequest.getSourceRecording().getId());
+    }
+
+    @Test
+    @DisplayName("Should create an edit request dto from edit request entity without source recording")
+    void testConstructorWithoutSourceRecording() {
+        var dto = new EditRequestDTO(editRequest, false);
+
+        assertThat(dto.getId()).isEqualTo(editRequest.getId());
+        assertThat(dto.getSourceRecording()).isNull();
+        assertThat(dto.getEditInstruction().getRequestedInstructions()).isEmpty();
+        assertThat(dto.getEditInstruction().getFfmpegInstructions()).isEmpty();
+        assertThat(dto.getStatus()).isEqualTo(editRequest.getStatus());
+        assertThat(dto.getStartedAt()).isEqualTo(editRequest.getStartedAt());
+        assertThat(dto.getFinishedAt()).isEqualTo(editRequest.getFinishedAt());
+        assertThat(dto.getCreatedById()).isEqualTo(editRequest.getCreatedBy().getId());
+        assertThat(dto.getCreatedAt()).isEqualTo(editRequest.getCreatedAt());
+        assertThat(dto.getModifiedAt()).isEqualTo(editRequest.getModifiedAt());
+        assertThat(dto.getJointlyAgreed()).isEqualTo(editRequest.getJointlyAgreed());
+        assertThat(dto.getRejectionReason()).isEqualTo(editRequest.getRejectionReason());
+        assertThat(dto.getApprovedAt()).isEqualTo(editRequest.getApprovedAt());
+        assertThat(dto.getApprovedBy()).isEqualTo(editRequest.getApprovedBy());
+    }
+
+    @Test
+    @DisplayName("Should create an edit request dto from edit request entity with source recording")
+    void testConstructorWithSourceRecording() {
+        var dto = new EditRequestDTO(editRequest, true);
+
+        assertThat(dto.getId()).isEqualTo(editRequest.getId());
+        assertThat(dto.getEditInstruction().getRequestedInstructions()).isEmpty();
+        assertThat(dto.getEditInstruction().getFfmpegInstructions()).isEmpty();
         assertThat(dto.getStatus()).isEqualTo(editRequest.getStatus());
         assertThat(dto.getStartedAt()).isEqualTo(editRequest.getStartedAt());
         assertThat(dto.getFinishedAt()).isEqualTo(editRequest.getFinishedAt());

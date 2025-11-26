@@ -15,19 +15,27 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import uk.gov.hmcts.reform.preapi.controllers.EditController;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
@@ -39,6 +47,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.hmcts.reform.preapi.controllers.EditController.CSV_FILE_TYPE;
@@ -74,6 +84,7 @@ public class EditControllerTest {
     @BeforeAll
     static void beforeAll() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+        OBJECT_MAPPER.setPropertyNamingStrategy(new PropertyNamingStrategy.SnakeCaseStrategy());
     }
 
     @Test
@@ -186,7 +197,7 @@ public class EditControllerTest {
         EditRequestDTO dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setStatus(EditRequestStatus.PENDING);
-        dto.setEditInstruction("{}");
+        dto.setEditInstruction(EditInstructions.fromJson("{}"));
 
         RecordingDTO recordingDTO = new RecordingDTO();
         recordingDTO.setId(UUID.randomUUID());
@@ -214,7 +225,7 @@ public class EditControllerTest {
         EditRequestDTO dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setStatus(EditRequestStatus.PENDING);
-        dto.setEditInstruction("{}");
+        dto.setEditInstruction(EditInstructions.fromJson("{}"));
 
         RecordingDTO recordingDTO = new RecordingDTO();
         recordingDTO.setId(UUID.randomUUID());
@@ -232,6 +243,262 @@ public class EditControllerTest {
             );
 
         verify(editRequestService, times(1)).findAll(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should return 201 when successfully created edit request")
+    void upsertEditRequestCreated() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
+
+        verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should return 204 when successfully updated edit request")
+    void upsertEditRequestUpdated() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.UPDATED);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent())
+            .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
+
+        verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when path and payload IDs do not match")
+    void upsertEditRequestPathPayloadMismatch() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+        var differentId = UUID.randomUUID();
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + differentId)
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Path editRequestId does not match payload property createEditRequestDTO.id"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when startOfCut is null")
+    void validateStartOfCutIsNull() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        var result = mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                                         .with(csrf())
+                                         .content(OBJECT_MAPPER.writeValueAsString(dto))
+                                         .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                         .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(result.getResponse().getContentAsString())
+            .isEqualTo("{\"editInstructions[0].startOfCut\":\"must not be null\"}");
+    }
+
+    @Test
+    @DisplayName("Should return 400 when sourceRecordingId is null")
+    void validateSourceRecordingIdIsNull() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.sourceRecordingId").value("must not be null"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when editInstructions is null")
+    void validateEditInstructionsIsNull() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when editInstructions is empty")
+    void validateEditInstructionsIsEmpty() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of());
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.editInstructions").value("must not be empty"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when status is null")
+    void validateStatusIsNull() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value("must not be null"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when status is REJECTED and rejectionReason is null")
+    void validateRejectedStatusWithoutRejectionReason() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.REJECTED);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.rejectionReason").value("must have rejection reason when status is REJECTED"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when status is SUBMITTED and jointlyAgreed is null")
+    void validateSubmittedStatusWithoutJointlyAgreed() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.SUBMITTED);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.jointlyAgreed").value("must have jointly agreed when status is SUBMITTED"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when status is APPROVED and approvedAt is null")
+    void validateApprovedStatusWithoutApprovedAt() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.APPROVED);
+        dto.setApprovedBy("Someone");
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.approvedAt").value("must have approved at when status is APPROVED"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when status is APPROVED and approvedBy is null")
+    void validateApprovedStatusWithoutApprovedBy() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.APPROVED);
+        dto.setApprovedAt(Timestamp.from(Instant.now()));
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.approvedBy").value("must have approved by when status is APPROVED"));
     }
 
 }

@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
-
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -8,8 +7,10 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
 import java.util.Comparator;
@@ -49,6 +50,12 @@ public class RecordingDTO extends BaseRecordingDTO {
     @Schema(description = "RecordingTotalVersionCount")
     private int totalVersionCount;
 
+    @Schema(description = "RecordingEditRequests")
+    private List<EditRequestDTO> editRequests;
+
+    @Schema(description = "RecordingEditStatus")
+    private EditRequestStatus editStatus;
+
     public RecordingDTO(Recording recording) {
         id = recording.getId();
         captureSession = new CaptureSessionDTO(recording.getCaptureSession());
@@ -77,5 +84,15 @@ public class RecordingDTO extends BaseRecordingDTO {
                              .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
+        editRequests = Stream.ofNullable(recording.getEditRequests())
+            .flatMap(request ->
+                         request
+                             .stream()
+                             .sorted(Comparator.comparing(EditRequest::getModifiedAt).reversed())
+                             .map(e -> new EditRequestDTO(e, false)))
+            .collect(Collectors.toList());
+        editStatus = recording.getVersion() == 1
+            ? (!editRequests.isEmpty() ? editRequests.getFirst().getStatus() : null)
+            : null;
     }
 }

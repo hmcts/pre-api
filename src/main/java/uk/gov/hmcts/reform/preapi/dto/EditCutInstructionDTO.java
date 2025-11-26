@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.opencsv.bean.CsvBindByName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,17 +26,22 @@ public class EditCutInstructionDTO {
     @NotNull
     @CsvBindByName(column = "Start time of cut")
     @Schema(description = "EditInstructionStart")
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$", message = "must be in format HH:MM:SS")
     private String startOfCut;
 
     @NotNull
     @CsvBindByName(column = "End time of cut")
     @Schema(description = "EditInstructionEnd")
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$", message = "must be in format HH:MM:SS")
     private String endOfCut;
 
     @CsvBindByName(column = "Reason")
     private String reason;
 
+    @Schema(hidden = true)
     private Long start;
+
+    @Schema(hidden = true)
     private Long end;
 
     public long getStart() {
@@ -55,6 +61,9 @@ public class EditCutInstructionDTO {
     }
 
     private static long parseTime(String time) {
+        if (time == null) {
+            return -1;
+        }
         try {
             var units = time.split(":");
             int hours = Integer.parseInt(units[0]);
@@ -62,7 +71,7 @@ public class EditCutInstructionDTO {
             int seconds = Integer.parseInt(units[2]);
 
             return hours * 3600L + minutes * 60L + seconds;
-        } catch (Exception e) {
+        } catch (IndexOutOfBoundsException | NumberFormatException e) {
             throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS");
         }
     }
