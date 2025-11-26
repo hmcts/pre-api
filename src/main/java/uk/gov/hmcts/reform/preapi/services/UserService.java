@@ -85,7 +85,7 @@ public class UserService {
 
     @Transactional
     public AccessDTO findByEmail(String email) {
-        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
+        return userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(email)
             .map(access ->
                      new AccessDTO(
                             access,
@@ -157,6 +157,7 @@ public class UserService {
         entity.setFirstName(createUserDTO.getFirstName());
         entity.setLastName(createUserDTO.getLastName());
         entity.setEmail(createUserDTO.getEmail());
+        entity.setAlternativeEmail(createUserDTO.getAlternativeEmail());
         entity.setPhone(createUserDTO.getPhoneNumber());
         entity.setOrganisation(createUserDTO.getOrganisation());
         userRepository.saveAndFlush(entity);

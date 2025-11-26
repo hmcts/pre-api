@@ -35,9 +35,9 @@ public class BaseUserDTO {
     @Email
     protected String email;
 
-    @Schema(description = "UserEmail2")
+    @Schema(description = "AlternativeEmail")
     @Email
-    protected String email2;
+    protected String alternativeEmail;
 
     @Schema(description = "UserPhoneNumber")
     protected String phoneNumber;
@@ -50,7 +50,7 @@ public class BaseUserDTO {
         firstName = user.getFirstName();
         lastName = user.getLastName();
         email = user.getEmail();
-        email2 = user.getEmail2();
+        alternativeEmail = user.getAlternativeEmail();
         phoneNumber = user.getPhone();
         organisation = user.getOrganisation();
     }
