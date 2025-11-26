@@ -61,9 +61,6 @@ public class EditCutInstructionDTO {
     }
 
     private static long parseTime(String time) {
-        if (time == null) {
-            return -1;
-        }
         try {
             var units = time.split(":");
             int hours = Integer.parseInt(units[0]);
@@ -71,7 +68,7 @@ public class EditCutInstructionDTO {
             int seconds = Integer.parseInt(units[2]);
 
             return hours * 3600L + minutes * 60L + seconds;
-        } catch (IndexOutOfBoundsException | NumberFormatException e) {
+        } catch (NullPointerException | IndexOutOfBoundsException | NumberFormatException e) {
             throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS");
         }
     }
