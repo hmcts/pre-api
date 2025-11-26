@@ -7,6 +7,7 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -97,7 +98,10 @@ public class EditRequestService {
     }
 
     @Transactional
-    public Page<EditRequestDTO> findAll(SearchEditRequests params, Pageable pageable) {
+    public Page<EditRequestDTO> findAll(@Nullable SearchEditRequests params, Pageable pageable) {
+        if (params == null) {
+            params = new SearchEditRequests();
+        }
         UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());

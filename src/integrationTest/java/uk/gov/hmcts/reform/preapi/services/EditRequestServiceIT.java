@@ -13,10 +13,12 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EditRequestServiceIT extends IntegrationTestBase {
+
     @Autowired
     private EditRequestService editRequestService;
 
@@ -74,7 +76,9 @@ public class EditRequestServiceIT extends IntegrationTestBase {
         assertThat(requests1).hasSize(1);
         assertThat(requests1.getFirst().getId()).isEqualTo(editRequest.getId());
 
-        var requests2 = editRequestService.findAll(new SearchEditRequests(), Pageable.unpaged()).toList();
+        SearchEditRequests paramsForRandomRecording = new SearchEditRequests();
+        paramsForRandomRecording.setSourceRecordingId(UUID.randomUUID());
+        var requests2 = editRequestService.findAll(paramsForRandomRecording, Pageable.unpaged()).toList();
         assertThat(requests2).isEmpty();
 
         var requests3 = editRequestService.findAll(null, Pageable.unpaged()).toList();
