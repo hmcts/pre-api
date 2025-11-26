@@ -75,7 +75,7 @@ public class User extends CreatedModifiedAtEntity implements ISoftDeletable {
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
         details.put("userEmail", email);
-        details.put("alternativeemail", alternativeEmail);
+        details.put("alternativeEmail", alternativeEmail);
         details.put("userOrganisation", organisation);
         details.put("deleted", isDeleted());
         return details;
