@@ -179,6 +179,11 @@ module "pre-api-mgmt-api-policy" {
 XML
 }
 
+import {
+  to = module.pre_b2c_product.azurerm_api_management_product.product
+  id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/ss-${var.env}-network-rg/providers/Microsoft.ApiManagement/service/sds-api-mgmt-${var.env}/products/pre-api-b2c"
+}
+
 module "pre_b2c_product" {
   source                = "git@github.com:hmcts/cnp-module-api-mgmt-product?ref=master"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
@@ -187,6 +192,11 @@ module "pre_b2c_product" {
   name                  = "pre-api-b2c"
   published             = true
   subscription_required = false
+}
+
+import {
+  to = module.pre_api_b2c.azurerm_api_management_api.api
+  id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/ss-${var.env}-network-rg/providers/Microsoft.ApiManagement/service/sds-api-mgmt-${var.env}/apis/pre-api-b2c;rev=${local.api_revision}"
 }
 
 module "pre_api_b2c" {
@@ -203,6 +213,11 @@ module "pre_api_b2c" {
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
   subscription_required = false
+}
+
+import {
+  to = module.pre-api-b2c-mgmt-api-policy.azurerm_api_management_api_policy.api_policy
+  id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/ss-${var.env}-network-rg/providers/Microsoft.ApiManagement/service/sds-api-mgmt-${var.env}/apis/pre-api-b2c"
 }
 
 module "pre-api-b2c-mgmt-api-policy" {
