@@ -55,6 +55,7 @@ public class UserDTO extends BaseUserDTO {
         firstName = user.getFirstName();
         lastName = user.getLastName();
         email = user.getEmail();
+        email2 = user.getEmail2();
         phoneNumber = user.getPhone();
         organisation = user.getOrganisation();
         createdAt = user.getCreatedAt();

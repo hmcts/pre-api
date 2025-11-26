@@ -31,11 +31,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         AND (
             CASE
                 WHEN :name IS NULL AND :email IS NULL THEN 1
-                WHEN :name IS NULL AND :email IS NOT NULL AND u.email ILIKE %:email% THEN 1
+                WHEN :name IS NULL AND :email IS NOT NULL AND (
+                    u.email ILIKE %:email% OR u.email2 ILIKE %:email%
+                ) THEN 1
                 WHEN :name IS NOT NULL AND CONCAT(u.firstName, ' ', u.lastName) ILIKE %:name% AND :email IS NULL THEN 1
                 WHEN :name IS NOT NULL AND :email IS NOT NULL AND (
                     CONCAT(u.firstName, ' ', u.lastName) ILIKE %:name%
                     OR u.email ILIKE %:email%
+                    OR u.email2 ILIKE %:email%
                 ) THEN 1
                 ELSE 0
             END = 1
@@ -68,6 +71,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     );
 
     Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
+
+    Optional<User> findByEmail2IgnoreCaseAndDeletedAtIsNull(String email2);
+
+    Optional<User> findByEmailOrEmail2IgnoreCaseAndDeletedAtIsNull(String email);
 
     boolean existsByEmailIgnoreCase(String email);
 }
