@@ -62,7 +62,7 @@ public class EditCutInstructionDTO {
 
     private static long parseTime(String time) {
         try {
-            var units = time.split(":");
+            String[] units = time.split(":");
             int hours = Integer.parseInt(units[0]);
             int minutes = Integer.parseInt(units[1]);
             int seconds = Integer.parseInt(units[2]);

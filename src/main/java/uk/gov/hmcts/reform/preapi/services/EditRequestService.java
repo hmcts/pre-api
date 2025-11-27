@@ -31,6 +31,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
@@ -120,7 +121,7 @@ public class EditRequestService {
 
     @Transactional
     public void updateEditRequestStatus(UUID id, EditRequestStatus status) {
-        var request = editRequestRepository.findById(id)
+        EditRequest request = editRequestRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
 
         request.setStatus(status);
@@ -294,8 +295,8 @@ public class EditRequestService {
 
         boolean isUpdate = req.isPresent();
         if (!isUpdate) {
-            var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-            var user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
+            UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+            User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
         }
@@ -308,8 +309,8 @@ public class EditRequestService {
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
-        var id = UUID.randomUUID();
-        var dto = new CreateEditRequestDTO();
+        UUID id = UUID.randomUUID();
+        CreateEditRequestDTO dto = new CreateEditRequestDTO();
         dto.setId(id);
         dto.setSourceRecordingId(sourceRecordingId);
         dto.setEditInstructions(parseCsv(file));
@@ -370,7 +371,7 @@ public class EditRequestService {
         List<FfmpegEditInstructionDTO> invertedInstructions = new ArrayList<>();
 
         // invert
-        for (var instruction : instructions) {
+        for (EditCutInstructionDTO instruction : instructions) {
             if (instruction.getStart() == instruction.getEnd()) {
                 throw new BadRequestException("Invalid instruction: Instruction with 0 second duration invalid: Start("
                                                   + instruction.getStart()
