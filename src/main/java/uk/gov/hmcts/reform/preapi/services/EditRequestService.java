@@ -138,15 +138,15 @@ public class EditRequestService {
     public EditRequest markAsProcessing(UUID editId) throws InterruptedException {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
-        EditRequest request = editRequestRepository.findByIdNotLocked(editId)
+        EditRequest request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
 
-        if (request.getStatus() != EditRequestStatus.PROCESSING) {
+        if (request.getStatus() != EditRequestStatus.PENDING) {
             throw new ResourceInWrongStateException(
                 EditRequest.class.getSimpleName(),
                 request.getId().toString(),
                 request.getStatus().toString(),
-                EditRequestStatus.PROCESSING.toString()
+                EditRequestStatus.PENDING.toString()
             );
         }
         updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
