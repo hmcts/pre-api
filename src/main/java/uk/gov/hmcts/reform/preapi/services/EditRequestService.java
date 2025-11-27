@@ -57,6 +57,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
+
 @Slf4j
 @Service
 public class EditRequestService {
@@ -475,15 +477,6 @@ public class EditRequestService {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
             throw new UnknownServerException("Something went wrong: " + e.getMessage());
-        }
-    }
-
-    private EditInstructions fromJson(String editInstructions) {
-        try {
-            return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
-        } catch (Exception e) {
-            log.error("Error reading edit instructions: {} with message: {}", editInstructions, e.getMessage());
-            throw new UnknownServerException("Unable to read edit instructions");
         }
     }
 

@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,11 +9,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 
 import java.sql.Timestamp;
 import java.util.UUID;
+
+import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 
 @Data
 @Builder
@@ -96,13 +96,5 @@ public class EditRequestDTO {
         this.rejectionReason = editRequest.getRejectionReason();
         this.approvedAt = editRequest.getApprovedAt();
         this.approvedBy = editRequest.getApprovedBy();
-    }
-
-    public static EditInstructions fromJson(String editInstructions) {
-        try {
-            return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
-        } catch (Exception e) {
-            throw new UnknownServerException("Unable to read edit instructions");
-        }
     }
 }

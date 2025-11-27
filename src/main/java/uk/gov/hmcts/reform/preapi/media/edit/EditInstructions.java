@@ -16,6 +16,9 @@ public class EditInstructions {
     private final List<FfmpegEditInstructionDTO> ffmpegInstructions;
 
     public static EditInstructions fromJson(String editInstructions) {
+        if (editInstructions == null) {
+            throw new NullPointerException("Cannot create EditInstructions from a null string");
+        }
         try {
             return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
         } catch (Exception e) {
