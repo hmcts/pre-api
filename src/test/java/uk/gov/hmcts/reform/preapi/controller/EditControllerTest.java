@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -321,17 +322,24 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 400 when startOfCut is null")
     void validateStartOfCutIsNull() throws Exception {
-        var dto = new CreateEditRequestDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
-                                            .endOfCut("00:00:01")
-                                            .build()));
-        dto.setStatus(EditRequestStatus.DRAFT);
+        String anyIdWillDo = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+        String editRequestJson = format("""
+            {
+              "edit_instructions": [
+                {
+                  "end_of_cut": "14:35:07",
+                  "reason": "string"
+                }
+              ],
+              "id": "%s",
+              "source_recording_id": "%s",
+              "status": "DRAFT"
+            }
+            """, anyIdWillDo, anyIdWillDo);
 
-        var result = mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+        var result = mockMvc.perform(put(TEST_URL + "/edits/" + anyIdWillDo)
                                          .with(csrf())
-                                         .content(OBJECT_MAPPER.writeValueAsString(dto))
+                                         .content(editRequestJson)
                                          .contentType(MediaType.APPLICATION_JSON_VALUE)
                                          .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
