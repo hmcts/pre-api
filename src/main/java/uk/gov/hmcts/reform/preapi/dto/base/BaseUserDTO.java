@@ -51,6 +51,7 @@ public class BaseUserDTO {
         firstName = user.getFirstName();
         lastName = user.getLastName();
         email = user.getEmail();
+
         alternativeEmail = user.getAlternativeEmail();
         phoneNumber = user.getPhone();
         organisation = user.getOrganisation();
