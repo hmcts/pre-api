@@ -716,7 +716,9 @@ public class EditRequestServiceTest {
         assertThat(dto.getId()).isEqualTo(newRecordingId);
         assertThat(dto.getParentRecordingId()).isEqualTo(recording.getId());
         assertThat(dto.getVersion()).isEqualTo(2);
-        assertThat(dto.getEditInstructions()).isEqualTo(format("{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,\"ffmpegInstructions\":null}}", editRequest.getId()));
+        assertThat(dto.getEditInstructions())
+            .isEqualTo(format("{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,"
+                                  + "\"ffmpegInstructions\":null}}", editRequest.getId()));
         assertThat(dto.getCaptureSessionId()).isEqualTo(captureSession.getId());
         assertThat(dto.getFilename()).isEqualTo("index.mp4");
 
@@ -753,8 +755,8 @@ public class EditRequestServiceTest {
         assertThat(dto.getFilename()).isEqualTo("newFile.mp4");
         assertThat(dto.getVersion()).isEqualTo(3);
         assertThat(dto.getEditInstructions())
-            .isEqualTo("{\"editRequestId\":null,\"editInstructions\":{\"requestedInstructions\":[]," +
-                           "\"ffmpegInstructions\":[]}}");
+            .isEqualTo("{\"editRequestId\":null,\"editInstructions\":{\"requestedInstructions\":[],"
+                           + "\"ffmpegInstructions\":[]}}");
     }
 
     @Test
