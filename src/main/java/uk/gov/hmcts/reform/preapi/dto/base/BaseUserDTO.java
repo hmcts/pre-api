@@ -48,11 +48,10 @@ public class BaseUserDTO {
 
     public BaseUserDTO(User user) {
         id = user.getId();
+        email = user.getEmail();
+        alternativeEmail = user.getAlternativeEmail();
         firstName = user.getFirstName();
         lastName = user.getLastName();
-        email = user.getEmail();
-
-        alternativeEmail = user.getAlternativeEmail();
         phoneNumber = user.getPhone();
         organisation = user.getOrganisation();
     }
