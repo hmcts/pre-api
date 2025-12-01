@@ -2,9 +2,11 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -39,16 +41,25 @@ public abstract class BaseCleanupNullRecordingDurationTest {
     @Autowired
     protected CleanupNullRecordingDuration cleanupNullRecordingDuration;
 
-    protected static final String CRON_USER_EMAIL = "test@test.com";
+    @Value("${cron-user-email}")
+    protected String cronUserEmail;
+
+    protected BaseAppAccessDTO appAccess;
+    protected AccessDTO access;
+    protected BaseUserDTO user;
 
     @BeforeEach
     void beforeEach() {
-        BaseAppAccessDTO appAccess = new BaseAppAccessDTO();
+        appAccess = new BaseAppAccessDTO();
         appAccess.setId(UUID.randomUUID());
-        AccessDTO access = new AccessDTO();
+        access = new AccessDTO();
         access.setAppAccess(Set.of(appAccess));
+        user = new BaseUserDTO();
+        user.setEmail(cronUserEmail);
+        user.setId(UUID.randomUUID());
+        access.setUser(user);
 
-        when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(access);
+        when(userService.findByEmail(cronUserEmail)).thenReturn(access);
 
         UserAuthentication userAuth = mock(UserAuthentication.class);
         when(userAuth.getUserId()).thenReturn(UUID.randomUUID());
