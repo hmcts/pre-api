@@ -43,12 +43,12 @@ public abstract class BaseCleanupNullRecordingDurationTest {
 
     @BeforeEach
     void beforeEach() {
-        AccessDTO accessDto = mock(AccessDTO.class);
-        BaseAppAccessDTO baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+        BaseAppAccessDTO appAccess = new BaseAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        AccessDTO access = new AccessDTO();
+        access.setAppAccess(Set.of(appAccess));
 
-        when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
-        when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
+        when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(access);
 
         UserAuthentication userAuth = mock(UserAuthentication.class);
         when(userAuth.getUserId()).thenReturn(UUID.randomUUID());
