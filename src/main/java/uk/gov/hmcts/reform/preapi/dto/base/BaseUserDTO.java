@@ -45,6 +45,7 @@ public class BaseUserDTO {
     @Schema(description = "UserOrganisation")
     protected String organisation;
 
+    @SuppressWarnings("java:S1192")
     public BaseUserDTO(User user) {
         id = user.getId();
         firstName = user.getFirstName();
