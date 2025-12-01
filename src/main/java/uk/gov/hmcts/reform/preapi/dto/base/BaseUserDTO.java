@@ -47,12 +47,12 @@ public class BaseUserDTO {
     protected String organisation;
 
     public BaseUserDTO(User user) {
-        id = user.getId();
-        email = user.getEmail();
-        alternativeEmail = user.getAlternativeEmail();
-        firstName = user.getFirstName();
-        lastName = user.getLastName();
-        phoneNumber = user.getPhone();
-        organisation = user.getOrganisation();
+        this.id = user.getId();
+        this.email = user.getEmail();
+        this.alternativeEmail = user.getAlternativeEmail();
+        this.firstName = user.getFirstName();
+        this.lastName = user.getLastName();
+        this.phoneNumber = user.getPhone();
+        this.organisation = user.getOrganisation();
     }
 }
