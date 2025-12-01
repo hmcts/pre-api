@@ -17,6 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Schema(description = "BaseUserDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@SuppressWarnings({"java:S1192", "common-java:DuplicatedBlocks"}) 
 public class BaseUserDTO {
     @Schema(description = "UserId")
     @NotNull
@@ -45,7 +46,6 @@ public class BaseUserDTO {
     @Schema(description = "UserOrganisation")
     protected String organisation;
 
-    @SuppressWarnings("java:S1192")
     public BaseUserDTO(User user) {
         id = user.getId();
         firstName = user.getFirstName();
