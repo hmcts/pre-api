@@ -26,7 +26,7 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
     private final CaptureSessionService captureSessionService;
     private final AzureIngestStorageService azureIngestStorageService;
 
-    private static final LocalDate THRESHOLD_DATE = LocalDate.of(2025, 10, 1);
+    private static final LocalDate THRESHOLD_DATE = LocalDate.of(2025, 9, 28);
 
     @Override
     public void run() {

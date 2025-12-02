@@ -170,7 +170,7 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
             RecordingOrigin.PRE,
             null,
             null,
-            Timestamp.valueOf("2025-10-01 00:00:00"),
+            Timestamp.valueOf("2025-09-28 00:00:00"),
             null,
             null,
             null,
