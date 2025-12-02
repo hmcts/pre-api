@@ -110,7 +110,8 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             }
         } else {
             log.info("Reading CSV from Azure blob: {}/{}", containerName, CSV_BLOB_PATH);
-            InputStreamResource blobResource = azureVodafoneStorageService.fetchSingleXmlBlob(containerName, CSV_BLOB_PATH);
+            InputStreamResource blobResource = azureVodafoneStorageService
+                .fetchSingleXmlBlob(containerName, CSV_BLOB_PATH);
             
             if (blobResource == null) {
                 throw new IOException("CSV file not found in Azure: " + containerName + "/" + CSV_BLOB_PATH);
