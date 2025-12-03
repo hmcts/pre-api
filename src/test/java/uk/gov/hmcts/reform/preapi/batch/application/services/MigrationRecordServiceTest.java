@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1086,9 +1088,13 @@ public class MigrationRecordServiceTest {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
         dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(createMigrationRecord()));
-        when(courtRepository.existsById(dto.getCourtId())).thenReturn(false);
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.empty());
 
         String message = assertThrows(
             NotFoundException.class,
@@ -1225,6 +1231,9 @@ public class MigrationRecordServiceTest {
         CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(testId);
         dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
         dto.setRecordingVersionNumber(null);
         dto.setRecordingVersion(VfMigrationRecordingVersion.COPY);
 
@@ -1238,6 +1247,437 @@ public class MigrationRecordServiceTest {
 
         assertEquals(UpsertResult.UPDATED, result);
         verify(migrationRecordRepository).saveAndFlush(testRecord);
+    }
+
+    @Test
+    @DisplayName("Should successfully update status from FAILED to IGNORED")
+    void updateFromFailedToIgnored() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("urn");
+        dto.setExhibitReference("exhibitReference");
+        dto.setWitnessName("witnessName");
+        dto.setDefendantName("defendantName");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.IGNORED);
+        dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.FAILED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.IGNORED);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceInWrongStateException when trying to set IGNORED from PENDING status")
+    void updateThrowsExceptionWhenSettingIgnoredFromPending() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setStatus(VfMigrationStatus.IGNORED);
+
+        final MigrationRecord migrationRecord = new MigrationRecord();
+        migrationRecord.setId(dto.getId());
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        final String message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> migrationRecordService.update(dto)
+        ).getMessage();
+        assertThat(message).contains("FAILED (only FAILED records can be marked as IGNORED)");
+
+        verify(migrationRecordRepository, times(1)).findById(dto.getId());
+        verifyNoMoreInteractions(migrationRecordRepository);
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceInWrongStateException when trying to set IGNORED from READY status")
+    void updateThrowsExceptionWhenSettingIgnoredFromReady() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setStatus(VfMigrationStatus.IGNORED);
+
+        final MigrationRecord migrationRecord = new MigrationRecord();
+        migrationRecord.setId(dto.getId());
+        migrationRecord.setStatus(VfMigrationStatus.READY);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        final String message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> migrationRecordService.update(dto)
+        ).getMessage();
+        assertThat(message).contains("FAILED (only FAILED records can be marked as IGNORED)");
+
+        verify(migrationRecordRepository, times(1)).findById(dto.getId());
+        verifyNoMoreInteractions(migrationRecordRepository);
+    }
+
+    @Test
+    @DisplayName("Should successfully update status from IGNORED to FAILED (unignore)")
+    void updateFromIgnoredToFailed() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("urn");
+        dto.setExhibitReference("exhibitReference");
+        dto.setWitnessName("witnessName");
+        dto.setDefendantName("defendantName");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+        dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.FAILED);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should successfully update status from IGNORED to READY (unignore and mark ready)")
+    void updateFromIgnoredToReady() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("urn");
+        dto.setExhibitReference("exhibitReference");
+        dto.setWitnessName("witnessName");
+        dto.setDefendantName("defendantName");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.READY);
+        dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.READY);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should successfully update IGNORED record to PENDING (not blocked)")
+    void updateIgnoredRecord() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("updated-urn");
+        dto.setExhibitReference("updated-exhibit");
+        dto.setWitnessName("updated-witness");
+        dto.setDefendantName("updated-defendant");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.COPY);
+        dto.setStatus(VfMigrationStatus.PENDING);
+        dto.setResolvedAt(Timestamp.from(Instant.now()));
+
+        final Court court = new Court();
+        court.setName("Example Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.PENDING);
+        assertThat(migrationRecord.getUrn()).isEqualTo("updated-urn");
+        assertThat(migrationRecord.getExhibitReference()).isEqualTo("updated-exhibit");
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should update IGNORED record with null courtId (uses existing courtReference)")
+    void updateIgnoredRecordWithNullCourtId() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(null); // null courtId
+        dto.setUrn("updated-urn");
+        dto.setDefendantName("updated-defendant");
+        dto.setWitnessName("updated-witness");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+        migrationRecord.setCourtReference("Existing Court Reference");
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getStatus()).isEqualTo(VfMigrationStatus.FAILED);
+        assertThat(migrationRecord.getCourtReference()).isEqualTo("Existing Court Reference");
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should update IGNORED record with null/empty fields (uses existing values)")
+    void updateIgnoredRecordWithNullFieldsUsesExisting() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn(null); // null urn
+        dto.setDefendantName(""); // empty defendantName
+        dto.setWitnessName(null); // null witnessName
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final Court court = new Court();
+        court.setName("Test Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+        migrationRecord.setUrn("existing-urn");
+        migrationRecord.setDefendantName("existing-defendant");
+        migrationRecord.setWitnessName("existing-witness");
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        assertThat(migrationRecord.getUrn()).isEqualTo("existing-urn");
+        assertThat(migrationRecord.getDefendantName()).isEqualTo("existing-defendant");
+        assertThat(migrationRecord.getWitnessName()).isEqualTo("existing-witness");
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should handle invalid recording version in existing entity gracefully")
+    void updateHandlesInvalidRecordingVersionInEntity() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(null); // null - should try to parse from entity
+        dto.setRecordingVersionNumber(null);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final Court court = new Court();
+        court.setName("Test Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED); // / so validation is skipped
+        migrationRecord.setRecordingVersion("INVALID_VERSION"); // Invalid enum value
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        verify(loggingService, times(1)).logInfo(contains("Error parsing recording version"));
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null courtId")
+    void updateNonIgnoredRecordWithNullCourtIdThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(null);
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("Court ID is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null urn")
+    void updateNonIgnoredRecordWithNullUrnThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn(null);
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("URN is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with empty urn")
+    void updateNonIgnoredRecordWithEmptyUrnThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("   "); // Empty/whitespace
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("URN is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null defendantName")
+    void updateNonIgnoredRecordWithNullDefendantNameThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName(null);
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("Defendant name is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null witnessName")
+    void updateNonIgnoredRecordWithNullWitnessNameThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName(null);
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("Witness name is required");
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updating non-IGNORED record with null recordingVersion")
+    void updateNonIgnoredRecordWithNullRecordingVersionThrowsException() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(null);
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> migrationRecordService.update(dto)
+        );
+        assertThat(exception.getMessage()).isEqualTo("Recording version is required");
+    }
+
+    @Test
+    @DisplayName("Should update IGNORED record when recordingVersion is null and entity has no recordingVersion")
+    void updateIgnoredRecordWithNullRecordingVersionAndNoEntityVersion() {
+        final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUrn("URN1234567");
+        dto.setDefendantName("defendant-name");
+        dto.setWitnessName("witness-name");
+        dto.setRecordingVersion(null); // null and entity also has null
+        dto.setStatus(VfMigrationStatus.FAILED);
+
+        final Court court = new Court();
+        court.setName("Test Court");
+
+        final MigrationRecord migrationRecord = createMigrationRecord();
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+        migrationRecord.setRecordingVersion(null); // Also null
+
+        when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
+
+        UpsertResult result = migrationRecordService.update(dto);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+        verify(migrationRecordRepository, times(1)).saveAndFlush(any(MigrationRecord.class));
     }
 
     @Test
