@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
@@ -30,6 +31,8 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -126,6 +129,17 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
+        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+
+        var localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(),
+                                                     ZoneId.of("Europe/London")).toLocalDate();
+        var today = LocalDate.now();
+
+        if (localDateField.isBefore(today)
+            && !auth.hasRole("ROLE_SUPER_USER")) {
+            throw new BadRequestException("Scheduled date must not be in the past");
+        }
+
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
