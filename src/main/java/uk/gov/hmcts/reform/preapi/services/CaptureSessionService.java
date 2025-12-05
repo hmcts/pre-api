@@ -354,6 +354,15 @@ public class CaptureSessionService {
             .toList();
     }
 
+    @Transactional
+    public List<CaptureSession> findFailedCaptureSessionsStartedBetween(LocalDate fromDate, LocalDate toDate) {
+        Timestamp fromTime = Timestamp.valueOf(fromDate.atStartOfDay());
+        Timestamp toTime = Timestamp.valueOf(toDate.atStartOfDay().plusDays(1));
+
+        return captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            fromTime, toTime, RecordingStatus.FAILURE);
+    }
+
     private CreateAuditDTO createStopAudit(UUID captureSessionId) {
         CreateAuditDTO audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());

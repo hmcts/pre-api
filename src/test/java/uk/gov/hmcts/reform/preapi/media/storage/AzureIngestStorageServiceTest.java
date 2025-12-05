@@ -57,6 +57,8 @@ public class AzureIngestStorageServiceTest {
 
     @Autowired
     private AzureIngestStorageService azureIngestStorageService;
+    @Autowired
+    private BlobServiceClient blobServiceClient;
 
     @BeforeEach
     void setUp() {
@@ -270,5 +272,38 @@ public class AzureIngestStorageServiceTest {
 
         verify(blobClient, never()).beginCopy(sourceUrl, null);
 
+    }
+
+    @Test
+    void returnsTrueIfSectionFileIsPresent() {
+        var blobItem = mock(BlobItem.class);
+        when(blobServiceClient.getBlobContainerClient(
+            "5b828a09-224a-4ca7-9657-f32f3981eef7")).thenReturn(blobContainerClient);
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(blobItem.getName()).thenReturn("0/section");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+
+        assertTrue(azureIngestStorageService.sectionFileExist("5b828a09-224a-4ca7-9657-f32f3981eef7"));
+    }
+
+    @Test
+    void returnsFalseIfSectionFileIsNotPresent() {
+        var blobItem = mock(BlobItem.class);
+        when(blobServiceClient.getBlobContainerClient(
+            "5b828a09-224a-4ca7-9657-f32f3981eef7")).thenReturn(blobContainerClient);
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(blobItem.getName()).thenReturn("not-the-section-file");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+
+        assertFalse(azureIngestStorageService.sectionFileExist("5b828a09-224a-4ca7-9657-f32f3981eef7"));
+    }
+
+    @Test
+    void returnsFalseIfTheContainerToCheckDoesNotExist() {
+        when(blobContainerClient.exists()).thenReturn(false);
+        when(blobServiceClient.getBlobContainerClient(
+            "5b828a09-224a-4ca7-9657-f32f3981eef7")).thenReturn(blobContainerClient);
+
+        assertFalse(azureIngestStorageService.sectionFileExist("5b828a09-224a-4ca7-9657-f32f3981eef7"));
     }
 }

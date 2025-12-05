@@ -12,11 +12,14 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -221,5 +224,261 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
         );
 
         assertThat(results2.getTotalElements()).isEqualTo(3);
+    }
+
+    @Test
+    @Transactional
+    void shouldFindFailedCaptureSessionsStartedBetweenSpecificDates() {
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase);
+        Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
+        entityManager.persist(booking);
+
+        // Capture session within the specified dates
+        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-10-06 10:00:00"),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+        entityManager.persist(captureSession1);
+
+        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-10-5 10:00:00"),
+            null,
+            Timestamp.valueOf("2025-10-11 18:00:00"),
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+        entityManager.persist(captureSession2);
+
+        CaptureSession captureSession3 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-10-09 10:00:00"),
+            null,
+            Timestamp.valueOf("2025-10-11 18:00:00"),
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+        entityManager.persist(captureSession3);
+
+        entityManager.flush();
+
+        List<CaptureSession> results =
+            captureSessionService.findFailedCaptureSessionsStartedBetween(startDate, endDate);
+
+        assertThat(results).hasSize(3)
+            .extracting("id")
+            .containsExactlyInAnyOrder(captureSession1.getId(), captureSession2.getId(), captureSession3.getId());
+    }
+
+    @Test
+    @Transactional
+    void shouldNotReturnFailedCaptureSessionsOutsideDateRange() {
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase);
+        Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
+        entityManager.persist(booking);
+
+        // Capture session before the date range
+        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-09-30 10:00:00"),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+        entityManager.persist(captureSession1);
+
+        // Capture session after the date range
+        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-11-04 10:00:00"),
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(captureSession2);
+
+        entityManager.flush();
+
+        List<CaptureSession> results =
+            captureSessionService.findFailedCaptureSessionsStartedBetween(startDate, endDate);
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    @Transactional
+    void shouldNotReturnFailedCaptureSessionsThatHaveNullStartedAtDate() {
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase);
+        Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
+        entityManager.persist(booking);
+
+        // Capture session with null startedAt date
+        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(captureSession1);
+
+        entityManager.flush();
+
+        List<CaptureSession> results =
+            captureSessionService.findFailedCaptureSessionsStartedBetween(startDate, endDate);
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    @Transactional
+    void shouldNotReturnFailedCaptureSessionsWithinDateRangeThatHaveBeenDeleted() {
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase);
+        Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
+        entityManager.persist(booking);
+
+        // Capture sessions within the specified dates but marked as deleted
+        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-10-06 10:00:00"),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            Timestamp.valueOf("2025-10-07 10:00:00")
+        );
+        entityManager.persist(captureSession1);
+
+        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-11-01 10:00:00"),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            Timestamp.valueOf("2025-11-01 10:00:00")
+        );
+        entityManager.persist(captureSession2);
+
+        entityManager.flush();
+
+        List<CaptureSession> results =
+            captureSessionService.findFailedCaptureSessionsStartedBetween(startDate, endDate);
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    @Transactional
+    void shouldReturnFailedCaptureSessionsAtTheEdgesOfDateRange() {
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase);
+        Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
+        entityManager.persist(booking);
+
+        // Capture session at the very edge of start date
+        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-10-01 00:00:00"),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+        entityManager.persist(captureSession1);
+
+        // Capture session on the very edge of end date
+        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-11-03 23:59:59"),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+        entityManager.persist(captureSession2);
+
+        entityManager.flush();
+
+        List<CaptureSession> results =
+            captureSessionService.findFailedCaptureSessionsStartedBetween(startDate, endDate);
+
+        assertThat(results).hasSize(2)
+            .extracting("id")
+            .containsExactlyInAnyOrder(captureSession1.getId(), captureSession2.getId());
     }
 }
