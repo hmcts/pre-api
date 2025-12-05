@@ -28,6 +28,18 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
 
     private static final LocalDate THRESHOLD_DATE = LocalDate.of(2025, 9, 28);
 
+    @Autowired
+    public CaptureSessionStatusCorrectionTask(UserService userService,
+                                              UserAuthenticationService userAuthenticationService,
+                                              @Value("${cron-user-email}") String cronUserEmail,
+                                              AzureIngestStorageService azureIngestStorageService,
+                                              CaptureSessionService captureSessionService
+    ) {
+        super(userService, userAuthenticationService, cronUserEmail);
+        this.azureIngestStorageService = azureIngestStorageService;
+        this.captureSessionService = captureSessionService;
+    }
+
     @Override
     public void run() {
         log.info("Starting capture session status correction task");
@@ -36,18 +48,6 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
         List<CaptureSession> unusedSessions = filterUnusedCaptureSessionsBySectionFile(captureSessionsMarkedFailure);
         correctCaptureSessionStatuses(unusedSessions);
         log.info("Correction task completed. {} sessions updated.", unusedSessions.size());
-    }
-
-    @Autowired
-    public CaptureSessionStatusCorrectionTask(UserService userService,
-                                              UserAuthenticationService userAuthenticationService,
-                                              @Value("${cron-user-email}") String cronUserEmail,
-                                              AzureIngestStorageService azureIngestStorageService,
-                                              CaptureSessionService captureSessionService
-                                              ) {
-        super(userService, userAuthenticationService, cronUserEmail);
-        this.azureIngestStorageService = azureIngestStorageService;
-        this.captureSessionService = captureSessionService;
     }
 
     public List<CaptureSession> getFailedCaptureSessions() {
