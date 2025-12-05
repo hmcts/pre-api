@@ -231,7 +231,11 @@ public class HelperFactory {
                                                 EditRequestStatus status,
                                                 User createdBy,
                                                 @Nullable Timestamp startedAt,
-                                                @Nullable Timestamp finishedAt) {
+                                                @Nullable Timestamp finishedAt,
+                                                @Nullable Boolean jointlyAgreed,
+                                                @Nullable String rejectionReason,
+                                                @Nullable Timestamp approvedAt,
+                                                @Nullable String approvedBy) {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setSourceRecording(sourceRecording);
@@ -240,6 +244,10 @@ public class HelperFactory {
         editRequest.setCreatedBy(createdBy);
         editRequest.setStartedAt(startedAt);
         editRequest.setFinishedAt(finishedAt);
+        editRequest.setJointlyAgreed(jointlyAgreed);
+        editRequest.setRejectionReason(rejectionReason);
+        editRequest.setApprovedAt(approvedAt);
+        editRequest.setApprovedBy(approvedBy);
         return editRequest;
     }
 
