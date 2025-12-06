@@ -280,7 +280,7 @@ public class MediaServiceController extends PreApiController {
         }
         var container = captureSession.getBookingId().toString();
         if (!azureIngestStorageService.doesIsmFileExist(container)
-            && !azureIngestStorageService.doesBlobExist(container, "gc_state")) {
+            && !mediaServiceBroker.getEnabledMediaService().checkLiveFeedAvailable(captureSessionId)) {
             throw new AssetFilesNotFoundException(captureSessionId);
         }
 
@@ -331,8 +331,8 @@ public class MediaServiceController extends PreApiController {
                                                         + " state. Expected state is STANDBY.");
         }
 
-        if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())
-            || azureIngestStorageService.doesBlobExist(captureSession.getBookingId().toString(), "gc_state")) {
+                if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())
+            || mediaServiceBroker.getEnabledMediaService().checkLiveFeedAvailable(captureSessionId)) {
             return ResponseEntity.ok(captureSessionService
                                          .setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING));
         }
