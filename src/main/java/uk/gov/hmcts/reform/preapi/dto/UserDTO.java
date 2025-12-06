@@ -50,13 +50,7 @@ public class UserDTO extends BaseUserDTO {
     private Map<TermsAndConditionsType, Boolean> termsAccepted;
 
     public UserDTO(User user, Set<TermsAndConditions> latestTermsAndConditions) {
-        super();
-        id = user.getId();
-        firstName = user.getFirstName();
-        lastName = user.getLastName();
-        email = user.getEmail();
-        phoneNumber = user.getPhone();
-        organisation = user.getOrganisation();
+        super(user);    
         createdAt = user.getCreatedAt();
         modifiedAt = user.getModifiedAt();
         deletedAt = user.getDeletedAt();
