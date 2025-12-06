@@ -756,7 +756,7 @@ public class UserServiceTest {
     @Test
     void findUserAccessByEmailSuccess() {
         when(userRepository
-                 .findByEmailIgnoreCaseAndDeletedAtIsNull(appUserEntity.getEmail())
+                 .findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(appUserEntity.getEmail())
         ).thenReturn(Optional.of(appUserEntity));
 
         var userAccess = userService.findByEmail(appUserEntity.getEmail());
