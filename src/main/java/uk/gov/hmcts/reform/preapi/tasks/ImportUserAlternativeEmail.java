@@ -128,7 +128,6 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         }
     }
 
-    @Transactional
     private List<ImportResult> processImports(List<ImportRow> importRows) {
         List<ImportResult> results = new ArrayList<>();
         int successCount = 0;
