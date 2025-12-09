@@ -405,7 +405,7 @@ public class PostMigrationJobConfig {
                                             invite.getUserId().toString(),
                                             invite.getEmail(),
                                             STATUS_SKIPPED,
-                                            "User is inactive or deleted",
+                                            REASON_USER_INACTIVE_OR_DELETED,
                                             DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
                                     ));
                                     continue;

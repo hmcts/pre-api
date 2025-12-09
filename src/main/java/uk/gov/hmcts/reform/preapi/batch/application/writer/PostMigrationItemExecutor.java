@@ -38,6 +38,10 @@ public class PostMigrationItemExecutor {
     private final String vodafoneUserEmail;
     private final TransactionTemplate newTransactionTemplate;
 
+    private static final String STATUS_SKIPPED = "SKIPPED";
+    private static final String ENTITY_TYPE_SHARE_BOOKING = "ShareBooking";
+    private static final String EMAIL_UNKNOWN = "Unknown";
+
     @Autowired
     public PostMigrationItemExecutor(final LoggingService loggingService,
                                      final MigrationTrackerService migrationTrackerService,
@@ -86,7 +90,7 @@ public class PostMigrationItemExecutor {
                     "Invite",
                     invite.getUserId().toString(),
                     invite.getEmail(),
-                    "SKIPPED",
+                    STATUS_SKIPPED,
                     "User is inactive or deleted"
                 );
                 return;
@@ -158,10 +162,10 @@ public class PostMigrationItemExecutor {
                 loggingService.logWarning("Skipping share booking for inactive/deleted user: %s (ID: %s)", 
                     email, share.getSharedWithUser());
                 recordFailure(
-                    "ShareBooking",
+                    ENTITY_TYPE_SHARE_BOOKING,
                     share.getId() != null ? share.getId().toString() : "",
-                    email.isEmpty() ? "unknown" : email,
-                    "SKIPPED",
+                    email.isEmpty() ? EMAIL_UNKNOWN : email,
+                    STATUS_SKIPPED,
                     "User is inactive or deleted"
                 );
                 return; 
@@ -170,10 +174,10 @@ public class PostMigrationItemExecutor {
             loggingService.logWarning("Skipping share booking - sharedWithUser is null for share: %s", 
                 share.getId() != null ? share.getId().toString() : "unknown");
             recordFailure(
-                "ShareBooking",
+                ENTITY_TYPE_SHARE_BOOKING,
                 share.getId() != null ? share.getId().toString() : "",
-                email.isEmpty() ? "unknown" : email,
-                "SKIPPED",
+                email.isEmpty() ? EMAIL_UNKNOWN : email,
+                STATUS_SKIPPED,
                 "SharedWithUser is null"
             );
             return; 
@@ -192,9 +196,9 @@ public class PostMigrationItemExecutor {
         } catch (Exception e) {
             loggingService.logError("Failed to create share booking: %s | %s", share.getId(), e.getMessage());
             recordFailure(
-                "ShareBooking",
+                ENTITY_TYPE_SHARE_BOOKING,
                 share.getId() != null ? share.getId().toString() : "",
-                email.isEmpty() ? "unknown" : email,
+                email.isEmpty() ? EMAIL_UNKNOWN : email,
                 "SHARE",
                 extractReason(e)
             );
