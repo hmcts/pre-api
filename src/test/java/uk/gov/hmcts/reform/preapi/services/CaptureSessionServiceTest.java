@@ -38,6 +38,7 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -933,5 +934,65 @@ public class CaptureSessionServiceTest {
         assertThat(result.getFirst().getId()).isEqualTo(captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findAllPastIncompleteCaptureSessions(any(Timestamp.class));
+    }
+
+    @Test
+    void findFailedCaptureSessionsStartedBetweenTwoDates() {
+        Timestamp startDate = Timestamp.from(Instant.parse("2025-10-01T00:00:00Z"));
+        Timestamp endDate = Timestamp.from(Instant.parse("2025-10-31T00:00:00Z"));
+
+        CaptureSession failedSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            "ingest address",
+            "live output url",
+            Timestamp.from(Instant.parse("2025-10-15T12:00:00Z")),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+
+        when(captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+            eq(Timestamp.valueOf("2025-11-01 00:00:00")),
+            eq(RecordingStatus.FAILURE)))
+            .thenReturn(List.of(failedSession));
+
+        List<CaptureSession> result = captureSessionService.findFailedCaptureSessionsStartedBetween(
+            startDate.toLocalDateTime().toLocalDate(), endDate.toLocalDateTime().toLocalDate());
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getId()).isEqualTo(failedSession.getId());
+
+        verify(captureSessionRepository, times(1))
+            .findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+            eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoFailedCaptureSessionsBetweenTwoDates() {
+        Timestamp startDate = Timestamp.from(Instant.parse("2025-10-01T00:00:00Z"));
+        Timestamp endDate = Timestamp.from(Instant.parse("2025-10-31T00:00:00Z"));
+
+        when(captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+            eq(Timestamp.valueOf("2025-11-01 00:00:00")),
+            eq(RecordingStatus.FAILURE)
+        ))
+            .thenReturn(Collections.emptyList());
+
+        List<CaptureSession> result = captureSessionService.findFailedCaptureSessionsStartedBetween(
+            startDate.toLocalDateTime().toLocalDate(), endDate.toLocalDateTime().toLocalDate());
+
+        assertThat(result).isEmpty();
+
+        verify(captureSessionRepository, times(1))
+            .findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+                eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+                eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE)
+            );
     }
 }

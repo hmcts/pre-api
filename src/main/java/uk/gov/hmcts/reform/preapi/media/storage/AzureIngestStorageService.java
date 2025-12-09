@@ -28,4 +28,13 @@ public class AzureIngestStorageService extends AzureStorageService {
     public void markContainerAsSafeToDelete(String containerName) {
         tagAllBlobsInContainer(containerName, TAG_KEY_STATUS, TAG_VALUE_SAFE_TO_DELETE);
     }
+
+    public boolean sectionFileExist(String containerName) {
+        return doesContainerExist(containerName)
+            && client
+            .getBlobContainerClient(containerName)
+            .listBlobs()
+            .stream()
+            .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase("0/section"));
+    }
 }
