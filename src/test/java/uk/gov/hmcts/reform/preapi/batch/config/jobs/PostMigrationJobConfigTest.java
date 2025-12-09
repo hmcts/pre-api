@@ -467,7 +467,7 @@ class PostMigrationJobConfigTest {
         
         String result = (String) method.invoke(config, item, share);
         
-        assertThat(result).isEqualTo("");
+        assertThat(result).isEmpty();
         verify(loggingService).logWarning(
             "Could not find user email for ID: %s - %s", userId, "User not found");
     }
@@ -698,7 +698,7 @@ class PostMigrationJobConfigTest {
         
         String result = (String) method.invoke(config, item, share);
         
-        assertThat(result).isEqualTo("");
+        assertThat(result).isEmpty();
         verify(loggingService).logWarning(
             "Could not find user email for ID: %s - %s", userId, "Not found: User not found");
     }
