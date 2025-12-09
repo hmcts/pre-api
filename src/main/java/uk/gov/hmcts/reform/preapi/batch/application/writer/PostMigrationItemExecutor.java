@@ -86,13 +86,7 @@ public class PostMigrationItemExecutor {
         if (invite.getUserId() != null) {
             if (!isUserActiveForMigration(invite.getUserId(), invite.getEmail())) {
                 loggingService.logWarning("Skipping invite for inactive/deleted user: %s", invite.getEmail());
-                recordFailure(
-                    "Invite",
-                    invite.getUserId().toString(),
-                    invite.getEmail(),
-                    STATUS_SKIPPED,
-                    "User is inactive or deleted"
-                );
+                recordSkippedInvite(invite, "User is inactive or deleted");
                 return;
             }
 
@@ -117,13 +111,7 @@ public class PostMigrationItemExecutor {
             sendPortalInvite(invite);
         } catch (Exception e) {
             loggingService.logError("Failed to create user: %s | %s", invite.getEmail(), e.getMessage());
-            recordFailure(
-                "Invite",
-                invite.getUserId() != null ? invite.getUserId().toString() : "",
-                invite.getEmail(),
-                "USER_CREATION",
-                extractReason(e)
-            );
+            recordFailedInvite(invite, e);
         }
     }
 
@@ -161,25 +149,13 @@ public class PostMigrationItemExecutor {
             if (!isUserActiveForMigration(share.getSharedWithUser(), email)) {
                 loggingService.logWarning("Skipping share booking for inactive/deleted user: %s (ID: %s)", 
                     email, share.getSharedWithUser());
-                recordFailure(
-                    ENTITY_TYPE_SHARE_BOOKING,
-                    share.getId() != null ? share.getId().toString() : "",
-                    email.isEmpty() ? EMAIL_UNKNOWN : email,
-                    STATUS_SKIPPED,
-                    "User is inactive or deleted"
-                );
+                recordSkippedShareBooking(share, email, "User is inactive or deleted");
                 return; 
             }
         } else {
             loggingService.logWarning("Skipping share booking - sharedWithUser is null for share: %s", 
-                share.getId() != null ? share.getId().toString() : "unknown");
-            recordFailure(
-                ENTITY_TYPE_SHARE_BOOKING,
-                share.getId() != null ? share.getId().toString() : "",
-                email.isEmpty() ? EMAIL_UNKNOWN : email,
-                STATUS_SKIPPED,
-                "SharedWithUser is null"
-            );
+                safeIdToString(share.getId()));
+            recordSkippedShareBooking(share, email, "SharedWithUser is null");
             return; 
         }
         
@@ -195,13 +171,7 @@ public class PostMigrationItemExecutor {
             );
         } catch (Exception e) {
             loggingService.logError("Failed to create share booking: %s | %s", share.getId(), e.getMessage());
-            recordFailure(
-                ENTITY_TYPE_SHARE_BOOKING,
-                share.getId() != null ? share.getId().toString() : "",
-                email.isEmpty() ? EMAIL_UNKNOWN : email,
-                "SHARE",
-                extractReason(e)
-            );
+            recordFailedShareBooking(share, email, e);
         }
     }
 
@@ -286,5 +256,53 @@ public class PostMigrationItemExecutor {
             loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
             return false;
         }
+    }
+
+    private String safeIdToString(UUID id) {
+        return id != null ? id.toString() : "";
+    }
+
+    private String safeEmail(String email) {
+        return email.isEmpty() ? EMAIL_UNKNOWN : email;
+    }
+
+    private void recordSkippedShareBooking(CreateShareBookingDTO share, String email, String reason) {
+        recordFailure(
+            ENTITY_TYPE_SHARE_BOOKING,
+            safeIdToString(share.getId()),
+            safeEmail(email),
+            STATUS_SKIPPED,
+            reason
+        );
+    }
+
+    private void recordFailedShareBooking(CreateShareBookingDTO share, String email, Exception e) {
+        recordFailure(
+            ENTITY_TYPE_SHARE_BOOKING,
+            safeIdToString(share.getId()),
+            safeEmail(email),
+            "SHARE",
+            extractReason(e)
+        );
+    }
+
+    private void recordSkippedInvite(CreateInviteDTO invite, String reason) {
+        recordFailure(
+            "Invite",
+            invite.getUserId() != null ? invite.getUserId().toString() : "",
+            invite.getEmail(),
+            STATUS_SKIPPED,
+            reason
+        );
+    }
+
+    private void recordFailedInvite(CreateInviteDTO invite, Exception e) {
+        recordFailure(
+            "Invite",
+            invite.getUserId() != null ? invite.getUserId().toString() : "",
+            invite.getEmail(),
+            "USER_CREATION",
+            extractReason(e)
+        );
     }
 }
