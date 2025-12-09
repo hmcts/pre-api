@@ -460,11 +460,10 @@ public class MediaKind implements IMediaService {
         var liveEventId = getSanitisedLiveEventId(captureSessionId);
         checkLiveEventExists(liveEventId);
 
-        var paths = mediaKindClient.getStreamingLocatorPaths(liveEventId);
-        var hls = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol() == StreamingProtocol.Hls)
-            .findFirst().map(p -> p.getPaths().getFirst()).orElse(null);
+        var assetInfo = mediaKindClient.getAssetTracks(liveEventId);
+        var periods = assetInfo.getSpec().getPeriods();
 
-        return hls != null;
+        return (periods != null && !periods.isEmpty());
     }
 
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
