@@ -77,6 +77,10 @@ public class PostMigrationJobConfig {
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
 
+    private static final String STATUS_SKIPPED = "SKIPPED";
+    private static final String ENTITY_TYPE_SHARE_BOOKING = "ShareBooking";
+    private static final String REASON_USER_INACTIVE_OR_DELETED = "User is inactive or deleted";
+
     public PostMigrationJobConfig(final JobRepository jobRepository,
                                   final PlatformTransactionManager transactionManager,
                                   final CoreStepsConfig coreSteps,
@@ -260,7 +264,7 @@ public class PostMigrationJobConfig {
             CaseClosureReportEntry entry = new CaseClosureReportEntry(
                 caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                 reference,
-                "SKIPPED",
+                STATUS_SKIPPED,
                 "Case has bookings less than 6 months old"
             );
             migrationTrackerService.addCaseClosureEntry(entry);
@@ -308,7 +312,7 @@ public class PostMigrationJobConfig {
             migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
                 caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                 reference,
-                "SKIPPED",
+                STATUS_SKIPPED,
                 "Matching channel user data found"
             ));
         }
@@ -400,7 +404,7 @@ public class PostMigrationJobConfig {
                                             "Invite",
                                             invite.getUserId().toString(),
                                             invite.getEmail(),
-                                            "SKIPPED",
+                                            STATUS_SKIPPED,
                                             "User is inactive or deleted",
                                             DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
                                     ));
@@ -419,10 +423,10 @@ public class PostMigrationJobConfig {
                                         share.getId() != null ? share.getId().toString() : "unknown");
                                     migrationTrackerService.addShareInviteFailure(
                                         new MigrationTrackerService.ShareInviteFailureEntry(
-                                            "ShareBooking",
+                                            ENTITY_TYPE_SHARE_BOOKING,
                                             share.getId() != null ? share.getId().toString() : "",
                                             email.isEmpty() ? "unknown" : email,
-                                            "SKIPPED",
+                                            STATUS_SKIPPED,
                                             "SharedWithUser is null",
                                             DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
                                     ));
@@ -433,11 +437,11 @@ public class PostMigrationJobConfig {
                                         "[DRY RUN] Skipping share booking for inactive/deleted user: %s", email);
                                     migrationTrackerService.addShareInviteFailure(
                                         new MigrationTrackerService.ShareInviteFailureEntry(
-                                            "ShareBooking",
+                                            ENTITY_TYPE_SHARE_BOOKING,
                                             share.getId() != null ? share.getId().toString() : "",
                                             email,
-                                            "SKIPPED",
-                                            "User is inactive or deleted",
+                                            STATUS_SKIPPED,
+                                            REASON_USER_INACTIVE_OR_DELETED,
                                             DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
                                     ));
                                     continue;

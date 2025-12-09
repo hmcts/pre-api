@@ -614,12 +614,6 @@ class PostMigrationJobConfigTest {
         return booking;
     }
 
-    private RecordingDTO createTestRecordingDTO() {
-        RecordingDTO recording = new RecordingDTO();
-        recording.setId(UUID.randomUUID());
-        return recording;
-    }
-
     private ParticipantDTO createTestParticipantDTO() {
         ParticipantDTO participant = new ParticipantDTO();
         participant.setId(UUID.randomUUID());
