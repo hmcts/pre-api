@@ -55,6 +55,8 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -64,7 +66,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -792,6 +796,606 @@ class PostMigrationJobConfigTest {
             
             verify(migrationTrackerService).addShareInviteFailure(any());
             verify(migrationTrackerService, never()).addShareBooking(any());
+            verify(mockWriter, never()).write(any());
+            
+        } finally {
+            JobSynchronizationManager.close();
+        }
+    }
+
+    @Test
+    void createMarkCasesClosedStep_withRecentBookings_shouldSkipCase() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        BookingDTO recentBooking = createTestBookingDTO();
+        Timestamp recentDate = Timestamp.from(Instant.now().minusSeconds(86400 * 30)); // 30 days ago
+        recentBooking.setScheduledFor(recentDate);
+        
+        Page<BookingDTO> bookingsWithRecent = new PageImpl<>(List.of(recentBooking));
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(bookingsWithRecent);
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(loggingService).logInfo(
+            "Skipping case %s — has bookings less than 6 months old.", caseDTO.getReference());
+        verify(migrationTrackerService).addCaseClosureEntry(any());
+        verify(caseService, never()).upsert(any());
+    }
+
+    @Test
+    void createMarkCasesClosedStep_withOldBookings_shouldProcessCase() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        BookingDTO oldBooking = createTestBookingDTO();
+        Timestamp oldDate = Timestamp.from(Instant.now().minusSeconds(86400 * 200)); 
+        oldBooking.setScheduledFor(oldDate);
+        
+        Page<BookingDTO> bookingsWithOld = new PageImpl<>(List.of(oldBooking));
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(bookingsWithOld);
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(caseService).upsert(any());
+        verify(migrationTrackerService).addCaseClosureEntry(any());
+    }
+
+    @Test
+    void createMarkCasesClosedStep_withNullCaseId_shouldHandleGracefully() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        caseDTO.setId(null);
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(caseService).upsert(any());
+    }
+
+    @Test
+    void createMarkCasesClosedStep_withBookingServiceException_shouldHandleError() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenThrow(new RuntimeException("Booking service error"));
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(loggingService).logWarning(
+            "Error checking bookings for case %s: %s", caseDTO.getReference(), "Booking service error");
+        verify(caseService, never()).upsert(any());
+    }
+
+    @Test
+    void createMarkCasesClosedStep_withMultipleCases_shouldLogSummary() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO case1 = createTestCaseDTO();
+        CaseDTO case2 = createTestCaseDTO();
+        case2.setId(UUID.randomUUID());
+        case2.setReference("TEST-CASE-456");
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(case1, case2));
+        
+        Page<BookingDTO> emptyBookings = new PageImpl<>(Collections.emptyList());
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(emptyBookings);
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(loggingService).logInfo(eq(
+            "Case closure summary — Total: %d, Closed: %d, Skipped: %d"), eq(2), anyInt(), anyInt());
+    }
+
+    @Test
+    void createWriteReportsStep_shouldLogSuccess() throws Exception {
+        Step step = config.createWriteReportsStep();
+        Tasklet tasklet = extractTasklet(step);
+
+        tasklet.execute(stepContribution, chunkContext);
+
+        verify(loggingService).logInfo("Reports written successfully");
+    }
+
+    @Test
+    void hasRecentBookings_withNullCaseId_shouldReturnFalse() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("hasRecentBookings", CaseDTO.class);
+        method.setAccessible(true);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        caseDTO.setId(null);
+        
+        boolean result = (boolean) method.invoke(config, caseDTO);
+        
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void hasRecentBookings_withRecentBooking_shouldReturnTrue() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("hasRecentBookings", CaseDTO.class);
+        method.setAccessible(true);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        
+        BookingDTO recentBooking = createTestBookingDTO();
+        Timestamp recentDate = Timestamp.from(Instant.now().minusSeconds(86400 * 30));
+        recentBooking.setScheduledFor(recentDate);
+        
+        Page<BookingDTO> bookingsWithRecent = new PageImpl<>(List.of(recentBooking));
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(bookingsWithRecent);
+        
+        boolean result = (boolean) method.invoke(config, caseDTO);
+        
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void hasRecentBookings_withOldBooking_shouldReturnFalse() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("hasRecentBookings", CaseDTO.class);
+        method.setAccessible(true);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        
+        BookingDTO oldBooking = createTestBookingDTO();
+        Timestamp oldDate = Timestamp.from(Instant.now().minusSeconds(86400 * 200));
+        oldBooking.setScheduledFor(oldDate);
+        
+        Page<BookingDTO> bookingsWithOld = new PageImpl<>(List.of(oldBooking));
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(bookingsWithOld);
+        
+        boolean result = (boolean) method.invoke(config, caseDTO);
+        
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void hasRecentBookings_withNullScheduledFor_shouldReturnFalse() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("hasRecentBookings", CaseDTO.class);
+        method.setAccessible(true);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        
+        BookingDTO booking = createTestBookingDTO();
+        booking.setScheduledFor(null);
+        
+        Page<BookingDTO> bookings = new PageImpl<>(List.of(booking));
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(bookings);
+        
+        boolean result = (boolean) method.invoke(config, caseDTO);
+        
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void hasRecentBookings_withException_shouldReturnTrue() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("hasRecentBookings", CaseDTO.class);
+        method.setAccessible(true);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenThrow(new RuntimeException("Service error"));
+        
+        boolean result = (boolean) method.invoke(config, caseDTO);
+        
+        assertThat(result).isTrue();
+        verify(loggingService).logWarning(
+            "Error checking bookings for case %s: %s", caseDTO.getReference(), "Service error");
+    }
+
+    @Test
+    void isUserActiveForMigration_withDeletedUser_shouldReturnFalse() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod(
+            "isUserActiveForMigration", UUID.class, String.class);
+        method.setAccessible(true);
+        
+        UUID userId = UUID.randomUUID();
+        UserDTO deletedUser = new UserDTO();
+        deletedUser.setId(userId);
+        deletedUser.setDeletedAt(Timestamp.from(Instant.now()));
+        
+        when(userService.findById(userId)).thenReturn(deletedUser);
+        
+        boolean result = (boolean) method.invoke(config, userId, "deleted@example.com");
+        
+        assertThat(result).isFalse();
+        verify(loggingService).logDebug("User %s is deleted - skipping", "deleted@example.com");
+    }
+
+    @Test
+    void isUserActiveForMigration_withDeletedPortalAccess_shouldReturnFalse() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod(
+            "isUserActiveForMigration", UUID.class, String.class);
+        method.setAccessible(true);
+        
+        UUID userId = UUID.randomUUID();
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(userId);
+        activeUser.setDeletedAt(null);
+        
+        PortalAccess deletedAccess = new PortalAccess();
+        deletedAccess.setDeletedAt(Timestamp.from(Instant.now()));
+        
+        when(userService.findById(userId)).thenReturn(activeUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId))
+            .thenReturn(List.of(deletedAccess));
+        
+        boolean result = (boolean) method.invoke(config, userId, "deleted@example.com");
+        
+        assertThat(result).isFalse();
+        verify(loggingService).logDebug("User %s has deleted portal access - skipping", "deleted@example.com");
+    }
+
+    @Test
+    void isUserActiveForMigration_withNoPortalAccess_shouldReturnTrue() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod(
+            "isUserActiveForMigration", UUID.class, String.class);
+        method.setAccessible(true);
+        
+        UUID userId = UUID.randomUUID();
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(userId);
+        activeUser.setDeletedAt(null);
+        
+        when(userService.findById(userId)).thenReturn(activeUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId))
+            .thenReturn(Collections.emptyList());
+        
+        boolean result = (boolean) method.invoke(config, userId, "active@example.com");
+        
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void isUserActiveForMigration_withInactivePortalAccess_shouldReturnFalse() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod(
+            "isUserActiveForMigration", UUID.class, String.class);
+        method.setAccessible(true);
+        
+        UUID userId = UUID.randomUUID();
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(userId);
+        activeUser.setDeletedAt(null);
+        
+        PortalAccess inactiveAccess = new PortalAccess();
+        inactiveAccess.setStatus(AccessStatus.INACTIVE);
+        
+        when(userService.findById(userId)).thenReturn(activeUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.of(inactiveAccess));
+        
+        boolean result = (boolean) method.invoke(config, userId, "inactive@example.com");
+        
+        assertThat(result).isFalse();
+        verify(loggingService).logDebug("User %s has INACTIVE portal access - skipping", "inactive@example.com");
+    }
+
+    @Test
+    void isUserActiveForMigration_withException_shouldReturnFalse() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod(
+            "isUserActiveForMigration", UUID.class, String.class);
+        method.setAccessible(true);
+        
+        UUID userId = UUID.randomUUID();
+        
+        when(userService.findById(userId)).thenThrow(new RuntimeException("User service error"));
+        
+        boolean result = (boolean) method.invoke(config, userId, "error@example.com");
+        
+        assertThat(result).isFalse();
+        verify(loggingService).logWarning(
+            "Error checking user status for %s: %s", "error@example.com", "User service error");
+    }
+
+    @Test
+    void buildClosedCaseDTO_withNullParticipants_shouldHandleGracefully() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("buildClosedCaseDTO", CaseDTO.class);
+        method.setAccessible(true);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        caseDTO.setParticipants(null);
+        
+        Object result = method.invoke(config, caseDTO);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getClass().getSimpleName()).isEqualTo("CreateCaseDTO");
+    }
+
+    @Test
+    void mapParticipant_shouldMapCorrectly() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("mapParticipant", ParticipantDTO.class);
+        method.setAccessible(true);
+        
+        ParticipantDTO participant = createTestParticipantDTO();
+        
+        Object result = method.invoke(config, participant);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getClass().getSimpleName()).isEqualTo("CreateParticipantDTO");
+    }
+
+    @Test
+    void resolveEmailForShare_withEmptyEmailFromInvites_shouldFallbackToUserService() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("resolveEmailForShare", 
+            PostMigratedItemGroup.class, CreateShareBookingDTO.class);
+        method.setAccessible(true);
+        
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        CreateInviteDTO invite = new CreateInviteDTO();
+        UUID userId = UUID.randomUUID();
+        invite.setUserId(userId);
+        invite.setEmail("");
+        item.setInvites(List.of(invite));
+        
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
+        share.setSharedWithUser(userId);
+        
+        UserDTO userDTO = new UserDTO();
+        userDTO.setEmail("user@example.com");
+        when(userService.findById(userId)).thenReturn(userDTO);
+        
+        String result = (String) method.invoke(config, item, share);
+        
+        assertThat(result).isEqualTo("user@example.com");
+        verify(userService).findById(userId);
+    }
+
+    @Test
+    void createConditionalWriter_withDryRunAndDeletedUser_shouldSkip() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
+            PostMigrationWriter.class);
+        method.setAccessible(true);
+        
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        UUID userId = UUID.randomUUID();
+        CreateInviteDTO invite = new CreateInviteDTO();
+        invite.setUserId(userId);
+        invite.setEmail("deleted@example.com");
+        item.setInvites(List.of(invite));
+        
+        UserDTO deletedUser = new UserDTO();
+        deletedUser.setId(userId);
+        deletedUser.setDeletedAt(Timestamp.from(Instant.now()));
+        
+        when(userService.findById(userId)).thenReturn(deletedUser);
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
+        chunk.add(item);
+        
+        JobParameters jobParams = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(1L, jobParams);
+        JobSynchronizationManager.register(jobExecution);
+        
+        try {
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
+            assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(migrationTrackerService).addShareInviteFailure(any());
+            verify(migrationTrackerService, never()).addInvitedUser(any());
+            verify(mockWriter, never()).write(any());
+            
+        } finally {
+            JobSynchronizationManager.close();
+        }
+    }
+
+    @Test
+    void createConditionalWriter_withDryRunAndDeletedPortalAccess_shouldSkip() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
+            PostMigrationWriter.class);
+        method.setAccessible(true);
+        
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        UUID userId = UUID.randomUUID();
+        CreateInviteDTO invite = new CreateInviteDTO();
+        invite.setUserId(userId);
+        invite.setEmail("deleted@example.com");
+        item.setInvites(List.of(invite));
+        
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(userId);
+        activeUser.setDeletedAt(null);
+        
+        PortalAccess deletedAccess = new PortalAccess();
+        deletedAccess.setDeletedAt(Timestamp.from(Instant.now()));
+        
+        when(userService.findById(userId)).thenReturn(activeUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId))
+            .thenReturn(List.of(deletedAccess));
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
+        chunk.add(item);
+        
+        JobParameters jobParams = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(1L, jobParams);
+        JobSynchronizationManager.register(jobExecution);
+        
+        try {
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
+            assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(migrationTrackerService).addShareInviteFailure(any());
+            verify(migrationTrackerService, never()).addInvitedUser(any());
+            verify(mockWriter, never()).write(any());
+            
+        } finally {
+            JobSynchronizationManager.close();
+        }
+    }
+
+    @Test
+    void createConditionalWriter_withDryRunAndShareBookingWithDeletedUser_shouldSkip() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
+            PostMigrationWriter.class);
+        method.setAccessible(true);
+        
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        
+        UUID userId = UUID.randomUUID();
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
+        share.setId(UUID.randomUUID());
+        share.setSharedWithUser(userId);
+        item.setShareBookings(List.of(share));
+        
+        UserDTO deletedUser = new UserDTO();
+        deletedUser.setId(userId);
+        deletedUser.setDeletedAt(Timestamp.from(Instant.now()));
+        
+        when(userService.findById(userId)).thenReturn(deletedUser);
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
+        chunk.add(item);
+        
+        JobParameters jobParams = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(1L, jobParams);
+        JobSynchronizationManager.register(jobExecution);
+        
+        try {
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
+            assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(migrationTrackerService).addShareInviteFailure(any());
+            verify(migrationTrackerService, never()).addShareBooking(any());
+            verify(mockWriter, never()).write(any());
+            
+        } finally {
+            JobSynchronizationManager.close();
+        }
+    }
+
+    @Test
+    void createConditionalWriter_withDryRunAndNullInvites_shouldProcessShareBookings() throws Exception {
+        Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
+            PostMigrationWriter.class);
+        method.setAccessible(true);
+        
+        PostMigrationWriter mockWriter = mock(PostMigrationWriter.class);
+        PostMigratedItemGroup item = new PostMigratedItemGroup();
+        item.setInvites(null); 
+        
+        UUID userId = UUID.randomUUID();
+        CreateShareBookingDTO share = new CreateShareBookingDTO();
+        share.setId(UUID.randomUUID());
+        share.setSharedWithUser(userId);
+        item.setShareBookings(List.of(share));
+        
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(userId);
+        activeUser.setEmail("user@example.com");
+        activeUser.setDeletedAt(null);
+        
+        when(userService.findById(userId)).thenReturn(activeUser);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId))
+            .thenReturn(Collections.emptyList());
+        
+        Chunk<PostMigratedItemGroup> chunk = new Chunk<>();
+        chunk.add(item);
+        
+        JobParameters jobParams = new JobParametersBuilder()
+            .addString("dryRun", "true")
+            .toJobParameters();
+        JobExecution jobExecution = new JobExecution(1L, jobParams);
+        JobSynchronizationManager.register(jobExecution);
+        
+        try {
+            @SuppressWarnings("unchecked")
+            ItemWriter<PostMigratedItemGroup> writer = (ItemWriter<PostMigratedItemGroup>) 
+                method.invoke(config, mockWriter);
+            assertThat(writer).isNotNull();
+            
+            writer.write(chunk);
+            
+            verify(migrationTrackerService).addShareBooking(share);
+            verify(migrationTrackerService).addShareBookingReport(share, "user@example.com", "robot@example.com");
             verify(mockWriter, never()).write(any());
             
         } finally {
