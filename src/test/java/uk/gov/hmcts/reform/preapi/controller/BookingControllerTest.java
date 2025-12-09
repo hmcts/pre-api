@@ -39,7 +39,6 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -411,62 +410,6 @@ class BookingControllerTest {
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}");
-    }
-
-    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is before today")
-    @Test
-    void createBookingEndpoint400ScheduledForInThePast() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-        booking.setParticipants(getCreateParticipantDTOs());
-        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusWeeks(1).toInstant()));
-
-        CaseDTO mockCaseDTO = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-
-        MvcResult response = mockMvc.perform(put(getPath(bookingId))
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-                                    .andExpect(status().isBadRequest())
-                                    .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"scheduledFor\":\"must not be before today\"}"
-            );
-    }
-
-    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is in the past same day")
-    @Test
-    void createBookingEndpointScheduledForInThePastButToday() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-        booking.setParticipants(getCreateParticipantDTOs());
-        booking.setScheduledFor(
-            Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS))
-        );
-        booking.setParticipants(getCreateParticipantDTOs());
-
-        CaseDTO mockCaseDTO = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
-
-        mockMvc.perform(put(getPath(bookingId))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(booking))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isCreated());
     }
 
     @DisplayName("Should fail to update a booking with 400 response code as its already deleted")
