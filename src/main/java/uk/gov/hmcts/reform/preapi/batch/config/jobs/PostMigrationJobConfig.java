@@ -46,12 +46,17 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.DATE_TIME_FORMAT;
 
 @Configuration
 public class PostMigrationJobConfig {
@@ -377,6 +382,44 @@ public class PostMigrationJobConfig {
     private record CleanupStats(int found, int deleted) {
     }
 
+    private boolean shouldSkipShare(CreateShareBookingDTO share, PostMigratedItemGroup item) {
+        String email = resolveEmailForShare(item, share);
+        String reason = null;
+        
+        if (share.getSharedWithUser() == null) {
+            reason = "SharedWithUser is null";
+        } else if (!isUserActiveForMigration(share.getSharedWithUser(), email)) {
+            reason = "User is inactive or deleted";
+        }
+        
+        if (reason != null) {
+            loggingService.logWarning("Skipping share booking: %s", reason);
+            migrationTrackerService.addShareInviteFailure(
+                new MigrationTrackerService.ShareInviteFailureEntry(
+                    "ShareBooking",
+                    share.getId() != null ? share.getId().toString() : "",
+                    email,
+                    "SHARE",
+                    reason,
+                    DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
+                )
+            );
+            return true;
+        }
+        
+        return false;
+    }
+
+    private boolean isUserActiveForMigration(UUID userId, String email) {
+        try {
+            var user = userService.findById(userId);
+            return user != null && user.getDeletedAt() == null;
+        } catch (Exception e) {
+            loggingService.logWarning("Could not verify user status for ID: %s - %s", userId, e.getMessage());
+            return false;
+        }
+    }
+
     private String resolveEmailForShare(PostMigratedItemGroup item, CreateShareBookingDTO share) {
         if (item.getInvites() != null) {
             String email = item.getInvites().stream()
@@ -426,6 +469,10 @@ public class PostMigrationJobConfig {
                         
                         if (item.getShareBookings() != null) {
                             for (CreateShareBookingDTO share : item.getShareBookings()) {
+                                if (shouldSkipShare(share, item)) {
+                                    continue;
+                                }
+                                
                                 String email = resolveEmailForShare(item, share);
                                 migrationTrackerService.addShareBooking(share);
                                 migrationTrackerService.addShareBookingReport(share, email, vodafoneUserEmail);
