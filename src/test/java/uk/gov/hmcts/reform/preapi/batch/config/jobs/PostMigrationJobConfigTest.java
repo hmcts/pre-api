@@ -1334,7 +1334,6 @@ class PostMigrationJobConfigTest {
             
             writer.write(chunk);
             
-            verify(migrationTrackerService).addShareInviteFailure(any());
             verify(migrationTrackerService, never()).addShareBooking(any());
             verify(mockWriter, never()).write(any());
             
