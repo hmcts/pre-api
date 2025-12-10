@@ -41,6 +41,12 @@ public class PostMigrationItemExecutor {
     private static final String STATUS_SKIPPED = "SKIPPED";
     private static final String ENTITY_TYPE_SHARE_BOOKING = "ShareBooking";
     private static final String EMAIL_UNKNOWN = "Unknown";
+    private static final String REASON_USER_INACTIVE_OR_DELETED = "User is inactive or deleted";
+    private static final String REASON_SHARED_WITH_USER_NULL = "SharedWithUser is null";
+    private static final String LOG_USER_DELETED = "User %s is deleted - skipping";
+    private static final String LOG_USER_DELETED_PORTAL_ACCESS = "User %s has deleted portal access - skipping";
+    private static final String LOG_USER_INACTIVE_PORTAL_ACCESS = "User %s has INACTIVE portal access - skipping";
+    private static final String LOG_ERROR_CHECKING_USER_STATUS = "Error checking user status for %s: %s";
 
     @Autowired
     public PostMigrationItemExecutor(final LoggingService loggingService,
@@ -86,7 +92,7 @@ public class PostMigrationItemExecutor {
         if (invite.getUserId() != null) {
             if (!isUserActiveForMigration(invite.getUserId(), invite.getEmail())) {
                 loggingService.logWarning("Skipping invite for inactive/deleted user: %s", invite.getEmail());
-                recordSkippedInvite(invite, "User is inactive or deleted");
+                recordSkippedInvite(invite, REASON_USER_INACTIVE_OR_DELETED);
                 return;
             }
 
@@ -149,13 +155,13 @@ public class PostMigrationItemExecutor {
             if (!isUserActiveForMigration(share.getSharedWithUser(), email)) {
                 loggingService.logWarning("Skipping share booking for inactive/deleted user: %s (ID: %s)", 
                     email, share.getSharedWithUser());
-                recordSkippedShareBooking(share, email, "User is inactive or deleted");
+                recordSkippedShareBooking(share, email, REASON_USER_INACTIVE_OR_DELETED);
                 return; 
             }
         } else {
             loggingService.logWarning("Skipping share booking - sharedWithUser is null for share: %s", 
                 safeIdToString(share.getId()));
-            recordSkippedShareBooking(share, email, "SharedWithUser is null");
+            recordSkippedShareBooking(share, email, REASON_SHARED_WITH_USER_NULL);
             return; 
         }
         
@@ -227,7 +233,7 @@ public class PostMigrationItemExecutor {
         try {
             var user = userService.findById(userId);
             if (user.getDeletedAt() != null) {
-                loggingService.logDebug("User %s is deleted - skipping", email);
+                loggingService.logDebug(LOG_USER_DELETED, email);
                 return false;
             }
             
@@ -237,23 +243,23 @@ public class PostMigrationItemExecutor {
             if (portalAccess.isEmpty()) {
                 var deletedPortalAccess = portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId);
                 if (!deletedPortalAccess.isEmpty()) {
-                    loggingService.logDebug("User %s has deleted portal access - skipping", email);
+                    loggingService.logDebug(LOG_USER_DELETED_PORTAL_ACCESS, email);
                     return false;
                 }
                 return true;
             }
             
             if (portalAccess.get().getStatus() == AccessStatus.INACTIVE) {
-                loggingService.logDebug("User %s has INACTIVE portal access - skipping", email);
+                loggingService.logDebug(LOG_USER_INACTIVE_PORTAL_ACCESS, email);
                 return false;
             }
             
             return true;
         } catch (NotFoundException e) {
-            loggingService.logDebug("User %s does not exist yet- will create", email);
+            loggingService.logDebug("User %s does not exist yet - will create", email);
             return true;  
         } catch (Exception e) {
-            loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
+            loggingService.logWarning(LOG_ERROR_CHECKING_USER_STATUS, email, e.getMessage());
             return false;
         }
     }

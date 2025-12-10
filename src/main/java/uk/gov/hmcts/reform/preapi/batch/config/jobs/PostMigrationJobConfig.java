@@ -38,6 +38,7 @@ import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
@@ -80,6 +81,11 @@ public class PostMigrationJobConfig {
     private static final String STATUS_SKIPPED = "SKIPPED";
     private static final String ENTITY_TYPE_SHARE_BOOKING = "ShareBooking";
     private static final String REASON_USER_INACTIVE_OR_DELETED = "User is inactive or deleted";
+    private static final String REASON_SHARED_WITH_USER_NULL = "SharedWithUser is null";
+    private static final String LOG_USER_DELETED = "User %s is deleted - skipping";
+    private static final String LOG_USER_DELETED_PORTAL_ACCESS = "User %s has deleted portal access - skipping";
+    private static final String LOG_USER_INACTIVE_PORTAL_ACCESS = "User %s has INACTIVE portal access - skipping";
+    private static final String LOG_ERROR_CHECKING_USER_STATUS = "Error checking user status for %s: %s";
 
     public PostMigrationJobConfig(final JobRepository jobRepository,
                                   final PlatformTransactionManager transactionManager,
@@ -367,7 +373,11 @@ public class PostMigrationJobConfig {
         
         if (share.getSharedWithUser() != null) {
             try {
-                return userService.findById(share.getSharedWithUser()).getEmail();
+                var user = userService.findById(share.getSharedWithUser());
+                return user.getEmail();
+            } catch (NotFoundException e) {
+                loggingService.logWarning(
+                    "User not found for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
             } catch (Exception e) {
                 loggingService.logWarning(
                     "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
@@ -450,7 +460,7 @@ public class PostMigrationJobConfig {
 
     private String getSkipReasonForShare(CreateShareBookingDTO share, String email) {
         if (share.getSharedWithUser() == null) {
-            return "SharedWithUser is null";
+            return REASON_SHARED_WITH_USER_NULL;
         }
         if (!isUserActiveForMigration(share.getSharedWithUser(), email)) {
             return REASON_USER_INACTIVE_OR_DELETED;
@@ -462,7 +472,7 @@ public class PostMigrationJobConfig {
         try {
             var user = userService.findById(userId);
             if (user.getDeletedAt() != null) {
-                loggingService.logDebug("User %s is deleted - skipping", email);
+                loggingService.logDebug(LOG_USER_DELETED, email);
                 return false;
             }
             
@@ -472,20 +482,20 @@ public class PostMigrationJobConfig {
             if (portalAccess.isEmpty()) {
                 var deletedPortalAccess = portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId);
                 if (!deletedPortalAccess.isEmpty()) {
-                    loggingService.logDebug("User %s has deleted portal access - skipping", email);
+                    loggingService.logDebug(LOG_USER_DELETED_PORTAL_ACCESS, email);
                     return false;
                 }
                 return true;
             }
             
             if (portalAccess.get().getStatus() == AccessStatus.INACTIVE) {
-                loggingService.logDebug("User %s has INACTIVE portal access - skipping", email);
+                loggingService.logDebug(LOG_USER_INACTIVE_PORTAL_ACCESS, email);
                 return false;
             }
             
             return true;
         } catch (Exception e) {
-            loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
+            loggingService.logWarning(LOG_ERROR_CHECKING_USER_STATUS, email, e.getMessage());
             return false;
         }
     }
