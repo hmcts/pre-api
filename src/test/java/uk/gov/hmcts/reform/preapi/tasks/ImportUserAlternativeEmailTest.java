@@ -11,7 +11,6 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Optional;
 import java.util.Set;
@@ -26,7 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ImportUserAlternativeEmailTest {
+class ImportUserAlternativeEmailTest {
 
     private ImportUserAlternativeEmail task;
     private UserService userService;
@@ -83,9 +82,11 @@ public class ImportUserAlternativeEmailTest {
 
     @DisplayName("Should successfully import alternative email from Azure blob")
     @Test
-    void runWithAzureBlobSuccess() throws IOException {
-        String csvContent = "email,alternativeEmail\n"
-                        + "test@example.com,test@example.com.cjsm.net\n";
+    void runWithAzureBlobSuccess() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
         );
@@ -108,10 +109,12 @@ public class ImportUserAlternativeEmailTest {
 
     @DisplayName("Should skip rows with empty alternative email")
     @Test
-    void runSkipsEmptyAlternativeEmail() throws IOException {
-        String csvContent = "email,alternativeEmail\n" 
-                        +  "test@example.com,\n"
-                        +  "test2@example.com,  \n";
+    void runSkipsEmptyAlternativeEmail() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,
+            test2@example.com,  
+            """;
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
         );
@@ -127,9 +130,11 @@ public class ImportUserAlternativeEmailTest {
 
     @DisplayName("Should handle user not found")
     @Test
-    void runHandlesUserNotFound() throws IOException {
-        String csvContent = "email,alternativeEmail\n"
-                        +   "notfound@example.com,notfound@example.com.cjsm.net\n";
+    void runHandlesUserNotFound() {
+        String csvContent = """
+            email,alternativeEmail
+            notfound@example.com,notfound@example.com.cjsm.net
+            """;
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
         );
@@ -147,9 +152,11 @@ public class ImportUserAlternativeEmailTest {
 
     @DisplayName("Should handle alternative email already exists for another user")
     @Test
-    void runHandlesAlternativeEmailExists() throws IOException {
-        String csvContent = "email,alternativeEmail\n" 
-                        +   "test@example.com,existing@example.com.cjsm.net\n";
+    void runHandlesAlternativeEmailExists() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,existing@example.com.cjsm.net
+            """;
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
         );
@@ -170,9 +177,11 @@ public class ImportUserAlternativeEmailTest {
 
     @DisplayName("Should handle alternative email already exists for same user")
     @Test
-    void runHandlesAlternativeEmailExistsForSameUser() throws IOException {
-        String csvContent = "email,alternativeEmail\n"
-                        +   "test@example.com,existing@example.com.cjsm.net\n";
+    void runHandlesAlternativeEmailExistsForSameUser() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,existing@example.com.cjsm.net
+            """;
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
         );
@@ -193,9 +202,11 @@ public class ImportUserAlternativeEmailTest {
 
     @DisplayName("Should handle errors during processing")
     @Test
-    void runHandlesProcessingErrors() throws IOException {
-        String csvContent = "email,alternativeEmail\n"
-                        +   "test@example.com,test@example.com.cjsm.net\n";
+    void runHandlesProcessingErrors() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
         );
@@ -224,10 +235,12 @@ public class ImportUserAlternativeEmailTest {
 
     @DisplayName("Should process multiple rows successfully")
     @Test
-    void runProcessesMultipleRows() throws IOException {
-        String csvContent = "email,alternativeEmail\n" 
-                        +  "test@example.com,test@example.com.cjsm.net\n" 
-                        +  "test2@example.com,test2@example.com.cjsm.net\n";
+    void runProcessesMultipleRows() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            test2@example.com,test2@example.com.cjsm.net
+            """;
 
         User testUser2 = new User();
         testUser2.setId(UUID.randomUUID());

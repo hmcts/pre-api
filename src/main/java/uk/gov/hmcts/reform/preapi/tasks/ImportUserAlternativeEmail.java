@@ -87,9 +87,15 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             List<ImportResult> results = processImports(importRows);
             generateReport(results);
             log.info("Completed ImportUserAlternativeEmail Task. Processed {} rows", importRows.size());
-        } catch (Exception e) {
+        } catch (IOException e) {
+            log.error("Failed to read CSV file for user alternative email import", e);
+            throw new RuntimeException("Failed to import user alternative email data: CSV read error", e);
+        } catch (RuntimeException e) {
             log.error("Failed to import user alternative email data", e);
-            throw new RuntimeException("Failed to import user alternative email data", e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during user alternative email import", e);
+            throw new RuntimeException("Failed to import user alternative email data: Unexpected error", e);
         }
     }
 
@@ -136,56 +142,18 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         for (ImportRow row : importRows) {
             try {
-                if (row.getAlternativeEmail() == null || row.getAlternativeEmail().trim().isEmpty()) {
-                    results.add(new ImportResult(
-                        row.getEmail(),
-                        "",
-                        "SKIPPED",
-                        "Alternative email is empty"
-                    ));
-                    emptyAltEmailCount++;
-                    continue;
-                }
-
-                Optional<User> userOpt = userService.findByOriginalEmail(row.getEmail());
-
-                if (userOpt.isEmpty()) {
-                    results.add(new ImportResult(
-                        row.getEmail(),
-                        row.getAlternativeEmail(),
-                        "NOT_FOUND",
-                        "User with email not found"
-                    ));
-                    notFoundCount++;
-                    continue;
-                }
-
-                User user = userOpt.get();
-
-                Optional<User> existingAltUserEmail = userService
-                    .findByAlternativeEmail(row.getAlternativeEmail());
+                ImportResult result = processRow(row);
                 
-                if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
-                    results.add(new ImportResult(
-                        row.getEmail(),
-                        row.getAlternativeEmail(),
-                        "ERROR",
-                        "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
-                    ));
-                    errorCount++;
-                    continue;
+                if (result != null) {
+                    results.add(result);
+                    switch (result.getStatus()) {
+                        case "SUCCESS" -> successCount++;
+                        case "NOT_FOUND" -> notFoundCount++;
+                        case "SKIPPED" -> emptyAltEmailCount++;
+                        case "ERROR" -> errorCount++;
+                        default -> log.warn("Unknown status: {}", result.getStatus());
+                    }
                 }
-
-                userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
-
-                results.add(new ImportResult(
-                    row.getEmail(),
-                    row.getAlternativeEmail(),
-                    "SUCCESS",
-                    "Alternative email updated successfully"
-                ));
-                successCount++;
-
             } catch (Exception e) {
                 log.error("Error processing row for email: {}", row.getEmail(), e);
                 results.add(new ImportResult(
@@ -202,6 +170,51 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             successCount, notFoundCount, emptyAltEmailCount, errorCount);
 
         return results;
+    }
+
+    private ImportResult processRow(ImportRow row) {
+        if (row.getAlternativeEmail() == null || row.getAlternativeEmail().trim().isEmpty()) {
+            return new ImportResult(
+                row.getEmail(),
+                "",
+                "SKIPPED",
+                "Alternative email is empty"
+            );
+        }
+
+        Optional<User> userOpt = userService.findByOriginalEmail(row.getEmail());
+
+        if (userOpt.isEmpty()) {
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                "NOT_FOUND",
+                "User with email not found"
+            );
+        }
+
+        User user = userOpt.get();
+
+        Optional<User> existingAltUserEmail = userService
+            .findByAlternativeEmail(row.getAlternativeEmail());
+        
+        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                "ERROR",
+                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
+            );
+        }
+
+        userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+
+        return new ImportResult(
+            row.getEmail(),
+            row.getAlternativeEmail(),
+            "SUCCESS",
+            "Alternative email updated successfully"
+        );
     }
 
     private void generateReport(List<ImportResult> results) {
