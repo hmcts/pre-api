@@ -294,17 +294,19 @@ public class UserService {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
         
-        if (alternativeEmail != null && !alternativeEmail.trim().isEmpty()) {
+        String trimmedEmail = alternativeEmail != null ? alternativeEmail.trim() : null;
+        
+        if (trimmedEmail != null && !trimmedEmail.isEmpty()) {
             Optional<User> existingUser = userRepository
-                .findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+                .findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
             
             if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
                 throw new ConflictException(
-                    "Alternative email: " + alternativeEmail + " already exists for another user");
+                    "Alternative email: " + trimmedEmail + " already exists for another user");
             }
         }
         
-        user.setAlternativeEmail(alternativeEmail != null ? alternativeEmail.trim() : null);
+        user.setAlternativeEmail(trimmedEmail != null && !trimmedEmail.isEmpty() ? trimmedEmail : null);
         userRepository.saveAndFlush(user);
     }
 

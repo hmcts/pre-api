@@ -954,4 +954,256 @@ public class UserServiceTest {
         verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId());
         verify(portalAccessRepository, never()).save(any());
     }
+
+    @DisplayName("Should find user by original email successfully")
+    @Test
+    void findByOriginalEmailSuccess() {
+        String email = "test@example.com";
+        when(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email))
+            .thenReturn(Optional.of(userEntity));
+
+        Optional<User> result = userService.findByOriginalEmail(email);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(userEntity.getId());
+        assertThat(result.get().getEmail()).isEqualTo(userEntity.getEmail());
+        verify(userRepository, times(1)).findByEmailIgnoreCaseAndDeletedAtIsNull(email);
+    }
+
+    @DisplayName("Should return empty when user with original email not found")
+    @Test
+    void findByOriginalEmailNotFound() {
+        String email = "notfound@example.com";
+        when(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email))
+            .thenReturn(Optional.empty());
+
+        Optional<User> result = userService.findByOriginalEmail(email);
+
+        assertThat(result).isEmpty();
+        verify(userRepository, times(1)).findByEmailIgnoreCaseAndDeletedAtIsNull(email);
+    }
+
+    @DisplayName("Should find user by alternative email successfully")
+    @Test
+    void findByAlternativeEmailSuccess() {
+        String alternativeEmail = "alt@example.com";
+        User userWithAltEmail = new User();
+        userWithAltEmail.setId(UUID.randomUUID());
+        userWithAltEmail.setEmail("original@example.com");
+        userWithAltEmail.setAlternativeEmail(alternativeEmail);
+
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+            .thenReturn(Optional.of(userWithAltEmail));
+
+        Optional<User> result = userService.findByAlternativeEmail(alternativeEmail);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(userWithAltEmail.getId());
+        assertThat(result.get().getAlternativeEmail()).isEqualTo(alternativeEmail);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+    }
+
+    @DisplayName("Should return empty when user with alternative email not found")
+    @Test
+    void findByAlternativeEmailNotFound() {
+        String alternativeEmail = "notfound@example.com";
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+            .thenReturn(Optional.empty());
+
+        Optional<User> result = userService.findByAlternativeEmail(alternativeEmail);
+
+        assertThat(result).isEmpty();
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+    }
+
+    @DisplayName("Should update alternative email successfully")
+    @Test
+    void updateAlternativeEmailSuccess() {
+        UUID userId = UUID.randomUUID();
+        String alternativeEmail = "newalt@example.com";
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("original@example.com");
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+            .thenReturn(Optional.empty());
+
+        userService.updateAlternativeEmail(userId, alternativeEmail);
+
+        assertThat(user.getAlternativeEmail()).isEqualTo(alternativeEmail);
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, times(1)).saveAndFlush(user);
+    }
+
+    @DisplayName("Should update alternative email to null when null is provided")
+    @Test
+    void updateAlternativeEmailToNull() {
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("original@example.com");
+        user.setAlternativeEmail("oldalt@example.com");
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+
+        userService.updateAlternativeEmail(userId, null);
+
+        assertThat(user.getAlternativeEmail()).isNull();
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, times(1)).saveAndFlush(user);
+    }
+
+    @DisplayName("Should update alternative email to null when empty string is provided")
+    @Test
+    void updateAlternativeEmailToEmptyString() {
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("original@example.com");
+        user.setAlternativeEmail("oldalt@example.com");
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+
+        userService.updateAlternativeEmail(userId, "   ");
+
+        assertThat(user.getAlternativeEmail()).isNull();
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, times(1)).saveAndFlush(user);
+    }
+
+    @DisplayName("Should trim alternative email when updating")
+    @Test
+    void updateAlternativeEmailTrimsWhitespace() {
+        UUID userId = UUID.randomUUID();
+        String alternativeEmail = "  trimmed@example.com  ";
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("original@example.com");
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull("trimmed@example.com"))
+            .thenReturn(Optional.empty());
+
+        userService.updateAlternativeEmail(userId, alternativeEmail);
+
+        assertThat(user.getAlternativeEmail()).isEqualTo("trimmed@example.com");
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull("trimmed@example.com");
+        verify(userRepository, times(1)).saveAndFlush(user);
+    }
+
+    @DisplayName("Should throw NotFoundException when user not found")
+    @Test
+    void updateAlternativeEmailUserNotFound() {
+        UUID userId = UUID.randomUUID();
+        String alternativeEmail = "newalt@example.com";
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.updateAlternativeEmail(userId, alternativeEmail)
+        );
+
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @DisplayName("Should throw ConflictException when alternative email exists for another user")
+    @Test
+    void updateAlternativeEmailConflict() {
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        String alternativeEmail = "existing@example.com";
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("original@example.com");
+
+        User existingUser = new User();
+        existingUser.setId(otherUserId);
+        existingUser.setEmail("other@example.com");
+        existingUser.setAlternativeEmail(alternativeEmail);
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+            .thenReturn(Optional.of(existingUser));
+
+        assertThrows(
+            ConflictException.class,
+            () -> userService.updateAlternativeEmail(userId, alternativeEmail)
+        );
+
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @DisplayName("Should allow updating alternative email when it exists for the same user")
+    @Test
+    void updateAlternativeEmailSameUser() {
+        UUID userId = UUID.randomUUID();
+        String alternativeEmail = "existing@example.com";
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("original@example.com");
+        user.setAlternativeEmail(alternativeEmail);
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+            .thenReturn(Optional.of(user));
+
+        userService.updateAlternativeEmail(userId, alternativeEmail);
+
+        assertThat(user.getAlternativeEmail()).isEqualTo(alternativeEmail);
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, times(1)).saveAndFlush(user);
+    }
+
+    @DisplayName("Should get role by id successfully")
+    @Test
+    void getRoleByIdSuccess() {
+        UUID roleId = UUID.randomUUID();
+        Role role = new Role();
+        role.setId(roleId);
+        role.setName("Test Role");
+
+        when(roleRepository.findById(roleId))
+            .thenReturn(Optional.of(role));
+
+        Role result = userService.getRoleById(roleId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(roleId);
+        assertThat(result.getName()).isEqualTo("Test Role");
+        verify(roleRepository, times(1)).findById(roleId);
+    }
+
+    @DisplayName("Should throw NotFoundException when role not found")
+    @Test
+    void getRoleByIdNotFound() {
+        UUID roleId = UUID.randomUUID();
+
+        when(roleRepository.findById(roleId))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.getRoleById(roleId)
+        );
+
+        verify(roleRepository, times(1)).findById(roleId);
+    }
 }
