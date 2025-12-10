@@ -1020,10 +1020,10 @@ public class UserServiceTest {
     @Test
     void updateAlternativeEmailSuccess() {
         UUID userId = UUID.randomUUID();
-        String alternativeEmail = "newalt@example.com";
         User user = new User();
         user.setId(userId);
         user.setEmail("original@example.com");
+        String alternativeEmail = "newalt@example.com";
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
