@@ -39,6 +39,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
     private static final String CSV_BLOB_PATH = "alternative_email_import.csv";
     private static final String LOCAL_CSV_PATH = "src/main/resources/batch/alternative_email_import.csv";
     private static final String REPORT_OUTPUT_DIR = "Migration Reports";
+    private static final String STATUS_ERROR = "ERROR";
 
     @Data
     public static class ImportRow {
@@ -89,13 +90,13 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             log.info("Completed ImportUserAlternativeEmail Task. Processed {} rows", importRows.size());
         } catch (IOException e) {
             log.error("Failed to read CSV file for user alternative email import", e);
-            throw new RuntimeException("Failed to import user alternative email data: CSV read error", e);
-        } catch (RuntimeException e) {
+            throw new IllegalStateException("Failed to import user alternative email data: CSV read error", e);
+        } catch (IllegalStateException e) {
             log.error("Failed to import user alternative email data", e);
             throw e;
         } catch (Exception e) {
             log.error("Unexpected error during user alternative email import", e);
-            throw new RuntimeException("Failed to import user alternative email data: Unexpected error", e);
+            throw new IllegalStateException("Failed to import user alternative email data: Unexpected error", e);
         }
     }
 
@@ -150,7 +151,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                         case "SUCCESS" -> successCount++;
                         case "NOT_FOUND" -> notFoundCount++;
                         case "SKIPPED" -> emptyAltEmailCount++;
-                        case "ERROR" -> errorCount++;
+                        case STATUS_ERROR -> errorCount++;
                         default -> log.warn("Unknown status: {}", result.getStatus());
                     }
                 }
@@ -159,7 +160,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 results.add(new ImportResult(
                     row.getEmail(),
                     row.getAlternativeEmail() != null ? row.getAlternativeEmail() : "",
-                    "ERROR",
+                    STATUS_ERROR,
                     "Error: " + e.getMessage()
                 ));
                 errorCount++;
@@ -202,7 +203,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
-                "ERROR",
+                STATUS_ERROR,
                 "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
             );
         }
