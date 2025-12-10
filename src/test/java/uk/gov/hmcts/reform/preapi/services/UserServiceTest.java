@@ -1082,10 +1082,10 @@ public class UserServiceTest {
     @Test
     void updateAlternativeEmailTrimsWhitespace() {
         UUID userId = UUID.randomUUID();
-        String alternativeEmail = "  trimmed@example.com  ";
         User user = new User();
         user.setId(userId);
         user.setEmail("original@example.com");
+        String alternativeEmail = "  trimmed@example.com  ";
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
@@ -1124,10 +1124,10 @@ public class UserServiceTest {
     void updateAlternativeEmailConflict() {
         UUID userId = UUID.randomUUID();
         UUID otherUserId = UUID.randomUUID();
-        String alternativeEmail = "existing@example.com";
         User user = new User();
         user.setId(userId);
         user.setEmail("original@example.com");
+        String alternativeEmail = "existing@example.com";
 
         User existingUser = new User();
         existingUser.setId(otherUserId);
