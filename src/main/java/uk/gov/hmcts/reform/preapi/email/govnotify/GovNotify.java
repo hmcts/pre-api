@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
 import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.BaseTemplate;
@@ -11,17 +12,26 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailVerification;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditingJointlyAgreed;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditingNotJointlyAgreed;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditingRejection;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
+import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -132,7 +142,137 @@ public class GovNotify implements IEmailService {
         }
     }
 
+    @Override
+    public EmailResponse editingJointlyAgreed(String to, EditRequest editRequest) throws EmailFailedToSendException {
+        var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
+        var requestInstructions = EditRequestService.fromJson(editRequest.getEditInstruction())
+            .getRequestedInstructions();
+
+        var template = new EditingJointlyAgreed(
+            to,
+            booking.getCaseId().getReference(),
+            requestInstructions.size(),
+            booking.getCaseId().getCourt().getName(),
+            booking.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+                .findFirst()
+                .map(Participant::getFirstName)
+                .orElse(""),
+            booking.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+                .map(Participant::getFullName)
+                .collect(Collectors.joining(", ")),
+            generateEditSummary(requestInstructions),
+            portalUrl
+        );
+
+        try {
+            log.info("Edit request jointly agreed email sent to {}", to);
+            return EmailResponse.fromGovNotifyResponse(sendEmail(template));
+        } catch (NotificationClientException e) {
+            log.error("Failed to send edit request jointly agreed email to {}", to, e);
+            throw new EmailFailedToSendException(to);
+        }
+    }
+
+    @Override
+    public EmailResponse editingNotJointlyAgreed(String to, EditRequest editRequest) throws EmailFailedToSendException {
+        var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
+        var requestInstructions = EditRequestService.fromJson(editRequest.getEditInstruction())
+            .getRequestedInstructions();
+
+        var template = new EditingNotJointlyAgreed(
+            to,
+            booking.getCaseId().getReference(),
+            requestInstructions.size(),
+            booking.getCaseId().getCourt().getName(),
+            booking.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+                .findFirst()
+                .map(Participant::getFirstName)
+                .orElse(""),
+            booking.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+                .map(Participant::getFullName)
+                .collect(Collectors.joining(", ")),
+            generateEditSummary(requestInstructions),
+            portalUrl
+        );
+
+        try {
+            log.info("Edit request not jointly agreed email sent to {}", to);
+            return EmailResponse.fromGovNotifyResponse(sendEmail(template));
+        } catch (NotificationClientException e) {
+            log.error("Failed to send edit request not jointly agreed email to {}", to, e);
+            throw new EmailFailedToSendException(to);
+        }
+    }
+
+    @Override
+    public EmailResponse editingRejected(String to, EditRequest editRequest) throws EmailFailedToSendException {
+        var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
+        var requestInstructions = EditRequestService.fromJson(editRequest.getEditInstruction())
+            .getRequestedInstructions();
+
+        var template = new EditingRejection(
+            to,
+            booking.getCaseId().getReference(),
+            editRequest.getRejectionReason(),
+            booking.getCaseId().getCourt().getName(),
+            booking.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+                .findFirst()
+                .map(Participant::getFirstName)
+                .orElse(""),
+            booking.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+                .map(Participant::getFullName)
+                .collect(Collectors.joining(", ")),
+            generateEditSummary(requestInstructions),
+            editRequest.getJointlyAgreed(),
+            portalUrl
+        );
+
+        try {
+            log.info("Edit request rejection email sent to {}", to);
+            return EmailResponse.fromGovNotifyResponse(sendEmail(template));
+        } catch (NotificationClientException e) {
+            log.error("Failed to send edit request rejection email to {}", to, e);
+            throw new EmailFailedToSendException(to);
+        }
+    }
+
     private SendEmailResponse sendEmail(BaseTemplate email) throws NotificationClientException {
         return client.sendEmail(email.getTemplateId(), email.getTo(), email.getVariables(), email.getReference());
+    }
+
+    private String generateEditSummary(List<EditCutInstructionDTO> editInstructions) {
+        var summary = new StringBuilder();
+        for (int i = 0; i < editInstructions.size(); i++) {
+            var instruction = editInstructions.get(i);
+            summary.append("Edit ").append(i + 1).append(": \n")
+                .append("Start time: ").append(instruction.getStartOfCut()).append("\n")
+                .append("End time: ").append(instruction.getEndOfCut()).append("\n")
+                .append("Time Removed: ").append(calculateTimeRemoved(instruction)).append("\n")
+                .append("Reason: ").append(instruction.getReason()).append("\n\n");
+        }
+
+        return summary.toString();
+    }
+
+    private String calculateTimeRemoved(EditCutInstructionDTO instruction) {
+        var difference = instruction.getEnd() - instruction.getStart();
+
+        int hours = (int) (difference / 3600);
+        int minutes = (int) ((difference % 3600) / 60);
+        int seconds = (int) (difference % 60);
+
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 }

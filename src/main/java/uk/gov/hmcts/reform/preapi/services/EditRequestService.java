@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
@@ -294,11 +295,28 @@ public class EditRequestService {
         request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
 
         boolean isUpdate = req.isPresent();
+
+        boolean isRequestSubmitted = isUpdate
+            && dto.getStatus() == EditRequestStatus.SUBMITTED
+            && request.getStatus() != dto.getStatus();
+
+        boolean isRequestRejected = isUpdate
+            && dto.getStatus() == EditRequestStatus.REJECTED
+            && request.getStatus() != dto.getStatus();
+
         if (!isUpdate) {
             UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
             User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
+        }
+
+        if (isRequestSubmitted) {
+            onEditRequestSubmitted(request);
+        }
+
+        if (isRequestRejected) {
+            onEditRequestRejected(request);
         }
 
         editRequestRepository.save(request);
@@ -321,6 +339,42 @@ public class EditRequestService {
         return editRequestRepository.findById(id)
             .map(EditRequestDTO::new)
             .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
+    }
+
+    @Transactional
+    public void onEditRequestSubmitted(EditRequest request) {
+        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
+        if (court.getGroupEmail() == null) {
+            log.error("Court {} does not have a group email for sending edit request submission email for request: {}",
+                      court.getId(), request.getId());
+            return;
+        }
+
+        try {
+            if (request.getJointlyAgreed()) {
+                emailServiceFactory.getEnabledEmailService().editingJointlyAgreed(court.getGroupEmail(), request);
+            } else {
+                emailServiceFactory.getEnabledEmailService().editingNotJointlyAgreed(court.getGroupEmail(), request);
+            }
+        } catch (Exception e) {
+            log.error("Error sending email on edit request submission: {}", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void onEditRequestRejected(EditRequest request) {
+        var court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
+        if (court.getGroupEmail() == null) {
+            log.error("Court {} does not have a group email for sending edit request rejection email for request: {}",
+                      court.getId(), request.getId());
+            return;
+        }
+
+        try {
+            emailServiceFactory.getEnabledEmailService().editingRejected(court.getGroupEmail(), request);
+        } catch (Exception e) {
+            log.error("Error sending email on edit request rejection: {}", e.getMessage());
+        }
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
