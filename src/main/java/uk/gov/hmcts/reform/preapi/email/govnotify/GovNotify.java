@@ -33,6 +33,8 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
+
 @Slf4j
 @Service
 public class GovNotify implements IEmailService {
@@ -145,7 +147,7 @@ public class GovNotify implements IEmailService {
     @Override
     public EmailResponse editingJointlyAgreed(String to, EditRequest editRequest) throws EmailFailedToSendException {
         var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
-        var requestInstructions = EditRequestService.fromJson(editRequest.getEditInstruction())
+        var requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
         var template = new EditingJointlyAgreed(
@@ -180,7 +182,7 @@ public class GovNotify implements IEmailService {
     @Override
     public EmailResponse editingNotJointlyAgreed(String to, EditRequest editRequest) throws EmailFailedToSendException {
         var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
-        var requestInstructions = EditRequestService.fromJson(editRequest.getEditInstruction())
+        var requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
         var template = new EditingNotJointlyAgreed(
@@ -215,7 +217,7 @@ public class GovNotify implements IEmailService {
     @Override
     public EmailResponse editingRejected(String to, EditRequest editRequest) throws EmailFailedToSendException {
         var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
-        var requestInstructions = EditRequestService.fromJson(editRequest.getEditInstruction())
+        var requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
         var template = new EditingRejection(

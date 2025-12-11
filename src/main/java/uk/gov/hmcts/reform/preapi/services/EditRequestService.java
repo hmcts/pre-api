@@ -296,14 +296,6 @@ public class EditRequestService {
 
         boolean isUpdate = req.isPresent();
 
-        boolean isRequestSubmitted = isUpdate
-            && dto.getStatus() == EditRequestStatus.SUBMITTED
-            && request.getStatus() != dto.getStatus();
-
-        boolean isRequestRejected = isUpdate
-            && dto.getStatus() == EditRequestStatus.REJECTED
-            && request.getStatus() != dto.getStatus();
-
         if (!isUpdate) {
             UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
             User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
@@ -311,12 +303,12 @@ public class EditRequestService {
             request.setCreatedBy(user);
         }
 
-        if (isRequestSubmitted) {
-            onEditRequestSubmitted(request);
-        }
-
-        if (isRequestRejected) {
-            onEditRequestRejected(request);
+        if (isUpdate) {
+            if (dto.getStatus() == EditRequestStatus.SUBMITTED){
+                onEditRequestSubmitted(request);
+            } else {
+                onEditRequestRejected(request);
+            }
         }
 
         editRequestRepository.save(request);
