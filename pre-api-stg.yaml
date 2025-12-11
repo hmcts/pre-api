@@ -132,6 +132,10 @@ definitions:
   BaseUserDTO:
     description: BaseUserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        type: string
       email:
         description: UserEmail
         format: email
@@ -970,6 +974,10 @@ definitions:
   CreateUserDTO:
     description: CreateUserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        type: string
       app_access:
         description: UserAppAccess
         items:
@@ -1612,6 +1620,10 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        type: string
       app_access:
         description: UserAppAccess
         items:
@@ -2541,6 +2553,10 @@ definitions:
   UserDTO:
     description: UserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        type: string
       app_access:
         description: UserAppAccess
         items:

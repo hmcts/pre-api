@@ -36,6 +36,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -85,7 +86,7 @@ public class UserService {
 
     @Transactional
     public AccessDTO findByEmail(String email) {
-        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
+        return userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(email)
             .map(access ->
                      new AccessDTO(
                             access,
@@ -157,6 +158,7 @@ public class UserService {
         entity.setFirstName(createUserDTO.getFirstName());
         entity.setLastName(createUserDTO.getLastName());
         entity.setEmail(createUserDTO.getEmail());
+        entity.setAlternativeEmail(createUserDTO.getAlternativeEmail());
         entity.setPhone(createUserDTO.getPhoneNumber());
         entity.setOrganisation(createUserDTO.getOrganisation());
         userRepository.saveAndFlush(entity);
@@ -275,6 +277,37 @@ public class UserService {
             .map(type -> termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(type)
                 .orElse(null))
             .collect(Collectors.toSet());
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<User> findByOriginalEmail(String email) {
+        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<User> findByAlternativeEmail(String alternativeEmail) {
+        return userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+    }
+
+    @Transactional
+    public void updateAlternativeEmail(UUID userId, String alternativeEmail) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
+        
+        String trimmedEmail = alternativeEmail != null ? alternativeEmail.trim() : null;
+        
+        if (trimmedEmail != null && !trimmedEmail.isEmpty()) {
+            Optional<User> existingUser = userRepository
+                .findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
+            
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                throw new ConflictException(
+                    "Alternative email: " + trimmedEmail + " already exists for another user");
+            }
+        }
+        
+        user.setAlternativeEmail(trimmedEmail != null && !trimmedEmail.isEmpty() ? trimmedEmail : null);
+        userRepository.saveAndFlush(user);
     }
 
     @Transactional(readOnly = true)
