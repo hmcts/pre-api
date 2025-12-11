@@ -30,6 +30,9 @@ public class User extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Column(name = "email", nullable = false, length = 100)
     private String email;
 
+    @Column(name = "alternative_email", length = 100)
+    private String alternativeEmail;
+
     @Column(name = "organisation", length = 250)
     private String organisation;
 
@@ -72,6 +75,7 @@ public class User extends CreatedModifiedAtEntity implements ISoftDeletable {
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
         details.put("userEmail", email);
+        details.put("alternativeEmail", alternativeEmail);
         details.put("userOrganisation", organisation);
         details.put("deleted", isDeleted());
         return details;
