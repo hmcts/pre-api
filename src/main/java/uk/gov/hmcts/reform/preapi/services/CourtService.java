@@ -76,6 +76,7 @@ public class CourtService {
         courtEntity.setLocationCode(createCourtDTO.getLocationCode());
         courtEntity.setCounty(createCourtDTO.getCounty());
         courtEntity.setPostcode(createCourtDTO.getPostcode());
+        courtEntity.setGroupEmail(createCourtDTO.getGroupEmail());
         courtEntity.setRegions(regions);
 
         var isUpdate = court.isPresent();
