@@ -159,11 +159,18 @@ public class EditRequestServiceTest {
         );
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(1)).save(argThat(er -> er.getId().equals(editRequest.getId())));
-        var updatedEditRequest = editRequestRepository.findById(editRequest.getId()).orElse(null);
-        assertNotNull(updatedEditRequest);
+
+        ArgumentCaptor<EditRequest> saveCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository, times(1)).save(saveCaptor.capture());
+        EditRequest updatedEditRequest = saveCaptor.getValue();
+        assertThat(updatedEditRequest.getId()).isEqualTo(editRequest.getId());
         assertThat(updatedEditRequest.getStatus()).isEqualTo(EditRequestStatus.ERROR);
-        verify(ffmpegService, times(1)).performEdit(any(UUID.class), argThat(er -> er.getId().equals(editRequest.getId())));
+
+        ArgumentCaptor<EditRequest> performEditCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(ffmpegService, times(1)).performEdit(any(UUID.class), performEditCaptor.capture());
+        EditRequest performedEditRequest = performEditCaptor.getValue();
+        assertThat(performedEditRequest.getId()).isEqualTo(editRequest.getId());
+
         verify(recordingService, never()).upsert(any());
     }
 
@@ -212,11 +219,18 @@ public class EditRequestServiceTest {
         assertThat(res.getParentRecordingId()).isEqualTo(recording.getId());
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(1)).save(argThat(er -> er.getId().equals(editRequest.getId())));
-        var updatedEditRequest = editRequestRepository.findById(editRequest.getId()).orElse(null);
-        assertNotNull(updatedEditRequest);
+
+        ArgumentCaptor<EditRequest> saveCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository, times(1)).save(saveCaptor.capture());
+        EditRequest updatedEditRequest = saveCaptor.getValue();
+        assertThat(updatedEditRequest.getId()).isEqualTo(editRequest.getId());
         assertThat(updatedEditRequest.getStatus()).isEqualTo(EditRequestStatus.COMPLETE);
-        verify(ffmpegService, times(1)).performEdit(any(UUID.class), argThat(er -> er.getId().equals(editRequest.getId())));
+
+        ArgumentCaptor<EditRequest> performEditCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(ffmpegService, times(1)).performEdit(any(UUID.class), performEditCaptor.capture());
+        EditRequest performedEditRequest = performEditCaptor.getValue();
+        assertThat(performedEditRequest.getId()).isEqualTo(editRequest.getId());
+
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(recordingService, times(1)).findById(any(UUID.class));
         verify(azureIngestStorageService, times(1)).doesContainerExist(anyString());
