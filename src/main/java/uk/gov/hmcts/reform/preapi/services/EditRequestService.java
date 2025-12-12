@@ -161,11 +161,11 @@ public class EditRequestService {
             ffmpegService.performEdit(newRecordingId, request);
             filename = generateAsset(newRecordingId, request);
         } catch (Exception e) {
-            updateEditRequestStatus(newRecordingId, EditRequestStatus.ERROR);
+            updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
             throw e;
         }
 
-        updateEditRequestStatus(newRecordingId, EditRequestStatus.COMPLETE);
+        updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
 
         CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
