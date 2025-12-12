@@ -331,9 +331,22 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should update an edit request")
     void updateEditRequestSuccess() {
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        court.setName("Test court");
+        court.setGroupEmail("test@court.com");
+
+        Case recordingCase = mock(Case.class);
+        Booking booking = mock(Booking.class);
+        CaptureSession captureSession = mock(CaptureSession.class);
+        when(captureSession.getBooking()).thenReturn(booking);
+        when(booking.getCaseId()).thenReturn(recordingCase);
+        when(recordingCase.getCourt()).thenReturn(court);
+
         var sourceRecording = new Recording();
         sourceRecording.setId(UUID.randomUUID());
         sourceRecording.setDuration(Duration.ofMinutes(3));
+        sourceRecording.setCaptureSession(captureSession);
 
         var mockAuth = mock(UserAuthentication.class);
         var appAccess = new AppAccess();
@@ -1042,14 +1055,28 @@ public class EditRequestServiceTest {
     @DisplayName("Should upsert when isOriginalRecordingEdit is false and isInstructionCombination false")
     void upsertIsOriginalRecordingEditFalseIsInstructionCombinationFalse() {
         // when editing an edit from legacy editing
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        court.setName("Test court");
+        court.setGroupEmail("test@court.com");
+
+        Case recordingCase = mock(Case.class);
+        Booking booking = mock(Booking.class);
+        CaptureSession captureSession = mock(CaptureSession.class);
+        when(captureSession.getBooking()).thenReturn(booking);
+        when(booking.getCaseId()).thenReturn(recordingCase);
+        when(recordingCase.getCourt()).thenReturn(court);
+
         Recording parentRecording = new Recording();
         parentRecording.setId(UUID.randomUUID());
+        parentRecording.setCaptureSession(captureSession);
 
         Recording sourceRecording = new Recording();
         sourceRecording.setId(UUID.randomUUID());
         sourceRecording.setParentRecording(parentRecording);
         sourceRecording.setFilename("filename.mp4");
         sourceRecording.setDuration(Duration.ofSeconds(30));
+        sourceRecording.setCaptureSession(captureSession);
 
         CreateEditRequestDTO request = new CreateEditRequestDTO();
         request.setId(UUID.randomUUID());
@@ -1090,17 +1117,31 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should upsert when isOriginalRecordingEdit is false and isInstructionCombination true")
     void upsertIsOriginalRecordingEditFalseIsInstructionCombinationTrue() {
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        court.setName("Test court");
+        court.setGroupEmail("test@court.com");
+
+        Case recordingCase = mock(Case.class);
+        Booking booking = mock(Booking.class);
+        CaptureSession captureSession = mock(CaptureSession.class);
+        when(captureSession.getBooking()).thenReturn(booking);
+        when(booking.getCaseId()).thenReturn(recordingCase);
+        when(recordingCase.getCourt()).thenReturn(court);
+
         // when editing an edit from the new editing process
         Recording parentRecording = new Recording();
         parentRecording.setId(UUID.randomUUID());
         parentRecording.setFilename("filename.mp4");
         parentRecording.setDuration(Duration.ofSeconds(30));
+        parentRecording.setCaptureSession(captureSession);
 
         Recording sourceRecording = new Recording();
         sourceRecording.setId(UUID.randomUUID());
         sourceRecording.setParentRecording(parentRecording);
         sourceRecording.setFilename("filename.mp4");
         sourceRecording.setDuration(Duration.ofSeconds(27));
+
         EditInstructions originalEdits = new EditInstructions(
             List.of(createCut(10, 20, "some original reason")),
             List.of(createSegment(0, 10), createSegment(20, 30)));

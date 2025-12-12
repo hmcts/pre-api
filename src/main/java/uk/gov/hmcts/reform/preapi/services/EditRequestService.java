@@ -304,7 +304,7 @@ public class EditRequestService {
         }
 
         if (isUpdate) {
-            if (dto.getStatus() == EditRequestStatus.SUBMITTED){
+            if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
                 onEditRequestSubmitted(request);
             } else {
                 onEditRequestRejected(request);
