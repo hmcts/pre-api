@@ -83,7 +83,9 @@ public class EditRequestDTO {
 
     public EditRequestDTO(EditRequest editRequest, boolean includeSourceRecording) {
         this.id = editRequest.getId();
-        this.sourceRecording = includeSourceRecording ? new RecordingDTO(editRequest.getSourceRecording()) : null;
+        if (includeSourceRecording) {
+            this.sourceRecording = new RecordingDTO(editRequest.getSourceRecording());
+        }
         this.editInstruction = fromJson(editRequest.getEditInstruction());
         this.status = editRequest.getStatus();
         this.startedAt = editRequest.getStartedAt();

@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class InviteControllerFT extends FunctionalTestBase {
+class InviteControllerFT extends FunctionalTestBase {
     @DisplayName("Create a portal invite for new user")
     @Test
     void createPortalInvite() throws JsonProcessingException {

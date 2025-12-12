@@ -11,7 +11,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TermsAndConditionsServiceIT extends IntegrationTestBase {
+class TermsAndConditionsServiceIT extends IntegrationTestBase {
     @Autowired
     private TermsAndConditionsService termsAndConditionsService;
 
@@ -32,7 +32,7 @@ public class TermsAndConditionsServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void getLatestTermsAndConditionsApp() {
+    void getLatestTermsAndConditionsApp() {
         var latestAppTerms1 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP);
 
         assertThat(latestAppTerms1.getId()).isEqualTo(termsAndConditionsApp.getId());
@@ -47,7 +47,7 @@ public class TermsAndConditionsServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void getLatestTermsAndConditionsPortal() {
+    void getLatestTermsAndConditionsPortal() {
         var latestPortalTerms1 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
 
         assertThat(latestPortalTerms1.getId()).isEqualTo(termsAndConditionsPortal.getId());

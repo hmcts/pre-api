@@ -20,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -102,15 +103,15 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
     private List<ImportRow> readCsvFile() throws IOException {
         Resource resource;
-        
+
         if (useLocalCsv) {
             log.info("Reading CSV from local file: {}", LOCAL_CSV_PATH);
             resource = new FileSystemResource(LOCAL_CSV_PATH);
-            
+
             if (!resource.exists()) {
                 resource = new ClassPathResource("batch/alternative_email_import.csv");
             }
-            
+
             if (!resource.exists()) {
                 throw new IOException("CSV file not found at local path: " + LOCAL_CSV_PATH);
             }
@@ -118,14 +119,15 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             log.info("Reading CSV from Azure blob: {}/{}", containerName, CSV_BLOB_PATH);
             InputStreamResource blobResource = azureVodafoneStorageService
                 .fetchSingleXmlBlob(containerName, CSV_BLOB_PATH);
-            
+
             if (blobResource == null) {
                 throw new IOException("CSV file not found in Azure: " + containerName + "/" + CSV_BLOB_PATH);
             }
             resource = blobResource;
         }
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(),
+                                                                              StandardCharsets.UTF_8))) {
             return new CsvToBeanBuilder<ImportRow>(reader)
                 .withType(ImportRow.class)
                 .withIgnoreLeadingWhiteSpace(true)
@@ -134,6 +136,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         }
     }
 
+    @SuppressWarnings("PMD.AssignmentInOperand")
     private List<ImportResult> processImports(List<ImportRow> importRows) {
         List<ImportResult> results = new ArrayList<>();
         int successCount = 0;
@@ -144,16 +147,14 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         for (ImportRow row : importRows) {
             try {
                 ImportResult result = processRow(row);
-                
-                if (result != null) {
-                    results.add(result);
-                    switch (result.getStatus()) {
-                        case "SUCCESS" -> successCount++;
-                        case "NOT_FOUND" -> notFoundCount++;
-                        case "SKIPPED" -> emptyAltEmailCount++;
-                        case STATUS_ERROR -> errorCount++;
-                        default -> log.warn("Unknown status: {}", result.getStatus());
-                    }
+
+                results.add(result);
+                switch (result.getStatus()) {
+                    case "SUCCESS" -> successCount++;
+                    case "NOT_FOUND" -> notFoundCount++;
+                    case "SKIPPED" -> emptyAltEmailCount++;
+                    case STATUS_ERROR -> errorCount++;
+                    default -> log.warn("Unknown status: {}", result.getStatus());
                 }
             } catch (Exception e) {
                 log.error("Error processing row for email: {}", row.getEmail(), e);
@@ -198,7 +199,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         Optional<User> existingAltUserEmail = userService
             .findByAlternativeEmail(row.getAlternativeEmail());
-        
+
         if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
             return new ImportResult(
                 row.getEmail(),

@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -38,6 +39,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class ReportService {
 
     private final CaptureSessionRepository captureSessionRepository;
@@ -124,7 +126,7 @@ public class ReportService {
             .findAllAccessAttempts()
             .stream()
             .map(a -> {
-                var args = toPlaybackReport(a);
+                PlaybackReportArgsRecord args = toPlaybackReport(a);
                 return new UserRecordingPlaybackReportDTOV2(args.audit(), args.user(), args.recording());
             })
             .toList();
@@ -133,9 +135,9 @@ public class ReportService {
     @Transactional
     public List<PlaybackReportDTOV2> reportPlayback(AuditLogSource source) {
         if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
-            final var activityPlay = "Play";
-            final var functionalAreaVideoPlayer = "Video Player";
-            final var functionalAreaViewRecordings = "View Recordings";
+            final String activityPlay = "Play";
+            final String functionalAreaVideoPlayer = "Video Player";
+            final String functionalAreaViewRecordings = "View Recordings";
 
             return auditRepository
                 .findBySourceAndFunctionalAreaAndActivity(
@@ -147,7 +149,7 @@ public class ReportService {
                 )
                 .stream()
                 .map(a -> {
-                    var args = toPlaybackReport(a);
+                    PlaybackReportArgsRecord args = toPlaybackReport(a);
                     return new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
                 })
                 .toList();
@@ -197,7 +199,7 @@ public class ReportService {
     }
 
     private PlaybackReportArgsRecord toPlaybackReport(Audit audit) {
-        var auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
+        boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
         UUID recordingId = null;
         if (auditDetails) {
             if (audit.getAuditDetails().hasNonNull("recordingId")) {
@@ -207,7 +209,7 @@ public class ReportService {
             }
         }
 
-        var user = audit.getCreatedBy() != null
+        User user = audit.getCreatedBy() != null
             ? userRepository.findById(audit.getCreatedBy())
                             .orElse(appAccessRepository.findById(audit.getCreatedBy())
                                                        .map(AppAccess::getUser)
@@ -216,7 +218,7 @@ public class ReportService {
                                                                                      .orElse(null)))
             : null;
 
-        var recording = recordingId != null
+        Recording recording = recordingId != null
             ? recordingRepository.findById(recordingId).orElse(null)
             : null;
 

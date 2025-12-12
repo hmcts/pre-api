@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Getter
@@ -57,23 +58,23 @@ public class User extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Transient
     private boolean deleted;
 
-    public boolean isDeleted() {
-        return deletedAt != null;
-    }
-
     @Transient
     private boolean isSoftDeleteOperation;
 
     @Transient
     private String fullName;
 
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
     public String getFullName() {
         return firstName + " " + lastName;
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("userEmail", email);
         details.put("alternativeEmail", alternativeEmail);
         details.put("userOrganisation", organisation);

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -28,6 +29,7 @@ import javax.xml.parsers.ParserConfigurationException;
  * It fetches XML files stored in Azure Blob Storage, parses them, and writes the extracted data into a CSV file.
  */
 @Service
+@SuppressWarnings("PMD.GodClass")
 public class ArchiveMetadataXmlExtractor {
     private final AzureVodafoneStorageService azureVodafoneStorageService;
     private final MigrationRecordService migrationRecordService;
@@ -48,6 +50,7 @@ public class ArchiveMetadataXmlExtractor {
      * @param containerName The Azure Blob container name.
      * @param outputDir     The directory where the CSV files will be written.
      */
+    @SuppressWarnings("PMD.CognitiveComplexity")
     public void extractAndReportArchiveMetadata(
         String containerName, String folderPrefix, String outputDir, String filename) {
         try {
@@ -69,14 +72,14 @@ public class ArchiveMetadataXmlExtractor {
                 loggingService.logDebug("Generating archive metadata report in directory: %s", outputDir);
 
                 allArchiveMetadata.sort((a, b) -> {
-                    String nameA = a.get(1).toLowerCase();
-                    String nameB = b.get(1).toLowerCase();
+                    String nameA = a.get(1).toLowerCase(Locale.UK);
+                    String nameB = b.get(1).toLowerCase(Locale.UK);
 
                     String versionA = extractVersion(nameA);
                     String versionB = extractVersion(nameB);
 
-                    boolean aIsOrig = Constants.VALID_ORIG_TYPES.contains(versionA.toUpperCase());
-                    boolean bIsOrig = Constants.VALID_ORIG_TYPES.contains(versionB.toUpperCase());
+                    boolean aIsOrig = Constants.VALID_ORIG_TYPES.contains(versionA.toUpperCase(Locale.UK));
+                    boolean bIsOrig = Constants.VALID_ORIG_TYPES.contains(versionB.toUpperCase(Locale.UK));
 
                     if (aIsOrig && !bIsOrig) {
                         return -1;
@@ -237,6 +240,7 @@ public class ArchiveMetadataXmlExtractor {
      * @param duration       Recording duration
      * @return List of metadata rows for MP4 files
      */
+    @SuppressWarnings("PMD.CognitiveComplexity")
     private List<List<String>> processMP4Files(
         Element archiveElement,
         String blobPrefix,
@@ -278,12 +282,13 @@ public class ArchiveMetadataXmlExtractor {
         return fileRows;
     }
 
+    @SuppressWarnings({"PMD.AvoidLiteralsInIfCondition", "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity"})
     private Element selectPreferredMp4File(NodeList mp4Files) {
         List<Element> files = new ArrayList<>();
         for (int i = 0; i < mp4Files.getLength(); i++) {
-            Node n = mp4Files.item(i);
-            if (n.getNodeType() == Node.ELEMENT_NODE) {
-                files.add((Element) n);
+            Node node = mp4Files.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                files.add((Element) node);
             }
         }
 
@@ -293,7 +298,7 @@ public class ArchiveMetadataXmlExtractor {
         if (files.size() == 1) {
             return files.get(0);
         }
-        
+
         int bestIdx = 0;
         for (int i = 1; i < files.size(); i++) {
             Element currentBest = files.get(bestIdx);
@@ -336,7 +341,7 @@ public class ArchiveMetadataXmlExtractor {
         boolean aValid = aDur >= 0;
         boolean bValid = bDur >= 0;
 
-        int validCmp = Boolean.compare(aValid, bValid); 
+        int validCmp = Boolean.compare(aValid, bValid);
         if (validCmp != 0) {
             return validCmp;
         }
@@ -354,7 +359,7 @@ public class ArchiveMetadataXmlExtractor {
             return lenCmp;
         }
 
-        // Tie 
+        // Tie
         return 0;
     }
 
@@ -403,7 +408,7 @@ public class ArchiveMetadataXmlExtractor {
             return "";
         }
 
-        String cleanName = displayName.toUpperCase()
+        String cleanName = displayName.toUpperCase(Locale.UK)
             .replaceAll("\\.(MP4|RAW|M4A|MOV|AVI)$", "");
 
         String[] parts = cleanName.split("-");
@@ -420,26 +425,26 @@ public class ArchiveMetadataXmlExtractor {
         return "";
     }
 
-    //---------- helpers ---------- 
+    //---------- helpers ----------
 
     private String getName(Element el) {
-        String v = extractTextContent(el, "Name");
-        return v == null ? "" : v.trim();
+        String content = extractTextContent(el, "Name");
+        return content == null ? "" : content.trim();
     }
 
     private boolean getBoolean(Element el, String tag) {
-        String v = extractTextContent(el, tag);
-        if (v == null) {
+        String content = extractTextContent(el, tag);
+        if (content == null) {
             return false;
         }
-        v = v.trim().toLowerCase();
-        return v.equals("true") || v.equals("1") || v.equals("yes");
+        content = content.trim().toLowerCase(Locale.UK);
+        return content.equals("true") || content.equals("1") || content.equals("yes");
     }
 
     private long getLong(Element el, String tag) {
         try {
-            String v = extractTextContent(el, tag);
-            return v == null ? 0L : Long.parseLong(v.trim());
+            String content = extractTextContent(el, tag);
+            return content == null ? 0L : Long.parseLong(content.trim());
         } catch (NumberFormatException e) {
             return 0L;
         }

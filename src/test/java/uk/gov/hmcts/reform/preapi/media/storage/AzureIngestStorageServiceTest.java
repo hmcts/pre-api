@@ -20,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -109,7 +110,7 @@ public class AzureIngestStorageServiceTest {
 
         assertTrue(azureIngestStorageService.uploadBlob(localFileName, containerName, uploadFileName));
 
-        verify(mockBlobClient, times(1)).upload(any(FileInputStream.class), anyLong(), eq(true));
+        verify(mockBlobClient, times(1)).upload(any(InputStream.class), anyLong(), eq(true));
 
         // clean up
         Files.deleteIfExists(tempFile);

@@ -81,7 +81,7 @@ public class EditRequestServiceIT extends IntegrationTestBase {
         var requests2 = editRequestService.findAll(paramsForRandomRecording, Pageable.unpaged()).toList();
         assertThat(requests2).isEmpty();
 
-        var requests3 = editRequestService.findAll(null, Pageable.unpaged()).toList();
+        var requests3 = editRequestService.findAll(new SearchEditRequests(), Pageable.unpaged()).toList();
         assertThat(requests3).hasSize(1);
         assertThat(requests3.getFirst().getId()).isEqualTo(editRequest.getId());
     }

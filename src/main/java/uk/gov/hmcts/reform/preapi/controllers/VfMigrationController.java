@@ -47,6 +47,7 @@ public class VfMigrationController extends PreApiController {
     public VfMigrationController(final MigrationRecordService migrationRecordService,
                                  final MigrateResolved migrateResolved,
                                  final BatchImportMissingMkAssets batchImportMissingMkAssets) {
+        super();
         this.migrationRecordService = migrationRecordService;
         this.migrateResolved = migrateResolved;
         this.batchImportMissingMkAssets = batchImportMissingMkAssets;

@@ -10,6 +10,7 @@ public class RecordingEdited extends RecordingReady {
         super(to, firstName, lastName, caseRef, courtName, portalLink);
     }
 
+    @Override
     public String getTemplateId() {
         return "1da03824-84e8-425d-b913-c2bac661e64a";
     }

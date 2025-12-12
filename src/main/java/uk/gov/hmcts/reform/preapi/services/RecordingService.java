@@ -96,7 +96,7 @@ public class RecordingService {
                                         : null
         );
 
-        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         params.setAuthorisedBookings(
             auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );
@@ -141,15 +141,14 @@ public class RecordingService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createRecordingDTO)")
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateRecordingDTO createRecordingDTO) {
-        var recording = recordingRepository.findById(createRecordingDTO.getId());
+        Optional<Recording> recording = recordingRepository.findById(createRecordingDTO.getId());
 
         if (recording.isPresent() && recording.get().isDeleted()) {
             throw new ResourceInDeletedStateException("RecordingDTO", createRecordingDTO.getId().toString());
         }
 
-        var captureSession = captureSessionRepository
+        CaptureSession captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(createRecordingDTO.getCaptureSessionId())
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId()));
 
@@ -180,7 +179,7 @@ public class RecordingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public void deleteById(UUID recordingId) {
-        var recording = recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
+        Recording recording = recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
             .orElseThrow(() -> new NotFoundException("Recording: " + recordingId));
         recording.setDeleteOperation(true);
         recording.setDeletedAt(Timestamp.from(Instant.now()));
@@ -198,7 +197,8 @@ public class RecordingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #id)")
     public void undelete(UUID id) {
-        var entity = recordingRepository.findById(id).orElseThrow(() -> new NotFoundException("Recording: " + id));
+        Recording entity = recordingRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Recording: " + id));
         captureSessionService.undelete(entity.getCaptureSession().getId());
         if (!entity.isDeleted()) {
             return;

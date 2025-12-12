@@ -21,7 +21,6 @@ import java.util.stream.Stream;
 @NoArgsConstructor
 @Schema(description = "CaseDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-@SuppressWarnings("PMD.ShortClassName")
 public class CaseDTO {
     @Schema(description = "CaseId")
     private UUID id;
