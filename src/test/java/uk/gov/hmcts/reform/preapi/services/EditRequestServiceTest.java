@@ -156,7 +156,8 @@ public class EditRequestServiceTest {
             () -> editRequestService.performEdit(editRequest)
         );
 
-        verify(editRequestRepository, times(1)).findById(any());
+        verify(editRequestRepository, times(1)).findById(editRequest.getId());
+        verify(editRequestRepository, times(1)).save(argThat(er -> er.getId().equals(editRequest.getId())));
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, never()).upsert(any());
     }
@@ -205,9 +206,9 @@ public class EditRequestServiceTest {
         assertThat(res).isNotNull();
         assertThat(res.getParentRecordingId()).isEqualTo(recording.getId());
 
-        verify(editRequestRepository, times(1)).findById(any());
-        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
-        verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
+        verify(editRequestRepository, times(1)).findById(editRequest.getId());
+        verify(editRequestRepository, times(1)).save(argThat(er -> er.getId().equals(editRequest.getId())));
+        verify(ffmpegService, times(1)).performEdit(any(UUID.class), argThat(er -> er.getId().equals(editRequest.getId())));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(recordingService, times(1)).findById(any(UUID.class));
         verify(azureIngestStorageService, times(1)).doesContainerExist(anyString());

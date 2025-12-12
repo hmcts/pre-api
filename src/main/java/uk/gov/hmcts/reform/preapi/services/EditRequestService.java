@@ -165,7 +165,7 @@ public class EditRequestService {
             throw e;
         }
 
-        updateEditRequestStatus(newRecordingId, EditRequestStatus.COMPLETE);
+        updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
 
         CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
