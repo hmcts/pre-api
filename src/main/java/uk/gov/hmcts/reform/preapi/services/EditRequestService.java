@@ -161,7 +161,7 @@ public class EditRequestService {
             ffmpegService.performEdit(newRecordingId, request);
             filename = generateAsset(newRecordingId, request);
         } catch (Exception e) {
-            updateEditRequestStatus(newRecordingId, EditRequestStatus.ERROR);
+            updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
             throw e;
         }
 

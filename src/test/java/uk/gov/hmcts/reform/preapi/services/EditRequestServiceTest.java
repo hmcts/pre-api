@@ -148,6 +148,8 @@ public class EditRequestServiceTest {
         editRequest.setStatus(EditRequestStatus.PENDING);
         editRequest.setSourceRecording(recording);
 
+        when(editRequestRepository.findById(any())).thenReturn(Optional.of(editRequest));
+
         doThrow(UnknownServerException.class)
             .when(ffmpegService).performEdit(any(UUID.class), eq(editRequest));
 
@@ -158,6 +160,9 @@ public class EditRequestServiceTest {
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
         verify(editRequestRepository, times(1)).save(argThat(er -> er.getId().equals(editRequest.getId())));
+        var updatedEditRequest = editRequestRepository.findById(editRequest.getId()).orElse(null);
+        assertNotNull(updatedEditRequest);
+        assertThat(updatedEditRequest.getStatus()).isEqualTo(EditRequestStatus.ERROR);
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, never()).upsert(any());
     }
@@ -208,6 +213,9 @@ public class EditRequestServiceTest {
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
         verify(editRequestRepository, times(1)).save(argThat(er -> er.getId().equals(editRequest.getId())));
+        var updatedEditRequest = editRequestRepository.findById(editRequest.getId()).orElse(null);
+        assertNotNull(updatedEditRequest);
+        assertThat(updatedEditRequest.getStatus()).isEqualTo(EditRequestStatus.COMPLETE);
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), argThat(er -> er.getId().equals(editRequest.getId())));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(recordingService, times(1)).findById(any(UUID.class));
