@@ -29,6 +29,7 @@ class CleanupNullRecordingDurationTest {
     @SpringBootTest(classes = CleanupNullRecordingDuration.class,
         properties = "feature-flags.cleanup-null-duration.upsert-enabled=true")
     class UpsertEnabled extends BaseCleanupNullRecordingDurationTest {
+
         @Test
         @DisplayName("Should process recording with null duration successfully")
         void runSuccess() {

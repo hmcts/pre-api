@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -12,6 +13,8 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +35,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
@@ -39,6 +43,7 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -59,6 +64,8 @@ import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
@@ -66,6 +73,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -93,6 +101,7 @@ class TestingSupportController {
     private final ScheduledTaskRunner scheduledTaskRunner;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MigrationRecordRepository migrationRecordRepository;
+    private final EditRequestService editRequestService;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -110,7 +119,8 @@ class TestingSupportController {
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
                              final AzureFinalStorageService azureFinalStorageService,
-                             final MigrationRecordRepository migrationRecordRepository) {
+                             final MigrationRecordRepository migrationRecordRepository,
+                             final EditRequestService editRequestService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -127,6 +137,7 @@ class TestingSupportController {
         this.scheduledTaskRunner = scheduledTaskRunner;
         this.azureFinalStorageService = azureFinalStorageService;
         this.migrationRecordRepository = migrationRecordRepository;
+        this.editRequestService = editRequestService;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -424,6 +435,29 @@ class TestingSupportController {
         bookingRepository.save(booking);
 
         return ResponseEntity.ok(new BookingDTO(booking));
+    }
+
+    @SneakyThrows
+    @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
+        var r = roleRepository.findFirstByName("Super User")
+            .orElse(createRole("Super User"));
+        var appAccess = createAppAccess(r);
+        SecurityContextHolder.getContext()
+            .setAuthentication(new UserAuthentication(
+                appAccess,
+                List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
+
+        EditRequest editRequest = new EditRequest();
+        editRequest.setId(editId);
+        editRequest.setStatus(EditRequestStatus.PROCESSING);
+        var recording = editRequestService.performEdit(editRequest);
+        var request = editRequestService.findById(editId);
+
+        return ResponseEntity.ok(Map.of(
+            "request", request,
+            "recording", recording
+        ));
     }
 
     @PostMapping(value = "/trigger-task/{taskName}")
