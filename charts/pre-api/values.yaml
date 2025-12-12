@@ -48,10 +48,11 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
     APIM_URI: https://sds-api-mgmt.platform.hmcts.net
-    MEDIA_KIND_SUBSCRIPTION: "pre-mediakind-{{ .Values.global.environment }}"
+    MEDIA_SERVICE: MediaKind
+    MEDIA_KIND_SUBSCRIPTION: "pre-mkio-{{ .Values.global.environment }}"
     MEDIA_KIND_VOD_STREAMING_ENDPOINT: default
     MEDIA_KIND_LIVE_STREAMING_ENDPOINT: default-live
-    MEDIA_KIND_LOCATION: uksouth
+    MEDIA_KIND_LOCATION: uksouth-4
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
     AZURE_FINAL_SA: "prefinalsa{{ .Values.global.environment }}"
     AZURE_VF_SA: "prevodasa{{ .Values.global.environment }}"
