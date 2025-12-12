@@ -48,6 +48,7 @@ public class EditController extends PreApiController {
 
     @Autowired
     public EditController(EditRequestService editRequestService) {
+        super();
         this.editRequestService = editRequestService;
     }
 

@@ -294,7 +294,7 @@ public class MediaServiceController extends PreApiController {
         // update captureSession
         captureSession.setLiveOutputUrl(liveOutputUrl);
         captureSession.setStatus(RecordingStatus.RECORDING);
-        Map<String, String> properties = new HashMap<String, String>();
+        Map<String, String> properties = new HashMap<>();
         properties.put("captureSession_ID", captureSession.getId().toString());
         properties.put("captureSession_STATUS", captureSession.getStatus().name());
         telemetry.trackEvent(properties.toString());

@@ -62,9 +62,9 @@ public class RecordingDTO extends BaseRecordingDTO {
         super();
         id = recording.getId();
         captureSession = new CaptureSessionDTO(recording.getCaptureSession());
-        parentRecordingId = recording.getParentRecording() != null
-            ? recording.getParentRecording().getId()
-            : null;
+        if (recording.getParentRecording() != null) {
+            parentRecordingId = recording.getParentRecording().getId();
+        }
         Set<Recording> versions = recording.getParentRecording() != null
             ? recording.getParentRecording().getRecordings()
             : recording.getRecordings();
@@ -94,8 +94,9 @@ public class RecordingDTO extends BaseRecordingDTO {
                              .sorted(Comparator.comparing(EditRequest::getModifiedAt).reversed())
                              .map(e -> new EditRequestDTO(e, false)))
             .collect(Collectors.toList());
-        editStatus = recording.getVersion() == 1
-            ? (!editRequests.isEmpty() ? editRequests.getFirst().getStatus() : null)
-            : null;
+
+        if (recording.getVersion() == 1 && !editRequests.isEmpty()) {
+            editStatus = editRequests.getFirst().getStatus();
+        }
     }
 }

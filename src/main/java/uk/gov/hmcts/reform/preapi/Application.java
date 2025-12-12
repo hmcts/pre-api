@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
@@ -23,7 +24,7 @@ public class Application implements CommandLineRunner {
 
     public static void main(final String[] args) {
         final SpringApplication application = new SpringApplication(Application.class);
-        final var instance = application.run(args); //NOPMD - suppressed CloseResource
+        final ConfigurableApplicationContext instance = application.run(args); //NOPMD - suppressed CloseResource
 
         if (System.getenv("TASK_NAME") != null) {
             instance.close();

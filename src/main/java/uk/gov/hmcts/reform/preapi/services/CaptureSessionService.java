@@ -242,7 +242,7 @@ public class CaptureSessionService {
         captureSession.setFinishedAt(createCaptureSessionDTO.getFinishedAt());
         captureSession.setFinishedByUser(finishedByUser);
         captureSession.setStatus(createCaptureSessionDTO.getStatus());
-        Map<String, String> properties = new HashMap<String, String>();
+        Map<String, String> properties = new HashMap<>();
         properties.put("captureSession_ID", captureSession.getId().toString());
         properties.put("captureSession_STATUS", captureSession.getStatus().name());
         telemetry.trackEvent(properties.toString());
@@ -276,7 +276,7 @@ public class CaptureSessionService {
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
         captureSession.setStatus(status);
-        Map<String, String> properties = new HashMap<String, String>();
+        Map<String, String> properties = new HashMap<>();
         properties.put("captureSession_ID", captureSession.getId().toString());
         properties.put("captureSession_STATUS", captureSession.getStatus().name());
         telemetry.trackEvent(properties.toString());
@@ -297,7 +297,7 @@ public class CaptureSessionService {
 
         log.info("Stopping capture session {} with status {}", captureSessionId, status);
         captureSession.setStatus(status);
-        Map<String, String> properties = new HashMap<String, String>();
+        Map<String, String> properties = new HashMap<>();
         properties.put("captureSession_ID", captureSession.getId().toString());
         properties.put("captureSession_STATUS", captureSession.getStatus().name());
         telemetry.trackEvent(properties.toString());
@@ -338,7 +338,7 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
         captureSession.setStatus(status);
-        Map<String, String> properties = new HashMap<String, String>();
+        Map<String, String> properties = new HashMap<>();
         properties.put("captureSession_ID", captureSession.getId().toString());
         properties.put("captureSession_STATUS", captureSession.getStatus().name());
         telemetry.trackEvent(properties.toString());

@@ -128,11 +128,11 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
-        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
 
-        var localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(),
-                                                     ZoneId.of("Europe/London")).toLocalDate();
-        var today = LocalDate.now();
+        LocalDate localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(),
+                                                           ZoneId.of("Europe/London")).toLocalDate();
+        LocalDate today = LocalDate.now();
 
         if (localDateField.isBefore(today)
             && !auth.hasRole("ROLE_SUPER_USER")) {

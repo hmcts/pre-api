@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -429,9 +430,9 @@ class TestingSupportController {
     @SneakyThrows
     @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
-        var r = roleRepository.findFirstByName("Super User")
+        Role role = roleRepository.findFirstByName("Super User")
             .orElse(createRole("Super User"));
-        var appAccess = createAppAccess(r);
+        AppAccess appAccess = createAppAccess(role);
         SecurityContextHolder.getContext()
             .setAuthentication(new UserAuthentication(
                 appAccess,
@@ -440,8 +441,8 @@ class TestingSupportController {
         EditRequest editRequest = new EditRequest();
         editRequest.setId(editId);
         editRequest.setStatus(EditRequestStatus.PROCESSING);
-        var recording = editRequestService.performEdit(editRequest);
-        var request = editRequestService.findById(editId);
+        RecordingDTO recording = editRequestService.performEdit(editRequest);
+        EditRequestDTO request = editRequestService.findById(editId);
 
         return ResponseEntity.ok(Map.of(
             "request", request,

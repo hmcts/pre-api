@@ -7,7 +7,6 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -103,11 +102,8 @@ public class EditRequestService {
     }
 
     @Transactional
-    public Page<EditRequestDTO> findAll(@Nullable SearchEditRequests params, Pageable pageable) {
-        if (params == null) {
-            params = new SearchEditRequests();
-        }
-        UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+    public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
@@ -240,14 +236,6 @@ public class EditRequestService {
         return azureFinalStorageService.getMp4FileName(newRecordingId.toString());
     }
 
-    private EditInstructions getPreviousInstructions(String editInstruction) {
-        if (editInstruction != null
-            && !editInstruction.isEmpty()) {
-            return EditInstructions.tryFromJson(editInstruction);
-        }
-        return null;
-    }
-
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
@@ -306,7 +294,7 @@ public class EditRequestService {
 
         boolean isUpdate = req.isPresent();
         if (!isUpdate) {
-            UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+            UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
             User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
