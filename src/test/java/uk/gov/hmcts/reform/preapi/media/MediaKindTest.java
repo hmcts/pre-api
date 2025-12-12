@@ -8,6 +8,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import feign.FeignException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAssetStorage;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
@@ -1607,5 +1609,82 @@ public class MediaKindTest {
             .isEqualTo(recording.getId().toString().replace("-", "") + "_output");
         assertThat(mkAssetCaptor.getValue().getProperties().getContainer())
             .isEqualTo(recording.getId().toString());
+    }
+
+    @Test
+    @DisplayName("Should not detect live feed when no subperiods are present in the asset tracks")
+    void playLiveEventNoPeriodsSuccess() throws JsonProcessingException, InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getStreamingEndpointByName("default-live"))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        var mockAssetStorage = mock(MkAssetStorage.class);
+        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
+        when(mockAssetStorage.getSpec())
+            .thenReturn(
+                MkAssetStorage.MkAssetStorageSpec.builder()
+                    .periods(null)
+                    .build()
+            );
+
+        when(mockClient.getStreamingLocator(any()))
+            .thenReturn(MkStreamingLocator.builder().build());
+
+        var result = mediaKind.checkLiveFeedAvailable(captureSession.getId());
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should detect live feed when subperiods are present in the asset tracks")
+    void playLiveEventWithPeriodsSuccess() throws JsonProcessingException, InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getStreamingEndpointByName("default-live"))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        var mockAssetStorage = mock(MkAssetStorage.class);
+        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
+
+        var examplePeriods = JsonNodeFactory.instance.objectNode();
+        examplePeriods.set("0/index/edge", JsonNodeFactory.instance.objectNode());
+        when(mockAssetStorage.getSpec())
+            .thenReturn(
+                MkAssetStorage.MkAssetStorageSpec.builder()
+                    .periods(examplePeriods)
+                    .build()
+            );
+
+        when(mockClient.getStreamingLocator(any()))
+            .thenReturn(MkStreamingLocator.builder().build());
+
+        var result = mediaKind.checkLiveFeedAvailable(captureSession.getId());
+
+        assertThat(result).isTrue();
     }
 }
