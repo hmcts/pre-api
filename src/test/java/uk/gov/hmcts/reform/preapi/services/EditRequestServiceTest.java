@@ -163,7 +163,7 @@ public class EditRequestServiceTest {
         var updatedEditRequest = editRequestRepository.findById(editRequest.getId()).orElse(null);
         assertNotNull(updatedEditRequest);
         assertThat(updatedEditRequest.getStatus()).isEqualTo(EditRequestStatus.ERROR);
-        verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
+        verify(ffmpegService, times(1)).performEdit(any(UUID.class), argThat(er -> er.getId().equals(editRequest.getId())));
         verify(recordingService, never()).upsert(any());
     }
 
