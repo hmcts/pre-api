@@ -1084,6 +1084,71 @@ public class EntityCreationServiceTest {
     }
 
     @Test
+    @DisplayName("Should test isOrigRecordingPersisted method through reflection for false case")
+    void isOrigRecordingPersistedShouldReturnFalseWhenRecordNotFound() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        when(migrationRecordService.findByArchiveId("MISSING_ARCH")).thenReturn(Optional.empty());
+
+        Boolean result = (Boolean) method.invoke(entityCreationService, "MISSING_ARCH");
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should test isOrigRecordingPersisted method for false case when no orig found")
+    void isOrigRecordingPersistedShouldReturnFalseWhenNoOrigFound() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        MigrationRecord copyRecord = new MigrationRecord();
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.empty());
+
+        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should test isOrigRecordingPersisted method for false case when recording ID is null")
+    void isOrigRecordingPersistedShouldReturnFalseWhenRecordingIdIsNull() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        MigrationRecord copyRecord = new MigrationRecord();
+        MigrationRecord origRecord = new MigrationRecord();
+        origRecord.setRecordingId(null);
+
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
+
+        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should test isOrigRecordingPersisted method for true case")
+    void isOrigRecordingPersistedShouldReturnTrueWhenRecordingIdExists() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        UUID recordingId = UUID.randomUUID();
+        MigrationRecord copyRecord = new MigrationRecord();
+        MigrationRecord origRecord = new MigrationRecord();
+        origRecord.setRecordingId(recordingId);
+
+        when(migrationRecordService.findByArchiveId("COPY123")).thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord)).thenReturn(Optional.of(origRecord));
+
+        Boolean result = (Boolean) method.invoke(entityCreationService, "COPY123");
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
     @DisplayName("Should create capture session and update migration record for non-COPY version")
     void createCaptureSessionShouldUpdateMigrationRecordForNonCopyVersion() {
         BaseUserDTO user = new UserDTO();
