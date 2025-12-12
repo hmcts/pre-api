@@ -519,6 +519,9 @@ definitions:
           - MAGISTRATE
           - FAMILY
         type: string
+      group_email:
+        description: CourtGroupEmail
+        type: string
       id:
         description: CourtId
         format: uuid
@@ -751,6 +754,9 @@ definitions:
           - CROWN
           - MAGISTRATE
           - FAMILY
+        type: string
+      group_email:
+        description: CreateCourtGroupEmail
         type: string
       id:
         description: CreateCourtId
@@ -1408,6 +1414,9 @@ definitions:
           - CROWN
           - MAGISTRATE
           - FAMILY
+        type: string
+      group_email:
+        description: CourtGroupEmail
         type: string
       id:
         description: CourtId
