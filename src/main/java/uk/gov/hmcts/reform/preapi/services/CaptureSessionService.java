@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.microsoft.applicationinsights.TelemetryClient;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +38,9 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -56,6 +59,8 @@ public class CaptureSessionService {
 
     @Setter
     private boolean enableMigratedData;
+
+    private final TelemetryClient telemetry = new TelemetryClient();
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
@@ -237,6 +242,10 @@ public class CaptureSessionService {
         captureSession.setFinishedAt(createCaptureSessionDTO.getFinishedAt());
         captureSession.setFinishedByUser(finishedByUser);
         captureSession.setStatus(createCaptureSessionDTO.getStatus());
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
 
         captureSessionRepository.save(captureSession);
         return foundCaptureSession.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
@@ -267,6 +276,11 @@ public class CaptureSessionService {
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
+
         captureSession.setIngestAddress(ingestAddress);
 
         captureSessionRepository.save(captureSession);
@@ -283,6 +297,10 @@ public class CaptureSessionService {
 
         log.info("Stopping capture session {} with status {}", captureSessionId, status);
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
 
         UUID userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
 
@@ -320,6 +338,11 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
+
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
     }
@@ -329,6 +352,15 @@ public class CaptureSessionService {
         return captureSessionRepository.findAllPastIncompleteCaptureSessions(Timestamp.from(Instant.now())).stream()
             .map(CaptureSessionDTO::new)
             .toList();
+    }
+
+    @Transactional
+    public List<CaptureSession> findFailedCaptureSessionsStartedBetween(LocalDate fromDate, LocalDate toDate) {
+        Timestamp fromTime = Timestamp.valueOf(fromDate.atStartOfDay());
+        Timestamp toTime = Timestamp.valueOf(toDate.atStartOfDay().plusDays(1));
+
+        return captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            fromTime, toTime, RecordingStatus.FAILURE);
     }
 
     private CreateAuditDTO createStopAudit(UUID captureSessionId) {

@@ -43,6 +43,9 @@ public class AzureConfiguration {
     @Value("${azure.managedIdentityClientId}")
     private String managedIdentityClientId;
 
+    @Value("${azure.blob.endpointFormat:https://%s.blob.core.windows.net}")
+    private String blobEndpointFormat;
+
     @Bean
     public BlobServiceClient ingestStorageClient() {
         return storageClient(ingestStorageAccountName, ingestConnectionString);
@@ -80,7 +83,7 @@ public class AzureConfiguration {
             StorageSharedKeyCredential credential = new StorageSharedKeyCredential(storageAccountName, accountKey);
             return new BlobServiceClientBuilder()
                 .credential(credential)
-                .endpoint(String.format("https://%s.blob.core.windows.net", storageAccountName))
+                .endpoint(String.format(blobEndpointFormat, storageAccountName))
                 .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .buildClient();
         } catch (Exception e) {
@@ -97,7 +100,7 @@ public class AzureConfiguration {
                 .build();
             return new BlobServiceClientBuilder()
                 .credential(credential)
-                .endpoint(String.format("https://%s.blob.core.windows.net", storageAccountName))
+                .endpoint(String.format(blobEndpointFormat, storageAccountName))
                 .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .buildClient();
         } catch (Exception e) {

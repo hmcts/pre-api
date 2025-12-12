@@ -7,6 +7,7 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,8 +26,11 @@ import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -55,6 +59,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
+
 @Slf4j
 @Service
 @SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
@@ -66,6 +72,7 @@ public class EditRequestService {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
+    private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
     public EditRequestService(final EditRequestRepository editRequestRepository,
@@ -74,7 +81,8 @@ public class EditRequestService {
                               final RecordingService recordingService,
                               final AzureIngestStorageService azureIngestStorageService,
                               final AzureFinalStorageService azureFinalStorageService,
-                              final MediaServiceBroker mediaServiceBroker) {
+                              final MediaServiceBroker mediaServiceBroker,
+                              final EmailServiceFactory emailServiceFactory) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -82,6 +90,7 @@ public class EditRequestService {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Transactional
@@ -94,8 +103,11 @@ public class EditRequestService {
     }
 
     @Transactional
-    public Page<EditRequestDTO> findAll(SearchEditRequests params, Pageable pageable) {
-        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+    public Page<EditRequestDTO> findAll(@Nullable SearchEditRequests params, Pageable pageable) {
+        if (params == null) {
+            params = new SearchEditRequests();
+        }
+        UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
@@ -107,6 +119,21 @@ public class EditRequestService {
     @Transactional
     public Optional<EditRequest> getNextPendingEditRequest() {
         return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    }
+
+    @Transactional
+    public void updateEditRequestStatus(UUID id, EditRequestStatus status) {
+        EditRequest request = editRequestRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+
+        request.setStatus(status);
+        switch (status) {
+            case PROCESSING -> request.setStartedAt(Timestamp.from(Instant.now()));
+            case ERROR, COMPLETE -> request.setFinishedAt(Timestamp.from(Instant.now()));
+            default -> {
+            }
+        }
+        editRequestRepository.save(request);
     }
 
     @Transactional(noRollbackFor = Exception.class)
@@ -124,9 +151,7 @@ public class EditRequestService {
                 EditRequestStatus.PENDING.toString()
             );
         }
-        request.setStartedAt(Timestamp.from(Instant.now()));
-        request.setStatus(EditRequestStatus.PROCESSING);
-        editRequestRepository.saveAndFlush(request);
+        updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
         return request;
     }
 
@@ -138,19 +163,26 @@ public class EditRequestService {
             ffmpegService.performEdit(newRecordingId, request);
             filename = generateAsset(newRecordingId, request);
         } catch (Exception e) {
-            request.setFinishedAt(Timestamp.from(Instant.now()));
-            request.setStatus(EditRequestStatus.ERROR);
-            editRequestRepository.saveAndFlush(request);
+            updateEditRequestStatus(newRecordingId, EditRequestStatus.ERROR);
             throw e;
         }
 
-        request.setFinishedAt(Timestamp.from(Instant.now()));
-        request.setStatus(EditRequestStatus.COMPLETE);
-        editRequestRepository.saveAndFlush(request);
+        updateEditRequestStatus(newRecordingId, EditRequestStatus.COMPLETE);
 
         CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
+
+        this.sendNotifications(request.getSourceRecording().getCaptureSession().getBooking());
+
         return recordingService.findById(newRecordingId);
+    }
+
+    @Transactional
+    public void sendNotifications(Booking booking) {
+        booking.getShares()
+            .stream()
+            .map(ShareBooking::getSharedWith)
+            .forEach(u -> emailServiceFactory.getEnabledEmailService().recordingEdited(u, booking.getCaseId()));
     }
 
     @Transactional
@@ -164,7 +196,8 @@ public class EditRequestService {
         createDto.setParentRecordingId(parentId);
         // if edit on edit without original edits saved (legacy edit),
         //  then these edits will not align with the original timeline
-        createDto.setEditInstructions(request.getEditInstruction());
+        EditInstructionDump dump = new EditInstructionDump(request.getId(), fromJson(request.getEditInstruction()));
+        createDto.setEditInstructions(toJson(dump));
         createDto.setVersion(recordingService.getNextVersionNumber(parentId));
         createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
         createDto.setFilename(filename);
@@ -231,17 +264,21 @@ public class EditRequestService {
 
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
-        EditInstructions prevInstructions = null;
-        if (!isOriginalRecordingEdit) {
-            prevInstructions = getPreviousInstructions(sourceRecording.getEditInstruction());
-        }
+        boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
+            && sourceRecording.getEditInstruction() != null
+            && !sourceRecording.getEditInstruction().isEmpty();
 
-        boolean isInstructionCombination =
-            prevInstructions != null
+        EditInstructions prevInstructions = null;
+        if (sourceInstructionsAreNotEmpty) {
+            prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction());
+        }
+        boolean prevInstructionsAreNotEmpty = prevInstructions != null
             && prevInstructions.getFfmpegInstructions() != null
             && !prevInstructions.getFfmpegInstructions().isEmpty()
             && prevInstructions.getRequestedInstructions() != null
             && !prevInstructions.getRequestedInstructions().isEmpty();
+
+        boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
 
         Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
         EditRequest request = req.orElse(new EditRequest());
@@ -251,6 +288,10 @@ public class EditRequestService {
                                        ? sourceRecording
                                        : sourceRecording.getParentRecording());
         request.setStatus(dto.getStatus());
+        request.setJointlyAgreed(dto.getJointlyAgreed());
+        request.setApprovedAt(dto.getApprovedAt());
+        request.setApprovedBy(dto.getApprovedBy());
+        request.setRejectionReason(dto.getRejectionReason());
 
         List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
             ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
@@ -265,8 +306,8 @@ public class EditRequestService {
 
         boolean isUpdate = req.isPresent();
         if (!isUpdate) {
-            User user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
-                .getAppAccess().getUser();
+            UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+            User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
         }
@@ -280,12 +321,13 @@ public class EditRequestService {
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
         UUID id = UUID.randomUUID();
-        upsert(CreateEditRequestDTO.builder()
-                   .id(id)
-                   .sourceRecordingId(sourceRecordingId)
-                   .editInstructions(parseCsv(file))
-                   .status(EditRequestStatus.PENDING)
-                   .build());
+        CreateEditRequestDTO dto = new CreateEditRequestDTO();
+        dto.setId(id);
+        dto.setSourceRecordingId(sourceRecordingId);
+        dto.setEditInstructions(parseCsv(file));
+        dto.setStatus(EditRequestStatus.PENDING);
+
+        upsert(dto);
 
         return editRequestRepository.findById(id)
             .map(EditRequestDTO::new)
@@ -450,11 +492,14 @@ public class EditRequestService {
         return merged;
     }
 
-    protected String toJson(EditInstructions instructions) {
+    protected <E> String toJson(E instructions) {
         try {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
             throw new UnknownServerException("Something went wrong: " + e.getMessage(), e);
         }
+    }
+
+    private record EditInstructionDump(UUID editRequestId, EditInstructions editInstructions) {
     }
 }

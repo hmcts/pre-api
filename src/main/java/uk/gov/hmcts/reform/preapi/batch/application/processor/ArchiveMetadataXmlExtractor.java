@@ -322,7 +322,7 @@ public class ArchiveMetadataXmlExtractor {
         String nameB = String.valueOf(getName(b)).toUpperCase();
 
         // (2) UGC in name NOT preferred
-        int ugc = Boolean.compare(!nameA.contains("UGC"), !nameB.contains("UGC"));
+        int ugc = Boolean.compare(nameA.contains("UGC"), nameB.contains("UGC"));
         if (ugc != 0) {
             return ugc;
         }

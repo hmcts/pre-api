@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.azure.resourcemanager.mediaservices.models.JobState;
+import com.microsoft.applicationinsights.TelemetryClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
@@ -48,7 +49,9 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -66,6 +69,8 @@ public class MediaServiceController extends PreApiController {
     private final EncodeJobService encodeJobService;
 
     private final boolean enableEnhancedProcessing;
+
+    private final TelemetryClient telemetry = new TelemetryClient();
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
@@ -289,6 +294,11 @@ public class MediaServiceController extends PreApiController {
         // update captureSession
         captureSession.setLiveOutputUrl(liveOutputUrl);
         captureSession.setStatus(RecordingStatus.RECORDING);
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
+
         captureSessionService.upsert(captureSession);
 
         return ResponseEntity.ok(captureSession);

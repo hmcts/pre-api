@@ -64,6 +64,9 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @JdbcTypeCode(SqlTypes.JSON)
     private String editInstruction;
 
+    @OneToMany(mappedBy = "sourceRecording")
+    private Set<EditRequest> editRequests;
+
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 

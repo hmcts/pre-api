@@ -10,11 +10,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Documented
-@Constraint(validatedBy = NotPastDateValidator.class)
-@Target({ ElementType.METHOD, ElementType.FIELD })
+@Constraint(validatedBy = CreateEditRequestStatusValidator.class)
+@Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
-public @interface NotPastDateConstraint {
-    String message() default "Date must not be in the past";
+public @interface CreateEditRequestStatusConstraint {
+    String message() default "must have required data for status";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }
