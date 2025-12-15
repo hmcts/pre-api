@@ -75,10 +75,22 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(String alternativeEmail);
 
     @Query("""
-        SELECT u FROM User u 
-        WHERE (LOWER(u.email) = LOWER(:email) OR LOWER(u.alternativeEmail) = LOWER(:email)) 
+        SELECT u FROM User u
+        WHERE (LOWER(u.email) = LOWER(:email) OR LOWER(u.alternativeEmail) = LOWER(:email))
         AND u.deletedAt IS NULL""")
     Optional<User> findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(@Param("email") String email);
 
     boolean existsByEmailIgnoreCase(String email);
+
+    @Query("""
+        SELECT u FROM User u
+        WHERE (u.email ILIKE '%.cjsm.net' AND u.alternativeEmail IS NOT NULL)
+        AND EXISTS (
+            SELECT 1 FROM u.portalAccess pa
+            WHERE pa.user = u AND pa.deletedAt IS NULL
+            AND pa.status != 'INACTIVE'
+        )
+        AND u.deletedAt IS NULL
+        """)
+    Page<User> findPortalUsersWithCjsmEmail(Pageable pageable);
 }

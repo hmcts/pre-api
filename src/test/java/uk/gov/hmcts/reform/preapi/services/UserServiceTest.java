@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
@@ -1205,5 +1206,27 @@ public class UserServiceTest {
         );
 
         verify(roleRepository, times(1)).findById(roleId);
+    }
+
+    @DisplayName("Find portal users with CJSM email and map to DTO")
+    @Test
+    void findPortalUsersWithCjsmEmailMapsToDTO() {
+        // prepare a user with alternative email set
+        var cjsmUser = new User();
+        cjsmUser.setId(UUID.randomUUID());
+        cjsmUser.setFirstName("CJSM");
+        cjsmUser.setLastName("User");
+        cjsmUser.setEmail("user@cjsm.net");
+        cjsmUser.setAlternativeEmail("alt@cjsm.net");
+
+        when(userRepository.findPortalUsersWithCjsmEmail(any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of(cjsmUser)));
+
+        var page = userService.findPortalUsersWithCjsmEmail(Pageable.unpaged());
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        var dto = page.get().toList().getFirst();
+        assertThat(dto.getEmail()).isEqualTo(cjsmUser.getEmail());
+        assertThat(dto.getAlternativeEmail()).isEqualTo(cjsmUser.getAlternativeEmail());
     }
 }

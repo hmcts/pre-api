@@ -333,6 +333,8 @@ dependencies {
 
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
+  implementation group: 'com.microsoft.graph', name: 'microsoft-graph', version: '6.24.0'
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.15.1'
 
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.31.Final')
