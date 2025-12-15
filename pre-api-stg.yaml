@@ -135,6 +135,8 @@ definitions:
       alternative_email:
         description: AlternativeEmail
         format: email
+        maxLength: 100
+        minLength: 0
         type: string
       email:
         description: UserEmail
@@ -977,6 +979,8 @@ definitions:
       alternative_email:
         description: AlternativeEmail
         format: email
+        maxLength: 100
+        minLength: 0
         type: string
       app_access:
         description: UserAppAccess
@@ -1623,6 +1627,8 @@ definitions:
       alternative_email:
         description: AlternativeEmail
         format: email
+        maxLength: 100
+        minLength: 0
         type: string
       app_access:
         description: UserAppAccess
@@ -2556,6 +2562,8 @@ definitions:
       alternative_email:
         description: AlternativeEmail
         format: email
+        maxLength: 100
+        minLength: 0
         type: string
       app_access:
         description: UserAppAccess
