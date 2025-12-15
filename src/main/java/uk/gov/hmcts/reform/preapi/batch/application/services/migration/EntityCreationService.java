@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
+import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -195,11 +196,11 @@ public class EntityCreationService {
     public Set<CreateParticipantDTO> createParticipants(ProcessedRecording cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
 
-        if (cleansedData.getWitnessFirstName() != null && !cleansedData.getWitnessFirstName().isBlank()) {
+        if (StringUtils.isNotBlank(cleansedData.getWitnessFirstName())) {
             participants.add(createParticipant(ParticipantType.WITNESS, cleansedData.getWitnessFirstName(), ""));
         }
 
-        if (cleansedData.getDefendantLastName() != null && !cleansedData.getDefendantLastName().isBlank()) {
+        if (StringUtils.isNotBlank(cleansedData.getDefendantLastName())) {
             participants.add(createParticipant(ParticipantType.DEFENDANT, "", cleansedData.getDefendantLastName()));
         }
 
