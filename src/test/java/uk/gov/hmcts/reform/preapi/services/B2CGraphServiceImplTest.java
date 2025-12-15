@@ -50,7 +50,6 @@ class B2CGraphServiceImplTest {
         User gUser = new User();
         gUser.setId("user-id-1");
 
-        // deep-stub: when the SDK call .users().get(...) is invoked, its returned mock's getValue() should return our list
         when(graphServiceClient.users().get(any()).getValue()).thenReturn(List.of(gUser));
 
         Optional<User> result = b2cGraphService.findUserByPrimaryEmail("test@example.com");
@@ -64,8 +63,10 @@ class B2CGraphServiceImplTest {
         var tenantId = "tenant";
         b2cGraphService = new B2CGraphServiceImpl(graphServiceClient, tenantId);
 
-        User g1 = new User(); g1.setId("u1");
-        User g2 = new User(); g2.setId("u2");
+        User g1 = new User();
+        g1.setId("u1");
+        User g2 = new User();
+        g2.setId("u2");
 
         when(graphServiceClient.users().get(any()).getValue()).thenReturn(List.of(g1, g2));
 

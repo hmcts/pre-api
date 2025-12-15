@@ -62,7 +62,14 @@ public class CleanupB2CAlternativeEmails extends RobotUserTask {
     }
 
     private String obfuscateEmail(String email) {
+        if (email == null) {
+            return "<null>";
+        }
         int atIndex = email.indexOf('@');
+        if (atIndex < 0) {
+            // no @ present
+            return "***" + email;
+        }
         if (atIndex <= 1) {
             return "***" + email.substring(atIndex);
         }
