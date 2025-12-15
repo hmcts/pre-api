@@ -145,4 +145,44 @@ class B2CGraphServiceImplTest {
         clientSecretField.setAccessible(true);
         assertThat(clientSecretField.get(svc)).isEqualTo(clientSecret);
     }
+
+    @Test
+    void ensureClientInitialized_builds_graph_client_when_config_present() throws Exception {
+        // create service with no-arg constructor so graphClient starts null
+        var svc = new B2CGraphServiceImpl();
+
+        // reflectively set the private final fields clientId, clientSecret, tenantId
+        setFinalField(B2CGraphServiceImpl.class, svc, "clientId", "fake-client-id");
+        setFinalField(B2CGraphServiceImpl.class, svc, "clientSecret", "fake-client-secret");
+        setFinalField(B2CGraphServiceImpl.class, svc, "tenantId", "fake-tenant");
+
+        // invoke private ensureClientInitialized()
+        var m = B2CGraphServiceImpl.class.getDeclaredMethod("ensureClientInitialized");
+        m.setAccessible(true);
+        m.invoke(svc);
+
+        // assert graphClient was initialized
+        var graphClientField = B2CGraphServiceImpl.class.getDeclaredField("graphClient");
+        graphClientField.setAccessible(true);
+        Object graphClient = graphClientField.get(svc);
+
+        assertThat(graphClient).isNotNull();
+    }
+
+    // utility to set private final fields in tests
+    private static void setFinalField(Class<?> cls, Object target, String fieldName, Object value) throws Exception {
+        var field = cls.getDeclaredField(fieldName);
+        field.setAccessible(true);
+
+        // remove final modifier
+        try {
+            var modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+        } catch (NoSuchFieldException ignored) {
+            // Java 12+ may not allow modifiers hack; still try set
+        }
+
+        field.set(target, value);
+    }
 }
