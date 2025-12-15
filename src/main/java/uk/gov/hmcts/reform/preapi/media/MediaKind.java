@@ -457,6 +457,17 @@ public class MediaKind implements IMediaService {
             || state.equals(JobState.CANCELED);
     }
 
+    @Override
+    public boolean checkLiveFeedAvailable(UUID captureSessionId) {
+        var liveEventId = getSanitisedLiveEventId(captureSessionId);
+        checkLiveEventExists(liveEventId);
+
+        var assetInfo = mediaKindClient.getAssetTracks(liveEventId);
+        var periods = assetInfo.getSpec().getPeriods();
+
+        return (periods != null && !periods.isEmpty());
+    }
+
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
         OffsetDateTime now = OffsetDateTime.now();
         String streamingLocatorName = userId + "_" + assetName;
