@@ -298,7 +298,7 @@ public class UserService {
         
         if (trimmedEmail != null && !trimmedEmail.isEmpty()) {
             Optional<User> existingUser = userRepository
-                .findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
+                .findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
             
             if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
                 throw new ConflictException(
