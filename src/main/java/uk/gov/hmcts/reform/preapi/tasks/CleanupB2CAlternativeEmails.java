@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.B2CGraphService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.ArrayList;
@@ -60,20 +61,29 @@ public class CleanupB2CAlternativeEmails extends RobotUserTask {
         log.info("Completed CleanupB2CAlternativeEmails task");
     }
 
+    private String obfuscateEmail(String email) {
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 1) {
+            return "***" + email.substring(atIndex);
+        }
+        return email.charAt(0) + "***" + email.substring(atIndex - 1);
+    }
+
     private void removeB2CAlternativeEmail(UserDTO user) {
         var primaryEmail = user.getEmail();
         var alternativeEmail = user.getAlternativeEmail();
         try {
-            log.info("Processing user with primary email: {}, alternative email: {}", primaryEmail, alternativeEmail);
+            log.info("Processing user with primary email: {}, alternative email: {}",
+                     obfuscateEmail(primaryEmail), obfuscateEmail(alternativeEmail));
 
             if (alternativeEmail == null || alternativeEmail.trim().isEmpty()) {
-                log.warn("User {} has no alternative email configured, skipping", primaryEmail);
+                log.warn("User {} has no alternative email configured, skipping", obfuscateEmail(primaryEmail));
                 return;
             }
 
             var maybeB2cUser = b2cGraphService.findUserByPrimaryEmail(primaryEmail);
             if (maybeB2cUser.isEmpty()) {
-                log.warn("No B2C user found with email: {}", primaryEmail);
+                log.warn("No B2C user found with email: {}", obfuscateEmail(primaryEmail));
                 return;
             }
 
@@ -93,37 +103,39 @@ public class CleanupB2CAlternativeEmails extends RobotUserTask {
                 String issuerAssignedId = identity.getIssuerAssignedId();
                 if (issuerAssignedId != null && issuerAssignedId.equalsIgnoreCase(alternativeEmail)) {
                     found = true;
-                    log.info("Removing alternative email identity: {}", alternativeEmail);
+                    log.info("Removing alternative email identity: {}", obfuscateEmail(alternativeEmail));
                 } else {
                     updatedIdentities.add(identity);
                 }
             }
 
             if (!found) {
-                log.warn("Alternative email {} not found in user identities", alternativeEmail);
+                log.warn("Alternative email {} not found in user identities", obfuscateEmail(alternativeEmail));
                 return;
             }
 
             // Update user with filtered identities via the graph service
             b2cGraphService.updateUserIdentities(b2cUser.getId(), updatedIdentities);
 
-            log.info("Successfully removed alternative email {} from user {}", alternativeEmail, primaryEmail);
+            log.info("Successfully removed alternative email {} from user {}",
+                     obfuscateEmail(alternativeEmail), obfuscateEmail(primaryEmail));
 
             // Persist the change locally so the user isn't picked up again
             try {
                 userService.updateAlternativeEmail(user.getId(), null);
                 // Also update the DTO so the in-memory object reflects the persisted state
                 user.setAlternativeEmail(null);
-                log.info("Local user {} updated: alternativeEmail set to null", primaryEmail);
+                log.info("Local user {} updated: alternativeEmail set to null", obfuscateEmail(primaryEmail));
             } catch (Exception e) {
                 log.error(
-                    "Failed to update local user {} alternative email to null: {}", primaryEmail, e.getMessage(), e
+                    "Failed to update local user {} alternative email to null: {}",
+                    obfuscateEmail(primaryEmail), e.getMessage(), e
                 );
             }
 
         } catch (Exception e) {
             log.error("Failed to remove alternative email {} for user {}: {}",
-                     alternativeEmail, primaryEmail, e.getMessage(), e);
+                      obfuscateEmail(alternativeEmail), obfuscateEmail(primaryEmail), e.getMessage(), e);
         }
     }
 }

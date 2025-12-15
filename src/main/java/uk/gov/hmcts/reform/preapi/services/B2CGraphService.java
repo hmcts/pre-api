@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.tasks;
+package uk.gov.hmcts.reform.preapi.services;
 
 import com.microsoft.graph.models.ObjectIdentity;
 import com.microsoft.graph.models.User;

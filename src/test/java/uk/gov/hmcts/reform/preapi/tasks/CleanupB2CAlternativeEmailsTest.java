@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.B2CGraphService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.List;

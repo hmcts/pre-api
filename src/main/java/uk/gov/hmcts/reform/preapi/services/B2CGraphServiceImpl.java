@@ -1,7 +1,8 @@
-package uk.gov.hmcts.reform.preapi.tasks;
+package uk.gov.hmcts.reform.preapi.services;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.graph.models.ObjectIdentity;
 import com.microsoft.graph.models.User;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import lombok.extern.slf4j.Slf4j;
@@ -16,12 +17,11 @@ import java.util.Optional;
 @Component
 public class B2CGraphServiceImpl implements B2CGraphService {
 
-    // Graph client will be created lazily if configuration is present
     private GraphServiceClient graphClient;
 
-    private String clientId;
-    private String clientSecret;
-    private String tenantId;
+    private final String clientId;
+    private final String clientSecret;
+    private final String tenantId;
 
     // No-arg constructor for frameworks that need it
     public B2CGraphServiceImpl() {
@@ -31,7 +31,6 @@ public class B2CGraphServiceImpl implements B2CGraphService {
         this.graphClient = null;
     }
 
-    // Constructor used when properties are available; explicit @Autowired so analyzer knows how to create bean
     @Autowired
     public B2CGraphServiceImpl(
         @Value("${azure.b2c.clientId:}") String clientId,
@@ -60,7 +59,6 @@ public class B2CGraphServiceImpl implements B2CGraphService {
         }
     }
 
-    // Testing-friendly constructor to allow injection of a mocked GraphServiceClient
     public B2CGraphServiceImpl(GraphServiceClient graphClient, String tenantId) {
         this.graphClient = graphClient;
         this.tenantId = tenantId != null ? tenantId : "";
@@ -129,7 +127,7 @@ public class B2CGraphServiceImpl implements B2CGraphService {
     }
 
     @Override
-    public void updateUserIdentities(String userId, List<com.microsoft.graph.models.ObjectIdentity> identities) {
+    public void updateUserIdentities(String userId, List<ObjectIdentity> identities) {
         ensureClientInitialized();
         if (graphClient == null) {
             throw new IllegalStateException("GraphServiceClient is not configured");
