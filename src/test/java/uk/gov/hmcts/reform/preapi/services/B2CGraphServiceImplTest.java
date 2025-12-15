@@ -117,4 +117,32 @@ class B2CGraphServiceImplTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("GraphServiceClient is not configured");
     }
+
+    @Test
+    void constructor_initializes_graph_client_when_properties_present() throws Exception {
+        // Use realistic-looking non-empty values so constructor builds a GraphServiceClient
+        String clientId = "fake-client-id";
+        String clientSecret = "fake-client-secret";
+        String tenant = "fake-tenant";
+
+        // instantiate using the @Autowired-style constructor directly
+        var svc = new B2CGraphServiceImpl(clientId, clientSecret, tenant);
+
+        // reflectively check internal fields
+        var graphClientField = B2CGraphServiceImpl.class.getDeclaredField("graphClient");
+        graphClientField.setAccessible(true);
+        assertThat(graphClientField.get(svc)).isNotNull();
+
+        var tenantField = B2CGraphServiceImpl.class.getDeclaredField("tenantId");
+        tenantField.setAccessible(true);
+        assertThat(tenantField.get(svc)).isEqualTo(tenant);
+
+        var clientIdField = B2CGraphServiceImpl.class.getDeclaredField("clientId");
+        clientIdField.setAccessible(true);
+        assertThat(clientIdField.get(svc)).isEqualTo(clientId);
+
+        var clientSecretField = B2CGraphServiceImpl.class.getDeclaredField("clientSecret");
+        clientSecretField.setAccessible(true);
+        assertThat(clientSecretField.get(svc)).isEqualTo(clientSecret);
+    }
 }
