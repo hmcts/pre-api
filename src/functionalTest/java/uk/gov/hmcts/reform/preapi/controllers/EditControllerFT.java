@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -57,10 +55,8 @@ public class EditControllerFT extends FunctionalTestBase {
         assertThat(postResponse.getSourceRecording().getId()).isEqualTo(recordingDetails.recordingId());
         assertThat(postResponse.getStatus()).isEqualTo(EditRequestStatus.PENDING);
 
+        var instructions = postResponse.getEditInstruction();
         assertThat(postResponse.getEditInstruction()).isNotNull();
-        EditInstructions instructions = OBJECT_MAPPER.readValue(postResponse.getEditInstruction(),
-                                                   new TypeReference<>() {});
-        assertThat(instructions).isNotNull();
 
         List<EditCutInstructionDTO> requestedInstructions = instructions.getRequestedInstructions();
         assertThat(requestedInstructions).isNotEmpty();

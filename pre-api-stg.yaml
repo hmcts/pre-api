@@ -132,6 +132,10 @@ definitions:
   BaseUserDTO:
     description: BaseUserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        type: string
       email:
         description: UserEmail
         format: email
@@ -778,6 +782,58 @@ definitions:
       - name
       - regions
     type: object
+  CreateEditRequestDTO:
+    description: CreateEditRequestDTO
+    properties:
+      approved_at:
+        description: CreateEditRequestApprovedAt
+        format: date-time
+        type: string
+      approved_by:
+        description: CreateEditRequestApprovedBy
+        maxLength: 100
+        minLength: 0
+        type: string
+      edit_instructions:
+        description: CreateEditRequestInstructions
+        items:
+          $ref: '#/definitions/EditCutInstructionDTO'
+        minItems: 1
+        type: array
+      id:
+        description: CreateEditRequestId
+        format: uuid
+        type: string
+      jointly_agreed:
+        description: CreateEditRequestJointlyAgreed
+        type: boolean
+      rejection_reason:
+        description: CreateEditRequestRejectionReason
+        maxLength: 512
+        minLength: 0
+        type: string
+      source_recording_id:
+        description: CreateEditRequestSourceRecordingId
+        format: uuid
+        type: string
+      status:
+        description: CreateEditRequestStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+    required:
+      - edit_instructions
+      - id
+      - source_recording_id
+      - status
+    type: object
   CreateInviteDTO:
     description: CreateInviteDTO
     properties:
@@ -918,6 +974,10 @@ definitions:
   CreateUserDTO:
     description: CreateUserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        type: string
       app_access:
         description: UserAppAccess
         items:
@@ -1017,6 +1077,35 @@ definitions:
       - id
       - status
     type: object
+  EditCutInstructionDTO:
+    description: EditCutInstructionDTO
+    properties:
+      end_of_cut:
+        description: EditInstructionEnd
+        pattern: '^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
+        type: string
+      reason:
+        type: string
+      start_of_cut:
+        description: EditInstructionStart
+        pattern: '^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
+        type: string
+    required:
+      - end_of_cut
+      - start_of_cut
+    type: object
+  EditInstructions:
+    description: EditRequestEditInstruction
+    properties:
+      ffmpegInstructions:
+        items:
+          $ref: '#/definitions/FfmpegEditInstructionDTO'
+        type: array
+      requestedInstructions:
+        items:
+          $ref: '#/definitions/EditCutInstructionDTO'
+        type: array
+    type: object
   EditReportDTO:
     description: EditReportDTO
     properties:
@@ -1079,30 +1168,57 @@ definitions:
     type: object
   EditRequestDTO:
     properties:
-      created_at:
+      approved_at:
+        description: EditRequestApprovedAt
         format: date-time
         type: string
+      approved_by:
+        description: EditRequestApprovedBy
+        type: string
+      created_at:
+        description: EditRequestCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        description: EditRequestCreatedByName
+        type: string
       created_by_id:
+        description: EditRequestCreatedById
         format: uuid
         type: string
       edit_instruction:
-        type: string
+        $ref: '#/definitions/EditInstructions'
       finished_at:
+        description: EditRequestFinishedAt
         format: date-time
         type: string
       id:
+        description: EditRequestId
         format: uuid
         type: string
+      jointly_agreed:
+        description: EditRequestJointlyAgreed
+        type: boolean
       modified_at:
+        description: EditRequestModifiedAt
         format: date-time
+        type: string
+      rejection_reason:
+        description: EditRequestRejectionReason
         type: string
       source_recording:
         $ref: '#/definitions/RecordingDTO'
       started_at:
+        description: EditRequestStartedAt
         format: date-time
         type: string
       status:
+        description: EditRequestStatus
         enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
           - PENDING
           - PROCESSING
           - COMPLETE
@@ -1316,30 +1432,57 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
-      created_at:
+      approved_at:
+        description: EditRequestApprovedAt
         format: date-time
         type: string
+      approved_by:
+        description: EditRequestApprovedBy
+        type: string
+      created_at:
+        description: EditRequestCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        description: EditRequestCreatedByName
+        type: string
       created_by_id:
+        description: EditRequestCreatedById
         format: uuid
         type: string
       edit_instruction:
-        type: string
+        $ref: '#/definitions/EditInstructions'
       finished_at:
+        description: EditRequestFinishedAt
         format: date-time
         type: string
       id:
+        description: EditRequestId
         format: uuid
         type: string
+      jointly_agreed:
+        description: EditRequestJointlyAgreed
+        type: boolean
       modified_at:
+        description: EditRequestModifiedAt
         format: date-time
+        type: string
+      rejection_reason:
+        description: EditRequestRejectionReason
         type: string
       source_recording:
         $ref: '#/definitions/RecordingDTO'
       started_at:
+        description: EditRequestStartedAt
         format: date-time
         type: string
       status:
+        description: EditRequestStatus
         enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
           - PENDING
           - PROCESSING
           - COMPLETE
@@ -1398,6 +1541,23 @@ definitions:
         type: string
       edit_instructions:
         description: RecordingEditInstructions
+        type: string
+      edit_requests:
+        description: RecordingEditRequests
+        items:
+          $ref: '#/definitions/EditRequestDTO'
+        type: array
+      edit_status:
+        description: RecordingEditStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
         type: string
       filename:
         description: RecordingFilename
@@ -1460,6 +1620,10 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        type: string
       app_access:
         description: UserAppAccess
         items:
@@ -1616,6 +1780,15 @@ definitions:
       witness_name:
         description: MigrationRecordWitnessName
         type: string
+    type: object
+  FfmpegEditInstructionDTO:
+    properties:
+      end:
+        format: int64
+        type: integer
+      start:
+        format: int64
+        type: integer
     type: object
   GenerateAssetDTO:
     description: GenerateAssetDTO
@@ -2066,6 +2239,23 @@ definitions:
       edit_instructions:
         description: RecordingEditInstructions
         type: string
+      edit_requests:
+        description: RecordingEditRequests
+        items:
+          $ref: '#/definitions/EditRequestDTO'
+        type: array
+      edit_status:
+        description: RecordingEditStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
       filename:
         description: RecordingFilename
         type: string
@@ -2363,6 +2553,10 @@ definitions:
   UserDTO:
     description: UserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        type: string
       app_access:
         description: UserAppAccess
         items:
@@ -3437,6 +3631,33 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
+    put:
+      consumes:
+        - application/json
+      operationId: upsertEditRequest
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateEditRequestDTO'
+      responses:
+        '200':
+          description: OK
       tags:
         - edit-controller
   /health:

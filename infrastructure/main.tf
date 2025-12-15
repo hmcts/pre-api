@@ -10,7 +10,7 @@ locals {
   env_to_deploy    = 1
   env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
-  api_revision = "131"
+  api_revision = "133"
   # Stg allows dev to access it. For all other envs we only allow calls from the same env
   pre_apim_b2c_dev_client_id = var.pre_apim_b2c_dev_client_id != "" ? var.pre_apim_b2c_dev_client_id : var.pre_apim_b2c_client_id
 }
@@ -117,28 +117,6 @@ resource "azurerm_key_vault_secret" "apim_subscription_portal_secondary_key" {
   count        = local.env_to_deploy
   name         = "apim-sub-portal-secondary-key"
   value        = module.apim_subscription_portal[0].subscription_secondary_key
-  key_vault_id = data.azurerm_key_vault.keyvault.id
-}
-
-module "apim_subscription_editvm" {
-  count            = local.env_to_deploy
-  sub_display_name = "PRE Edit VM subscription"
-  source           = "git@github.com:hmcts/cnp-module-api-mgmt-subscription?ref=master"
-  api_mgmt_name    = "sds-api-mgmt-${var.env}"
-  api_mgmt_rg      = "ss-${var.env}-network-rg"
-  state            = "active"
-  allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
-}
-resource "azurerm_key_vault_secret" "apim_subscription_editvm_primary_key" {
-  count        = local.env_to_deploy
-  name         = "apim-sub-editvm-primary-key"
-  value        = module.apim_subscription_editvm[0].subscription_primary_key
-  key_vault_id = data.azurerm_key_vault.keyvault.id
-}
-resource "azurerm_key_vault_secret" "apim_subscription_editvm_secondary_key" {
-  count        = local.env_to_deploy
-  name         = "apim-sub-editvm-secondary-key"
-  value        = module.apim_subscription_editvm[0].subscription_secondary_key
   key_vault_id = data.azurerm_key_vault.keyvault.id
 }
 
