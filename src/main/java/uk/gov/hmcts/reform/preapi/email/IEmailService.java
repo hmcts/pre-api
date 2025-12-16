@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.email;
 
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
 
@@ -21,4 +22,10 @@ public interface IEmailService {
 
     EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode)
         throws EmailFailedToSendException;
+
+    EmailResponse editingJointlyAgreed(String to, EditRequest editRequest) throws EmailFailedToSendException;
+
+    EmailResponse editingNotJointlyAgreed(String to, EditRequest editRequest) throws EmailFailedToSendException;
+
+    EmailResponse editingRejected(String to, EditRequest editRequest) throws EmailFailedToSendException;
 }
