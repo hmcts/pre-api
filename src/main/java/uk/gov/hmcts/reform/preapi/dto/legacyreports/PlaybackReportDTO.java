@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
@@ -53,8 +55,8 @@ public class PlaybackReportDTO {
             userEmail = user.getEmail();
         }
         if (recording != null) {
-            var caseEntity = recording.getCaptureSession().getBooking().getCaseId();
-            var courtEntity = caseEntity.getCourt();
+            Case caseEntity = recording.getCaptureSession().getBooking().getCaseId();
+            Court courtEntity = caseEntity.getCourt();
             court = courtEntity.getName();
             caseReference = caseEntity.getReference();
             regions = Stream.ofNullable(caseEntity.getCourt().getRegions())

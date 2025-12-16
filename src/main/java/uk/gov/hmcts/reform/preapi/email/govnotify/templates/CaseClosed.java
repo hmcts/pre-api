@@ -14,6 +14,7 @@ public class CaseClosed extends BaseTemplate {
         );
     }
 
+    @Override
     public String getTemplateId() {
         return "ee5c6d3f-e934-4053-9f48-0ba082b8caf4";
     }

@@ -7,7 +7,6 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +48,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -62,6 +62,7 @@ import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 
 @Slf4j
 @Service
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
 public class EditRequestService {
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
@@ -101,11 +102,8 @@ public class EditRequestService {
     }
 
     @Transactional
-    public Page<EditRequestDTO> findAll(@Nullable SearchEditRequests params, Pageable pageable) {
-        if (params == null) {
-            params = new SearchEditRequests();
-        }
-        UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+    public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
@@ -289,13 +287,14 @@ public class EditRequestService {
 
         List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
             requestedEdits,
-            isInstructionCombination ? request.getSourceRecording() : sourceRecording);
+            isInstructionCombination ? request.getSourceRecording() : sourceRecording
+        );
 
         request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
 
         boolean isUpdate = req.isPresent();
         if (!isUpdate) {
-            UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+            UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
             User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
@@ -325,27 +324,29 @@ public class EditRequestService {
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
         try {
-            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
+            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(),
+                                                                                      StandardCharsets.UTF_8));
             return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
                 .withType(EditCutInstructionDTO.class)
                 .build()
                 .parse();
         } catch (Exception e) {
             log.error("Error when reading CSV file: {} ", e.getMessage());
-            throw new UnknownServerException("Uploaded CSV file incorrectly formatted");
+            throw new UnknownServerException("Uploaded CSV file incorrectly formatted", e);
         }
     }
 
-    protected List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
-                                                                final Recording recording) {
+    @SuppressWarnings({"PMD.CognitiveComplexity", "PMD.AvoidLiteralsInIfCondition"})
+    public List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
+                                                             final Recording recording) {
         long recordingDuration = recording.getDuration().toSeconds();
         if (instructions.size() == 1) {
-            EditCutInstructionDTO i = instructions.getFirst();
-            if (i.getStart() == 0 && i.getEnd() == recordingDuration) {
+            EditCutInstructionDTO firstInstruction = instructions.getFirst();
+            if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
                 throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
-                                                  + i.getStart()
+                                                  + firstInstruction.getStart()
                                                   + "), End("
-                                                  + i.getEnd()
+                                                  + firstInstruction.getEnd()
                                                   + "), Recording Duration("
                                                   + recordingDuration
                                                   + ")");
@@ -373,18 +374,20 @@ public class EditRequestService {
         // invert
         for (EditCutInstructionDTO instruction : instructions) {
             if (instruction.getStart() == instruction.getEnd()) {
-                throw new BadRequestException("Invalid instruction: Instruction with 0 second duration invalid: Start("
-                                                  + instruction.getStart()
-                                                  + "), End("
-                                                  + instruction.getEnd()
-                                                  + ")");
+                throw new BadRequestException(
+                    "Invalid instruction: Instruction with 0 second duration invalid: Start("
+                        + instruction.getStart()
+                        + "), End("
+                        + instruction.getEnd()
+                        + ")");
             }
             if (instruction.getEnd() < instruction.getStart()) {
-                throw new BadRequestException("Invalid instruction: Instruction with end time before start time: Start("
-                                                  + instruction.getStart()
-                                                  + "), End("
-                                                  + instruction.getEnd()
-                                                  + ")");
+                throw new BadRequestException(
+                    "Invalid instruction: Instruction with end time before start time: Start("
+                        + instruction.getStart()
+                        + "), End("
+                        + instruction.getEnd()
+                        + ")");
             }
             if (instruction.getEnd() > recordingDuration) {
                 throw new BadRequestException("Invalid instruction: Instruction end time exceeding duration: Start("
@@ -401,7 +404,7 @@ public class EditRequestService {
             currentTime = Math.max(currentTime, instruction.getEnd());
         }
         if (currentTime != recordingDuration) {
-            invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
+            invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime, recordingDuration));
         }
 
         return invertedInstructions;
@@ -443,7 +446,11 @@ public class EditRequestService {
                 long originalMappedStart = originalSegment.getStart() + offsetInSegment;
                 long originalMappedEnd = originalMappedStart + cutLength;
 
-                mappedCuts.add(new EditCutInstructionDTO(originalMappedStart, originalMappedEnd, newCut.getReason()));
+                mappedCuts.add(new EditCutInstructionDTO(
+                    originalMappedStart,
+                    originalMappedEnd,
+                    newCut.getReason()
+                ));
             }
         }
 
@@ -477,7 +484,7 @@ public class EditRequestService {
         try {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
-            throw new UnknownServerException("Something went wrong: " + e.getMessage());
+            throw new UnknownServerException("Something went wrong: " + e.getMessage(), e);
         }
     }
 

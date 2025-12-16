@@ -48,6 +48,7 @@ public class EditController extends PreApiController {
 
     @Autowired
     public EditController(EditRequestService editRequestService) {
+        super();
         this.editRequestService = editRequestService;
     }
 
@@ -128,7 +129,7 @@ public class EditController extends PreApiController {
     @PostMapping(value = "/from-csv/{sourceRecordingId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<EditRequestDTO> createEditFromCsv(@PathVariable UUID sourceRecordingId,
                                                      @RequestParam("file") MultipartFile file) {
-        var fileType = file.getContentType();
+        String fileType = file.getContentType();
         if (fileType == null || !fileType.equals(CSV_FILE_TYPE)) {
             throw new UnsupportedMediaTypeException("Unsupported media type: Only CSV files are supported");
         }

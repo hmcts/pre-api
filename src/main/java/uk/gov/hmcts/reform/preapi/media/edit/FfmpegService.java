@@ -14,8 +14,11 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -46,15 +49,16 @@ public class FfmpegService implements IEditingService {
 
     @Override
     public void performEdit(UUID newRecordingId, EditRequest request) {
-        var inputFileName = request.getSourceRecording().getFilename();
-        var outputFileName = newRecordingId + ".mp4";
+        String inputFileName = request.getSourceRecording().getFilename();
         if (inputFileName == null) {
             throw new NotFoundException("No file name provided");
         }
 
+        String outputFileName = newRecordingId + ".mp4";
         performCommandsForEdit(request, newRecordingId, inputFileName, outputFileName);
     }
 
+    @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
     private void performCommandsForEdit(final EditRequest request,
                                         final UUID newRecordingId,
                                         final String inputFileName,
@@ -95,7 +99,7 @@ public class FfmpegService implements IEditingService {
             runFfmpegConcatCommand(request.getId(), concatCommand, outputFileName);
 
             final long ffmpegEnd = System.currentTimeMillis();
-            log.info("All ffmpeg commands completed in {} ms", (ffmpegEnd - ffmpegStart));
+            log.info("All ffmpeg commands completed in {} ms", ffmpegEnd - ffmpegStart);
 
             uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
         } finally {
@@ -116,7 +120,7 @@ public class FfmpegService implements IEditingService {
         }
         log.info("Successfully applied edit instructions to: {} and created output: {}", inputFileName, outputFileName);
         final long ffmpegEnd = System.currentTimeMillis();
-        log.info("Ffmpeg completed in {} ms", (ffmpegEnd - ffmpegStart));
+        log.info("Ffmpeg completed in {} ms", ffmpegEnd - ffmpegStart);
     }
 
     private void runFfmpegConcatCommand(final UUID requestId, final CommandLine command, final String outputFileName) {
@@ -127,7 +131,7 @@ public class FfmpegService implements IEditingService {
         }
         log.info("Successfully applied ffmpeg concat command and created output: {}", outputFileName);
         final long ffmpegEnd = System.currentTimeMillis();
-        log.info("Ffmpeg concat completed in {} ms", (ffmpegEnd - ffmpegStart));
+        log.info("Ffmpeg concat completed in {} ms", ffmpegEnd - ffmpegStart);
     }
 
     public void cleanup(final List<String> files) {
@@ -165,7 +169,7 @@ public class FfmpegService implements IEditingService {
     }
 
     private void deleteFile(String fileName) {
-        var file = new File(fileName);
+        File file = new File(fileName);
         try {
             if (file.delete()) {
                 log.info("Successfully deleted file: {}", fileName);
@@ -203,6 +207,7 @@ public class FfmpegService implements IEditingService {
             .addArgument(outputFileName);
     }
 
+    @SuppressWarnings({"PMD.AvoidLiteralsInIfCondition", "PMD.LooseCoupling"})
     protected LinkedHashMap<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
                                                                            final String inputFileName,
                                                                            final String outputFileName) {
@@ -234,25 +239,28 @@ public class FfmpegService implements IEditingService {
     }
 
     protected void generateConcatListFile(final Set<String> segmentFiles, final String outputPath) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath))) {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputPath),
+                                                             StandardCharsets.UTF_8,
+                                                             StandardOpenOption.CREATE,
+                                                             StandardOpenOption.TRUNCATE_EXISTING)) {
             for (String file : segmentFiles) {
                 writer.write("file '" + file + "'");
                 writer.newLine();
             }
         } catch (IOException e) {
-            throw new UnknownServerException("Error occurred when attempting to generate concat list file");
+            throw new UnknownServerException("Error occurred when attempting to generate concat list file", e);
         }
     }
 
     private void downloadInputFile(final EditRequest request,
-                                   final String inputFileName) throws UnknownServerException {
+                                   final String inputFileName) {
         final long downloadStart = System.currentTimeMillis();
         if (!azureFinalStorageService
             .downloadBlob(request.getSourceRecording().getId().toString(), inputFileName, inputFileName)) {
             throw new UnknownServerException("Error occurred when attempting to download file: " + inputFileName);
         }
         final long downloadEnd = System.currentTimeMillis();
-        log.info("Download completed in {} ms", (downloadEnd - downloadStart));
+        log.info("Download completed in {} ms", downloadEnd - downloadStart);
 
     }
 
@@ -265,6 +273,6 @@ public class FfmpegService implements IEditingService {
             throw new UnknownServerException("Error occurred when attempting to upload file");
         }
         final long uploadEnd = System.currentTimeMillis();
-        log.info("Upload completed in {} ms", (uploadEnd - uploadStart));
+        log.info("Upload completed in {} ms", uploadEnd - uploadStart);
     }
 }

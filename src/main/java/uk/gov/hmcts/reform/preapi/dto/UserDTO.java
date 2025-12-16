@@ -18,7 +18,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,7 +66,7 @@ public class UserDTO extends BaseUserDTO {
                 .map(PortalAccessDTO::new))
             .collect(Collectors.toList());
         if (latestTermsAndConditions != null) {
-            termsAccepted = new HashMap<>();
+            termsAccepted = new EnumMap<>(TermsAndConditionsType.class);
             Arrays.stream(TermsAndConditionsType.values())
                 .forEach(type -> {
                     termsAccepted.put(type, latestTermsAndConditions
@@ -75,10 +75,10 @@ public class UserDTO extends BaseUserDTO {
                         .anyMatch(t -> Stream.ofNullable(user.getUserTermsAccepted())
                             .flatMap(Collection::stream)
                             .anyMatch(userAcceptedTsCs -> userAcceptedTsCs.isValid()
-                                && userAcceptedTsCs.getTermsAndConditions().getId() == t.getId())));
+                                && userAcceptedTsCs.getTermsAndConditions().getId().equals(t.getId()))));
                 });
         } else {
-            termsAccepted = new HashMap<>();
+            termsAccepted = new EnumMap<>(TermsAndConditionsType.class);
             Arrays.stream(TermsAndConditionsType.values()).forEach(type -> {
                 termsAccepted.put(type, false);
             });

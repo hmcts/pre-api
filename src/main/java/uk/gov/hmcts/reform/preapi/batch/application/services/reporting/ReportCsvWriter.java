@@ -40,10 +40,10 @@ public class ReportCsvWriter {
         if (dataRows == null) {
             throw new IllegalArgumentException("Data rows cannot be null");
         }
-        if (fileNamePrefix == null || fileNamePrefix.trim().isEmpty()) {
+        if (fileNamePrefix == null || fileNamePrefix.isBlank()) {
             throw new IllegalArgumentException("File name prefix cannot be null or empty");
         }
-        if (outputDir == null || outputDir.trim().isEmpty()) {
+        if (outputDir == null || outputDir.isBlank()) {
             throw new IllegalArgumentException("Output directory cannot be null or empty");
         }
 
