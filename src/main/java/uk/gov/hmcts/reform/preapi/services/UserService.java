@@ -288,7 +288,7 @@ public class UserService {
     }
 
     @Transactional
-    public void updateAlternativeEmail(UUID userId, String alternativeEmail) {
+    public UpsertResult updateAlternativeEmail(UUID userId, String alternativeEmail) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
         
@@ -296,7 +296,7 @@ public class UserService {
         
         if (trimmedEmail != null && !trimmedEmail.isEmpty()) {
             Optional<User> existingUser = userRepository
-                .findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
+                .findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
             
             if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
                 throw new ConflictException(
@@ -306,6 +306,8 @@ public class UserService {
         
         user.setAlternativeEmail(trimmedEmail != null && !trimmedEmail.isEmpty() ? trimmedEmail : null);
         userRepository.saveAndFlush(user);
+
+        return UpsertResult.UPDATED;
     }
 
     @Transactional(readOnly = true)
