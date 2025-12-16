@@ -316,6 +316,7 @@ public class UserService {
             .orElseThrow(() -> new NotFoundException("Role: " + roleId));
     }
 
+    @Transactional(readOnly = true)
     public Page<UserDTO> findPortalUsersWithCjsmEmail(Pageable pageable) {
         return userRepository.findPortalUsersWithCjsmEmail(pageable).map(user -> new UserDTO(user, null));
     }

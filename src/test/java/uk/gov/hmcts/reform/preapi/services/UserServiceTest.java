@@ -36,6 +36,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -1218,6 +1219,8 @@ public class UserServiceTest {
         cjsmUser.setLastName("User");
         cjsmUser.setEmail("user@cjsm.net");
         cjsmUser.setAlternativeEmail("alt@cjsm.net");
+        cjsmUser.setAppAccess(new HashSet<>());
+        cjsmUser.setPortalAccess(new HashSet<>());
 
         when(userRepository.findPortalUsersWithCjsmEmail(any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(cjsmUser)));

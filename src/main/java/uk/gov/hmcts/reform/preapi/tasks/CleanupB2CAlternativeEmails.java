@@ -34,6 +34,7 @@ public class CleanupB2CAlternativeEmails extends RobotUserTask {
     public void run() {
         signInRobotUser();
 
+        log.info("#########################################");
         log.info("Starting CleanupB2CAlternativeEmails task");
         var pageSize = 50;
         var pageNumber = 0;
@@ -59,6 +60,7 @@ public class CleanupB2CAlternativeEmails extends RobotUserTask {
         }
 
         log.info("Completed CleanupB2CAlternativeEmails task");
+        log.info("#########################################");
     }
 
     private String obfuscateEmail(String email) {

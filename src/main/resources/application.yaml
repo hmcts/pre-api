@@ -80,9 +80,9 @@ azure:
   tenantId: ${AZURE_TENANT_ID:}
 
   b2c:
-    clientId: ${AZURE_B2C_CLIENT_ID:}
+    clientId: ${AZURE_B2C_CLIENT_ID:} # pre-b2c-user-mgmt Application ID
     clientSecret: ${AZURE_B2C_CLIENT_SECRET:}
-    tenantId: ${AZURE_B2C_TENANT_ID:}
+    tenantId: ${AZURE_B2C_TENANT_ID:} # hmcts-stg-external-id directory id
 
 hibernate:
   show_sql: true

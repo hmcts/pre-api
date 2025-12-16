@@ -27,13 +27,18 @@ public class Application implements CommandLineRunner {
 
         if (System.getenv("TASK_NAME") != null) {
             instance.close();
+            System.exit(0);
         }
     }
 
     @Override
     public void run(String... args) {
         if (System.getenv("TASK_NAME") != null) {
-            taskRunner.run(System.getenv("TASK_NAME"));
+            try {
+                taskRunner.run(System.getenv("TASK_NAME"));
+            } catch (Exception e) {
+                System.exit(1);
+            }
         }
     }
 }
