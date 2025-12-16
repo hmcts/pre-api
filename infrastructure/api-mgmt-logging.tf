@@ -48,4 +48,6 @@ resource "azurerm_api_management_api_diagnostic" "api_mgmt_logs" {
       "origin"
     ]
   }
+
+  depends_on = [module.pre_api[0]]
 }
