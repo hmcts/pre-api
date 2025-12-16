@@ -290,7 +290,7 @@ public class UserService {
     }
 
     @Transactional
-    public void updateAlternativeEmail(UUID userId, String alternativeEmail) {
+    public UpsertResult updateAlternativeEmail(UUID userId, String alternativeEmail) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
         
@@ -308,6 +308,8 @@ public class UserService {
         
         user.setAlternativeEmail(trimmedEmail != null && !trimmedEmail.isEmpty() ? trimmedEmail : null);
         userRepository.saveAndFlush(user);
+
+        return UpsertResult.UPDATED;
     }
 
     @Transactional(readOnly = true)
