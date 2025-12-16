@@ -143,11 +143,8 @@ public class PostMigrationItemExecutor {
         
         if (share.getSharedWithUser() != null) {
             if (email.isEmpty()) {
-                try {
-                    email = userService.findById(share.getSharedWithUser()).getEmail();
-                } catch (Exception e) {
-                    loggingService.logWarning("Could not resolve email for user ID: %s - %s", 
-                        share.getSharedWithUser(), e.getMessage());
+                email = getUserEmailById(share.getSharedWithUser());
+                if (email.isEmpty()) {
                     email = "unknown@" + share.getSharedWithUser().toString().substring(0, 8);
                 }
             }
@@ -207,16 +204,19 @@ public class PostMigrationItemExecutor {
         }
         
         if (share.getSharedWithUser() != null) {
-            try {
-                var user = userService.findById(share.getSharedWithUser());
-                return user.getEmail();
-            } catch (NotFoundException e) {
-                loggingService.logWarning(
-                    "User not found for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
-            } catch (Exception e) {
-                loggingService.logWarning(
-                    "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
-            }
+            return getUserEmailById(share.getSharedWithUser());
+        }
+        return "";
+    }
+
+    private String getUserEmailById(UUID userId) {
+        try {
+            var user = userService.findById(userId);
+            return user.getEmail();
+        } catch (NotFoundException e) {
+            loggingService.logWarning("User not found for ID: %s - %s", userId, e.getMessage());
+        } catch (Exception e) {
+            loggingService.logWarning("Could not find user email for ID: %s - %s", userId, e.getMessage());
         }
         return "";
     }
@@ -273,42 +273,22 @@ public class PostMigrationItemExecutor {
     }
 
     private void recordSkippedShareBooking(CreateShareBookingDTO share, String email, String reason) {
-        recordFailure(
-            ENTITY_TYPE_SHARE_BOOKING,
-            safeIdToString(share.getId()),
-            safeEmail(email),
-            STATUS_SKIPPED,
-            reason
-        );
+        recordFailure(ENTITY_TYPE_SHARE_BOOKING, safeIdToString(share.getId()), safeEmail(email), 
+            STATUS_SKIPPED, reason);
     }
 
     private void recordFailedShareBooking(CreateShareBookingDTO share, String email, Exception e) {
-        recordFailure(
-            ENTITY_TYPE_SHARE_BOOKING,
-            safeIdToString(share.getId()),
-            safeEmail(email),
-            "SHARE",
-            extractReason(e)
-        );
+        recordFailure(ENTITY_TYPE_SHARE_BOOKING, safeIdToString(share.getId()), safeEmail(email), 
+            "SHARE", extractReason(e));
     }
 
     private void recordSkippedInvite(CreateInviteDTO invite, String reason) {
-        recordFailure(
-            "Invite",
-            invite.getUserId() != null ? invite.getUserId().toString() : "",
-            invite.getEmail(),
-            STATUS_SKIPPED,
-            reason
-        );
+        recordFailure("Invite", safeIdToString(invite.getUserId()), invite.getEmail(), 
+            STATUS_SKIPPED, reason);
     }
 
     private void recordFailedInvite(CreateInviteDTO invite, Exception e) {
-        recordFailure(
-            "Invite",
-            invite.getUserId() != null ? invite.getUserId().toString() : "",
-            invite.getEmail(),
-            "USER_CREATION",
-            extractReason(e)
-        );
+        recordFailure("Invite", safeIdToString(invite.getUserId()), invite.getEmail(), 
+            "USER_CREATION", extractReason(e));
     }
 }
