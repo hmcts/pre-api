@@ -377,7 +377,7 @@ public class PostMigrationJobConfig {
                 return user.getEmail();
             } catch (NotFoundException e) {
                 loggingService.logWarning(
-                    "User not found for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
+                    "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
             } catch (Exception e) {
                 loggingService.logWarning(
                     "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
