@@ -22,6 +22,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.applicationinsights.TelemetryClient;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
@@ -43,6 +44,7 @@ import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAssetStorage;
 import uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInPreset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyOptions;
@@ -459,13 +461,13 @@ public class MediaKind implements IMediaService {
 
     @Override
     public boolean checkLiveFeedAvailable(UUID captureSessionId) {
-        var liveEventId = getSanitisedLiveEventId(captureSessionId);
+        String liveEventId = getSanitisedLiveEventId(captureSessionId);
         checkLiveEventExists(liveEventId);
 
-        var assetInfo = mediaKindClient.getAssetTracks(liveEventId);
-        var periods = assetInfo.getSpec().getPeriods();
+        MkAssetStorage assetInfo = mediaKindClient.getAssetTracks(liveEventId);
+        JsonNode periods = assetInfo.getSpec().getPeriods();
 
-        return (periods != null && !periods.isEmpty());
+        return periods != null && !periods.isEmpty();
     }
 
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
