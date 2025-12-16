@@ -108,7 +108,6 @@ class BookingTest {
 
         audit.get().getAuditDetails().get("participants")
             .forEach(node -> {
-                System.out.println(node);
                 assertThat(node.asText()).isIn(List.of(
                     participant1.getId().toString(), participant2.getId().toString()));
             });
