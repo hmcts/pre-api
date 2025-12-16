@@ -49,5 +49,5 @@ resource "azurerm_api_management_api_diagnostic" "api_mgmt_logs" {
     ]
   }
 
-  depends_on = [module.pre_api[0].azurerm_api_management_api.api]
+  depends_on = [module.pre_api[0]]
 }
