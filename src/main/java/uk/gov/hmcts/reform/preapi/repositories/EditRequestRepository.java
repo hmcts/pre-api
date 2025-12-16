@@ -21,6 +21,7 @@ import java.util.UUID;
 @Repository
 public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> {
     @NotNull
+    @Override
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from EditRequest e where e.id = ?1")
     @QueryHints({@QueryHint(name = "jakarta.persistence.lock.timeout", value = "0")})

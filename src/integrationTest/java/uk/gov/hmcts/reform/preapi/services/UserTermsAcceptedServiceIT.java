@@ -16,7 +16,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class UserTermsAcceptedServiceIT extends IntegrationTestBase {
+class UserTermsAcceptedServiceIT extends IntegrationTestBase {
 
     @Autowired
     private UserTermsAcceptedService userTermsAcceptedService;
@@ -39,7 +39,7 @@ public class UserTermsAcceptedServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void acceptTermsAndConditions() {
+    void acceptTermsAndConditions() {
         var mockedUser = mockAdminUser();
         when(mockedUser.getUserId()).thenReturn(user.getId());
         userTermsAcceptedService.acceptTermsAndConditions(termsAndConditions.getId());

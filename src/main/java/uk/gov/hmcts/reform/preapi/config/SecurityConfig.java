@@ -21,7 +21,7 @@ public class SecurityConfig {
 
     private final UserAuthenticationService userAuthenticationService;
 
-    public static final String[] PERMITTED_URIS_ALL_REQUESTS = new String[]{
+    public static final String[] PERMITTED_URIS_ALL_REQUESTS = {
         "/testing-support/**",
         "/swagger-ui/**",
         "/v3/api-docs/**",
@@ -39,11 +39,11 @@ public class SecurityConfig {
         "/portal-terms-and-conditions/latest"
     };
 
-    public static final String[] PERMITTED_URIS_GET_ONLY = new String[]{
+    public static final String[] PERMITTED_URIS_GET_ONLY = {
         "/invites",
     };
 
-    public static final String[] PERMITTED_URIS_POST = new String[] {
+    public static final String[] PERMITTED_URIS_POST = {
         "/invites/redeem",
         "/batch",
         "/batch/fetch-xml",
@@ -58,6 +58,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @SuppressWarnings("PMD.SignatureDeclareThrowsException")
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
