@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             generateReport(results);
             log.info("Completed ImportUserAlternativeEmail Task. Processed {} rows", importRows.size());
         } catch (IOException e) {
-            log.error("Failed to read CSV file for user alternative email import", e);
+            log.error("Failed to read CSV file for user alternative email import", e.getMessage());
             throw new IllegalStateException("Failed to import user alternative email data: CSV read error", e);
         } catch (IllegalStateException e) {
             log.error("Failed to import user alternative email data", e);
@@ -128,11 +129,18 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(),
                                                                               StandardCharsets.UTF_8))) {
-            return new CsvToBeanBuilder<ImportRow>(reader)
-                .withType(ImportRow.class)
-                .withIgnoreLeadingWhiteSpace(true)
-                .build()
-                .parse();
+            try {
+                return new CsvToBeanBuilder<ImportRow>(reader)
+                    .withType(ImportRow.class)
+                    .withIgnoreLeadingWhiteSpace(true)
+                    .build()
+                    .parse();
+            } catch (RuntimeException e) {
+                if (e.getCause() instanceof CsvRequiredFieldEmptyException) {
+                    throw new IOException("CSV header invalid: " + e.getCause().getMessage(), e);
+                }
+                throw e;
+            }
         }
     }
 
