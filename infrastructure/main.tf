@@ -54,6 +54,17 @@ module "pre_api" {
   subscription_required = true
 }
 
+resource "null_resource" "pre_api_delay" {
+  count = local.env_to_deploy
+  triggers = {
+    api_name = module.pre_api[0].name
+  }
+  provisioner "local-exec" {
+    command = "echo 'reliability delay' && sleep 15"
+  }
+  depends_on = [module.pre_api]
+}
+
 module "apim_subscription_smoketest" {
   count            = local.env_to_deploy
   sub_display_name = "pre-api smoke test subscription"
@@ -62,6 +73,7 @@ module "apim_subscription_smoketest" {
   api_mgmt_rg      = "ss-${var.env}-network-rg"
   state            = "active"
   allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
+  depends_on = [null_resource.pre_api_delay]
 }
 resource "azurerm_key_vault_secret" "apim_subscription_smoketest_primary_key" {
   count        = local.env_to_deploy
@@ -84,6 +96,7 @@ module "apim_subscription_powerplatform" {
   api_mgmt_rg      = "ss-${var.env}-network-rg"
   state            = "active"
   allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
+  depends_on = [null_resource.pre_api_delay]
 }
 resource "azurerm_key_vault_secret" "apim_subscription_powerplatform_primary_key" {
   count        = local.env_to_deploy
@@ -106,6 +119,7 @@ module "apim_subscription_portal" {
   api_mgmt_rg      = "ss-${var.env}-network-rg"
   state            = "active"
   allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
+  depends_on = [null_resource.pre_api_delay]
 }
 resource "azurerm_key_vault_secret" "apim_subscription_portal_primary_key" {
   count        = local.env_to_deploy
@@ -155,6 +169,7 @@ module "pre-api-mgmt-api-policy" {
     </on-error>
 </policies>
 XML
+  depends_on = [null_resource.pre_api_delay]
 }
 
 module "pre_b2c_product" {
@@ -181,6 +196,20 @@ module "pre_api_b2c" {
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
   subscription_required = false
+  depends_on = [
+    null_resource.pre_api_delay,
+    module.pre-api-mgmt-api-policy
+  ]
+}
+
+resource "null_resource" "pre_api_b2c_delay" {
+  triggers = {
+    api_name = module.pre_api_b2c.name
+  }
+  provisioner "local-exec" {
+    command = "echo 'b2c reliability delay' && sleep 15"
+  }
+  depends_on = [module.pre_api_b2c]
 }
 
 module "pre-api-b2c-mgmt-api-policy" {
@@ -224,4 +253,5 @@ module "pre-api-b2c-mgmt-api-policy" {
   <on-error><base /></on-error>
 </policies>
 XML
+  depends_on = [null_resource.pre_api_b2c_delay]
 }
