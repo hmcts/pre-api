@@ -4,6 +4,7 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.models.ObjectIdentity;
 import com.microsoft.graph.models.User;
+import com.microsoft.graph.models.UserCollectionResponse;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,19 +18,8 @@ import java.util.Optional;
 @Component
 public class B2CGraphServiceImpl implements B2CGraphService {
 
-    private GraphServiceClient graphClient;
-
-    private final String clientId;
-    private final String clientSecret;
+    private final GraphServiceClient graphClient;
     private final String tenantId;
-
-    // No-arg constructor for frameworks that need it
-    public B2CGraphServiceImpl() {
-        this.clientId = "";
-        this.clientSecret = "";
-        this.tenantId = "";
-        this.graphClient = null;
-    }
 
     @Autowired
     public B2CGraphServiceImpl(
@@ -37,68 +27,48 @@ public class B2CGraphServiceImpl implements B2CGraphService {
         @Value("${azure.b2c.clientSecret:}") String clientSecret,
         @Value("${azure.b2c.tenantId:}") String tenantId
     ) {
-        this.clientId = clientId != null ? clientId : "";
-        this.clientSecret = clientSecret != null ? clientSecret : "";
         this.tenantId = tenantId != null ? tenantId : "";
-
-        if (!this.clientId.isEmpty() && !this.clientSecret.isEmpty() && !this.tenantId.isEmpty()) {
-            try {
-                ClientSecretCredential credential = new ClientSecretCredentialBuilder()
-                    .clientId(this.clientId)
-                    .clientSecret(this.clientSecret)
-                    .tenantId(this.tenantId)
-                    .build();
-
-                this.graphClient = new GraphServiceClient(credential);
-            } catch (Exception e) {
-                log.error("Failed to initialize GraphServiceClient: {}", e.getMessage(), e);
-                this.graphClient = null;
-            }
-        } else {
-            this.graphClient = null;
-        }
+        this.graphClient = initializeGraphClient(clientId, clientSecret, this.tenantId);
     }
 
+    // Constructor for testing
     public B2CGraphServiceImpl(GraphServiceClient graphClient, String tenantId) {
         this.graphClient = graphClient;
         this.tenantId = tenantId != null ? tenantId : "";
-        this.clientId = "";
-        this.clientSecret = "";
     }
 
-    private synchronized void ensureClientInitialized() {
-        if (this.graphClient != null) {
-            return;
-        }
-        if (clientId == null
-            || clientId.isEmpty()
-            || clientSecret == null
-            || clientSecret.isEmpty()
-            || tenantId == null
-            || tenantId.isEmpty()) {
-            // configuration not present; leave graphClient null
-            return;
-        }
+    private GraphServiceClient initializeGraphClient(String clientId, String clientSecret, String tenantId) {
+        if (clientId != null && !clientId.isEmpty()
+            && clientSecret != null && !clientSecret.isEmpty()
+            && !tenantId.isEmpty()) {
+            try {
+                ClientSecretCredential credential = new ClientSecretCredentialBuilder()
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .tenantId(tenantId)
+                    .build();
 
-        ClientSecretCredential credential = new ClientSecretCredentialBuilder()
-            .clientId(clientId)
-            .clientSecret(clientSecret)
-            .tenantId(tenantId)
-            .build();
-
-        this.graphClient = new GraphServiceClient(credential);
+                log.info("GraphServiceClient initialized successfully");
+                return new GraphServiceClient(credential);
+            } catch (Exception e) {
+                log.error("Failed to initialize GraphServiceClient: {}", e.getMessage(), e);
+                return null;
+            }
+        } else {
+            log.warn("Azure B2C credentials not configured, GraphServiceClient will not be available");
+            return null;
+        }
     }
 
     @Override
     public Optional<User> findUserByPrimaryEmail(String primaryEmail) {
-        ensureClientInitialized();
         if (graphClient == null) {
             log.warn("GraphServiceClient is not configured; cannot query B2C for {}", primaryEmail);
             return Optional.empty();
         }
 
         try {
-            var users = graphClient.users()
+            UserCollectionResponse users = graphClient.users()
                 .get(requestConfiguration -> {
                     if (requestConfiguration.queryParameters != null) {
                         requestConfiguration.queryParameters.filter =
@@ -114,7 +84,8 @@ public class B2CGraphServiceImpl implements B2CGraphService {
                 return Optional.empty();
             }
 
-            if (users.getValue().size() > 1) {
+            int limitOfUsersWithSameEmail = 1;
+            if (users.getValue().size() > limitOfUsersWithSameEmail) {
                 log.error("Multiple B2C users found with email: {}", primaryEmail);
                 return Optional.empty();
             }
@@ -128,7 +99,6 @@ public class B2CGraphServiceImpl implements B2CGraphService {
 
     @Override
     public void updateUserIdentities(String userId, List<ObjectIdentity> identities) {
-        ensureClientInitialized();
         if (graphClient == null) {
             throw new IllegalStateException("GraphServiceClient is not configured");
         }

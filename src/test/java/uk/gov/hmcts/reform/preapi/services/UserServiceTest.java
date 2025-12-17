@@ -1029,14 +1029,14 @@ public class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
-        when(userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
             .thenReturn(Optional.empty());
 
         userService.updateAlternativeEmail(userId, alternativeEmail);
 
         assertThat(user.getAlternativeEmail()).isEqualTo(alternativeEmail);
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, times(1)).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
         verify(userRepository, times(1)).saveAndFlush(user);
     }
 
@@ -1056,7 +1056,7 @@ public class UserServiceTest {
 
         assertThat(user.getAlternativeEmail()).isNull();
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, times(1)).saveAndFlush(user);
     }
 
@@ -1076,7 +1076,7 @@ public class UserServiceTest {
 
         assertThat(user.getAlternativeEmail()).isNull();
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, times(1)).saveAndFlush(user);
     }
 
@@ -1091,14 +1091,14 @@ public class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
-        when(userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull("trimmed@example.com"))
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull("trimmed@example.com"))
             .thenReturn(Optional.empty());
 
         userService.updateAlternativeEmail(userId, alternativeEmail);
 
         assertThat(user.getAlternativeEmail()).isEqualTo("trimmed@example.com");
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, times(1)).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(
             "trimmed@example.com");
         verify(userRepository, times(1)).saveAndFlush(user);
     }
@@ -1118,7 +1118,7 @@ public class UserServiceTest {
         );
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1139,7 +1139,7 @@ public class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
-        when(userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
             .thenReturn(Optional.of(existingUser));
 
         assertThrows(
@@ -1148,7 +1148,7 @@ public class UserServiceTest {
         );
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, times(1)).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1164,14 +1164,14 @@ public class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
-        when(userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
             .thenReturn(Optional.of(user));
 
         userService.updateAlternativeEmail(userId, alternativeEmail);
 
         assertThat(user.getAlternativeEmail()).isEqualTo(alternativeEmail);
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, times(1)).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
         verify(userRepository, times(1)).saveAndFlush(user);
     }
 

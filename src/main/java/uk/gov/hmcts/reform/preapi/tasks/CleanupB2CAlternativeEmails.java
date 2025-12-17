@@ -5,6 +5,7 @@ import com.microsoft.graph.models.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
@@ -14,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -36,12 +38,12 @@ public class CleanupB2CAlternativeEmails extends RobotUserTask {
 
         log.info("#########################################");
         log.info("Starting CleanupB2CAlternativeEmails task");
-        var pageSize = 50;
-        var pageNumber = 0;
-        var pageable = Pageable.ofSize(pageSize);
+        int pageSize = 50;
+        int pageNumber = 0;
+        Pageable pageable = Pageable.ofSize(pageSize);
 
-        var page = userService.findPortalUsersWithCjsmEmail(pageable);
-        var totalUsers = page.getTotalElements();
+        Page<UserDTO> page = userService.findPortalUsersWithCjsmEmail(pageable);
+        long totalUsers = page.getTotalElements();
         log.info("Found {} users with CJSM email addresses to process", totalUsers);
 
         while (!page.isEmpty()) {
@@ -72,25 +74,26 @@ public class CleanupB2CAlternativeEmails extends RobotUserTask {
             // no @ present
             return "***" + email;
         }
-        if (atIndex <= 1) {
+        int minimumPrefixLength = 1;
+        if (atIndex <= minimumPrefixLength) {
             return "***" + email.substring(atIndex);
         }
         return email.charAt(0) + "***" + email.substring(atIndex - 1);
     }
 
     private void removeB2CAlternativeEmail(UserDTO user) {
-        var primaryEmail = user.getEmail();
-        var alternativeEmail = user.getAlternativeEmail();
+        String primaryEmail = user.getEmail();
+        String alternativeEmail = user.getAlternativeEmail();
         try {
             log.info("Processing user with primary email: {}, alternative email: {}",
                      obfuscateEmail(primaryEmail), obfuscateEmail(alternativeEmail));
 
-            if (alternativeEmail == null || alternativeEmail.trim().isEmpty()) {
+            if (alternativeEmail == null || alternativeEmail.isBlank()) {
                 log.warn("User {} has no alternative email configured, skipping", obfuscateEmail(primaryEmail));
                 return;
             }
 
-            var maybeB2cUser = b2cGraphService.findUserByPrimaryEmail(primaryEmail);
+            Optional<User> maybeB2cUser = b2cGraphService.findUserByPrimaryEmail(primaryEmail);
             if (maybeB2cUser.isEmpty()) {
                 log.warn("No B2C user found with email: {}", obfuscateEmail(primaryEmail));
                 return;

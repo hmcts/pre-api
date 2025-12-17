@@ -108,10 +108,10 @@ class B2CGraphServiceImplTest {
 
     @Test
     void updateUserIdentities_throws_when_client_not_configured() {
-        // create service with no graph client configured (no-arg constructor)
-        var svc = new B2CGraphServiceImpl();
+        // create service with no graph client configured (empty credentials)
+        B2CGraphServiceImpl svc = new B2CGraphServiceImpl("", "", "");
 
-        var identities = new ArrayList<ObjectIdentity>();
+        ArrayList<ObjectIdentity> identities = new ArrayList<>();
 
         assertThatThrownBy(() -> svc.updateUserIdentities("id", identities))
             .isInstanceOf(IllegalStateException.class)
@@ -126,7 +126,7 @@ class B2CGraphServiceImplTest {
         String tenant = "fake-tenant";
 
         // instantiate using the @Autowired-style constructor directly
-        var svc = new B2CGraphServiceImpl(clientId, clientSecret, tenant);
+        B2CGraphServiceImpl svc = new B2CGraphServiceImpl(clientId, clientSecret, tenant);
 
         // reflectively check internal fields
         var graphClientField = B2CGraphServiceImpl.class.getDeclaredField("graphClient");
@@ -136,53 +136,16 @@ class B2CGraphServiceImplTest {
         var tenantField = B2CGraphServiceImpl.class.getDeclaredField("tenantId");
         tenantField.setAccessible(true);
         assertThat(tenantField.get(svc)).isEqualTo(tenant);
-
-        var clientIdField = B2CGraphServiceImpl.class.getDeclaredField("clientId");
-        clientIdField.setAccessible(true);
-        assertThat(clientIdField.get(svc)).isEqualTo(clientId);
-
-        var clientSecretField = B2CGraphServiceImpl.class.getDeclaredField("clientSecret");
-        clientSecretField.setAccessible(true);
-        assertThat(clientSecretField.get(svc)).isEqualTo(clientSecret);
     }
 
     @Test
-    void ensureClientInitialized_builds_graph_client_when_config_present() throws Exception {
-        // create service with no-arg constructor so graphClient starts null
-        var svc = new B2CGraphServiceImpl();
+    void constructor_leaves_graph_client_null_when_credentials_missing() throws Exception {
+        // create service with empty credentials
+        B2CGraphServiceImpl svc = new B2CGraphServiceImpl("", "", "");
 
-        // reflectively set the private final fields clientId, clientSecret, tenantId
-        setFinalField(B2CGraphServiceImpl.class, svc, "clientId", "fake-client-id");
-        setFinalField(B2CGraphServiceImpl.class, svc, "clientSecret", "fake-client-secret");
-        setFinalField(B2CGraphServiceImpl.class, svc, "tenantId", "fake-tenant");
-
-        // invoke private ensureClientInitialized()
-        var m = B2CGraphServiceImpl.class.getDeclaredMethod("ensureClientInitialized");
-        m.setAccessible(true);
-        m.invoke(svc);
-
-        // assert graphClient was initialized
+        // reflectively check that graphClient is null
         var graphClientField = B2CGraphServiceImpl.class.getDeclaredField("graphClient");
         graphClientField.setAccessible(true);
-        Object graphClient = graphClientField.get(svc);
-
-        assertThat(graphClient).isNotNull();
-    }
-
-    // utility to set private final fields in tests
-    private static void setFinalField(Class<?> cls, Object target, String fieldName, Object value) throws Exception {
-        var field = cls.getDeclaredField(fieldName);
-        field.setAccessible(true);
-
-        // remove final modifier
-        try {
-            var modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
-            modifiersField.setAccessible(true);
-            modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-        } catch (NoSuchFieldException ignored) {
-            // Java 12+ may not allow modifiers hack; still try set
-        }
-
-        field.set(target, value);
+        assertThat(graphClientField.get(svc)).isNull();
     }
 }
