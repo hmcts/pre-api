@@ -73,7 +73,7 @@ module "apim_subscription_smoketest" {
   api_mgmt_rg      = "ss-${var.env}-network-rg"
   state            = "active"
   allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
-  depends_on = [null_resource.pre_api_delay]
+  depends_on       = [null_resource.pre_api_delay]
 }
 resource "azurerm_key_vault_secret" "apim_subscription_smoketest_primary_key" {
   count        = local.env_to_deploy
@@ -96,7 +96,7 @@ module "apim_subscription_powerplatform" {
   api_mgmt_rg      = "ss-${var.env}-network-rg"
   state            = "active"
   allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
-  depends_on = [null_resource.pre_api_delay]
+  depends_on       = [null_resource.pre_api_delay]
 }
 resource "azurerm_key_vault_secret" "apim_subscription_powerplatform_primary_key" {
   count        = local.env_to_deploy
@@ -119,7 +119,7 @@ module "apim_subscription_portal" {
   api_mgmt_rg      = "ss-${var.env}-network-rg"
   state            = "active"
   allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
-  depends_on = [null_resource.pre_api_delay]
+  depends_on       = [null_resource.pre_api_delay]
 }
 resource "azurerm_key_vault_secret" "apim_subscription_portal_primary_key" {
   count        = local.env_to_deploy
