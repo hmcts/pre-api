@@ -17,10 +17,6 @@ public class AzureIngestStorageService extends AzureStorageService {
         super(ingestStorageClient, azureConfiguration);
     }
 
-    public boolean doesValidAssetExist(String containerName) {
-        return doesIsmFileExist(containerName) || doesBlobExist(containerName, BLOB_GC_STATE);
-    }
-
     public void markContainerAsProcessing(String containerName) {
         tagAllBlobsInContainer(containerName, TAG_KEY_STATUS, TAG_VALUE_PROCESSING);
     }
@@ -36,5 +32,11 @@ public class AzureIngestStorageService extends AzureStorageService {
             .listBlobs()
             .stream()
             .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase("0/section"));
+    }
+
+    // Deprecated, do not rely on MK internal state to determine recording status
+    @Deprecated
+    public boolean doesValidAssetExist(String containerName) {
+        return doesIsmFileExist(containerName) || doesBlobExist(containerName, BLOB_GC_STATE);
     }
 }
