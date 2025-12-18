@@ -30,3 +30,4 @@ applicationinsights-agent-*.jar
 bin/migration/*/*.txt
 bin/migration/**/__pycache__/
 migration_report_*
+/Migration Reports/

@@ -28,6 +28,7 @@ public class Application implements CommandLineRunner {
 
         if (System.getenv("TASK_NAME") != null) {
             instance.close();
+            System.exit(0);
         }
     }
 

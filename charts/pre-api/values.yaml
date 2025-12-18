@@ -44,6 +44,12 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: SLACK_WEBHOOK_URL
         - name: slack-infobot-url
           alias: SLACK_INFOBOT_URL
+        - name: pre-b2c-user-mgmt-client-id   # pre-b2c-user-mgmt Application ID
+          alias: AZURE_B2C_CLIENT_ID
+        - name: pre-b2c-user-mgmt-secret   # pre-b2c-user-mgmt secret
+          alias: AZURE_B2C_CLIENT_SECRET
+        - name: pre-b2c-user-mgmt-tenant-id   # pre-b2c-user-mgmt tenant ID
+          alias: AZURE_B2C_TENANT_ID
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
