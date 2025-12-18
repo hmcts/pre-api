@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import com.microsoft.graph.models.ObjectIdentity;
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Data;
@@ -15,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsv
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.B2CGraphService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
@@ -30,6 +32,7 @@ import java.util.Optional;
 public class ImportUserAlternativeEmail extends RobotUserTask {
 
     private final AzureVodafoneStorageService azureVodafoneStorageService;
+    private final B2CGraphService b2cGraphService;
 
     @Value("${azure.vodafoneStorage.csvContainer}")
     private String containerName;
@@ -74,9 +77,11 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
     public ImportUserAlternativeEmail(UserService userService,
                                 UserAuthenticationService userAuthenticationService,
                                 @Value("${cron-user-email}") String cronUserEmail,
-                                AzureVodafoneStorageService azureVodafoneStorageService) {
+                                AzureVodafoneStorageService azureVodafoneStorageService,
+                                B2CGraphService b2cGraphService) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.azureVodafoneStorageService = azureVodafoneStorageService;
+        this.b2cGraphService = b2cGraphService;
     }
 
     @Override
@@ -209,13 +214,65 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
+        // Add alternative email as an additional identity in B2C
+        try {
+            Optional<com.microsoft.graph.models.User> maybeB2cUser =
+                b2cGraphService.findUserByPrimaryEmail(row.getEmail());
+
+            if (maybeB2cUser.isEmpty()) {
+                return new ImportResult(
+                    row.getEmail(),
+                    row.getAlternativeEmail(),
+                    STATUS_ERROR,
+                    "User not found in B2C"
+                );
+            }
+
+            com.microsoft.graph.models.User b2cUser = maybeB2cUser.get();
+            List<ObjectIdentity> identities = b2cUser.getIdentities();
+
+            if (identities == null) {
+                identities = new ArrayList<>();
+            }
+
+            // Check if alternative email already exists as an identity
+            boolean alternativeEmailExists = identities.stream()
+                .anyMatch(identity -> identity.getIssuerAssignedId() != null
+                    && identity.getIssuerAssignedId().equalsIgnoreCase(row.getAlternativeEmail()));
+
+            if (!alternativeEmailExists) {
+                // Create new identity for alternative email
+                ObjectIdentity newIdentity = new ObjectIdentity();
+                newIdentity.setSignInType("emailAddress");
+                newIdentity.setIssuer(identities.isEmpty() ? "unknown" : identities.get(0).getIssuer());
+                newIdentity.setIssuerAssignedId(row.getAlternativeEmail());
+
+                List<ObjectIdentity> updatedIdentities = new ArrayList<>(identities);
+                updatedIdentities.add(newIdentity);
+
+                b2cGraphService.updateUserIdentities(b2cUser.getId(), updatedIdentities);
+                log.info("Added alternative email as identity to B2C user");
+            } else {
+                log.info("Alternative email already exists as identity for B2C user");
+            }
+        } catch (Exception e) {
+            log.error("Failed to update B2C identity for user: {}", e.getMessage(), e);
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                STATUS_ERROR,
+                "Failed to update B2C identity"
+            );
+        }
+
+        // Update local database
         userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
 
         return new ImportResult(
             row.getEmail(),
             row.getAlternativeEmail(),
             "SUCCESS",
-            "Alternative email updated successfully"
+            "Alternative email updated successfully in both local DB and B2C"
         );
     }
 
