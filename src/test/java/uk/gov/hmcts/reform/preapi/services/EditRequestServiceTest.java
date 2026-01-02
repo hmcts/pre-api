@@ -107,6 +107,9 @@ public class EditRequestServiceTest {
     @MockitoBean
     private IEmailService emailService;
 
+    @MockitoBean
+    private BookingService bookingService;
+
     @Autowired
     private EditRequestService editRequestService;
 
@@ -1175,6 +1178,48 @@ public class EditRequestServiceTest {
 
         assertEditInstructionsEq(List.of(createSegment(0, 5), createSegment(8, 10), createSegment(20, 30)),
                                  editInstructions.getFfmpegInstructions());
+    }
+
+    @Test
+    void sendNotificationToUsersAssociatedWithBooking() {
+        Case testCase = new Case();
+        testCase.setId(UUID.randomUUID());
+
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(testCase);
+
+        User user1 = new User();
+        user1.setEmail("test@test.com");
+        User user2 = new User();
+        user2.setEmail("test2@test.com");
+
+        List<ShareBooking> shareBookings = new ArrayList<>();
+        ShareBooking shareBooking1 = new ShareBooking();
+        ShareBooking shareBooking2 = new ShareBooking();
+        shareBooking1.setSharedWith(user1);
+        shareBooking2.setSharedWith(user2);
+        shareBookings.add(shareBooking1);
+        shareBookings.add(shareBooking2);
+
+        when(bookingService.findAllSharesForBooking(booking)).thenReturn(shareBookings);
+        editRequestService.sendNotifications(booking);
+
+        verify(bookingService, times(1)).findAllSharesForBooking(booking);
+        verify(emailService, times(1)).recordingEdited(user1, testCase);
+        verify(emailService, times(1)).recordingEdited(user2, testCase);
+    }
+
+    @Test
+    void shouldNotSendNotificationIfNoUsersAssociatedWithBooking() {
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+
+        when(bookingService.findAllSharesForBooking(booking)).thenReturn(new ArrayList<>());
+        editRequestService.sendNotifications(booking);
+
+        verify(bookingService, times(1)).findAllSharesForBooking(booking);
+        verify(emailService, never()).recordingEdited(any(), any());
     }
 
     private static void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,

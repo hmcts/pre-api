@@ -716,6 +716,14 @@ class BookingServiceTest {
                 any());
     }
 
+    @Test
+    @DisplayName("Should find all shares for a booking")
+    void findAllSharesForBooking() {
+        Booking booking = createBooking(createCourt(), Timestamp.from(Instant.now()));
+        bookingService.findAllSharesForBooking(booking);
+        verify(shareBookingService, times(1)).findAllByBooking(booking);
+    }
+
     private Court createCourt() {
         var court = new Court();
         court.setId(UUID.randomUUID());

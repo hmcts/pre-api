@@ -72,6 +72,7 @@ public class EditRequestService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
     private final EmailServiceFactory emailServiceFactory;
+    private final BookingService bookingService;
 
     @Autowired
     public EditRequestService(final EditRequestRepository editRequestRepository,
@@ -81,7 +82,8 @@ public class EditRequestService {
                               final AzureIngestStorageService azureIngestStorageService,
                               final AzureFinalStorageService azureFinalStorageService,
                               final MediaServiceBroker mediaServiceBroker,
-                              final EmailServiceFactory emailServiceFactory) {
+                              final EmailServiceFactory emailServiceFactory,
+                              final BookingService bookingService) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -90,6 +92,7 @@ public class EditRequestService {
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
         this.emailServiceFactory = emailServiceFactory;
+        this.bookingService = bookingService;
     }
 
     @Transactional
@@ -173,9 +176,19 @@ public class EditRequestService {
         return recordingService.findById(newRecordingId);
     }
 
+    /**
+     * Sends notification emails that the recording has been edited to all users that have access to the booking.
+     * <p>
+     * Note: This method fetches the shared bookings directly from the database (via BookingService) rather than call
+     * booking.getShares(). This is to avoid LazyInitializationException that could occur if the Booking entity
+     * passed does not have its shares loaded.
+     * </p
+     * @param booking the booking whose shared users will be notified
+     */
     @Transactional
     public void sendNotifications(Booking booking) {
-        booking.getShares()
+        List<ShareBooking> shareBookings = bookingService.findAllSharesForBooking(booking);
+        shareBookings
             .stream()
             .map(ShareBooking::getSharedWith)
             .forEach(u -> emailServiceFactory.getEnabledEmailService().recordingEdited(u, booking.getCaseId()));
