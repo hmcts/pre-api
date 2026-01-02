@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -34,6 +35,8 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
 
     @Autowired
     private CaptureSessionStatusCorrectionTask captureSessionStatusCorrectionTask;
+
+    @Value("${cron-user-email}") String cronUserEmail;
 
     @DynamicPropertySource
     static void overrideAzureEndpoint(DynamicPropertyRegistry registry) {
@@ -108,7 +111,7 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
         entityManager.persist(captureSession2);
 
         //Add the robot user that signs in to the database
-        User robotUser = HelperFactory.createUser("robot", "user", "test@test.com", null, null, null);
+        User robotUser = HelperFactory.createUser("robot", "user", cronUserEmail, null, null, null);
         entityManager.persist(robotUser);
 
         Role role = HelperFactory.createRole("Super User");
