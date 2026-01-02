@@ -178,6 +178,7 @@ public class EditRequestService {
 
     /**
      * Sends notification emails that the recording has been edited to all users that have access to the booking.
+     *
      * <p>
      * Note: This method fetches the shared bookings directly from the database (via BookingService) rather than call
      * booking.getShares(). This is to avoid LazyInitializationException that could occur if the Booking entity
