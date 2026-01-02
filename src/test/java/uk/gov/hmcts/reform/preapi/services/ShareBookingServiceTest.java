@@ -542,4 +542,15 @@ public class ShareBookingServiceTest {
 
         verify(govNotify, times(1)).recordingReady(any(), any());
     }
+
+    @DisplayName("Should get all shares for a booking by booking entity")
+    @Test
+    void getSharesForBookingByEntity() {
+        UUID bookingId = UUID.randomUUID();
+        Booking bookingEntity = new Booking();
+        bookingEntity.setId(bookingId);
+        shareBookingService.findAllByBooking(bookingEntity);
+        verify(shareBookingRepository, times(1))
+            .findAllByBookingAndDeletedAtIsNull(bookingEntity);
+    }
 }

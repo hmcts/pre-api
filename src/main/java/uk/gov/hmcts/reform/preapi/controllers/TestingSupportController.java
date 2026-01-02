@@ -83,7 +83,8 @@ import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports",
+    "PMD.TestClassWithoutTestCases", "PMD.TooManyMethods"})
 @ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
@@ -427,6 +428,7 @@ class TestingSupportController {
         return ResponseEntity.ok(new BookingDTO(booking));
     }
 
+    //TODO: Needs some tweaking to fix as the source recording is not being set to the edit request and causes error
     @SneakyThrows
     @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
@@ -446,6 +448,28 @@ class TestingSupportController {
 
         return ResponseEntity.ok(Map.of(
             "request", request,
+            "recording", recording
+        ));
+    }
+
+    @SneakyThrows
+    @PostMapping(value = "/trigger-processing-next-pending-edit-request", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> triggerProcessingNextEditRequest() {
+        Role role = roleRepository.findFirstByName("Super User")
+            .orElse(createRole("Super User"));
+        AppAccess appAccess = createAppAccess(role);
+        SecurityContextHolder.getContext()
+            .setAuthentication(new UserAuthentication(
+                appAccess,
+                List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
+
+        EditRequest editRequest = editRequestService.getNextPendingEditRequest()
+            .orElseThrow(() -> new NotFoundException("No pending edit requests"));
+
+        RecordingDTO recording = editRequestService.performEdit(editRequest);
+
+        return ResponseEntity.ok(Map.of(
+            "request", editRequest,
             "recording", recording
         ));
     }
