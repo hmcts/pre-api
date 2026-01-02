@@ -451,6 +451,28 @@ class TestingSupportController {
         ));
     }
 
+    @SneakyThrows
+    @PostMapping(value = "/trigger-processing-next-pending-edit-request", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> triggerProcessingNextEditRequest() {
+        Role role = roleRepository.findFirstByName("Super User")
+            .orElse(createRole("Super User"));
+        AppAccess appAccess = createAppAccess(role);
+        SecurityContextHolder.getContext()
+            .setAuthentication(new UserAuthentication(
+                appAccess,
+                List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
+
+        EditRequest editRequest = editRequestService.getNextPendingEditRequest()
+            .orElseThrow(() -> new NotFoundException("No pending edit requests"));
+
+        RecordingDTO recording = editRequestService.performEdit(editRequest);
+
+        return ResponseEntity.ok(Map.of(
+            "request", editRequest,
+            "recording", recording
+        ));
+    }
+
     @PostMapping(value = "/trigger-task/{taskName}")
     public ResponseEntity<Void> triggerTask(@PathVariable String taskName) {
         final String beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
