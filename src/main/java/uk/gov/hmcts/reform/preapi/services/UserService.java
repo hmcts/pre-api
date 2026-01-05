@@ -306,6 +306,11 @@ public class UserService {
                     "Alternative email format is invalid: must be a well-formed email address");
             }
 
+            if (trimmedEmail.equalsIgnoreCase(user.getEmail())) {
+                throw new IllegalArgumentException(
+                    "Alternative email cannot be the same as the main email");
+            }
+
             Optional<User> existingUser = userRepository
                 .findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
             
