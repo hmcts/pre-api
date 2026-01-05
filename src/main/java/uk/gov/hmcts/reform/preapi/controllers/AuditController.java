@@ -3,9 +3,9 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,16 +34,16 @@ public class AuditController {
 
     @PutMapping("/{id}")
     @Operation(operationId = "putAudit", summary = "Create an Audit Entry")
-    public ResponseEntity<Void> upsertAudit(@RequestHeader MultiValueMap<String, String> headers,
+    public ResponseEntity<Void> upsertAudit(@RequestHeader HttpHeaders headers,
                                             @PathVariable UUID id,
                                             @Valid @RequestBody CreateAuditDTO createAuditDTO) {
         if (!id.equals(createAuditDTO.getId())) {
             throw new PathPayloadMismatchException("id", "createAuditDTO.id");
         }
 
-        UUID userId = !headers.containsKey(X_USER_ID_HEADER)
+        var userId = headers.getValuesAsList(X_USER_ID_HEADER).isEmpty()
             ? null
-            : UUID.fromString(headers.get(X_USER_ID_HEADER).getFirst());
+            : UUID.fromString(headers.getValuesAsList(X_USER_ID_HEADER).getFirst());
         this.auditService.upsert(createAuditDTO, userId);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
