@@ -260,4 +260,54 @@ class ImportUserAlternativeEmailTest {
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
         verify(userService, times(1)).updateAlternativeEmail(testUser2.getId(), "test2@example.com.cjsm.net");
     }
+
+    @DisplayName("Should handle invalid email format exception")
+    @Test
+    void runHandlesInvalidEmailFormat() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,invalid@test
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "invalid@test"))
+            .thenThrow(new IllegalArgumentException(
+                "Alternative email format is invalid: must be a well-formed email address"));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "invalid@test");
+    }
+
+    @DisplayName("Should handle alternative email same as main email exception")
+    @Test
+    void runHandlesAlternativeEmailSameAsMainEmail() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com"))
+            .thenThrow(new IllegalArgumentException(
+                "Alternative email cannot be the same as the main email"));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com");
+    }
 }
