@@ -22,7 +22,7 @@ import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_H
 
 @RestController
 @RequestMapping("/audit")
-@SuppressWarnings("PMD.UseInterfaceType")
+@SuppressWarnings("PMD.LooseCoupling") //We need HttpHeaders as it is case-insensitive
 public class AuditController {
 
     private final AuditService auditService;
