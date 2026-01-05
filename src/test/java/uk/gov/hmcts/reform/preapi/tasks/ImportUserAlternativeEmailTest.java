@@ -95,15 +95,12 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("test@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
 
         task.run();
 
         verify(azureVodafoneStorageService, times(1)).fetchSingleXmlBlob(TEST_CONTAINER, 
             "alternative_email_import.csv");
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("test@example.com.cjsm.net");
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
     }
 
@@ -165,14 +162,14 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("existing@example.com.cjsm.net"))
-            .thenReturn(Optional.of(otherUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net"))
+            .thenThrow(new uk.gov.hmcts.reform.preapi.exception.ConflictException(
+                "Alternative email: existing@example.com.cjsm.net already exists for another user"));
 
         task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("existing@example.com.cjsm.net");
-        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net");
     }
 
     @DisplayName("Should handle alternative email already exists for same user")
@@ -190,13 +187,10 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("existing@example.com.cjsm.net"))
-            .thenReturn(Optional.of(testUser)); 
 
         task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("existing@example.com.cjsm.net");
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net");
     }
 
@@ -258,10 +252,6 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(Optional.of(testUser));
         when(userService.findByOriginalEmail("test2@example.com"))
             .thenReturn(Optional.of(testUser2));
-        when(userService.findByAlternativeEmail("test@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
-        when(userService.findByAlternativeEmail("test2@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
 
         task.run();
 

@@ -91,7 +91,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             generateReport(results);
             log.info("Completed ImportUserAlternativeEmail Task. Processed {} rows", importRows.size());
         } catch (IOException e) {
-            log.error("Failed to read CSV file for user alternative email import", e.getMessage());
+            log.error("Failed to read CSV file for user alternative email import", e);
             throw new IllegalStateException("Failed to import user alternative email data: CSV read error", e);
         } catch (IllegalStateException e) {
             log.error("Failed to import user alternative email data", e);
@@ -205,26 +205,22 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
-        Optional<User> existingAltUserEmail = userService
-            .findByAlternativeEmail(row.getAlternativeEmail());
-
-        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
+        try {
+            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                "SUCCESS",
+                "Alternative email updated successfully"
+            );
+        } catch (Exception e) {
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
                 STATUS_ERROR,
-                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
+                e.getMessage()  
             );
-        }
-
-        userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
-
-        return new ImportResult(
-            row.getEmail(),
-            row.getAlternativeEmail(),
-            "SUCCESS",
-            "Alternative email updated successfully"
-        );
+        } 
     }
 
     private void generateReport(List<ImportResult> results) {
