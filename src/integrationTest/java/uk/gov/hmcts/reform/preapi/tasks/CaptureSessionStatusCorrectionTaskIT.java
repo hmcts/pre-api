@@ -197,7 +197,7 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
         entityManager.persist(captureSession2);
 
         //Add the robot user that signs in to the database
-        User robotUser = HelperFactory.createUser("robot", "user", "test@test.com", null, null, null);
+        User robotUser = HelperFactory.createUser("robot", "user", cronUserEmail, null, null, null);
         entityManager.persist(robotUser);
 
         Role role = HelperFactory.createRole("Super User");
