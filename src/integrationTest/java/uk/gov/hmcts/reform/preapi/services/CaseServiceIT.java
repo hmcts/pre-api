@@ -17,7 +17,9 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -25,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
@@ -375,6 +378,146 @@ class CaseServiceIT extends IntegrationTestBase {
         assertThat(captureSessionFailure.getDeletedAt()).isNotNull();
         assertThat(booking3.getDeletedAt()).isNull();
         assertThat(captureSessionRecordingAvailable.getDeletedAt()).isNull();
+    }
+
+    @Test
+    @Transactional
+    void setCaseToPendingClosureWithCompletedEditRequest() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var scheduledFor = Timestamp.from(Instant.now().minusSeconds(3600));
+        var booking = HelperFactory.createBooking(caseEntity, scheduledFor, null);
+        entityManager.persist(booking);
+
+        var captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        var recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
+        entityManager.persist(recording);
+
+        var editRequestUser = HelperFactory.createDefaultTestUser();
+        entityManager.persist(editRequestUser);
+
+        var startedAt = Timestamp.from(scheduledFor.toInstant().plusSeconds(1800));
+        var finishedAt = Timestamp.from(startedAt.toInstant().plusSeconds(60));
+        var editRequest = HelperFactory.createEditRequest(
+            recording,
+            "{}",
+            EditRequestStatus.COMPLETE,
+            editRequestUser,
+            startedAt,
+            finishedAt,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(editRequest);
+
+        entityManager.flush();
+
+        entityManager.refresh(booking);
+
+        var upsertCaseDto = new CreateCaseDTO();
+        upsertCaseDto.setId(caseEntity.getId());
+        upsertCaseDto.setCourtId(court.getId());
+        upsertCaseDto.setReference(caseEntity.getReference());
+        upsertCaseDto.setParticipants(Set.of());
+        upsertCaseDto.setTest(false);
+        upsertCaseDto.setState(CaseState.PENDING_CLOSURE);
+        upsertCaseDto.setClosedAt(Timestamp.from(Instant.now()));
+
+        caseService.upsert(upsertCaseDto);
+
+        assertThat(caseEntity.getState()).isEqualTo(CaseState.PENDING_CLOSURE);
+        assertThat(caseEntity.getClosedAt()).isNotNull();
+    }
+
+    @Test
+    @Transactional
+    void setCaseToPendingClosureWithIncompleteEditRequest() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var scheduledFor = Timestamp.from(Instant.now().minusSeconds(3600));
+        var booking = HelperFactory.createBooking(caseEntity, scheduledFor, null);
+        entityManager.persist(booking);
+
+        var captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        var recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
+        entityManager.persist(recording);
+
+        var editRequestUser = HelperFactory.createDefaultTestUser();
+        entityManager.persist(editRequestUser);
+
+        var startedAt = Timestamp.from(scheduledFor.toInstant().plusSeconds(1800));
+        var finishedAt = Timestamp.from(startedAt.toInstant().plusSeconds(60));
+        var editRequest = HelperFactory.createEditRequest(
+            recording,
+            "{}",
+            EditRequestStatus.PROCESSING,
+            editRequestUser,
+            startedAt,
+            finishedAt,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(editRequest);
+
+        entityManager.flush();
+
+        entityManager.refresh(booking);
+
+        var upsertCaseDto = new CreateCaseDTO();
+        upsertCaseDto.setId(caseEntity.getId());
+        upsertCaseDto.setCourtId(court.getId());
+        upsertCaseDto.setReference(caseEntity.getReference());
+        upsertCaseDto.setParticipants(Set.of());
+        upsertCaseDto.setTest(false);
+        upsertCaseDto.setState(CaseState.PENDING_CLOSURE);
+        upsertCaseDto.setClosedAt(Timestamp.from(Instant.now()));
+
+        Assertions.assertThrows(ResourceInWrongStateException.class, () -> caseService.upsert(upsertCaseDto));
+
+        assertThat(caseEntity.getState()).isEqualTo(CaseState.OPEN);
+        assertThat(caseEntity.getClosedAt()).isNull();
     }
 
     @Nested
