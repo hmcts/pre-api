@@ -23,12 +23,12 @@ public class Application implements CommandLineRunner {
     ScheduledTaskRunner taskRunner;
 
     public static void main(final String[] args) {
-        if (System.getenv("TASK_NAME") == null) {
-            return;
-        }
         final SpringApplication application = new SpringApplication(Application.class);
         final ConfigurableApplicationContext instance = application.run(args); //NOPMD - suppressed CloseResource
-        instance.close();
+
+        if (System.getenv("TASK_NAME") != null) {
+            instance.close();
+        }
     }
 
     @Override
