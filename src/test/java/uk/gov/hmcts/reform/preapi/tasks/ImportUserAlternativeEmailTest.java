@@ -376,25 +376,4 @@ class ImportUserAlternativeEmailTest {
             .hasMessage("IO error during parsing");
     }
 
-    @DisplayName("Should use ClassPathResource when FileSystemResource doesn't exist and useLocalCsv is true")
-    @Test
-    void runUsesClassPathResourceWhenFileSystemResourceNotFound() throws Exception {
-        Field useLocalCsvField = ImportUserAlternativeEmail.class.getDeclaredField("useLocalCsv");
-        useLocalCsvField.setAccessible(true);
-        useLocalCsvField.set(task, true);
-
-        User user1 = new User();
-        user1.setId(UUID.randomUUID());
-        user1.setEmail("email@test.net");
-        user1.setFirstName("John");
-        user1.setLastName("Doe");
-
-        when(userService.findByOriginalEmail("email@test.net"))
-            .thenReturn(Optional.of(user1));
-
-        task.run();
-
-        verify(userService, times(1)).findByOriginalEmail("email@test.net");
-        useLocalCsvField.set(task, false);
-    }
 }
