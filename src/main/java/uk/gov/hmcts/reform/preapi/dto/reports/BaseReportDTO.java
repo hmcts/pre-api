@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.entities.Region;
 
 @Data
 @NoArgsConstructor
+@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class BaseReportDTO {
     @Schema(description = "ReportCaseReference")
     protected String caseReference;
@@ -25,13 +26,13 @@ public abstract class BaseReportDTO {
     @Schema(description = "ReportRegion")
     protected String region;
 
-    protected BaseReportDTO(Case c) {
-        if (c == null) {
+    protected BaseReportDTO(Case aCase) {
+        if (aCase == null) {
             return;
         }
 
-        caseReference = c.getReference();
-        Court courtEntity = c.getCourt();
+        caseReference = aCase.getReference();
+        Court courtEntity = aCase.getCourt();
         court = courtEntity.getName();
         county = courtEntity.getCounty();
         postcode = courtEntity.getPostcode();

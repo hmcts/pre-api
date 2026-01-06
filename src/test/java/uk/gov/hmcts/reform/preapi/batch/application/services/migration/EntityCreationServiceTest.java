@@ -184,7 +184,7 @@ public class EntityCreationServiceTest {
         when(migrationRecordService.findByArchiveId(archiveId.toString()))
             .thenReturn(Optional.of(copyRecord));
         when(migrationRecordService.getOrigFromCopy(copyRecord))
-            .thenReturn(Optional.of(new MigrationRecord())); 
+            .thenReturn(Optional.of(new MigrationRecord()));
 
         ProcessedRecording recording = ProcessedRecording.builder()
             .archiveId(archiveId.toString())
@@ -203,10 +203,10 @@ public class EntityCreationServiceTest {
     public void createBookingShouldUseExistingBookingIdForCopy() {
         UUID archiveId = UUID.randomUUID();
         UUID existingBookingId = UUID.randomUUID();
-        
+
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId(archiveId.toString());
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setBookingId(existingBookingId);
 
@@ -226,7 +226,7 @@ public class EntityCreationServiceTest {
         caseDTO.setParticipants(Set.of());
 
         CreateBookingDTO result = entityCreationService.createBooking(recording, caseDTO, "key");
-        
+
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(existingBookingId);
         assertThat(result.getCaseId()).isEqualTo(caseDTO.getId());
@@ -290,10 +290,10 @@ public class EntityCreationServiceTest {
     public void createCaptureSessionShouldUseExistingCaptureSessionIdForCopy() {
         UUID archiveId = UUID.randomUUID();
         UUID existingCaptureSessionId = UUID.randomUUID();
-        
+
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId(archiveId.toString());
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setCaptureSessionId(existingCaptureSessionId);
 
@@ -318,7 +318,7 @@ public class EntityCreationServiceTest {
         booking.setId(UUID.randomUUID());
 
         CreateCaptureSessionDTO result = entityCreationService.createCaptureSession(processedRecording, booking);
-        
+
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(existingCaptureSessionId);
         assertThat(result.getBookingId()).isEqualTo(booking.getId());
@@ -462,7 +462,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should filter participants by witness or defendant name")
     public void createBookingShouldFilterParticipants() {
-        
+
         CreateParticipantDTO witness = new CreateParticipantDTO();
         witness.setId(UUID.randomUUID());
         witness.setFirstName("John");
@@ -711,7 +711,7 @@ public class EntityCreationServiceTest {
             existingUserId.toString()
         ))
             .thenReturn("share-key");
-        
+
         when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
             .thenReturn(Optional.empty());
 
@@ -756,7 +756,7 @@ public class EntityCreationServiceTest {
             existingUserId.toString()
         ))
             .thenReturn("share-key");
-        
+
         when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
             .thenReturn(Optional.of(new PortalAccess()));
 
@@ -773,7 +773,7 @@ public class EntityCreationServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.getInvites()).isEmpty(); 
+        assertThat(result.getInvites()).isEmpty();
         assertThat(result.getShareBookings()).hasSize(1);
         assertThat(result.getShareBookings().get(0).getSharedWithUser()).isEqualTo(existingUserId);
 
@@ -944,7 +944,7 @@ public class EntityCreationServiceTest {
     @DisplayName("Should handle exception when getting user by email")
     void getUserByEmailShouldHandleException() {
         String email = "error@example.com";
-        
+
         when(userService.findByEmail(email)).thenThrow(new RuntimeException("Service error"));
 
         UUID result = entityCreationService.getUserByEmail(email);
@@ -957,7 +957,7 @@ public class EntityCreationServiceTest {
     @DisplayName("Should handle exception in userHasPortalAccess and return false")
     void userHasPortalAccessShouldHandleExceptionAndReturnFalse() throws Exception {
         String userId = "invalid-uuid";
-        
+
         Method method = EntityCreationService.class.getDeclaredMethod("userHasPortalAccess", String.class);
         method.setAccessible(true);
 
@@ -965,8 +965,8 @@ public class EntityCreationServiceTest {
 
         assertThat(result).isFalse();
         verify(loggingService, times(1)).logWarning(
-            eq("Could not check portal access for user: %s - %s"), 
-            eq(userId), 
+            eq("Could not check portal access for user: %s - %s"),
+            eq(userId),
             any(String.class)
         );
     }
@@ -1024,7 +1024,7 @@ public class EntityCreationServiceTest {
     void createRecordingShouldReturnNullForCopyWhenOrigHasNoRecordingId() {
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId("COPY123");
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setArchiveId("ORIG123");
         origRecord.setRecordingId(null); // No recording ID
@@ -1054,10 +1054,10 @@ public class EntityCreationServiceTest {
     @DisplayName("Should create COPY recording with parent recording ID when all conditions met")
     void createRecordingShouldCreateCopyWithParentRecordingId() {
         UUID parentRecordingId = UUID.randomUUID();
-        
+
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId("COPY123");
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setArchiveId("ORIG123");
         origRecord.setRecordingId(parentRecordingId);
@@ -1230,8 +1230,8 @@ public class EntityCreationServiceTest {
     @DisplayName("Should handle empty trimmed participant names")
     void createParticipantsShouldIgnoreEmptyTrimmedNames() {
         ProcessedRecording recording = ProcessedRecording.builder()
-            .witnessFirstName("   ") 
-            .defendantLastName("") 
+            .witnessFirstName("   ")
+            .defendantLastName("")
             .build();
 
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(recording);
@@ -1242,7 +1242,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should create participant with null firstName using default name")
     void createParticipantShouldUseDefaultNameForNullFirstName() throws Exception {
-        Method method = EntityCreationService.class.getDeclaredMethod("createParticipant", 
+        Method method = EntityCreationService.class.getDeclaredMethod("createParticipant",
             ParticipantType.class, String.class, String.class);
         method.setAccessible(true);
 
@@ -1258,7 +1258,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should create participant with null lastName using default name")
     void createParticipantShouldUseDefaultNameForNullLastName() throws Exception {
-        Method method = EntityCreationService.class.getDeclaredMethod("createParticipant", 
+        Method method = EntityCreationService.class.getDeclaredMethod("createParticipant",
             ParticipantType.class, String.class, String.class);
         method.setAccessible(true);
 
@@ -1276,7 +1276,7 @@ public class EntityCreationServiceTest {
     @DisplayName("Should create share booking with participants mapping")
     void createShareBookingAndInviteIfNotExistsShouldMapParticipants() {
         setVodafoneEmail();
-        
+
         // Create a booking with participants
         BookingDTO booking = new BookingDTO();
         booking.setId(UUID.randomUUID());
@@ -1284,20 +1284,20 @@ public class EntityCreationServiceTest {
 
         CaseDTO caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
-        
+
         // Create participants for the case
         ParticipantDTO participant1 = new ParticipantDTO();
         participant1.setId(UUID.randomUUID());
         participant1.setFirstName("John");
         participant1.setLastName("Doe");
         participant1.setParticipantType(ParticipantType.WITNESS);
-        
+
         ParticipantDTO participant2 = new ParticipantDTO();
         participant2.setId(UUID.randomUUID());
         participant2.setFirstName("Jane");
         participant2.setLastName("Smith");
         participant2.setParticipantType(ParticipantType.DEFENDANT);
-        
+
         caseDTO.setParticipants(List.of(participant1, participant2));
         booking.setCaseDTO(caseDTO);
 
@@ -1319,12 +1319,12 @@ public class EntityCreationServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getShareBookings()).hasSize(1);
-        
+
         CreateShareBookingDTO shareBooking = result.getShareBookings().get(0);
         assertThat(shareBooking.getBookingId()).isEqualTo(booking.getId());
         assertThat(shareBooking.getSharedWithUser()).isNotNull();
         assertThat(shareBooking.getSharedByUser()).isEqualTo(vodafoneUserId);
-        
+
         verify(cacheService).saveShareBooking(eq("share-key"), any(CreateShareBookingDTO.class));
     }
 

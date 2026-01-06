@@ -14,6 +14,7 @@ import java.util.UUID;
 
 @Data
 @NoArgsConstructor
+@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class BaseRecordingDTO {
     @Schema(description = "RecordingId")
     @NotNull(message = "id is required")

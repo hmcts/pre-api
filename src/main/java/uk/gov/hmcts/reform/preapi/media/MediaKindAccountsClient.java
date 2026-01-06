@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkStorageAccounts;
     url = "${mediakind.accountsApi}",
     configuration = MediaKindClientConfiguration.class
 )
+@SuppressWarnings("PMD.ImplicitFunctionalInterface")
 public interface MediaKindAccountsClient {
     @GetMapping("/subscriptions/${mediakind.subscription-id}/storage")
     MkStorageAccounts getStorageAccounts();

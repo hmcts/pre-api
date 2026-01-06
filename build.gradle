@@ -127,10 +127,15 @@ checkstyle {
 pmd {
   toolVersion = "7.17.0"
   sourceSets = [sourceSets.main]
-  reportsDir = file("$project.buildDir/reports/pmd")
   // https://github.com/pmd/pmd/issues/876
   ruleSets = []
   ruleSetFiles = files("${rootDir}/config/pmd/ruleset.xml")
+  pmdMain {
+    excludes = [
+      '**/batch/**',
+      '**/migration/**'
+    ]
+  }
 }
 
 jacocoTestReport {

@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.exception;
 
-public class UnauditableTableException extends RuntimeException {
+import java.io.Serial;
 
+public class UnauditableTableException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 6519941826346533854L;
 
     public UnauditableTableException(String className) {

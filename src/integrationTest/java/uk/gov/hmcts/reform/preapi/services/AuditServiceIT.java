@@ -27,7 +27,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.UUID;
 
-public class AuditServiceIT extends IntegrationTestBase {
+class AuditServiceIT extends IntegrationTestBase {
 
     @Autowired
     private AuditService auditService;
@@ -108,7 +108,7 @@ public class AuditServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void testInternalAudit() {
+    void testInternalAudit() {
         var court = getCreateCourt();
         courtService.upsert(court);
 
@@ -132,7 +132,7 @@ public class AuditServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void testDeleteAuditCase() {
+    void testDeleteAuditCase() {
         mockAdminUser();
 
         var caseDTO = getCase();
@@ -158,7 +158,7 @@ public class AuditServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void testDeleteAuditBooking() {
+    void testDeleteAuditBooking() {
         mockAdminUser();
 
         var caseDTO = getCase();
@@ -187,7 +187,7 @@ public class AuditServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void testDeleteAuditCaptureSession() {
+    void testDeleteAuditCaptureSession() {
         mockAdminUser();
 
         var booking = getBooking();
@@ -222,7 +222,7 @@ public class AuditServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void testDeleteAuditRecording() {
+    void testDeleteAuditRecording() {
         mockAdminUser();
 
         var captureSession = getCaptureSession();
@@ -243,7 +243,8 @@ public class AuditServiceIT extends IntegrationTestBase {
         var auditResultsCreated = auditService.getAuditsByTableRecordId(recording.getId());
         recordingService.deleteById(recording.getId());
 
-        var auditResults = auditService.getAuditsByTableRecordId(recording.getId());
+        var auditResults = auditService.getAuditsByTableRecordId(recording.getId()).stream()
+            .sorted(Comparator.comparing(Audit::getCreatedAt)).toList();
         Assertions.assertEquals(0, auditResultsEmpty.size());
         Assertions.assertEquals(1, auditResultsCreated.size());
         Assertions.assertEquals(2, auditResults.size());

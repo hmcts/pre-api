@@ -67,7 +67,7 @@ class CoreStepsConfigTest {
     @Test
     void getDryRunFlagShouldReturnFalseWhenNoContext() {
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
     }
 
 
@@ -111,7 +111,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isTrue();
+        assertThat(stepsConfig.isDryRun()).isTrue();
 
         JobSynchronizationManager.close();
     }
@@ -201,7 +201,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -214,7 +214,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -234,7 +234,7 @@ class CoreStepsConfigTest {
             );
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).contains("Failed to create reader for file:");
-            verify(loggingService).logError("Failed to create reader for file: {}test.csv" 
+            verify(loggingService).logError("Failed to create reader for file: {}test.csv"
                 + new IOException("Test exception"));
         }
     }
@@ -288,7 +288,7 @@ class CoreStepsConfigTest {
             new String[]{"field1", "field2"},
             String.class,
             false,
-            false  
+            false
         );
 
         assertThat(step).isNotNull();
@@ -308,8 +308,8 @@ class CoreStepsConfigTest {
             mockResource,
             new String[]{"field1", "field2"},
             String.class,
-            false, 
-            true   
+            false,
+            true
         );
 
         assertThat(step).isNotNull();
@@ -352,7 +352,7 @@ class CoreStepsConfigTest {
             );
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).contains("Failed to create reader for file:");
-            verify(loggingService).logError("Failed to create reader for file: {}null" 
+            verify(loggingService).logError("Failed to create reader for file: {}null"
                 + new IOException("Test exception"));
         }
     }
@@ -380,7 +380,7 @@ class CoreStepsConfigTest {
     void noOpWriterShouldAcceptAnyItems() {
         ItemWriter<Object> writer = stepsConfig.noOpWriter();
         assertThat(writer).isNotNull();
-        
+
         assertThatCode(() -> writer.write(null)).doesNotThrowAnyException();
         assertThatCode(() -> writer.write(Chunk.of())).doesNotThrowAnyException();
         assertThatCode(() -> writer.write(Chunk.of("test"))).doesNotThrowAnyException();
@@ -395,7 +395,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -409,7 +409,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThatCode(() -> stepsConfig.getDryRunFlag()).doesNotThrowAnyException();
+        assertThatCode(() -> stepsConfig.isDryRun()).doesNotThrowAnyException();
 
         JobSynchronizationManager.close();
     }
@@ -529,7 +529,7 @@ class CoreStepsConfigTest {
     @Test
     void getDryRunFlagShouldReturnFalseWhenJobContextIsNull() {
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
     }
 
     @Test
@@ -537,7 +537,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, null);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -551,7 +551,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -560,7 +560,7 @@ class CoreStepsConfigTest {
     void noOpWriterShouldHandleNullChunk() {
         ItemWriter<Object> writer = stepsConfig.noOpWriter();
         assertThat(writer).isNotNull();
-        
+
         assertThatCode(() -> writer.write(null)).doesNotThrowAnyException();
     }
 
@@ -568,7 +568,7 @@ class CoreStepsConfigTest {
     void noOpWriterShouldHandleEmptyChunk() {
         ItemWriter<Object> writer = stepsConfig.noOpWriter();
         assertThat(writer).isNotNull();
-        
+
         assertThatCode(() -> writer.write(Chunk.of())).doesNotThrowAnyException();
     }
 
@@ -576,7 +576,7 @@ class CoreStepsConfigTest {
     void noOpWriterShouldHandleChunkWithItems() {
         ItemWriter<Object> writer = stepsConfig.noOpWriter();
         assertThat(writer).isNotNull();
-        
+
         assertThatCode(() -> writer.write(Chunk.of("test1", "test2"))).doesNotThrowAnyException();
     }
 

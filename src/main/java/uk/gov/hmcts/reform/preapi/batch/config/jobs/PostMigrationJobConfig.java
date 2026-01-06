@@ -50,6 +50,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -61,6 +62,7 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.DATE_TIME_FORMAT
 
 
 @Configuration
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class PostMigrationJobConfig {
     public final PlatformTransactionManager transactionManager;
     private final JobRepository jobRepository;
@@ -175,11 +177,12 @@ public class PostMigrationJobConfig {
     @Bean
     @StepScope
     public ItemReader<PostMigratedItemGroup> postMigrationItemReaderBean() {
-        boolean dryRun = coreSteps.getDryRunFlag();
-        return postMigrationItemReader.createReader(dryRun); 
+        boolean dryRun = coreSteps.isDryRun();
+        return postMigrationItemReader.createReader(dryRun);
     }
 
     @Bean
+    @SuppressWarnings("PMD.CognitiveComplexity")
     public Step createShareBookingsStep(PostMigrationWriter postMigrationWriter,
                                         ItemReader<PostMigratedItemGroup> postMigrationItemReaderBean) {
         return new StepBuilder("createShareBookingsStep", jobRepository)
@@ -326,7 +329,7 @@ public class PostMigrationJobConfig {
 
     private boolean hasMatchingChannelUser(String reference, Map<String, List<String[]>> channelUsersMap) {
         return channelUsersMap.keySet().stream()
-            .anyMatch(k -> k.toLowerCase().contains(reference.toLowerCase()));
+            .anyMatch(k -> k.toLowerCase(Locale.UK).contains(reference.toLowerCase(Locale.UK)));
     }
 
     private CreateCaseDTO buildClosedCaseDTO(CaseDTO caseDTO) {
@@ -349,12 +352,12 @@ public class PostMigrationJobConfig {
         return dto;
     }
 
-    private CreateParticipantDTO mapParticipant(ParticipantDTO p) {
+    private CreateParticipantDTO mapParticipant(ParticipantDTO participant) {
         CreateParticipantDTO dto = new CreateParticipantDTO();
-        dto.setId(p.getId());
-        dto.setFirstName(p.getFirstName());
-        dto.setLastName(p.getLastName());
-        dto.setParticipantType(p.getParticipantType());
+        dto.setId(participant.getId());
+        dto.setFirstName(participant.getFirstName());
+        dto.setLastName(participant.getLastName());
+        dto.setParticipantType(participant.getParticipantType());
         return dto;
     }
 
@@ -370,7 +373,7 @@ public class PostMigrationJobConfig {
                 return email;
             }
         }
-        
+
         if (share.getSharedWithUser() != null) {
             try {
                 var user = userService.findById(share.getSharedWithUser());
@@ -394,15 +397,15 @@ public class PostMigrationJobConfig {
                     .map(Object::toString)
                     .orElse("false")
             );
-            
+
             if (dryRun) {
                 loggingService.logInfo(
                     "[DRY RUN] PostMigrationWriter processing %d item(s) - skipping entity creation", chunk.size());
-                
+
                 for (PostMigratedItemGroup item : chunk) {
                     try {
                         loggingService.logDebug("[DRY RUN] Processing post-migration item group: %s", item);
-                        
+
                         if (item.getInvites() != null) {
                             for (CreateInviteDTO invite : item.getInvites()) {
                                 if (invite.getUserId() != null 
@@ -423,7 +426,7 @@ public class PostMigrationJobConfig {
                                 migrationTrackerService.addInvitedUser(invite);
                             }
                         }
-                        
+
                         if (item.getShareBookings() != null) {
                             for (CreateShareBookingDTO share : item.getShareBookings()) {
                                 String email = resolveEmailForShare(item, share);
@@ -446,7 +449,7 @@ public class PostMigrationJobConfig {
                                 migrationTrackerService.addShareBookingReport(share, email, vodafoneUserEmail);
                             }
                         }
-                        
+
                         loggingService.logDebug("[DRY RUN] Successfully processed post-migration item");
                     } catch (Exception e) {
                         loggingService.logError("[DRY RUN] Failed to process post-migration item: %s", e.getMessage());

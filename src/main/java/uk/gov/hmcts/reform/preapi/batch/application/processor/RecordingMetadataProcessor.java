@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
@@ -74,7 +75,7 @@ public class RecordingMetadataProcessor {
                 extractedData.getCreateTime()
             );
 
-            if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {
+            if (VfMigrationRecordingVersion.COPY.toString().equalsIgnoreCase(extractedData.getRecordingVersion())) {
                 migrationRecordService.updateParentTempIdIfCopy(
                     archiveItem.getArchiveId(),
                     groupKey,
