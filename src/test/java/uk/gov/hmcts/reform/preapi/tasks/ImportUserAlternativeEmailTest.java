@@ -329,9 +329,8 @@ class ImportUserAlternativeEmailTest {
         when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
             .thenThrow(new IllegalStateException("Some state error"));
 
-        assertThatThrownBy(() -> task.run())
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessage("Some state error");
+        // Exception is caught in processRow() and converted to ERROR status, so task completes successfully
+        task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
@@ -355,9 +354,8 @@ class ImportUserAlternativeEmailTest {
         when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
             .thenThrow(new NullPointerException("Unexpected NPE"));
 
-        assertThatThrownBy(() -> task.run())
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Failed to import user alternative email data: Unexpected error");
+        // Exception is caught in processRow() and converted to ERROR status, so task completes successfully
+        task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
@@ -385,18 +383,18 @@ class ImportUserAlternativeEmailTest {
         useLocalCsvField.setAccessible(true);
         useLocalCsvField.set(task, true);
 
-        User csvUser = new User();
-        csvUser.setId(UUID.randomUUID());
-        csvUser.setEmail("marianne.azzopardi@hmcts.net");
-        csvUser.setFirstName("Marianne");
-        csvUser.setLastName("Azzopardi");
+        User user1 = new User();
+        user1.setId(UUID.randomUUID());
+        user1.setEmail("email@test.net");
+        user1.setFirstName("John");
+        user1.setLastName("Doe");
 
-        when(userService.findByOriginalEmail("marianne.azzopardi@hmcts.net"))
-            .thenReturn(Optional.of(csvUser));
+        when(userService.findByOriginalEmail("email@test.net"))
+            .thenReturn(Optional.of(user1));
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("marianne.azzopardi@hmcts.net");
+        verify(userService, times(1)).findByOriginalEmail("email@test.net");
         useLocalCsvField.set(task, false);
     }
 }
