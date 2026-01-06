@@ -33,10 +33,4 @@ public class AzureIngestStorageService extends AzureStorageService {
             .stream()
             .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase("0/section"));
     }
-
-    // Deprecated, do not rely on MK internal state to determine recording status
-    @Deprecated
-    public boolean doesValidAssetExist(String containerName) {
-        return doesIsmFileExist(containerName) || doesBlobExist(containerName, BLOB_GC_STATE);
-    }
 }
