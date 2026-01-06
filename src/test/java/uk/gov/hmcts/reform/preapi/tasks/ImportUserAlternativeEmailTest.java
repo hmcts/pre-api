@@ -372,8 +372,10 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
 
         assertThatThrownBy(() -> task.run())
-            .isInstanceOf(RuntimeException.class)
-            .hasMessage("IO error during parsing");
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Failed to import user alternative email data: Unexpected error")
+            .hasCauseInstanceOf(RuntimeException.class)
+            .hasRootCauseMessage("IO error during parsing");
     }
 
 }
