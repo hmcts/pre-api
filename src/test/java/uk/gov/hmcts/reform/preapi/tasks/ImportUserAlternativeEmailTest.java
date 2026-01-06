@@ -310,4 +310,93 @@ class ImportUserAlternativeEmailTest {
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com");
     }
+
+    @DisplayName("Should handle IllegalStateException during processing")
+    @Test
+    void runHandlesIllegalStateException() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
+            .thenThrow(new IllegalStateException("Some state error"));
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("Some state error");
+
+        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+    }
+
+    @DisplayName("Should handle unexpected exceptions during processing")
+    @Test
+    void runHandlesUnexpectedException() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
+            .thenThrow(new NullPointerException("Unexpected NPE"));
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Failed to import user alternative email data: Unexpected error");
+
+        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+    }
+
+    @DisplayName("Should handle RuntimeException during CSV parsing that is not CsvRequiredFieldEmptyException")
+    @Test
+    void runHandlesOtherRuntimeExceptionDuringCsvParsing() throws Exception {
+        InputStreamResource blobResource = mock(InputStreamResource.class);
+        when(blobResource.getInputStream())
+            .thenThrow(new RuntimeException("IO error during parsing"));
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(RuntimeException.class)
+            .hasMessage("IO error during parsing");
+    }
+
+    @DisplayName("Should use ClassPathResource when FileSystemResource doesn't exist and useLocalCsv is true")
+    @Test
+    void runUsesClassPathResourceWhenFileSystemResourceNotFound() throws Exception {
+        Field useLocalCsvField = ImportUserAlternativeEmail.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.set(task, true);
+
+        User csvUser = new User();
+        csvUser.setId(UUID.randomUUID());
+        csvUser.setEmail("marianne.azzopardi@hmcts.net");
+        csvUser.setFirstName("Marianne");
+        csvUser.setLastName("Azzopardi");
+
+        when(userService.findByOriginalEmail("marianne.azzopardi@hmcts.net"))
+            .thenReturn(Optional.of(csvUser));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("marianne.azzopardi@hmcts.net");
+        useLocalCsvField.set(task, false);
+    }
 }
