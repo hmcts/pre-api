@@ -378,4 +378,47 @@ class ImportUserAlternativeEmailTest {
             .hasRootCauseMessage("IO error during parsing");
     }
 
+    @DisplayName("Should use ClassPathResource when FileSystemResource doesn't exist and useLocalCsv is true")
+    @Test
+    void runUsesClassPathResourceWhenFileSystemResourceNotFound() throws Exception {
+        Field useLocalCsvField = ImportUserAlternativeEmail.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.set(task, true);
+
+        // Mock all users from the actual CSV file in src/main/resources/batch/alternative_email_import.csv
+        User user1 = new User();
+        user1.setId(UUID.randomUUID());
+        user1.setEmail("nazee.kadiu1@hmcts.net");
+        user1.setFirstName("Nazee");
+        user1.setLastName("Kadiu");
+
+        User user2 = new User();
+        user2.setId(UUID.randomUUID());
+        user2.setEmail("marianne.azzopardi@hmcts.net");
+        user2.setFirstName("Marianne");
+        user2.setLastName("Azzopardi");
+
+        User user3 = new User();
+        user3.setId(UUID.randomUUID());
+        user3.setEmail("marianne.azzopardi2@hmcts.net");
+        user3.setFirstName("Marianne");
+        user3.setLastName("Azzopardi");
+
+        when(userService.findByOriginalEmail("nazee.kadiu1@hmcts.net"))
+            .thenReturn(Optional.of(user1));
+        when(userService.findByOriginalEmail("marianne.azzopardi@hmcts.net"))
+            .thenReturn(Optional.of(user2));
+        when(userService.findByOriginalEmail("marianne.azzopardi2@hmcts.net"))
+            .thenReturn(Optional.of(user3));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("nazee.kadiu1@hmcts.net");
+        verify(userService, times(1)).findByOriginalEmail("marianne.azzopardi@hmcts.net");
+        verify(userService, times(1)).findByOriginalEmail("marianne.azzopardi2@hmcts.net");
+        useLocalCsvField.set(task, false);
+    }
+
+
+
 }
