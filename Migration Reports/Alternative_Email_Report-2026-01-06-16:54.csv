@@ -1,0 +1,2 @@
+email,alternativeEmail,status,message
+test@example.com,existing@example.com.cjsm.net,SUCCESS,Alternative email updated successfully
