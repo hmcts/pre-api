@@ -228,8 +228,28 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(null);
 
         assertThatThrownBy(() -> task.run())
-            .isInstanceOf(RuntimeException.class)
+            .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("Failed to import user alternative email data");
+    }
+
+    @DisplayName("Should handle invalid CSV header")
+    @Test
+    void runHandlesInvalidCsvHeader() {
+        String csvContent = """
+            wrongColumn,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(IllegalStateException.class)
+            .hasCauseInstanceOf(IOException.class)
+            .hasMessageContaining("CSV read error");
     }
 
     @DisplayName("Should process multiple rows successfully")
@@ -331,13 +351,20 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
-            .thenThrow(new IllegalStateException("Some state error"));
 
-        task.run();
+        // Throw IllegalStateException from generateReport to cover the catch block (lines 96-98)
+        try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
+            reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()))
+                .thenThrow(new IllegalStateException("Report generation failed"));
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+            assertThatThrownBy(() -> task.run())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Report generation failed");
+
+            verify(userService, times(1)).findByOriginalEmail("test@example.com");
+            verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+        }
     }
 
     @DisplayName("Should handle unexpected exceptions during processing")
@@ -480,7 +507,7 @@ class ImportUserAlternativeEmailTest {
         when(userService.findByOriginalEmail("missing@example.com"))
             .thenReturn(Optional.empty());
 
-        // ERROR (updateAlternativeEmail throws, but task should continue)
+        // ERROR 
         when(userService.findByOriginalEmail("error@example.com"))
             .thenReturn(Optional.of(errorUser));
         when(userService.updateAlternativeEmail(errorUser.getId(), "invalid@test"))
@@ -498,7 +525,7 @@ class ImportUserAlternativeEmailTest {
         verify(userService, times(1))
             .updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
 
-        // SKIPPED (should not even look up the user)
+        // SKIPPED 
         verify(userService, never()).findByOriginalEmail("skipped@example.com");
 
         // NOT_FOUND
