@@ -3,7 +3,9 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.springframework.core.io.InputStreamResource;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -11,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Optional;
 import java.util.Set;
@@ -18,8 +21,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -385,7 +390,6 @@ class ImportUserAlternativeEmailTest {
         useLocalCsvField.setAccessible(true);
         useLocalCsvField.set(task, true);
 
-        // Mock all users from the actual CSV file in src/main/resources/batch/alternative_email_import.csv
         User user1 = new User();
         user1.setId(UUID.randomUUID());
         user1.setEmail("nazee.kadiu1@hmcts.net");
@@ -419,6 +423,32 @@ class ImportUserAlternativeEmailTest {
         useLocalCsvField.set(task, false);
     }
 
+    @DisplayName("Should handle IOException when generating report")
+    @Test
+    void runHandlesIOExceptionWhenGeneratingReport() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
 
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+
+        try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
+            reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()))
+                .thenThrow(new IOException("Failed to write CSV report"));
+
+            task.run();
+
+            verify(userService, times(1)).findByOriginalEmail("test@example.com");
+            verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+        }
+    }
 
 }
