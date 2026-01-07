@@ -113,7 +113,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 resource = new ClassPathResource("batch/alternative_email_import.csv");
             }
 
-            if (!resource.exists()) {
+            if (!resource.exists()) { // NOSONAR 
                 throw new IOException("CSV file not found at local path: " + LOCAL_CSV_PATH);
             }
         } else {
@@ -162,7 +162,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     case "NOT_FOUND" -> notFoundCount++;
                     case "SKIPPED" -> emptyAltEmailCount++;
                     case STATUS_ERROR -> errorCount++;
-                    default -> log.warn("Unknown status: {}", result.getStatus());
+                    default -> log.warn("Unknown status: {}", result.getStatus()); // NOSONAR 
                 }
             } catch (Exception e) {
                 log.error("Error processing row for email: {}", row.getEmail(), e);

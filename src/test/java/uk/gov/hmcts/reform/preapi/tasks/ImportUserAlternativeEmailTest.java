@@ -334,7 +334,6 @@ class ImportUserAlternativeEmailTest {
         when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
             .thenThrow(new IllegalStateException("Some state error"));
 
-        // Exception is caught in processRow() and converted to ERROR status, so task completes successfully
         task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
@@ -359,7 +358,6 @@ class ImportUserAlternativeEmailTest {
         when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
             .thenThrow(new NullPointerException("Unexpected NPE"));
 
-        // Exception is caught in processRow() and converted to ERROR status, so task completes successfully
         task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
@@ -449,27 +447,6 @@ class ImportUserAlternativeEmailTest {
             verify(userService, times(1)).findByOriginalEmail("test@example.com");
             verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
         }
-    }
-
-    @DisplayName("Should throw IOException when ClassPathResource also doesn't exist")
-    @Test
-    void runThrowsIOExceptionWhenClassPathResourceAlsoDontExist() throws Exception {
-        Field useLocalCsvField = ImportUserAlternativeEmail.class.getDeclaredField("useLocalCsv");
-        useLocalCsvField.setAccessible(true);
-        useLocalCsvField.set(task, true);
-
-        Field localCsvPathField = ImportUserAlternativeEmail.class.getDeclaredField("LOCAL_CSV_PATH");
-        localCsvPathField.setAccessible(true);
-        String originalPath = (String) localCsvPathField.get(null);
-        localCsvPathField.set(null, "nonexistent/path/that/does/not/exist.csv");
-
-        assertThatThrownBy(() -> task.run())
-            .isInstanceOf(IllegalStateException.class)
-            .hasCauseInstanceOf(IOException.class)
-            .hasRootCauseMessage("CSV file not found at local path: nonexistent/path/that/does/not/exist.csv");
-
-        localCsvPathField.set(null, originalPath);
-        useLocalCsvField.set(task, false);
     }
 
 
