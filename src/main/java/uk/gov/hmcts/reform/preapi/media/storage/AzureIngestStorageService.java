@@ -7,7 +7,6 @@ import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 @Service
 public class AzureIngestStorageService extends AzureStorageService {
-    private static final String BLOB_GC_STATE = "gc_state";
     private static final String TAG_KEY_STATUS = "status";
     private static final String TAG_VALUE_PROCESSING = "processing";
     private static final String TAG_VALUE_SAFE_TO_DELETE = "safe_to_delete";

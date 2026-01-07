@@ -211,20 +211,6 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
 
         entityManager.flush();
 
-        var testContainer1 = createContainer(String.valueOf(captureSession1.getBooking().getId()));
-
-        var testContainer2 = createContainer(String.valueOf(captureSession2.getBooking().getId()));
-
-        testContainer1.getBlobClient("gc_state").upload(
-            new ByteArrayInputStream("section file content".getBytes()),
-            "section file content".length()
-        );
-
-        testContainer2.getBlobClient("gc_state").upload(
-            new ByteArrayInputStream("gc stuff".getBytes()),
-            "gc stuff".length()
-        );
-
         //Run correction task
         captureSessionStatusCorrectionTask.run();
 
