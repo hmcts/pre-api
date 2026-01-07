@@ -460,16 +460,15 @@ class ImportUserAlternativeEmailTest {
             error@example.com,invalid@test
             """;
 
-        InputStreamResource blobResource = new InputStreamResource(
-            new ByteArrayInputStream(csvContent.getBytes())
-        );
-
         User errorUser = new User();
         errorUser.setId(UUID.randomUUID());
         errorUser.setEmail("error@example.com");
         errorUser.setFirstName("Error");
         errorUser.setLastName("User");
 
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
 
@@ -490,10 +489,10 @@ class ImportUserAlternativeEmailTest {
         try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
             task.run();
 
-                reportCsvWriterMock.verify(() -> ReportCsvWriter.writeToCsv(
-                    any(), any(), anyString(), anyString(), anyBoolean()
-                ), times(1));
-            }
+            reportCsvWriterMock.verify(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()
+            ), times(1));
+        }
 
         // SUCCESS
         verify(userService, times(1))
