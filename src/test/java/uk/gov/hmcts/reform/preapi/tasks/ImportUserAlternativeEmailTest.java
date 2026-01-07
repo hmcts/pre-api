@@ -449,5 +449,66 @@ class ImportUserAlternativeEmailTest {
         }
     }
 
+    @DisplayName("Should cover SUCCESS, SKIPPED, NOT_FOUND and ERROR statuses in one run and generate report")
+    @Test
+    void runCoversAllStatusesAndGeneratesReport() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            skipped@example.com,
+            missing@example.com,missing@example.com.cjsm.net
+            error@example.com,invalid@test
+            """;
+
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        User errorUser = new User();
+        errorUser.setId(UUID.randomUUID());
+        errorUser.setEmail("error@example.com");
+        errorUser.setFirstName("Error");
+        errorUser.setLastName("User");
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+
+        // SUCCESS
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+
+        // NOT_FOUND
+        when(userService.findByOriginalEmail("missing@example.com"))
+            .thenReturn(Optional.empty());
+
+        // ERROR (updateAlternativeEmail throws, but task should continue)
+        when(userService.findByOriginalEmail("error@example.com"))
+            .thenReturn(Optional.of(errorUser));
+        when(userService.updateAlternativeEmail(errorUser.getId(), "invalid@test"))
+            .thenThrow(new IllegalArgumentException("Alternative email format is invalid"));
+
+        try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
+            task.run();
+
+                reportCsvWriterMock.verify(() -> ReportCsvWriter.writeToCsv(
+                    any(), any(), anyString(), anyString(), anyBoolean()
+                ), times(1));
+            }
+
+        // SUCCESS
+        verify(userService, times(1))
+            .updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+
+        // SKIPPED (should not even look up the user)
+        verify(userService, never()).findByOriginalEmail("skipped@example.com");
+
+        // NOT_FOUND
+        verify(userService, times(1)).findByOriginalEmail("missing@example.com");
+
+        // ERROR
+        verify(userService, times(1)).findByOriginalEmail("error@example.com");
+        verify(userService, times(1)).updateAlternativeEmail(errorUser.getId(), "invalid@test");
+    }
+
 
 }
