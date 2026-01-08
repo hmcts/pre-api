@@ -188,6 +188,7 @@ public class EditRequestService {
      */
     @Transactional
     public void sendNotifications(Booking booking) {
+        log.info("Sending notifications for booking {}", booking);
         List<ShareBooking> shareBookings = bookingService.findAllSharesForBooking(booking);
         shareBookings
             .stream()
