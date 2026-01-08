@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,7 +113,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 resource = new ClassPathResource("batch/alternative_email_import.csv");
             }
 
-            if (!resource.exists()) {
+            if (!resource.exists()) { // NOSONAR 
                 throw new IOException("CSV file not found at local path: " + LOCAL_CSV_PATH);
             }
         } else {
@@ -128,11 +129,18 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(),
                                                                               StandardCharsets.UTF_8))) {
-            return new CsvToBeanBuilder<ImportRow>(reader)
-                .withType(ImportRow.class)
-                .withIgnoreLeadingWhiteSpace(true)
-                .build()
-                .parse();
+            try {
+                return new CsvToBeanBuilder<ImportRow>(reader)
+                    .withType(ImportRow.class)
+                    .withIgnoreLeadingWhiteSpace(true)
+                    .build()
+                    .parse();
+            } catch (RuntimeException e) {
+                if (e.getCause() instanceof CsvRequiredFieldEmptyException) {
+                    throw new IOException("CSV header invalid: " + e.getCause().getMessage(), e);
+                }
+                throw e;
+            }
         }
     }
 
@@ -154,7 +162,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     case "NOT_FOUND" -> notFoundCount++;
                     case "SKIPPED" -> emptyAltEmailCount++;
                     case STATUS_ERROR -> errorCount++;
-                    default -> log.warn("Unknown status: {}", result.getStatus());
+                    default -> log.warn("Unknown status: {}", result.getStatus()); // NOSONAR 
                 }
             } catch (Exception e) {
                 log.error("Error processing row for email: {}", row.getEmail(), e);
@@ -197,26 +205,22 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
-        Optional<User> existingAltUserEmail = userService
-            .findByAlternativeEmail(row.getAlternativeEmail());
-
-        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
+        try {
+            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                "SUCCESS",
+                "Alternative email updated successfully"
+            );
+        } catch (Exception e) {
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
                 STATUS_ERROR,
-                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
+                e.getMessage()  
             );
-        }
-
-        userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
-
-        return new ImportResult(
-            row.getEmail(),
-            row.getAlternativeEmail(),
-            "SUCCESS",
-            "Alternative email updated successfully"
-        );
+        } 
     }
 
     private void generateReport(List<ImportResult> results) {

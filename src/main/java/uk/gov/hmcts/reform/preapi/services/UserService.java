@@ -39,6 +39,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -54,6 +55,10 @@ public class UserService {
     private final AppAccessService appAccessService;
     private final PortalAccessService portalAccessService;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    );
 
     @Autowired
     public UserService(AppAccessRepository appAccessRepository,
@@ -295,12 +300,23 @@ public class UserService {
         String trimmedEmail = alternativeEmail != null ? alternativeEmail.trim() : null;
         
         if (trimmedEmail != null && !trimmedEmail.isEmpty()) {
+
+            if (!EMAIL_PATTERN.matcher(trimmedEmail).matches()) {
+                throw new IllegalArgumentException(
+                    "Alternative email format is invalid: must be a well-formed email address");
+            }
+
+            if (trimmedEmail.equalsIgnoreCase(user.getEmail())) {
+                throw new IllegalArgumentException(
+                    "Alternative email cannot be the same as the main email");
+            }
+
             Optional<User> existingUser = userRepository
                 .findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
             
             if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
                 throw new ConflictException(
-                    "Alternative email: " + trimmedEmail + " already exists for another user");
+                    "Alternative email: " + trimmedEmail + " already exists");
             }
         }
         
