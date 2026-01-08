@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -514,6 +515,11 @@ class ImportUserAlternativeEmailTest {
             .thenThrow(new IllegalArgumentException("Alternative email format is invalid"));
 
         try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
+            Path mockReportPath = java.nio.file.Paths.get("Migration Reports", "Alternative_Email_Report-test.csv");
+            reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()))
+                .thenReturn(mockReportPath);
+
             task.run();
 
             reportCsvWriterMock.verify(() -> ReportCsvWriter.writeToCsv(

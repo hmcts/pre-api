@@ -19,9 +19,11 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -230,8 +232,19 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 .map(ImportResult::toRow)
                 .toList();
 
-            ReportCsvWriter.writeToCsv(headers, rows, "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
+            Path reportPath = ReportCsvWriter.writeToCsv(headers, rows, 
+                "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
             log.info("Report generated successfully in {}", REPORT_OUTPUT_DIR);
+
+            if (reportPath != null) {
+                File reportFile = reportPath.toFile();
+                if (reportFile.exists()) {
+                    String fileName = reportPath.getFileName().toString();
+                    String blobPath = "reports/" + fileName;
+                    azureVodafoneStorageService.uploadCsvFile(containerName, blobPath, reportFile);
+                    log.info("Report uploaded to Azure: {}/{}", containerName, blobPath);
+                }
+            }
         } catch (IOException e) {
             log.error("Failed to generate report", e);
         }
