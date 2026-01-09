@@ -83,7 +83,8 @@ import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports",
+    "PMD.TestClassWithoutTestCases"})
 @ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
@@ -427,6 +428,7 @@ class TestingSupportController {
         return ResponseEntity.ok(new BookingDTO(booking));
     }
 
+    //TODO: Needs some tweaking to fix as the source recording is not being set to the edit request and causes error
     @SneakyThrows
     @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {

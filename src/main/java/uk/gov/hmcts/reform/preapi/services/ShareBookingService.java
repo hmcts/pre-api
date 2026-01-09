@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -176,5 +177,10 @@ public class ShareBookingService {
                               + " of shared booking: " + share.getBooking().getId());
             }
         }
+    }
+
+    @Transactional
+    public List<ShareBooking> findAllByBooking(Booking booking) {
+        return shareBookingRepository.findAllByBookingAndDeletedAtIsNull(booking);
     }
 }
