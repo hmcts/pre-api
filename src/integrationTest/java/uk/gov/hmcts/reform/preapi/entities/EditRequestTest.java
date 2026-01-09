@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,6 +53,7 @@ public class EditRequestTest extends IntegrationTestBase {
         entityManager.persist(user);
 
         var editRequest = HelperFactory.createEditRequest(
+            UUID.randomUUID(),
             recording,
             "{}",
             EditRequestStatus.PENDING,
