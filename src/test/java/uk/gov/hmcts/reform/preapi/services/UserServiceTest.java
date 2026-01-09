@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1173,6 +1174,69 @@ public class UserServiceTest {
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
         verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
         verify(userRepository, times(1)).saveAndFlush(user);
+    }
+
+    @DisplayName("Should throw IllegalArgumentException when alternative email format is invalid")
+    @Test
+    void updateAlternativeEmailInvalidFormat() {
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("original@example.com");
+        String invalidEmail = "invalid@test"; 
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> userService.updateAlternativeEmail(userId, invalidEmail))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Alternative email format is invalid");
+
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @DisplayName("Should throw IllegalArgumentException when alternative email equals main email")
+    @Test
+    void updateAlternativeEmailSameAsMainEmail() {
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("original@example.com");
+        String sameEmail = "original@example.com";
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> userService.updateAlternativeEmail(userId, sameEmail))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Alternative email cannot be the same as the main email");
+
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @DisplayName("Should throw IllegalArgumentException when alternative email equals main email (case insensitive)")
+    @Test
+    void updateAlternativeEmailSameAsMainEmailCaseInsensitive() {
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("Original@Example.com");
+        String sameEmail = "original@example.com"; 
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId))
+            .thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> userService.updateAlternativeEmail(userId, sameEmail))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Alternative email cannot be the same as the main email");
+
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
+        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).saveAndFlush(any());
     }
 
     @DisplayName("Should get role by id successfully")
