@@ -15,9 +15,13 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -25,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
@@ -375,6 +380,122 @@ class CaseServiceIT extends IntegrationTestBase {
         assertThat(captureSessionFailure.getDeletedAt()).isNotNull();
         assertThat(booking3.getDeletedAt()).isNull();
         assertThat(captureSessionRecordingAvailable.getDeletedAt()).isNull();
+    }
+
+    @Test
+    @Transactional
+    void setCaseToPendingClosureWithCompletedEditRequest() {
+        mockAdminUser();
+
+        var court = persistCourt();
+        var caseEntity = persistCase(court);
+        var scheduledFor = Timestamp.from(Instant.now().minusSeconds(3600));
+        var booking = persistBooking(caseEntity, scheduledFor);
+        var recording = persistCaptureSessionAndRecording(booking);
+        var startedAt = Timestamp.from(scheduledFor.toInstant().plusSeconds(1800));
+        persistEditRequest(startedAt, recording, EditRequestStatus.COMPLETE);
+
+        entityManager.flush();
+        entityManager.refresh(booking);
+
+        setCaseToPendingClosure(caseEntity, court);
+
+        assertThat(caseEntity.getState()).isEqualTo(CaseState.PENDING_CLOSURE);
+        assertThat(caseEntity.getClosedAt()).isNotNull();
+    }
+
+    @Test
+    @Transactional
+    void setCaseToPendingClosureWithIncompleteEditRequest() {
+        mockAdminUser();
+
+        var court = persistCourt();
+        var caseEntity = persistCase(court);
+        var scheduledFor = Timestamp.from(Instant.now().minusSeconds(3600));
+        var booking = persistBooking(caseEntity, scheduledFor);
+        var recording = persistCaptureSessionAndRecording(booking);
+        var startedAt = Timestamp.from(scheduledFor.toInstant().plusSeconds(1800));
+        persistEditRequest(startedAt, recording, EditRequestStatus.PROCESSING);
+
+        entityManager.flush();
+        entityManager.refresh(booking);
+
+        Assertions.assertThrows(ResourceInWrongStateException.class, () -> setCaseToPendingClosure(caseEntity, court));
+
+        assertThat(caseEntity.getState()).isEqualTo(CaseState.OPEN);
+        assertThat(caseEntity.getClosedAt()).isNull();
+    }
+
+    private Court persistCourt() {
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+        return court;
+    }
+
+    private Case persistCase(Court court) {
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+        return caseEntity;
+    }
+
+    private Booking persistBooking(Case caseEntity, Timestamp scheduledFor) {
+        var booking = HelperFactory.createBooking(caseEntity, scheduledFor, null);
+        entityManager.persist(booking);
+        return booking;
+    }
+
+    private Recording persistCaptureSessionAndRecording(Booking booking) {
+        var captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        var recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
+        entityManager.persist(recording);
+
+        return recording;
+    }
+
+    private void persistEditRequest(Timestamp startedAt, Recording recording, EditRequestStatus status) {
+        var editRequestUser = HelperFactory.createDefaultTestUser();
+        entityManager.persist(editRequestUser);
+
+        var finishedAt = Timestamp.from(startedAt.toInstant().plusSeconds(60));
+        var editRequest = HelperFactory.createEditRequest(
+            recording,
+            "{}",
+            status,
+            editRequestUser,
+            startedAt,
+            finishedAt,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(editRequest);
+    }
+
+    private void setCaseToPendingClosure(Case caseEntity, Court court) {
+        var upsertCaseDto = new CreateCaseDTO();
+        upsertCaseDto.setId(caseEntity.getId());
+        upsertCaseDto.setCourtId(court.getId());
+        upsertCaseDto.setReference(caseEntity.getReference());
+        upsertCaseDto.setParticipants(Set.of());
+        upsertCaseDto.setTest(false);
+        upsertCaseDto.setState(CaseState.PENDING_CLOSURE);
+        upsertCaseDto.setClosedAt(Timestamp.from(Instant.now()));
+
+        caseService.upsert(upsertCaseDto);
     }
 
     @Nested
