@@ -239,6 +239,19 @@ public class EditRequestService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
+    public void delete(CreateEditRequestDTO dto) {
+        Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
+
+        if (req.isEmpty()) {
+            log.info("Attempt to delete non-existing edit request with id {}", dto.getId());
+            return;
+        }
+
+        editRequestRepository.delete(req.get());
+    }
+
+    @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
 
@@ -251,6 +264,39 @@ public class EditRequestService {
                                                         + ") does not have a valid duration");
         }
 
+        Optional<EditRequest> existingEditRequest = editRequestRepository.findById(dto.getId());
+
+        boolean isUpdate = existingEditRequest.isPresent();
+        if (dto.getEditInstructions() == null || dto.getEditInstructions().isEmpty()) {
+            if (isUpdate) {
+                log.info(
+                    "Deleting edit request {} for source recording {} as edit instructions are empty",
+                    existingEditRequest.get().getId(), dto.getSourceRecordingId()
+                );
+                delete(dto);
+                return UpsertResult.UPDATED;
+            } else {
+                throw new BadRequestException("Invalid Instruction: Cannot create an edit request with empty"
+                                                  + " instructions");
+            }
+        }
+
+        EditRequest request = getEditRequestToCreateOrUpdate(dto, sourceRecording,
+                                                             existingEditRequest.orElse(new EditRequest()));
+
+        if (!isUpdate) {
+            UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+            User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
+
+            request.setCreatedBy(user);
+        }
+
+        editRequestRepository.save(request);
+        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    private @NotNull EditRequest getEditRequestToCreateOrUpdate(CreateEditRequestDTO dto, Recording sourceRecording,
+                                                                EditRequest request) {
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
         boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
@@ -268,9 +314,6 @@ public class EditRequestService {
             && !prevInstructions.getRequestedInstructions().isEmpty();
 
         boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
-
-        Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
-        EditRequest request = req.orElse(new EditRequest());
 
         request.setId(dto.getId());
         request.setSourceRecording(!isInstructionCombination
@@ -292,17 +335,7 @@ public class EditRequestService {
         );
 
         request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
-
-        boolean isUpdate = req.isPresent();
-        if (!isUpdate) {
-            UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-            User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
-
-            request.setCreatedBy(user);
-        }
-
-        editRequestRepository.save(request);
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return request;
     }
 
     @Transactional
@@ -325,8 +358,10 @@ public class EditRequestService {
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
         try {
-            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(),
-                                                                                      StandardCharsets.UTF_8));
+            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(
+                file.getInputStream(),
+                StandardCharsets.UTF_8
+            ));
             return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
                 .withType(EditCutInstructionDTO.class)
                 .build()

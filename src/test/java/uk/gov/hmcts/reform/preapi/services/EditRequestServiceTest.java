@@ -508,6 +508,53 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should delete edit request when upserting with empty instructions")
+    void deleteEmptyInstructions() {
+        UUID sourceRecordingId = UUID.randomUUID();
+        Recording sourceRecording = new Recording();
+        sourceRecording.setId(sourceRecordingId);
+        sourceRecording.setDuration(Duration.ofSeconds(30));
+
+        CreateEditRequestDTO request = new CreateEditRequestDTO();
+        request.setId(UUID.randomUUID());
+        request.setSourceRecordingId(sourceRecordingId);
+        request.setEditInstructions(new ArrayList<>());
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecordingId))
+            .thenReturn(Optional.of(sourceRecording));
+        when(editRequestRepository.findById(request.getId())).thenReturn(Optional.of(new EditRequest()));
+
+        UpsertResult result = editRequestService.upsert(request);
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+    }
+
+    @Test
+    @DisplayName("Should throw bad request when trying to create new edit request with empty instructions")
+    void badRequestEmptyInstructions() {
+
+        UUID sourceRecordingId = UUID.randomUUID();
+        var sourceRecording = new Recording();
+        sourceRecording.setId(sourceRecordingId);
+        sourceRecording.setDuration(Duration.ofSeconds(30));
+
+        CreateEditRequestDTO originalRequest = new CreateEditRequestDTO();
+        originalRequest.setId(UUID.randomUUID());
+        originalRequest.setSourceRecordingId(sourceRecordingId);
+        originalRequest.setEditInstructions(new ArrayList<>());
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecordingId))
+            .thenReturn(Optional.of(sourceRecording));
+
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> editRequestService.upsert(originalRequest)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+    }
+
+    @Test
     @DisplayName("Should throw bad request when instruction has same value for start and end")
     void invertInstructionsBadRequestStartEndEqual() {
         List<EditCutInstructionDTO> instructions = new ArrayList<>();
