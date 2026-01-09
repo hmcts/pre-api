@@ -504,7 +504,7 @@ public class EditRequestServiceTest {
         assertThat(message)
             .isEqualTo("Invalid Instruction: Cannot cut an entire recording: "
                            + "Start(00:00:00), End(00:03:00), "
-                           + "Recording Duration(180)");
+                           + "Recording Duration(00:03:00)");
     }
 
     @Test
@@ -571,7 +571,7 @@ public class EditRequestServiceTest {
         assertThat(message)
             .isEqualTo("Invalid instruction: Instruction end time exceeding duration: "
                            + "Start(00:01:00), End(00:03:20), "
-                           + "Recording Duration(180)");
+                           + "Recording Duration(00:03:00)");
     }
 
     @Test

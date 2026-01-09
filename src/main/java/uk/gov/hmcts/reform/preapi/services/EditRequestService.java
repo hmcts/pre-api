@@ -349,7 +349,7 @@ public class EditRequestService {
                                                   + "), End("
                                                   + formatTime(firstInstruction.getEnd())
                                                   + "), Recording Duration("
-                                                  + recordingDuration
+                                                  + formatTime(recordingDuration)
                                                   + ")");
             }
         }
@@ -396,7 +396,7 @@ public class EditRequestService {
                                                   + "), End("
                                                   + formatTime(instruction.getEnd())
                                                   + "), Recording Duration("
-                                                  + recordingDuration
+                                                  + formatTime(recordingDuration)
                                                   + ")");
             }
             if (currentTime < instruction.getStart()) {
