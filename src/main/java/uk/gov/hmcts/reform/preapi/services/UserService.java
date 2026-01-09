@@ -296,9 +296,9 @@ public class UserService {
     public UpsertResult updateAlternativeEmail(UUID userId, String alternativeEmail) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
-        
+
         String trimmedEmail = alternativeEmail != null ? alternativeEmail.trim() : null;
-        
+
         if (trimmedEmail != null && !trimmedEmail.isEmpty()) {
 
             if (!EMAIL_PATTERN.matcher(trimmedEmail).matches()) {
@@ -312,14 +312,13 @@ public class UserService {
             }
 
             Optional<User> existingUser = userRepository
-                .findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
-            
+                .findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
             if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
                 throw new ConflictException(
                     "Alternative email: " + trimmedEmail + " already exists");
             }
         }
-        
+
         user.setAlternativeEmail(trimmedEmail != null && !trimmedEmail.isEmpty() ? trimmedEmail : null);
         userRepository.saveAndFlush(user);
 
@@ -330,5 +329,10 @@ public class UserService {
     public Role getRoleById(UUID roleId) {
         return roleRepository.findById(roleId)
             .orElseThrow(() -> new NotFoundException("Role: " + roleId));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserDTO> findPortalUsersWithCjsmEmail(Pageable pageable) {
+        return userRepository.findPortalUsersWithCjsmEmail(pageable).map(user -> new UserDTO(user, null));
     }
 }
