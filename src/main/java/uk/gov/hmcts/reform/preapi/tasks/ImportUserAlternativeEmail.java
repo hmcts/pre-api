@@ -32,6 +32,7 @@ import java.util.Optional;
 
 @Slf4j
 @Component
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class ImportUserAlternativeEmail extends RobotUserTask {
 
     private final AzureVodafoneStorageService azureVodafoneStorageService;
@@ -120,7 +121,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 resource = new ClassPathResource("batch/alternative_email_import.csv");
             }
 
-            if (!resource.exists()) { // NOSONAR 
+            if (!resource.exists()) { // NOSONAR
                 throw new IOException("CSV file not found at local path: " + LOCAL_CSV_PATH);
             }
         } else {
@@ -169,7 +170,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     case "NOT_FOUND" -> notFoundCount++;
                     case "SKIPPED" -> emptyAltEmailCount++;
                     case STATUS_ERROR -> errorCount++;
-                    default -> log.warn("Unknown status: {}", result.getStatus()); // NOSONAR 
+                    default -> log.warn("Unknown status: {}", result.getStatus()); // NOSONAR
                 }
             } catch (Exception e) {
                 log.error("Error processing row for email: {}", row.getEmail(), e);
@@ -212,24 +213,20 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
-        try {
-            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
-            return new ImportResult(
-                row.getEmail(),
-                row.getAlternativeEmail(),
-                "SUCCESS",
-                "Alternative email updated successfully"
-            );
-        } catch (Exception e) {
+        // Check if alternative email already exists for another user
+        Optional<User> existingAltUserEmail = userService
+            .findByAlternativeEmail(row.getAlternativeEmail());
+
+        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
                 STATUS_ERROR,
-                e.getMessage()  
+                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
             );
         }
 
-        // Add alternative email as an additional identity in B2C
+        // Update B2C first
         try {
             Optional<com.microsoft.graph.models.User> maybeB2cUser =
                 b2cGraphService.findUserByPrimaryEmail(row.getEmail());
@@ -239,7 +236,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     row.getEmail(),
                     row.getAlternativeEmail(),
                     STATUS_ERROR,
-                    "User not found in B2C"
+                    "User not found in B2C with email: " + row.getEmail()
                 );
             }
 
@@ -266,21 +263,23 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 updatedIdentities.add(newIdentity);
 
                 b2cGraphService.updateUserIdentities(b2cUser.getId(), updatedIdentities);
-                log.info("Added alternative email as identity to B2C user");
+                log.info("Added alternative email {} as identity to B2C user {}",
+                    row.getAlternativeEmail(), row.getEmail());
             } else {
-                log.info("Alternative email already exists as identity for B2C user");
+                log.info("Alternative email {} already exists as identity for B2C user {}",
+                    row.getAlternativeEmail(), row.getEmail());
             }
         } catch (Exception e) {
-            log.error("Failed to update B2C identity for user: {}", e.getMessage(), e);
+            log.error("Failed to update B2C identity for user {}: {}", row.getEmail(), e.getMessage(), e);
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
                 STATUS_ERROR,
-                "Failed to update B2C identity"
+                "Failed to update B2C identity: " + e.getMessage()
             );
         }
 
-        // Update local database
+        // Update local database only after B2C update succeeds
         userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
 
         return new ImportResult(
@@ -298,7 +297,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 .map(ImportResult::toRow)
                 .toList();
 
-            Path reportPath = ReportCsvWriter.writeToCsv(headers, rows, 
+            Path reportPath = ReportCsvWriter.writeToCsv(headers, rows,
                 "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
             log.info("Report generated successfully in {}", REPORT_OUTPUT_DIR);
 
