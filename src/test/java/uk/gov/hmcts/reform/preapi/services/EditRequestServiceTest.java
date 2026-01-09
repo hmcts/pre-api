@@ -502,8 +502,9 @@ public class EditRequestServiceTest {
         ).getMessage();
 
         assertThat(message)
-            .isEqualTo("Invalid Instruction: Cannot cut an entire recording: Start(0), End(180), "
-                           + "Recording Duration(180)");
+            .isEqualTo("Invalid Instruction: Cannot cut an entire recording: "
+                           + "Start(00:00:00), End(00:03:00), "
+                           + "Recording Duration(00:03:00)");
     }
 
     @Test
@@ -524,7 +525,8 @@ public class EditRequestServiceTest {
         ).getMessage();
 
         assertThat(message)
-            .isEqualTo("Invalid instruction: Instruction with 0 second duration invalid: Start(60), End(60)");
+            .isEqualTo("Invalid instruction: Instruction with 0 second duration invalid: "
+                           + "Start(00:01:00), End(00:01:00)");
     }
 
     @Test
@@ -545,7 +547,8 @@ public class EditRequestServiceTest {
         ).getMessage();
 
         assertThat(message)
-            .isEqualTo("Invalid instruction: Instruction with end time before start time: Start(60), End(50)");
+            .isEqualTo("Invalid instruction: Instruction with end time before start time: "
+                           + "Start(00:01:00), End(00:00:50)");
     }
 
     @Test
@@ -566,8 +569,9 @@ public class EditRequestServiceTest {
         ).getMessage();
 
         assertThat(message)
-            .isEqualTo("Invalid instruction: Instruction end time exceeding duration: Start(60), End(200), "
-                           + "Recording Duration(180)");
+            .isEqualTo("Invalid instruction: Instruction end time exceeding duration: "
+                           + "Start(00:01:00), End(00:03:20), "
+                           + "Recording Duration(00:03:00)");
     }
 
     @Test
@@ -590,7 +594,8 @@ public class EditRequestServiceTest {
             () -> editRequestService.invertInstructions(instructions, recording)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Overlapping instructions: Previous End(30), Current Start(20)");
+        assertThat(message).isEqualTo("Overlapping instructions: "
+                                          + "Previous End(00:00:30), Current Start(00:00:20)");
     }
 
     @Test
