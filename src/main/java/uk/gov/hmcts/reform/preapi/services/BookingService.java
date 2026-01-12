@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,11 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
@@ -27,6 +30,9 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@SuppressWarnings("PMD.SingularField")
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class BookingService {
 
     private final BookingRepository bookingRepository;
@@ -45,19 +51,23 @@ public class BookingService {
     private final ShareBookingService shareBookingService;
     private final CaseService caseService;
 
+    private final boolean enableMigratedData;
+
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
                           final CaptureSessionService captureSessionService,
                           final ShareBookingService shareBookingService,
-                          @Lazy CaseService caseService) {
+                          @Lazy CaseService caseService,
+                          @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
         this.caseService = caseService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
@@ -86,14 +96,15 @@ public class BookingService {
         List<RecordingStatus> notStatuses,
         Pageable pageable
     ) {
-        var until = scheduledFor.isEmpty()
+        Timestamp until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
-                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS)))
+            .orElse(null);
 
-        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
-        var authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        List<UUID> authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
+        UUID authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
 
         return bookingRepository
             .searchBookingsBy(
@@ -108,24 +119,34 @@ public class BookingService {
                 hasRecordings,
                 statuses,
                 notStatuses,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
             .map(BookingDTO::new);
     }
 
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+
+        LocalDate localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(),
+                                                           ZoneId.of("Europe/London")).toLocalDate();
+        LocalDate today = LocalDate.now();
+
+        if (localDateField.isBefore(today)
+            && !auth.hasRole("ROLE_SUPER_USER")) {
+            throw new BadRequestException("Scheduled date must not be in the past");
+        }
 
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
 
-        var optBooking = bookingRepository.findById(createBookingDTO.getId());
-        var bookingEntity = optBooking.orElse(new Booking());
+        Optional<Booking> optBooking = bookingRepository.findById(createBookingDTO.getId());
+        Booking bookingEntity = optBooking.orElse(new Booking());
 
-        var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
+        Case caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
             .orElseThrow(() -> new NotFoundException("Case: " + createBookingDTO.getCaseId()));
 
         if (caseEntity.getState() != CaseState.OPEN) {
@@ -148,7 +169,7 @@ public class BookingService {
         bookingEntity.setParticipants(
             Stream.ofNullable(createBookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
-                    var entity = participantRepository.findById(model.getId()).orElse(new Participant());
+                    Participant entity = participantRepository.findById(model.getId()).orElse(new Participant());
 
                     if (entity.getDeletedAt() != null) {
                         throw new ResourceInDeletedStateException("Participant", entity.getId().toString());
@@ -165,9 +186,7 @@ public class BookingService {
         bookingEntity.setScheduledFor(createBookingDTO.getScheduledFor());
 
         bookingRepository.save(bookingEntity);
-
-        var isUpdate = optBooking.isPresent();
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return optBooking.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     private boolean bookingAlreadyDeleted(UUID id) {
@@ -177,7 +196,7 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void markAsDeleted(UUID id) {
-        var booking = bookingRepository
+        Booking booking = bookingRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("Booking: " + id));
         captureSessionService.deleteCascade(booking);
@@ -187,10 +206,22 @@ public class BookingService {
         bookingRepository.saveAndFlush(booking);
     }
 
+    @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #booking.id)")
+    public void cleanUnusedCaptureSessions(Booking booking) {
+        for (CaptureSession captureSession : booking.getCaptureSessions()) {
+            if (captureSession.getDeletedAt() == null
+                && (captureSession.getStatus() == RecordingStatus.FAILURE
+                || captureSession.getStatus() == RecordingStatus.NO_RECORDING)) {
+                captureSessionService.deleteById(captureSession.getId());
+            }
+        }
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void undelete(UUID id) {
-        var entity = bookingRepository.findById(id).orElseThrow(() -> new NotFoundException("Booking: " + id));
+        Booking entity = bookingRepository.findById(id).orElseThrow(() -> new NotFoundException("Booking: " + id));
         caseService.undelete(entity.getCaseId().getId());
         if (!entity.isDeleted()) {
             return;
@@ -210,5 +241,30 @@ public class BookingService {
                 booking.setDeletedAt(Timestamp.from(Instant.now()));
                 bookingRepository.save(booking);
             });
+    }
+
+    @Transactional
+    public List<BookingDTO> findAllPastBookings() {
+        return bookingRepository.findAllPastUnusedBookings(Timestamp.from(Instant.now()))
+            .stream()
+            .map(BookingDTO::new)
+            .toList();
+    }
+
+    @Transactional
+    public List<BookingDTO> findAllBookingsForToday() {
+        LocalDate currentDate = LocalDate.now();
+        return searchBy(
+            null,
+            null,
+            null,
+            Optional.of(Timestamp.valueOf(currentDate.atStartOfDay())),
+            null,
+            null,
+            null,
+            null,
+            Pageable.unpaged()
+        )
+            .toList();
     }
 }

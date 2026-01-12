@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
-import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -37,8 +36,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nullable;
 
-@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 @UtilityClass
+@SuppressWarnings({ "checkstyle:HideUtilityClassConstructor", "PMD.CouplingBetweenObjects" })
 public class HelperFactory {
     public static User createDefaultTestUser() {
         return createUser("Test", "User", "example@example.com", new Timestamp(System.currentTimeMillis()), null, null);
@@ -146,6 +145,7 @@ public class HelperFactory {
                                                       @Nullable RecordingStatus status,
                                                       @Nullable Timestamp deletedAt) {
         CaptureSession captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
         captureSession.setOrigin(origin);
         captureSession.setIngestAddress(ingestAddress);
@@ -156,6 +156,7 @@ public class HelperFactory {
         captureSession.setFinishedByUser(finishedBy);
         captureSession.setStatus(status);
         captureSession.setDeletedAt(deletedAt);
+        captureSession.setRecordings(Set.of());
         return captureSession;
     }
 
@@ -178,13 +179,6 @@ public class HelperFactory {
         region.setName(name);
         region.setCourts(courts);
         return region;
-    }
-
-    public static Room createRoom(String name, Set<Court> courts) {
-        Room room = new Room();
-        room.setName(name);
-        room.setCourts(courts);
-        return room;
     }
 
     public static Recording createRecording(CaptureSession captureSession,
@@ -237,7 +231,11 @@ public class HelperFactory {
                                                 EditRequestStatus status,
                                                 User createdBy,
                                                 @Nullable Timestamp startedAt,
-                                                @Nullable Timestamp finishedAt) {
+                                                @Nullable Timestamp finishedAt,
+                                                @Nullable Boolean jointlyAgreed,
+                                                @Nullable String rejectionReason,
+                                                @Nullable Timestamp approvedAt,
+                                                @Nullable String approvedBy) {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setSourceRecording(sourceRecording);
@@ -246,6 +244,10 @@ public class HelperFactory {
         editRequest.setCreatedBy(createdBy);
         editRequest.setStartedAt(startedAt);
         editRequest.setFinishedAt(finishedAt);
+        editRequest.setJointlyAgreed(jointlyAgreed);
+        editRequest.setRejectionReason(rejectionReason);
+        editRequest.setApprovedAt(approvedAt);
+        editRequest.setApprovedBy(approvedBy);
         return editRequest;
     }
 

@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -37,11 +38,8 @@ import java.util.stream.Stream;
 public class ShareBookingService {
 
     private final ShareBookingRepository shareBookingRepository;
-
     private final BookingRepository bookingRepository;
-
     private final UserRepository userRepository;
-
     private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
@@ -64,7 +62,7 @@ public class ShareBookingService {
             throw new ConflictException("Share booking already exists");
         }
 
-        final var booking = bookingRepository.findById(createShareBookingDTO.getBookingId())
+        final Booking booking = bookingRepository.findById(createShareBookingDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + createShareBookingDTO.getBookingId()));
 
         if (booking.getCaseId().getState() == CaseState.CLOSED) {
@@ -76,12 +74,12 @@ public class ShareBookingService {
             );
         }
 
-        final var sharedByUser = userRepository.findById(createShareBookingDTO.getSharedByUser())
+        final User sharedByUser = userRepository.findById(createShareBookingDTO.getSharedByUser())
             .orElseThrow(() -> new NotFoundException("Shared by User: " + createShareBookingDTO.getSharedByUser()));
-        final var sharedWithUser = userRepository.findById(createShareBookingDTO.getSharedWithUser())
+        final User sharedWithUser = userRepository.findById(createShareBookingDTO.getSharedWithUser())
             .orElseThrow(() -> new NotFoundException("Shared with User: " + createShareBookingDTO.getSharedWithUser()));
 
-        var shareBookingEntity = new ShareBooking();
+        ShareBooking shareBookingEntity = new ShareBooking();
         shareBookingEntity.setId(createShareBookingDTO.getId());
         shareBookingEntity.setBooking(booking);
         shareBookingEntity.setSharedBy(sharedByUser);
@@ -100,7 +98,7 @@ public class ShareBookingService {
             throw new NotFoundException("Booking: " + bookingId);
         }
 
-        var share = shareBookingRepository
+        ShareBooking share = shareBookingRepository
             .findById(shareId)
             .orElseThrow(() -> new NotFoundException("ShareBooking: " + shareId));
 
@@ -141,8 +139,8 @@ public class ShareBookingService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public Set<ShareBooking> getSharesForCase(Case c) {
-        return bookingRepository.findAllByCaseIdAndDeletedAtIsNull(c)
+    public Set<ShareBooking> getSharesForCase(Case aCase) {
+        return bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)
             .stream()
             .map(shareBookingRepository::findAllByBookingAndDeletedAtIsNull)
             .flatMap(Collection::stream)
@@ -162,20 +160,20 @@ public class ShareBookingService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void onBookingShared(ShareBooking s) {
+    public void onBookingShared(ShareBooking share) {
         // only send an email if there is a recording for this booking
         if (emailServiceFactory.isEnabled()
-            && Stream.ofNullable(s.getBooking().getCaptureSessions())
+            && Stream.ofNullable(share.getBooking().getCaptureSessions())
                      .flatMap(Set::stream)
                      .anyMatch(c -> c.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE))) {
 
             try {
-                log.info("onBookingShared: Booking({})", s.getBooking().getId());
+                log.info("onBookingShared: Booking({})", share.getBooking().getId());
                 emailServiceFactory.getEnabledEmailService()
-                                   .recordingReady(s.getSharedWith(), s.getBooking().getCaseId());
+                                   .recordingReady(share.getSharedWith(), share.getBooking().getCaseId());
             } catch (Exception e) {
-                log.error("Failed to notify user " + s.getSharedWith().getId()
-                              + " of shared booking: " + s.getBooking().getId());
+                log.error("Failed to notify user " + share.getSharedWith().getId()
+                              + " of shared booking: " + share.getBooking().getId());
             }
         }
     }

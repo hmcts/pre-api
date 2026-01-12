@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -22,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Getter
@@ -75,13 +75,16 @@ public class CaptureSession extends BaseEntity implements ISoftDeletable {
     @OneToMany(mappedBy = "captureSession", fetch = FetchType.EAGER)
     private Set<Recording> recordings;
 
+    @OneToMany(mappedBy = "captureSession")
+    private Set<EncodeJob> encodeJobs;
+
     public boolean isDeleted() {
         return deletedAt != null;
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("bookingId", booking.getId());
         details.put("captureSessionOrigin", origin);
         details.put("captureSessionStartedAt", startedAt);

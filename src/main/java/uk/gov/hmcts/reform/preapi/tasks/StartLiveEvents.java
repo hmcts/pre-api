@@ -3,46 +3,54 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.utils.Batcher;
 
-import java.sql.Timestamp;
-import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
 @Slf4j
 @Component
 public class StartLiveEvents extends RobotUserTask {
+    private static final String LIVE_EVENT_RUNNING_STATE = "Running";
 
     private final MediaServiceBroker mediaServiceBroker;
     private final BookingService bookingService;
     private final CaptureSessionService captureSessionService;
 
+    private final int batchSize;
+    private final int pollInterval;
+
+
     @Autowired
     public StartLiveEvents(UserService userService,
                            UserAuthenticationService userAuthenticationService,
-                           @Value("${cron-user-email}") String cronUserEmail,
-                           MediaServiceBroker mediaServiceBroker,
+                           CaptureSessionService captureSessionService, MediaServiceBroker mediaServiceBroker,
                            BookingService bookingService,
-                           CaptureSessionService captureSessionService) {
+                           @Value("${cron-user-email}") String cronUserEmail,
+                           @Value("${tasks.start-live-event.batch-size}") int batchSize,
+                           @Value("${tasks.start-live-event.poll-interval}") int pollInterval) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.bookingService = bookingService;
         this.captureSessionService = captureSessionService;
+        this.batchSize = batchSize;
+        this.pollInterval = pollInterval;
     }
 
     @Override
@@ -52,29 +60,24 @@ public class StartLiveEvents extends RobotUserTask {
 
         // find all bookings scheduled for today and create a capture session + start a live event
         // only if capture session doesn't already exist
-        bookingService.searchBy(null,
-                                null,
-                                null,
-                                Optional.of(Timestamp.valueOf(LocalDate.now().atStartOfDay())),
-                                null,
-                                null,
-                                null,
-                                null,
-                                Pageable.unpaged())
-            .stream()
-            .filter(b -> b.getCaptureSessions().isEmpty())
-            .map(BookingDTO::getId)
-            .map(this::initCaptureSessionForBooking)
-            .filter(Objects::nonNull)
-            .filter(this::startLiveEvent)
-            .forEach(this::awaitIngestAddress);
+        Batcher.batchProcess(
+            bookingService.findAllBookingsForToday()
+                .stream()
+                .filter(b -> b.getCaptureSessions().isEmpty())
+                .map(BookingDTO::getId)
+                .map(this::initCaptureSessionForBooking)
+                .filter(Objects::nonNull)
+                .toList(),
+            batchSize,
+            this::startLiveEvent,
+            this::awaitIngestAddresses
+        );
     }
-
 
     private UUID initCaptureSessionForBooking(UUID bookingId) {
         log.info("Creating capture session for booking {}", bookingId);
 
-        var dto = new CreateCaptureSessionDTO();
+        CreateCaptureSessionDTO dto = new CreateCaptureSessionDTO();
         dto.setId(UUID.randomUUID());
         dto.setBookingId(bookingId);
         dto.setOrigin(RecordingOrigin.PRE);
@@ -90,50 +93,77 @@ public class StartLiveEvents extends RobotUserTask {
         return dto.getId();
     }
 
-    private boolean startLiveEvent(UUID captureSessionId) {
+    private void startLiveEvent(UUID captureSessionId) {
         log.info("Starting live event for capture session {}", captureSessionId);
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        var dto = captureSessionService.findById(captureSessionId);
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
+        CaptureSessionDTO dto = captureSessionService.findById(captureSessionId);
 
         try {
             mediaService.startLiveEvent(dto);
         } catch (Exception e) {
             log.error("Failed to start live event for capture session {}", captureSessionId, e);
             captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
-            return false;
+            return;
         }
 
         captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.INITIALISING, null);
-        return true;
     }
 
-    private void awaitIngestAddress(UUID captureSessionId) {
-        log.info("Awaiting ingest address for capture session {}", captureSessionId);
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        var liveEventName = MediaResourcesHelper.getSanitisedLiveEventId(captureSessionId);
+    private void awaitIngestAddresses(List<UUID> captureSessionIds) {
+        log.info("Awaiting ingest addresses for capture sessions");
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
+
+        List<UUID> startingCaptureSessions = captureSessionIds
+            .stream()
+            .filter(id -> captureSessionService.findById(id).getStatus().equals(RecordingStatus.INITIALISING))
+            .toList();
 
         try {
-            String inputRtmp;
             do {
-                Thread.sleep(2000);
-                inputRtmp = getIngestAddress(mediaService.getLiveEvent(liveEventName));
-            } while (inputRtmp == null);
-
-            log.info("Ingest address found for capture session {}", captureSessionId);
-            captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.STANDBY, inputRtmp);
+                Thread.sleep(pollInterval);
+                List<LiveEventDTO> liveEvents = mediaService.getLiveEvents();
+                startingCaptureSessions = startingCaptureSessions.stream()
+                    .filter(id -> {
+                        boolean result = tryGetIngestAddress(id, liveEvents);
+                        if (result) {
+                            log.info("Ingest address obtained for capture session {}", id);
+                        }
+                        return !result;
+                    })
+                    .toList();
+            } while (!startingCaptureSessions.isEmpty());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            handleIngestAddressException(startingCaptureSessions, e);
         } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            log.error("Failed to await ingest address for capture session {}", captureSessionId, e);
-            captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
+            handleIngestAddressException(startingCaptureSessions, e);
         }
     }
 
-    private @Nullable String getIngestAddress(LiveEventDTO liveEvent) {
+    private boolean tryGetIngestAddress(UUID captureSessionId, List<LiveEventDTO> liveEvents) {
+        return liveEvents.stream()
+            .filter(e -> e.getName().equals(MediaResourcesHelper.getSanitisedLiveEventId(captureSessionId)))
+            .findFirst()
+            .map(this::getIngestAddress)
+            .map(inputRtmp -> {
+                captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.STANDBY, inputRtmp);
+                return true;
+            })
+            .orElse(false);
+    }
+
+    @Nullable
+    private String getIngestAddress(LiveEventDTO liveEvent) {
         return liveEvent != null && liveEvent.getResourceState().equals("Running") && liveEvent.getInputRtmp() != null
             ? liveEvent.getInputRtmp()
             : null;
+    }
+
+    private void handleIngestAddressException(List<UUID> startingCaptureSessions, Exception ex) {
+        startingCaptureSessions.forEach(id -> {
+            log.error("Failed to await ingest address for capture session {}", id, ex);
+            captureSessionService.startCaptureSession(id, RecordingStatus.FAILURE, null);
+        });
     }
 }

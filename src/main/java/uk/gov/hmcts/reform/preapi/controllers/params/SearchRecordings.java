@@ -22,6 +22,7 @@ public class SearchRecordings {
     private String defendantName;
     private Boolean includeDeleted;
     private String id;
+    private Integer version;
 
     @Nullable
     private Timestamp startedAtFrom;
@@ -29,6 +30,7 @@ public class SearchRecordings {
     private Timestamp startedAtUntil;
     private List<UUID> authorisedBookings;
     private UUID authorisedCourt;
+    private Boolean caseOpen;
 
     public String getCaseReference() {
         return caseReference != null && !caseReference.isEmpty() ? caseReference : null;

@@ -39,7 +39,7 @@ public class GovNotifyTest {
     @MockitoBean
     NotificationClient mockGovNotifyClient;
 
-    private final String govNotifyEmailResponse = """
+    private static final String govNotifyEmailResponse = """
         {
           "id": "740e5834-3a29-46b4-9a6f-16142fde533a",
           "reference": "STRING",
@@ -316,6 +316,38 @@ public class GovNotifyTest {
 
         var message = assertThrows(EmailFailedToSendException.class,
                                    () -> govNotify.caseClosureCancelled(getUser(), getCase())).getMessage();
+
+        assertThat(message).isEqualTo("Failed to send email to: " + getUser().getEmail());
+    }
+
+    @DisplayName(("Should send email verification email"))
+    @Test
+    void shouldSendEmailVerificationEmail() throws NotificationClientException {
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
+            .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
+
+        var user = getUser();
+        var response = govNotify.emailVerification(user.getEmail(), user.getFirstName(), user.getLastName(), "123456");
+
+        assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
+        assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
+        assertThat(response.getBody()).isEqualTo("MESSAGE TEXT");
+    }
+
+    @DisplayName(("Should fail to send email verification email"))
+    @Test
+    void shouldFailToSendEmailVerificationEmail() throws NotificationClientException {
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
+            .thenThrow(mock(NotificationClientException.class));
+
+        var user = getUser();
+        var message = assertThrows(EmailFailedToSendException.class,
+                                   () -> govNotify.emailVerification(user.getEmail(),
+                                                                     user.getFirstName(),
+                                                                     user.getLastName(),
+                                                                     "123456")).getMessage();
 
         assertThat(message).isEqualTo("Failed to send email to: " + getUser().getEmail());
     }

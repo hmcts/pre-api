@@ -1,0 +1,431 @@
+package uk.gov.hmcts.reform.preapi.batch.application.processor;
+
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationGroupBuilderService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.validation.DataValidationService;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.IArchiveData;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
+import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
+import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
+
+import java.util.Optional;
+
+/**
+ * Processes various CSV data types and transforms them into MigratedItemGroup for further processing.
+ */
+@Component
+public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
+    private final InMemoryCacheService cacheService;
+    private final DataExtractionService extractionService;
+    private final DataTransformationService transformationService;
+    private final DataValidationService validationService;
+    private final MigrationTrackerService migrationTrackerService;
+    private final ReferenceDataProcessor referenceDataProcessor;
+    private final MigrationGroupBuilderService migrationService;
+    private final MigrationRecordService migrationRecordService;
+    private final MigrationRecordRepository migrationRecordRepository;
+    private final CaseRepository caseRepository;
+    private final LoggingService loggingService;
+
+    @Autowired
+    public Processor(final InMemoryCacheService cacheService,
+                     final DataExtractionService extractionService,
+                     final DataTransformationService transformationService,
+                     final DataValidationService validationService,
+                     final ReferenceDataProcessor referenceDataProcessor,
+                     final MigrationGroupBuilderService migrationService,
+                     final MigrationTrackerService migrationTrackerService,
+                     final MigrationRecordService migrationRecordService,
+                     final MigrationRecordRepository migrationRecordRepository,
+                     final CaseRepository caseRepository,
+                     final LoggingService loggingService) {
+        this.cacheService = cacheService;
+        this.extractionService = extractionService;
+        this.transformationService = transformationService;
+        this.validationService = validationService;
+        this.referenceDataProcessor = referenceDataProcessor;
+        this.migrationService = migrationService;
+        this.migrationTrackerService = migrationTrackerService;
+        this.migrationRecordService = migrationRecordService;
+        this.migrationRecordRepository = migrationRecordRepository;
+        this.caseRepository = caseRepository;
+        this.loggingService = loggingService;
+    }
+
+    // =========================
+    // Main Processor Logic
+    // =========================
+    @Override
+    public MigratedItemGroup process(Object item) throws Exception {
+        try {
+            if (item == null) {
+                loggingService.logWarning("Processor - Received null item. Skipping.");
+                return null;
+            }
+
+            if (item instanceof MigrationRecord migrationRecord) {
+                return processRecording(migrationRecord);
+            }
+
+            if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
+                referenceDataProcessor.process(item);
+                return null;
+            }
+
+            loggingService.logError("Processor - Unsupported item type: %s", item.getClass().getName());
+            return null;
+        } catch (Exception e) {
+            loggingService.logError("Processor - Error: %s", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("PMD.CognitiveComplexity")
+    private MigratedItemGroup processRecording(MigrationRecord migrationRecord) {
+        String archiveId = migrationRecord.getArchiveId();
+        String archiveName = migrationRecord.getArchiveName();
+        VfMigrationStatus status = migrationRecord.getStatus();
+        loggingService.logDebug(
+            "Processing Recording: %s  with status: %s, | archiveId = %s", archiveName, status, archiveId);
+
+        if (status == VfMigrationStatus.PENDING) {
+            try {
+                ExtractedMetadata extractedData = extractData(migrationRecord);
+                if (extractedData == null) {
+                    loggingService.markHandled();
+                    return null;
+                }
+
+                migrationRecordService.updateMetadataFields(archiveId, extractedData);
+
+                // Transformation
+                ProcessedRecording cleansedData = transformData(extractedData);
+                if (cleansedData == null) {
+                    loggingService.markHandled();
+                    return null;
+                }
+
+                // Check if already migrated
+                if (isMigrated(migrationRecord)) {
+                    loggingService.markHandled();
+                    return null;
+                }
+
+                // Validation
+                if (!isValidated(cleansedData, migrationRecord)) {
+                    loggingService.markHandled();
+                    return null;
+                }
+
+                if (!isCaseOpenAndNotDeleted(cleansedData, extractedData)) {
+                    loggingService.markHandled();
+                    return null; 
+                }
+
+                // loggingService.incrementProgress();
+                cacheService.dumpToFile();
+
+                return migrationService.createMigratedItemGroup(extractedData, cleansedData);
+            } catch (Exception e) {
+                loggingService.logError("Error processing archive %s: %s", archiveName, e.getMessage(), e);
+                migrationRecordService.updateToFailed(archiveId, VfFailureReason.GENERAL_ERROR.toString(), 
+                    e.getMessage());
+                handleError(migrationRecord, "Failed to create migrated item group: " + e.getMessage(), "Error");
+                return null;
+            }
+        }
+
+        if (status == VfMigrationStatus.SUBMITTED) {
+            ExtractedMetadata extractedData = convertToExtractedMetadata(migrationRecord);
+            
+            String groupKey = MigrationRecordService.generateRecordingGroupKey(
+                extractedData.getUrn(),
+                extractedData.getExhibitReference(),
+                extractedData.getWitnessFirstName(),
+                extractedData.getDefendantLastName(),
+                extractedData.getDatePattern(),
+                extractedData.getCreateTime()
+            );
+            migrationRecord.setRecordingGroupKey(groupKey);
+            migrationRecordRepository.save(migrationRecord);     
+            
+            if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {
+                String origVersionStr = extractedData.getRecordingVersionNumber() != null 
+                    ? extractedData.getRecordingVersionNumber().split("\\.")[0] 
+                    : "1";
+                
+                migrationRecordService.updateParentTempIdIfCopy(
+                    migrationRecord.getArchiveId(),
+                    migrationRecord.getRecordingGroupKey(),
+                    origVersionStr
+                );
+                loggingService.logInfo("Updated parent_temp_id for COPY record %s", migrationRecord.getArchiveId());
+            }
+            
+            try {
+                ProcessedRecording cleansedData = transformData(extractedData);
+                if (cleansedData == null) {
+                    return null;
+                }
+
+                if (!isResolvedValidated(cleansedData, migrationRecord)) {
+                    return null;
+                }
+
+                if (!isCaseOpenAndNotDeleted(cleansedData, extractedData)) {
+                    return null; 
+                }
+
+                cacheService.dumpToFile();
+                return migrationService.createMigratedItemGroup(extractedData, cleansedData);
+
+            } catch (Exception e) {
+                loggingService.logError(
+                    "Processor - Unsupported item type: %s: %s",
+                    extractedData.getArchiveName(),
+                    e.getMessage(),
+                    e
+                );
+                handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
+                return null;
+            }
+        }
+
+        loggingService.logWarning("MigrationRecord with archiveId=%s has unexpected status: %s",
+            migrationRecord.getArchiveId(), status);
+        return null;
+    }
+
+
+    // =========================
+    // Extraction, Transformation and Validation
+    // =========================
+    private ExtractedMetadata extractData(MigrationRecord migrationRecord) {
+        ServiceResult<?> extractionResult = extractionService.process(migrationRecord);
+
+        // Handle test items
+        if (extractionResult.isTest()) {
+            TestItem testItem = extractionResult.getTestItem();
+
+            String reason = testItem.getReason();
+            String keywords = testItem.getKeywordFound();
+            String errorMsg = "Test: " + reason
+                    + (keywords != null && !keywords.isEmpty()
+                    ? " — keywords: " + keywords
+                    : "");
+
+            migrationRecordService.updateToFailed(migrationRecord.getArchiveId(), "Test", errorMsg);
+            handleTest(testItem);
+            return null;
+        }
+
+        // Handle extraction errors
+        if (!extractionResult.isSuccess()) {
+            migrationRecordService.updateToFailed(
+                migrationRecord.getArchiveId(), extractionResult.getCategory(), extractionResult.getErrorMessage());
+            handleError(migrationRecord, extractionResult.getErrorMessage(), extractionResult.getCategory());
+            return null;
+        }
+
+        return (ExtractedMetadata) extractionResult.getData();
+    }
+
+    private ProcessedRecording transformData(ExtractedMetadata extractedData) {
+        ServiceResult<ProcessedRecording> result = transformationService.transformData(extractedData);
+        if (checkForError(result, extractedData)) {
+            loggingService.logError("Failed to transform archive: %s", extractedData.getSanitizedArchiveName());
+            return null;
+        }
+
+        loggingService.logDebug("Transformed data: %s", result.getData());
+        return result.getData();
+    }
+
+    private boolean isValidated(ProcessedRecording cleansedData, MigrationRecord archiveItem) {
+        ServiceResult<ProcessedRecording> result = validationService.validateProcessedRecording(
+            cleansedData
+        );
+        if (checkForError(result, archiveItem)) {
+            return false;
+        }
+        checkAndCreateNotifyItem(result.getData());
+        loggingService.logDebug("All validation rules passed");
+        return true;
+    }
+
+    private boolean isResolvedValidated(ProcessedRecording cleansedData, MigrationRecord migrationRecord) {
+        ServiceResult<ProcessedRecording> result = validationService.validateResolvedRecording(
+            cleansedData,
+            migrationRecord.getArchiveName()
+        );
+
+        if (checkForError(result, migrationRecord)) {
+            return false;
+        }
+
+        loggingService.logDebug("All validation rules passed");
+        return true;
+    }
+
+    private boolean isMigrated(MigrationRecord archiveItem) {
+        Optional<MigrationRecord> maybeExisting = migrationRecordService.findByArchiveId(archiveItem.getArchiveId());
+
+        if (maybeExisting.isPresent() && maybeExisting.get().getStatus() == VfMigrationStatus.SUCCESS) {
+            loggingService.logDebug("Recording already migrated: %s", archiveItem.getArchiveId());
+            handleError(archiveItem, "Duplicate archiveId already migrated", "Duplicate");
+            return true;
+        }
+
+        return false;
+    }
+
+    //======================
+    // Helper Methods
+    //======================
+    private <T> boolean checkForError(ServiceResult<T> result, IArchiveData item) {
+        String errorMessage = result.getErrorMessage();
+        String category = result.getCategory();
+
+        if (errorMessage != null) {
+            migrationRecordService.updateToFailed(item.getArchiveId(), category, errorMessage);
+            handleError(item, errorMessage, category);
+            return true;
+        }
+        return false;
+    }
+
+    private void handleError(IArchiveData item, String message, String category) {
+        migrationTrackerService.addFailedItem(new FailedItem(item, message, category));
+    }
+
+    private void handleTest(TestItem testItem) {
+        migrationTrackerService.addTestItem(testItem);
+    }
+
+    private ExtractedMetadata convertToExtractedMetadata(MigrationRecord migrationRecord) {
+
+        loggingService.logInfo("Converting MigrationRecord to ExtractedMetadata: " + migrationRecord);
+
+        String fileExtension = null;
+        String fileName = migrationRecord.getFileName();
+        if (fileName != null && fileName.contains(".")) {
+            fileExtension = fileName.substring(fileName.lastIndexOf('.') + 1);
+        }
+
+        return new ExtractedMetadata(
+            migrationRecord.getCourtReference(),
+            migrationRecord.getCourtId(),
+            null,
+            migrationRecord.getUrn(),
+            migrationRecord.getExhibitReference(),
+            migrationRecord.getDefendantName(),
+            migrationRecord.getWitnessName(),
+            migrationRecord.getRecordingVersion(),
+            migrationRecord.getRecordingVersionNumber(),
+            fileExtension,
+            migrationRecord.getCreateTime() != null
+                ? migrationRecord.getCreateTime().toLocalDateTime()
+                : null,
+            migrationRecord.getDuration() != null ? migrationRecord.getDuration() : 0,
+            fileName,
+            migrationRecord.getFileSizeMb(),
+            migrationRecord.getArchiveId(),
+            migrationRecord.getArchiveName()
+        );
+    }
+
+    private boolean isCaseOpenAndNotDeleted(ProcessedRecording recording, ExtractedMetadata extractedData) {
+        String caseRef = recording.getCaseReference();
+        var maybeCase = cacheService.getCase(caseRef);
+
+        boolean isClosed = maybeCase.isPresent() && maybeCase.get().getState() != CaseState.OPEN;
+        boolean isDeleted = caseRepository.findAllByReference(caseRef).stream().anyMatch(c -> c.getDeletedAt() != null);
+
+        if (isClosed || isDeleted) {
+            String msg = "Case %s is in a closed or deleted state; cannot create bookings/capture sessions/recordings"
+                .formatted(caseRef);
+
+            migrationRecordService.updateToFailed(extractedData.getArchiveId(), 
+                VfFailureReason.CASE_CLOSED.toString(), msg);
+            handleError(extractedData, msg, VfFailureReason.CASE_CLOSED.toString());   
+            loggingService.logError("Skipping item: %s", msg);
+            return false;
+        }
+        return true;
+    }
+
+    // =========================
+    // Notifications
+    // =========================
+    @SuppressWarnings("PMD.CognitiveComplexity")
+    private void checkAndCreateNotifyItem(ProcessedRecording recording) {
+        if (!recording.isPreferred()) {
+            return;
+        }
+
+        String defendantLastName = recording.getDefendantLastName();
+        String witnessFirstName = recording.getWitnessFirstName();
+
+        // Double-barrelled name checks
+        if (defendantLastName != null && defendantLastName.contains("-")) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",recording));
+        }
+
+        if (witnessFirstName != null && witnessFirstName.contains("-")) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",recording));
+        }
+
+        // case ref checks
+        String exhibitRef = recording.getExhibitReference();
+        String caseRef = recording.getCaseReference();
+
+        if (caseRef == null || caseRef.isBlank()) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid case reference", recording));
+            return;
+        }
+
+        boolean exhibitBased = exhibitRef != null && caseRef.equalsIgnoreCase(exhibitRef);
+        int len = caseRef.length();
+
+        String reason = null;
+        if (exhibitBased) {
+            reason = "Used Xhibit reference as URN did not meet requirements";
+
+            if (len < 9 || len > 20) {
+                reason += " (length outside 9–20)";
+            }
+        } else if (len < 9 || len > 20) {
+            reason = "Invalid case reference length";
+        }
+
+        if (reason != null) {
+            migrationTrackerService.addNotifyItem(new NotifyItem(reason, recording));
+        }
+
+    }
+
+
+
+
+}
+

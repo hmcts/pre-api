@@ -53,6 +53,40 @@ definitions:
         description: AccessRemovedReportUserFullName
         type: string
     type: object
+  AccessRemovedReportDTOV2:
+    description: AccessRemovedReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      full_name:
+        description: AccessRemovedReportUserFullName
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      removed_date:
+        description: AccessRemovedReportRemovedDate
+        type: string
+      removed_time:
+        description: AccessRemovedReportRemovedTime
+        type: string
+      removed_timezone:
+        description: AccessRemovedReportRemovedTimezone
+        type: string
+      user_email:
+        description: AccessRemovedReportUserEmail
+        type: string
+    type: object
   AssetDTO:
     description: AssetDTO
     properties:
@@ -98,11 +132,20 @@ definitions:
   BaseUserDTO:
     description: BaseUserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        maxLength: 100
+        minLength: 0
+        type: string
       email:
         description: UserEmail
+        format: email
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -110,6 +153,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -212,6 +256,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -268,6 +313,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -338,6 +384,65 @@ definitions:
         format: date-time
         type: string
     type: object
+  CompletedCaptureSessionReportDTOV2:
+    description: CompletedCaptureSessionReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendant:
+        description: CompletedCaptureSessionReportDefendantCount
+        format: int32
+        type: integer
+      defendant_names:
+        description: CompletedCaptureSessionReportDefendantNames
+        type: string
+      finish_time:
+        description: CompletedCaptureSessionReportFinishTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_date:
+        description: CompletedCaptureSessionReportRecordingDate
+        type: string
+      recording_time:
+        description: CompletedCaptureSessionReportRecordingTime
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      scheduled_date:
+        description: CompletedCaptureSessionReportScheduledDate
+        type: string
+      status:
+        description: CompletedCaptureSessionReportStatus
+        enum:
+          - STANDBY
+          - INITIALISING
+          - RECORDING
+          - PROCESSING
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
+        type: string
+      timezone:
+        description: CompletedCaptureSessionReportTimezone
+        type: string
+      witness:
+        description: CompletedCaptureSessionReportWitnessCount
+        format: int32
+        type: integer
+      witness_names:
+        description: CompletedCaptureSessionReportWitnessNames
+        type: string
+    type: object
   ConcurrentCaptureSessionReportDTO:
     description: ConcurrentCaptureSessionReportDTO
     properties:
@@ -369,9 +474,46 @@ definitions:
         format: date-time
         type: string
     type: object
+  ConcurrentCaptureSessionReportDTOV2:
+    description: ConcurrentCaptureSessionReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      date:
+        description: CaptureSessionStartDate
+        type: string
+      duration:
+        description: CaptureSessionDuration
+        type: string
+      end_time:
+        description: CaptureSessionEndTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      start_time:
+        description: CaptureSessionStartTime
+        type: string
+      timezone:
+        description: CaptureSessionStartTimezone
+        type: string
+    type: object
   CourtDTO:
     description: CourtDTO
     properties:
+      county:
+        description: CourtCounty
+        type: string
       court_type:
         description: CourtType
         enum:
@@ -389,15 +531,13 @@ definitions:
       name:
         description: CourtName
         type: string
+      postcode:
+        description: CourtPostcode
+        type: string
       regions:
         description: CourtRegions
         items:
           $ref: '#/definitions/RegionDTO'
-        type: array
-      rooms:
-        description: CourtRooms
-        items:
-          $ref: '#/definitions/RoomDTO'
         type: array
     type: object
   CreateAppAccessDTO:
@@ -528,6 +668,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -574,6 +715,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -602,6 +744,9 @@ definitions:
   CreateCourtDTO:
     description: CreateCourtDTO
     properties:
+      county:
+        description: CreateCourtCounty
+        type: string
       court_type:
         description: CreateCourtType
         enum:
@@ -619,19 +764,14 @@ definitions:
       name:
         description: CreateCourtName
         type: string
+      postcode:
+        description: CreateCourtPostcode
+        pattern: '^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$'
+        type: string
       regions:
         description: CreateCourtRegionIds
         items:
           description: CreateCourtRegionIds
-          format: uuid
-          type: string
-        maxItems: 2147483647
-        minItems: 1
-        type: array
-      rooms:
-        description: CreateCourtRoomIds
-        items:
-          description: CreateCourtRoomIds
           format: uuid
           type: string
         maxItems: 2147483647
@@ -643,19 +783,74 @@ definitions:
       - location_code
       - name
       - regions
-      - rooms
+    type: object
+  CreateEditRequestDTO:
+    description: CreateEditRequestDTO
+    properties:
+      approved_at:
+        description: CreateEditRequestApprovedAt
+        format: date-time
+        type: string
+      approved_by:
+        description: CreateEditRequestApprovedBy
+        maxLength: 100
+        minLength: 0
+        type: string
+      edit_instructions:
+        description: CreateEditRequestInstructions
+        items:
+          $ref: '#/definitions/EditCutInstructionDTO'
+        minItems: 1
+        type: array
+      id:
+        description: CreateEditRequestId
+        format: uuid
+        type: string
+      jointly_agreed:
+        description: CreateEditRequestJointlyAgreed
+        type: boolean
+      rejection_reason:
+        description: CreateEditRequestRejectionReason
+        maxLength: 512
+        minLength: 0
+        type: string
+      source_recording_id:
+        description: CreateEditRequestSourceRecordingId
+        format: uuid
+        type: string
+      status:
+        description: CreateEditRequestStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+    required:
+      - edit_instructions
+      - id
+      - source_recording_id
+      - status
     type: object
   CreateInviteDTO:
     description: CreateInviteDTO
     properties:
       email:
         description: InviteEmail
+        format: email
+        minLength: 1
         type: string
       first_name:
         description: InviteFirstName
+        minLength: 1
         type: string
       last_name:
         description: InviteLastName
+        minLength: 1
         type: string
       organisation:
         description: InviteOrganisation
@@ -781,6 +976,12 @@ definitions:
   CreateUserDTO:
     description: CreateUserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        maxLength: 100
+        minLength: 0
+        type: string
       app_access:
         description: UserAppAccess
         items:
@@ -789,9 +990,12 @@ definitions:
         uniqueItems: true
       email:
         description: UserEmail
+        format: email
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -799,6 +1003,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -819,6 +1024,91 @@ definitions:
       - id
       - last_name
       - portal_access
+    type: object
+  CreateVfMigrationRecordDTO:
+    description: CreateVfMigrationRecordDTO
+    properties:
+      court_id:
+        description: CreateMigrationRecordCourtId
+        format: uuid
+        type: string
+      defendant_name:
+        description: CreateMigrationRecordDefendantName
+        type: string
+      exhibit_reference:
+        description: CreateMigrationRecordExhibitReference
+        type: string
+      id:
+        description: CreateMigrationRecordId
+        format: uuid
+        type: string
+      recording_date:
+        description: CreateMigrationRecordRecordingDate
+        format: date-time
+        type: string
+      recording_version:
+        description: CreateMigrationRecordRecordingVersion
+        enum:
+          - ORIG
+          - COPY
+        type: string
+      recording_version_number:
+        description: CreateMigrationRecordRecordingVersion
+        format: double
+        minimum: 1
+        type: number
+      resolved_at:
+        description: CreateMigrationRecordResolvedAt
+        format: date-time
+        type: string
+      status:
+        description: CreateMigrationRecordStatus
+        enum:
+          - PENDING
+          - SUCCESS
+          - FAILED
+          - READY
+          - SUBMITTED
+          - IGNORED
+        type: string
+      urn:
+        description: CreateMigrationRecordUrn
+        type: string
+      witness_name:
+        description: CreateMigrationRecordWitnessName
+        type: string
+    required:
+      - id
+      - status
+    type: object
+  EditCutInstructionDTO:
+    description: EditCutInstructionDTO
+    properties:
+      end_of_cut:
+        description: EditInstructionEnd
+        pattern: '^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
+        type: string
+      reason:
+        type: string
+      start_of_cut:
+        description: EditInstructionStart
+        pattern: '^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
+        type: string
+    required:
+      - end_of_cut
+      - start_of_cut
+    type: object
+  EditInstructions:
+    description: EditRequestEditInstruction
+    properties:
+      ffmpegInstructions:
+        items:
+          $ref: '#/definitions/FfmpegEditInstructionDTO'
+        type: array
+      requestedInstructions:
+        items:
+          $ref: '#/definitions/EditCutInstructionDTO'
+        type: array
     type: object
   EditReportDTO:
     description: EditReportDTO
@@ -847,6 +1137,97 @@ definitions:
         description: EditReportRecordingVersion
         format: int32
         type: integer
+    type: object
+  EditReportDTOV2:
+    description: EditReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      edit_date:
+        description: EditReportEditDate
+        type: string
+      edit_time:
+        description: EditReportEditTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      timezone:
+        description: EditReportEditTimezone
+        type: string
+      version:
+        description: EditReportRecordingVersion
+        format: int32
+        type: integer
+    type: object
+  EditRequestDTO:
+    properties:
+      approved_at:
+        description: EditRequestApprovedAt
+        format: date-time
+        type: string
+      approved_by:
+        description: EditRequestApprovedBy
+        type: string
+      created_at:
+        description: EditRequestCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        description: EditRequestCreatedByName
+        type: string
+      created_by_id:
+        description: EditRequestCreatedById
+        format: uuid
+        type: string
+      edit_instruction:
+        $ref: '#/definitions/EditInstructions'
+      finished_at:
+        description: EditRequestFinishedAt
+        format: date-time
+        type: string
+      id:
+        description: EditRequestId
+        format: uuid
+        type: string
+      jointly_agreed:
+        description: EditRequestJointlyAgreed
+        type: boolean
+      modified_at:
+        description: EditRequestModifiedAt
+        format: date-time
+        type: string
+      rejection_reason:
+        description: EditRequestRejectionReason
+        type: string
+      source_recording:
+        $ref: '#/definitions/RecordingDTO'
+      started_at:
+        description: EditRequestStartedAt
+        format: date-time
+        type: string
+      status:
+        description: EditRequestStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
     type: object
   EntityModelBookingDTO:
     properties:
@@ -939,6 +1320,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       started_at:
         description: CreateCaptureSessionStartedAt
@@ -996,6 +1378,7 @@ definitions:
         enum:
           - PRE
           - VODAFONE
+          - VODAFONE_VISIBLE
         type: string
       participants:
         description: CaseParticipants
@@ -1020,6 +1403,9 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      county:
+        description: CourtCounty
+        type: string
       court_type:
         description: CourtType
         enum:
@@ -1037,16 +1423,75 @@ definitions:
       name:
         description: CourtName
         type: string
+      postcode:
+        description: CourtPostcode
+        type: string
       regions:
         description: CourtRegions
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
-      rooms:
-        description: CourtRooms
-        items:
-          $ref: '#/definitions/RoomDTO'
-        type: array
+    type: object
+  EntityModelEditRequestDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      approved_at:
+        description: EditRequestApprovedAt
+        format: date-time
+        type: string
+      approved_by:
+        description: EditRequestApprovedBy
+        type: string
+      created_at:
+        description: EditRequestCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        description: EditRequestCreatedByName
+        type: string
+      created_by_id:
+        description: EditRequestCreatedById
+        format: uuid
+        type: string
+      edit_instruction:
+        $ref: '#/definitions/EditInstructions'
+      finished_at:
+        description: EditRequestFinishedAt
+        format: date-time
+        type: string
+      id:
+        description: EditRequestId
+        format: uuid
+        type: string
+      jointly_agreed:
+        description: EditRequestJointlyAgreed
+        type: boolean
+      modified_at:
+        description: EditRequestModifiedAt
+        format: date-time
+        type: string
+      rejection_reason:
+        description: EditRequestRejectionReason
+        type: string
+      source_recording:
+        $ref: '#/definitions/RecordingDTO'
+      started_at:
+        description: EditRequestStartedAt
+        format: date-time
+        type: string
+      status:
+        description: EditRequestStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
     type: object
   EntityModelInviteDTO:
     properties:
@@ -1100,6 +1545,23 @@ definitions:
         type: string
       edit_instructions:
         description: RecordingEditInstructions
+        type: string
+      edit_requests:
+        description: RecordingEditRequests
+        items:
+          $ref: '#/definitions/EditRequestDTO'
+        type: array
+      edit_status:
+        description: RecordingEditStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
         type: string
       filename:
         description: RecordingFilename
@@ -1162,6 +1624,12 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        maxLength: 100
+        minLength: 0
+        type: string
       app_access:
         description: UserAppAccess
         items:
@@ -1177,9 +1645,12 @@ definitions:
         type: string
       email:
         description: UserEmail
+        format: email
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1187,6 +1658,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
@@ -1214,6 +1686,115 @@ definitions:
       - first_name
       - id
       - last_name
+    type: object
+  EntityModelVfMigrationRecordDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      archive_id:
+        description: MigrationRecordArchiveId
+        type: string
+      archive_name:
+        description: MigrationRecordArchiveName
+        type: string
+      booking_id:
+        description: MigrationRecordBookingId
+        format: uuid
+        type: string
+      capture_session_id:
+        description: MigrationRecordCaptureSessionId
+        format: uuid
+        type: string
+      court_id:
+        description: MigrationRecordCourtId
+        format: uuid
+        type: string
+      court_reference:
+        description: MigrationRecordCourtReference
+        type: string
+      create_time:
+        description: MigrationRecordCreateTime
+        format: date-time
+        type: string
+      created_at:
+        description: MigrationRecordCreatedAt
+        format: date-time
+        type: string
+      defendant_name:
+        description: MigrationRecordDefendantName
+        type: string
+      duration:
+        description: MigrationRecordDuration
+        format: int32
+        type: integer
+      error_message:
+        description: MigrationRecordErrorMessage
+        type: string
+      exhibit_reference:
+        description: MigrationRecordExhibitReference
+        type: string
+      file_size:
+        description: MigrationRecordFileSize
+        type: string
+      filename:
+        description: MigrationRecordFilename
+        type: string
+      id:
+        description: MigrationRecordId
+        format: uuid
+        type: string
+      is_most_recent:
+        description: MigrationRecordIsMostRecent
+        type: boolean
+      parent_temp_id:
+        description: MigrationRecordParentTempId
+        format: uuid
+        type: string
+      reason:
+        description: MigrationRecordReason
+        type: string
+      recording_group_key:
+        description: MigrationRecordRecordingGroupKey
+        type: string
+      recording_id:
+        description: MigrationRecordRecordingId
+        format: uuid
+        type: string
+      recording_version:
+        description: MigrationRecordRecordingVersion
+        type: string
+      recording_version_number:
+        description: MigrationRecordRecordingVersionNumber
+        type: string
+      resolved_at:
+        description: MigrationRecordResolvedAt
+        format: date-time
+        type: string
+      status:
+        description: MigrationRecordStatus
+        enum:
+          - PENDING
+          - SUCCESS
+          - FAILED
+          - READY
+          - SUBMITTED
+          - IGNORED
+        type: string
+      urn:
+        description: MigrationRecordUrn
+        type: string
+      witness_name:
+        description: MigrationRecordWitnessName
+        type: string
+    type: object
+  FfmpegEditInstructionDTO:
+    properties:
+      end:
+        format: int64
+        type: integer
+      start:
+        format: int64
+        type: integer
     type: object
   GenerateAssetDTO:
     description: GenerateAssetDTO
@@ -1396,6 +1977,20 @@ definitions:
       page:
         $ref: '#/definitions/PageMetadata'
     type: object
+  PagedModelEntityModelEditRequestDTO:
+    properties:
+      _embedded:
+        properties:
+          editRequestDTOList:
+            items:
+              $ref: '#/definitions/EntityModelEditRequestDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
   PagedModelEntityModelInviteDTO:
     properties:
       _embedded:
@@ -1452,6 +2047,20 @@ definitions:
       page:
         $ref: '#/definitions/PageMetadata'
     type: object
+  PagedModelEntityModelVfMigrationRecordDTO:
+    properties:
+      _embedded:
+        properties:
+          vfMigrationRecordDTOList:
+            items:
+              $ref: '#/definitions/EntityModelVfMigrationRecordDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
   ParticipantDTO:
     description: ParticipantDTO
     properties:
@@ -1482,17 +2091,6 @@ definitions:
         enum:
           - WITNESS
           - DEFENDANT
-        type: string
-    type: object
-  PermissionDTO:
-    description: PermissionDTO
-    properties:
-      id:
-        description: PermissionId
-        format: uuid
-        type: string
-      name:
-        description: PermissionName
         type: string
     type: object
   PlaybackDTO:
@@ -1539,6 +2137,53 @@ definitions:
         type: string
       user_full_name:
         description: PlaybackReportUserFullName
+        type: string
+    type: object
+  PlaybackReportDTOV2:
+    description: PlaybackReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      playback_time_zone:
+        description: PlaybackReportTimeZone
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
+      region:
+        description: ReportRegion
+        type: string
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
         type: string
     type: object
   PortalAccessDTO:
@@ -1600,6 +2245,23 @@ definitions:
       edit_instructions:
         description: RecordingEditInstructions
         type: string
+      edit_requests:
+        description: RecordingEditRequests
+        items:
+          $ref: '#/definitions/EditRequestDTO'
+        type: array
+      edit_status:
+        description: RecordingEditStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
       filename:
         description: RecordingFilename
         type: string
@@ -1637,7 +2299,7 @@ definitions:
       - version
     type: object
   RecordingParticipantsReportDTO:
-    description: RecordingParticipantsReportDTO
+    description: RecordingParticipantsReportDTOV2
     properties:
       case_reference:
         description: RecordingParticipantCaseReference
@@ -1683,6 +2345,29 @@ definitions:
         type: array
         uniqueItems: true
     type: object
+  RecordingsPerCaseReportDTOV2:
+    description: RecordingsPerCaseReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      number_of_recordings:
+        description: RecordingsPerCaseNumberOfRecordings
+        format: int32
+        type: integer
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+    type: object
   RegionDTO:
     description: RegionDTO
     properties:
@@ -1702,23 +2387,6 @@ definitions:
         type: string
       name:
         description: RoleName
-        type: string
-      permissions:
-        description: RolePermissions
-        items:
-          $ref: '#/definitions/PermissionDTO'
-        type: array
-        uniqueItems: true
-    type: object
-  RoomDTO:
-    description: RoomDTO
-    properties:
-      id:
-        description: RoomId
-        format: uuid
-        type: string
-      name:
-        description: RoomName
         type: string
     type: object
   ScheduleReportDTO:
@@ -1746,6 +2414,34 @@ definitions:
       scheduled_for:
         description: ScheduleReportStartedAt
         format: date-time
+        type: string
+    type: object
+  ScheduleReportDTOV2:
+    description: ScheduleReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      date_of_booking:
+        description: ScheduleReportBookingCreatedAt
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      scheduled_date:
+        description: ScheduleReportStartedDate
+        type: string
+      user:
+        description: ScheduleReportUserEmail
         type: string
     type: object
   ShareBookingDTO:
@@ -1804,6 +2500,46 @@ definitions:
         format: date-time
         type: string
     type: object
+  SharedReportDTOV2:
+    description: SharedReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      granted_by:
+        description: SharedReportGrantedBy
+        type: string
+      granted_by_full_name:
+        description: SharedReportGrantedByFullName
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      share_date:
+        description: SharedReportShareDate
+        type: string
+      share_time:
+        description: SharedReportShareTime
+        type: string
+      shared_with:
+        description: SharedReportSharedWith
+        type: string
+      shared_with_full_name:
+        description: SharedReportSharedWithFullName
+        type: string
+      timezone:
+        description: SharedReportShareTimezone
+        type: string
+    type: object
   TermsAndConditionsDTO:
     properties:
       created_at:
@@ -1823,6 +2559,12 @@ definitions:
   UserDTO:
     description: UserDTO
     properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        maxLength: 100
+        minLength: 0
+        type: string
       app_access:
         description: UserAppAccess
         items:
@@ -1838,9 +2580,12 @@ definitions:
         type: string
       email:
         description: UserEmail
+        format: email
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1848,6 +2593,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
@@ -1875,6 +2621,90 @@ definitions:
       - first_name
       - id
       - last_name
+    type: object
+  UserPrimaryCourtReportDTO:
+    description: UserPrimaryCourtReportDTOV2
+    properties:
+      active:
+        description: UserPrimaryCourtReportActive
+        type: string
+      first_name:
+        description: UserPrimaryCourtReportFirstName
+        type: string
+      last_access:
+        description: UserPrimaryCourtReportLastAccess
+        format: date-time
+        type: string
+      last_name:
+        description: UserPrimaryCourtReportLastName
+        type: string
+      primary_court_name:
+        description: UserPrimaryCourtReportPrimaryCourtName
+        type: string
+      role_name:
+        description: UserPrimaryCourtReportRoleName
+        type: string
+    type: object
+  UserRecordingPlaybackReportDTOV2:
+    description: UserRecordingPlaybackReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
+      region:
+        description: ReportRegion
+        type: string
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
+        type: string
+    type: object
+  VerifyEmailRequestDTO:
+    description: VerifyEmailRequestDTO
+    properties:
+      email:
+        description: Email
+        format: email
+        minLength: 1
+        type: string
+      verification_code:
+        description: VerificationCode
+        minLength: 1
+        pattern: '^[0-9]{6}$'
+        type: string
+    required:
+      - email
+      - verification_code
     type: object
 externalDocs:
   description: README
@@ -1960,6 +2790,30 @@ paths:
       summary: Create an Audit Entry
       tags:
         - audit-controller
+  /b2c/email-verification:
+    post:
+      consumes:
+        - application/json
+      operationId: postEmailVerification
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/VerifyEmailRequestDTO'
+      responses:
+        '204':
+          description: No Content
+      summary: Trigger an email verification email to be sent out via gov notify
+      tags:
+        - b-2-c-controller
   /bookings:
     get:
       operationId: searchBookings
@@ -2250,6 +3104,7 @@ paths:
           enum:
             - PRE
             - VODAFONE
+            - VODAFONE_VISIBLE
           in: query
           name: origin
           type: string
@@ -2674,6 +3529,145 @@ paths:
       summary: Create or Update a Court
       tags:
         - court-controller
+  /edits:
+    get:
+      operationId: searchEdits
+      parameters:
+        - description: The source recording's id to search by
+          format: uuid
+          in: query
+          name: sourceRecordingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The date of last modification to search after
+          format: date
+          in: query
+          name: lastModifiedAfter
+          type: string
+          x-example: '2024-04-27'
+        - description: The date of last modification to search before
+          format: date
+          in: query
+          name: lastModifiedBefore
+          type: string
+          x-example: '2024-04-27'
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelEditRequestDTO'
+      tags:
+        - edit-controller
+  '/edits/from-csv/{sourceRecordingId}':
+    post:
+      consumes:
+        - multipart/form-data
+      operationId: createEditFromCsv
+      parameters:
+        - format: uuid
+          in: path
+          name: sourceRecordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - format: binary
+          in: formData
+          name: file
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
+  '/edits/{id}':
+    get:
+      operationId: getEditRequestById
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
+    put:
+      consumes:
+        - application/json
+      operationId: upsertEditRequest
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateEditRequestDTO'
+      responses:
+        '200':
+          description: OK
+      tags:
+        - edit-controller
   /health:
     get:
       operationId: health
@@ -3238,6 +4232,15 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: The version number to search by
+          format: int32
+          in: query
+          name: version
+          type: integer
+        - description: The case status to search by
+          in: query
+          name: caseOpen
+          type: boolean
         - description: Sort by
           in: query
           name: sort
@@ -3369,6 +4372,296 @@ paths:
       summary: Revert deletion of a recording
       tags:
         - recording-controller
+  /reports-v2/capture-sessions-concurrent:
+    get:
+      operationId: reportConcurrentCaptureSessionsv2
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ConcurrentCaptureSessionReportDTOV2'
+            type: array
+      tags:
+        - report-controller
+  /reports-v2/completed-capture-sessions:
+    get:
+      operationId: reportCompletedCaptureSessions_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CompletedCaptureSessionReportDTOV2'
+            type: array
+      summary: Get a report on capture sessions with available recordings v2
+      tags:
+        - report-controller
+  /reports-v2/edits:
+    get:
+      operationId: reportEdits_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/EditReportDTOV2'
+            type: array
+      summary: Get a report on recordings edits v2
+      tags:
+        - report-controller
+  /reports-v2/playback:
+    get:
+      operationId: reportPlayback_1
+      parameters:
+        - description: 'The source of the playback. Only accepts PORTAL, APPLICATION or null'
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          required: false
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/PlaybackReportDTOV2'
+            type: array
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION) v2'
+      tags:
+        - report-controller
+  /reports-v2/recording-participants:
+    get:
+      operationId: reportRecordingParticipants_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingParticipantsReportDTO'
+            type: array
+      summary: Get report on participants and the recordings they are part of v2
+      tags:
+        - report-controller
+  /reports-v2/recordings-per-case:
+    get:
+      operationId: reportRecordingsPerCase_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingsPerCaseReportDTOV2'
+            type: array
+      summary: Get the number of completed capture sessions for each case v2
+      tags:
+        - report-controller
+  /reports-v2/schedules:
+    get:
+      operationId: reportSchedules_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ScheduleReportDTOV2'
+            type: array
+      summary: Get a list of completed capture sessions with booking details v2
+      tags:
+        - report-controller
+  /reports-v2/share-bookings-removed:
+    get:
+      operationId: reportShareBookingRemoved_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AccessRemovedReportDTOV2'
+            type: array
+      summary: Get report on booking share removal v2
+      tags:
+        - report-controller
+  /reports-v2/shared-bookings:
+    get:
+      operationId: reportBookingsShared_1
+      parameters:
+        - description: The court id to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The booking id to search by
+          format: uuid
+          in: query
+          name: bookingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The id of the user the booking is shared with to search by
+          format: uuid
+          in: query
+          name: sharedWithId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The email of the user the booking is shared with to search by
+          in: query
+          name: sharedWithEmail
+          type: string
+          x-example: example@example.com
+        - description: 'The shares must be active (not deleted) then true, otherwise false'
+          in: query
+          name: onlyActive
+          type: boolean
+          x-example: true
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/SharedReportDTOV2'
+            type: array
+      summary: Get a report on the bookings that have been shared v2
+      tags:
+        - report-controller
+  /reports-v2/user-primary-courts:
+    get:
+      operationId: reportUserPrimaryCourts_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserPrimaryCourtReportDTO'
+            type: array
+      summary: Get report on app users and their primary courts v2
+      tags:
+        - report-controller
+  /reports-v2/user-recording-playback:
+    get:
+      operationId: userRecordingPlaybackReport
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserRecordingPlaybackReportDTOV2'
+            type: array
+      summary: Get report on playback by playback for all sources v2
+      tags:
+        - report-controller
   /reports/capture-sessions-concurrent:
     get:
       operationId: reportConcurrentCaptureSessions
@@ -3390,7 +4683,7 @@ paths:
               $ref: '#/definitions/ConcurrentCaptureSessionReportDTO'
             type: array
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/completed-capture-sessions:
     get:
       operationId: reportCompletedCaptureSessions
@@ -3413,7 +4706,7 @@ paths:
             type: array
       summary: Get a report on capture sessions with available recordings
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/edits:
     get:
       operationId: reportEdits
@@ -3436,7 +4729,7 @@ paths:
             type: array
       summary: Get a report on recordings edits
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/playback:
     get:
       operationId: reportPlayback
@@ -3469,7 +4762,7 @@ paths:
             type: array
       summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/recording-participants:
     get:
       operationId: reportRecordingParticipants
@@ -3492,7 +4785,7 @@ paths:
             type: array
       summary: Get report on participants and the recordings they are part of
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/recordings-per-case:
     get:
       operationId: reportRecordingsPerCase
@@ -3515,7 +4808,7 @@ paths:
             type: array
       summary: Get the number of completed capture sessions for each case
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/schedules:
     get:
       operationId: reportSchedules
@@ -3538,7 +4831,7 @@ paths:
             type: array
       summary: Get a list of completed capture sessions with booking details
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/share-bookings-removed:
     get:
       operationId: reportShareBookingRemoved
@@ -3561,7 +4854,7 @@ paths:
             type: array
       summary: Get report on booking share removal
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/shared-bookings:
     get:
       operationId: reportBookingsShared
@@ -3607,7 +4900,33 @@ paths:
             type: array
       summary: Get a report on the bookings that have been shared
       tags:
-        - report-controller
+        - legacy-report-controller
+  /reports/user-primary-courts:
+    get:
+      operationId: reportUserPrimaryCourts
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserPrimaryCourtReportDTO'
+            type: array
+      summary: >-
+        Get report on app users: their first and last name, their role, their
+        active status, their primary court and their last access time (if
+        available)
+      tags:
+        - legacy-report-controller
   /roles:
     get:
       operationId: getRoles
@@ -3631,35 +4950,6 @@ paths:
       summary: Get a list of all roles
       tags:
         - role-controller
-  /rooms:
-    get:
-      operationId: getRooms
-      parameters:
-        - description: The court id of the rooms to search by
-          format: uuid
-          in: query
-          name: courtId
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/RoomDTO'
-            type: array
-      summary: Get a list of all rooms
-      tags:
-        - room-controller
   /users:
     get:
       operationId: getUsers
@@ -3857,6 +5147,159 @@ paths:
       summary: Revert deletion of user
       tags:
         - user-controller
+  /vf-migration-records:
+    get:
+      operationId: getVfMigrationRecords
+      parameters:
+        - description: The case reference to search for
+          in: query
+          name: caseReference
+          type: string
+        - description: The witness name to search for
+          in: query
+          name: witnessName
+          type: string
+        - description: The defendant name to search for
+          in: query
+          name: defendantName
+          type: string
+        - description: The court id to search for
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+        - description: The court reference to search for
+          in: query
+          name: courtReference
+          type: string
+        - description: The status to search for
+          enum:
+            - PENDING
+            - SUCCESS
+            - FAILED
+            - READY
+            - SUBMITTED
+            - IGNORED
+          in: query
+          name: status
+          type: string
+        - description: The date the record was created to search from
+          format: date
+          in: query
+          name: createDateFrom
+          type: string
+          x-example: '2024-04-27'
+        - description: The date the record was created to search to
+          format: date
+          in: query
+          name: createDateTo
+          type: string
+          x-example: '2024-04-27'
+        - description: Search by a list of reasons
+          in: query
+          name: reasonIn
+          type: string
+        - description: Search by a list of reasons that should not be included
+          in: query
+          name: reasonNotIn
+          type: string
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'archiveName,desc'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelVfMigrationRecordDTO'
+      summary: Search all migration records
+      tags:
+        - vf-migration-controller
+  /vf-migration-records/import-assets:
+    post:
+      operationId: importVodafoneAssets
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Imports Vodafone for resolbed migration records
+      tags:
+        - vf-migration-controller
+  /vf-migration-records/submit:
+    post:
+      operationId: submitMigrationRecords
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Submits resolved migration records and runs import
+      tags:
+        - vf-migration-controller
+  '/vf-migration-records/{id}':
+    put:
+      consumes:
+        - application/json
+      operationId: putVfMigrationRecord
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateVfMigrationRecordDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Update vf migration record
+      tags:
+        - vf-migration-controller
 schemes:
   - https
 security:

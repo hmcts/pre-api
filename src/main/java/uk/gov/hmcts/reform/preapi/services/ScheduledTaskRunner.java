@@ -12,12 +12,15 @@ import static java.lang.Character.toLowerCase;
 @Service
 public class ScheduledTaskRunner {
 
-    @Autowired
-    ApplicationContext context;
+    private final ApplicationContext context;
+
+    public ScheduledTaskRunner(@Autowired ApplicationContext context) {
+        this.context = context;
+    }
 
     public void run(String taskName) {
-        final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
-        final var task = getTask(beanName);
+        final String beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
+        final Runnable task = getTask(beanName);
 
         if (task != null) {
             log.info("Running task: {}", beanName);

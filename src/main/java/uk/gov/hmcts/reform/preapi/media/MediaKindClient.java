@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAssetStorage;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
@@ -25,7 +26,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 @FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
 public interface MediaKindClient {
     @GetMapping("/assets")
-    MkGetListResponse<MkAsset> getAssets(@RequestParam("$skipToken") int skipToken);
+    MkGetListResponse<MkAsset> getAssets(@RequestParam("$skiptoken") int skipToken);
 
     @GetMapping("/assets/{assetName}")
     MkAsset getAsset(@PathVariable("assetName") String assetName);
@@ -38,6 +39,9 @@ public interface MediaKindClient {
 
     @PostMapping("/assets/{assetName}/listStreamingLocators")
     MkStreamingLocatorList getAssetStreamingLocators(@PathVariable String assetName);
+
+    @GetMapping("/assets/{assetName}/storage")
+    MkAssetStorage getAssetTracks(@PathVariable String assetName);
 
     @GetMapping("/streamingEndpoints/{endpointName}")
     MkStreamingEndpoint getStreamingEndpointByName(@PathVariable String endpointName);
@@ -60,7 +64,7 @@ public interface MediaKindClient {
     MkStreamingLocator getStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName);
 
     @GetMapping("/streamingLocators")
-    MkGetListResponse<MkStreamingLocator> getStreamingLocators(@RequestParam("$skipToken") int skipToken);
+    MkGetListResponse<MkStreamingLocator> getStreamingLocators(@RequestParam("$skiptoken") int skipToken);
 
     @DeleteMapping("/streamingLocators/{streamingLocatorName}")
     void deleteStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName);
@@ -71,7 +75,7 @@ public interface MediaKindClient {
     );
 
     @GetMapping("/liveEvents")
-    MkGetListResponse<MkLiveEvent> getLiveEvents(@RequestParam("$skipToken") int skipToken);
+    MkGetListResponse<MkLiveEvent> getLiveEvents(@RequestParam("$skiptoken") int skipToken);
 
     @GetMapping("/liveEvents/{liveEventName}")
     MkLiveEvent getLiveEvent(@PathVariable("liveEventName") String liveEventName);
@@ -122,7 +126,7 @@ public interface MediaKindClient {
     void putContentKeyPolicy(@PathVariable String policyName, @RequestBody MkContentKeyPolicy mkContentPolicy);
 
     @GetMapping("/contentKeyPolicies")
-    MkGetListResponse<MkContentKeyPolicy> getContentKeyPolicies(@RequestParam("$skipToken") int skipToken);
+    MkGetListResponse<MkContentKeyPolicy> getContentKeyPolicies(@RequestParam("$skiptoken") int skipToken);
 
     @DeleteMapping("/contentKeyPolicies/{policyName}")
     void deleteContentKeyPolicy(@PathVariable String policyName);

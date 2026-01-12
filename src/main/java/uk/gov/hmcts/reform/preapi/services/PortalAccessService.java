@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -26,12 +27,12 @@ public class PortalAccessService {
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public UpsertResult update(CreatePortalAccessDTO createDto) {
-        var entity = portalAccessRepository
+        PortalAccess entity = portalAccessRepository
             .findByIdAndDeletedAtIsNull(createDto.getId())
             .orElseThrow(() -> new NotFoundException("PortalAccess: " + createDto.getId()));
 
         entity.setLastAccess(createDto.getLastAccess());
-        entity.setStatus(createDto.getStatus());
+        entity.setStatus(getNewStatus(createDto));
         entity.setInvitedAt(createDto.getInvitedAt());
         entity.setRegisteredAt(createDto.getRegisteredAt());
         portalAccessRepository.save(entity);
@@ -50,5 +51,12 @@ public class PortalAccessService {
                     access.setDeletedAt(Timestamp.from(Instant.now()));
                     portalAccessRepository.save(access);
                 });
+    }
+
+    private AccessStatus getNewStatus(CreatePortalAccessDTO dto) {
+        if (dto.getStatus() == AccessStatus.ACTIVE && dto.getRegisteredAt() == null) {
+            return AccessStatus.INVITATION_SENT;
+        }
+        return dto.getStatus();
     }
 }
