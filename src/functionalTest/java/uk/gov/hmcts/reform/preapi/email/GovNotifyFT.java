@@ -284,7 +284,7 @@ class GovNotifyFT {
         var forEditRequest = createEditRequest();
 
         var response = client.editingJointlyAgreed(user.getEmail(), forEditRequest);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456",
             response.getSubject()
@@ -318,7 +318,7 @@ class GovNotifyFT {
         var forEditRequest = createEditRequest();
 
         var response = client.editingNotJointlyAgreed(user.getEmail(), forEditRequest);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456 (NOT JOINTLY AGREED)",
             response.getSubject()
@@ -354,7 +354,7 @@ class GovNotifyFT {
         forEditRequest.setJointlyAgreed(true);
 
         var response = client.editingRejected(user.getEmail(), forEditRequest);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request REJECTION for case reference 123456",
             response.getSubject()
