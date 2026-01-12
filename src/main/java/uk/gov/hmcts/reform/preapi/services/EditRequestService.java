@@ -295,6 +295,24 @@ public class EditRequestService {
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
+    @Transactional
+    @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
+    public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
+        // temporary code for create edit request with csv endpoint
+        UUID id = UUID.randomUUID();
+        CreateEditRequestDTO dto = new CreateEditRequestDTO();
+        dto.setId(id);
+        dto.setSourceRecordingId(sourceRecordingId);
+        dto.setEditInstructions(parseCsv(file));
+        dto.setStatus(EditRequestStatus.PENDING);
+
+        upsert(dto);
+
+        return editRequestRepository.findById(id)
+            .map(EditRequestDTO::new)
+            .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
+    }
+
     private @NotNull EditRequest getEditRequestToCreateOrUpdate(CreateEditRequestDTO dto, Recording sourceRecording,
                                                                 EditRequest request) {
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
@@ -336,24 +354,6 @@ public class EditRequestService {
 
         request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
         return request;
-    }
-
-    @Transactional
-    @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
-    public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
-        // temporary code for create edit request with csv endpoint
-        UUID id = UUID.randomUUID();
-        CreateEditRequestDTO dto = new CreateEditRequestDTO();
-        dto.setId(id);
-        dto.setSourceRecordingId(sourceRecordingId);
-        dto.setEditInstructions(parseCsv(file));
-        dto.setStatus(EditRequestStatus.PENDING);
-
-        upsert(dto);
-
-        return editRequestRepository.findById(id)
-            .map(EditRequestDTO::new)
-            .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
