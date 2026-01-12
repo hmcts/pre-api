@@ -4,7 +4,9 @@ import com.microsoft.graph.models.ObjectIdentity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.springframework.core.io.InputStreamResource;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -13,7 +15,9 @@ import uk.gov.hmcts.reform.preapi.services.B2CGraphService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -22,11 +26,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -115,8 +121,6 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("test@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
 
@@ -125,7 +129,6 @@ class ImportUserAlternativeEmailTest {
         verify(azureVodafoneStorageService, times(1)).fetchSingleXmlBlob(TEST_CONTAINER,
                                                                          "alternative_email_import.csv");
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("test@example.com.cjsm.net");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
@@ -267,7 +270,7 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(null);
 
         assertThatThrownBy(() -> task.run())
-            .isInstanceOf(RuntimeException.class)
+            .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("Failed to import user alternative email data");
     }
 
@@ -316,10 +319,6 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(Optional.of(testUser));
         when(userService.findByOriginalEmail("test2@example.com"))
             .thenReturn(Optional.of(testUser2));
-        when(userService.findByAlternativeEmail("test@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
-        when(userService.findByAlternativeEmail("test2@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser1));
         when(b2cGraphService.findUserByPrimaryEmail("test2@example.com"))
@@ -351,15 +350,12 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("test@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.empty());
 
         task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("test@example.com.cjsm.net");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
         verify(userService, never()).updateAlternativeEmail(any(), anyString());
@@ -390,8 +386,6 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("test@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
         doThrow(new RuntimeException("B2C update failed"))
@@ -400,7 +394,6 @@ class ImportUserAlternativeEmailTest {
         task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("test@example.com.cjsm.net");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, never()).updateAlternativeEmail(any(), anyString());
@@ -437,15 +430,12 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("test@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
 
         task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("test@example.com.cjsm.net");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         // Should not call updateUserIdentities since identity already exists
         verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
@@ -472,17 +462,393 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmail("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("test@example.com.cjsm.net"))
-            .thenReturn(Optional.empty());
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
 
         task.run();
 
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("test@example.com.cjsm.net");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
     }
+
+    @DisplayName("Should handle invalid CSV header")
+    @Test
+    void runHandlesInvalidCsvHeader() {
+        String csvContent = """
+            wrongColumn,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(IllegalStateException.class)
+            .hasCauseInstanceOf(IOException.class)
+            .hasMessageContaining("CSV read error");
+    }
+
+    @DisplayName("Should handle invalid email format exception")
+    @Test
+    void runHandlesInvalidEmailFormat() {
+
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,invalid@test
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "invalid@test"))
+            .thenThrow(new IllegalArgumentException(
+                "Alternative email format is invalid: must be a well-formed email address"));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+        verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "invalid@test");
+    }
+
+    @DisplayName("Should handle alternative email same as main email exception")
+    @Test
+    void runHandlesAlternativeEmailSameAsMainEmail() {
+
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+        // Alternative email already exists in B2C (same as primary), so updateUserIdentities should not be called
+        verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
+        // Local DB update should still be attempted
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com");
+    }
+
+    @DisplayName("Should handle IllegalStateException during processing")
+    @Test
+    void runHandlesIllegalStateException() {
+
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
+
+        // Throw IllegalStateException from generateReport to cover the catch block (lines 96-98)
+        try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
+            reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()))
+                .thenThrow(new IllegalStateException("Report generation failed"));
+
+            assertThatThrownBy(() -> task.run())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Report generation failed");
+
+            verify(userService, times(1)).findByOriginalEmail("test@example.com");
+            verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+            verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
+            verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+        }
+    }
+
+    @DisplayName("Should handle unexpected exceptions during processing")
+    @Test
+    void runHandlesUnexpectedException() {
+
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
+            .thenThrow(new NullPointerException("Unexpected NPE"));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+        verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+    }
+
+    @DisplayName("Should handle RuntimeException during CSV parsing that is not CsvRequiredFieldEmptyException")
+    @Test
+    void runHandlesOtherRuntimeExceptionDuringCsvParsing() throws Exception {
+        InputStreamResource blobResource = mock(InputStreamResource.class);
+        when(blobResource.getInputStream())
+            .thenThrow(new RuntimeException("IO error during parsing"));
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Failed to import user alternative email data: Unexpected error")
+            .hasCauseInstanceOf(RuntimeException.class)
+            .hasRootCauseMessage("IO error during parsing");
+    }
+
+    @DisplayName("Should use ClassPathResource when FileSystemResource doesn't exist and useLocalCsv is true")
+    @Test
+    void runUsesClassPathResourceWhenFileSystemResourceNotFound() throws Exception {
+        Field useLocalCsvField = ImportUserAlternativeEmail.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.set(task, true);
+
+        User user1 = new User();
+        user1.setId(UUID.randomUUID());
+        user1.setEmail("nazee.kadiu1@hmcts.net");
+        user1.setFirstName("Nazee");
+        user1.setLastName("Kadiu");
+
+        User user2 = new User();
+        user2.setId(UUID.randomUUID());
+        user2.setEmail("marianne.azzopardi@hmcts.net");
+        user2.setFirstName("Marianne");
+        user2.setLastName("Azzopardi");
+
+        User user3 = new User();
+        user3.setId(UUID.randomUUID());
+        user3.setEmail("marianne.azzopardi2@hmcts.net");
+        user3.setFirstName("Marianne");
+        user3.setLastName("Azzopardi");
+
+        when(userService.findByOriginalEmail("nazee.kadiu1@hmcts.net"))
+            .thenReturn(Optional.of(user1));
+        when(userService.findByOriginalEmail("marianne.azzopardi@hmcts.net"))
+            .thenReturn(Optional.of(user2));
+        when(userService.findByOriginalEmail("marianne.azzopardi2@hmcts.net"))
+            .thenReturn(Optional.of(user3));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("nazee.kadiu1@hmcts.net");
+        verify(userService, times(1)).findByOriginalEmail("marianne.azzopardi@hmcts.net");
+        verify(userService, times(1)).findByOriginalEmail("marianne.azzopardi2@hmcts.net");
+        useLocalCsvField.set(task, false);
+    }
+
+    @DisplayName("Should handle IOException when generating report")
+    @Test
+    void runHandlesIOExceptionWhenGeneratingReport() {
+
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
+
+        try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
+            reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()))
+                .thenThrow(new IOException("Failed to write CSV report"));
+
+            task.run();
+
+            verify(userService, times(1)).findByOriginalEmail("test@example.com");
+            verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+            verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
+            verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+        }
+    }
+
+    @DisplayName("Should cover SUCCESS, SKIPPED, NOT_FOUND and ERROR statuses in one run and generate report")
+    @Test
+    void runCoversAllStatusesAndGeneratesReport() {
+
+        User errorUser = new User();
+        errorUser.setId(UUID.randomUUID());
+        errorUser.setEmail("error@example.com");
+        errorUser.setFirstName("Error");
+        errorUser.setLastName("User");
+
+        com.microsoft.graph.models.User b2cUser1 = new com.microsoft.graph.models.User();
+        b2cUser1.setId("b2c-user-id-1");
+        ObjectIdentity primaryIdentity1 = new ObjectIdentity();
+        primaryIdentity1.setSignInType("emailAddress");
+        primaryIdentity1.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity1.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities1 = new ArrayList<>();
+        identities1.add(primaryIdentity1);
+        b2cUser1.setIdentities(identities1);
+
+        com.microsoft.graph.models.User b2cUser2 = new com.microsoft.graph.models.User();
+        b2cUser2.setId("b2c-user-id-2");
+        ObjectIdentity primaryIdentity2 = new ObjectIdentity();
+        primaryIdentity2.setSignInType("emailAddress");
+        primaryIdentity2.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity2.setIssuerAssignedId("error@example.com");
+        List<ObjectIdentity> identities2 = new ArrayList<>();
+        identities2.add(primaryIdentity2);
+        b2cUser2.setIdentities(identities2);
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            skipped@example.com,
+            missing@example.com,missing@example.com.cjsm.net
+            error@example.com,invalid@test
+            """;
+
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+
+        // SUCCESS
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser1));
+
+        // NOT_FOUND
+        when(userService.findByOriginalEmail("missing@example.com"))
+            .thenReturn(Optional.empty());
+
+        // ERROR
+        when(userService.findByOriginalEmail("error@example.com"))
+            .thenReturn(Optional.of(errorUser));
+        when(b2cGraphService.findUserByPrimaryEmail("error@example.com"))
+            .thenReturn(Optional.of(b2cUser2));
+        when(userService.updateAlternativeEmail(errorUser.getId(), "invalid@test"))
+            .thenThrow(new IllegalArgumentException("Alternative email format is invalid"));
+
+        try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
+            Path mockReportPath = java.nio.file.Paths.get("Migration Reports", "Alternative_Email_Report-test.csv");
+            reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()))
+                .thenReturn(mockReportPath);
+
+            task.run();
+
+            reportCsvWriterMock.verify(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()
+            ), times(1));
+        }
+
+        // SUCCESS
+        verify(userService, times(1))
+            .updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+        verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id-1"), anyList());
+
+        // SKIPPED
+        verify(userService, never()).findByOriginalEmail("skipped@example.com");
+
+        // NOT_FOUND
+        verify(userService, times(1)).findByOriginalEmail("missing@example.com");
+
+        // ERROR
+        verify(userService, times(1)).findByOriginalEmail("error@example.com");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("error@example.com");
+        verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id-2"), anyList());
+        verify(userService, times(1)).updateAlternativeEmail(errorUser.getId(), "invalid@test");
+    }
 }
+
