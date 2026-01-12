@@ -288,6 +288,11 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<User> findByOriginalEmailWithPortalAccess(String email) {
+        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNullWithPortalAccess(email);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<User> findByAlternativeEmail(String alternativeEmail) {
         return userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
     }

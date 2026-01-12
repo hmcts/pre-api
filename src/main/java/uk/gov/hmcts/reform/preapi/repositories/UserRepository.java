@@ -72,6 +72,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
 
+    @Query("""
+        SELECT DISTINCT u FROM User u
+        LEFT JOIN FETCH u.portalAccess pa
+        WHERE LOWER(u.email) = LOWER(:email)
+        AND u.deletedAt IS NULL""")
+    Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNullWithPortalAccess(@Param("email") String email);
+
     Optional<User> findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(String alternativeEmail);
 
     @Query("""
