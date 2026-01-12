@@ -21,6 +21,7 @@ import java.util.UUID;
 @Repository
 public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> {
     @NotNull
+    @Override
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from EditRequest e where e.id = ?1")
     @QueryHints({@QueryHint(name = "jakarta.persistence.lock.timeout", value = "0")})
@@ -54,7 +55,7 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
     @Query("""
         SELECT (COUNT(e) > 0) from EditRequest e
         WHERE e.sourceRecording.captureSession.booking.caseId.id = :caseId
-        AND (e.status = 'ERROR' OR e.status = 'COMPLETE')
+        AND (e.status != 'COMPLETE')
         """)
     boolean existsByCaseIdAndIsIncomplete(@Param("caseId") UUID caseId);
 }

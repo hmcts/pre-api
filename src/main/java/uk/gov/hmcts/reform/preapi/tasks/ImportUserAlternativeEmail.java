@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +19,11 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -102,38 +106,47 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
     private List<ImportRow> readCsvFile() throws IOException {
         Resource resource;
-        
+
         if (useLocalCsv) {
             log.info("Reading CSV from local file: {}", LOCAL_CSV_PATH);
             resource = new FileSystemResource(LOCAL_CSV_PATH);
-            
+
             if (!resource.exists()) {
                 resource = new ClassPathResource("batch/alternative_email_import.csv");
             }
-            
-            if (!resource.exists()) {
+
+            if (!resource.exists()) { // NOSONAR 
                 throw new IOException("CSV file not found at local path: " + LOCAL_CSV_PATH);
             }
         } else {
             log.info("Reading CSV from Azure blob: {}/{}", containerName, CSV_BLOB_PATH);
             InputStreamResource blobResource = azureVodafoneStorageService
                 .fetchSingleXmlBlob(containerName, CSV_BLOB_PATH);
-            
+
             if (blobResource == null) {
                 throw new IOException("CSV file not found in Azure: " + containerName + "/" + CSV_BLOB_PATH);
             }
             resource = blobResource;
         }
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
-            return new CsvToBeanBuilder<ImportRow>(reader)
-                .withType(ImportRow.class)
-                .withIgnoreLeadingWhiteSpace(true)
-                .build()
-                .parse();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(),
+                                                                              StandardCharsets.UTF_8))) {
+            try {
+                return new CsvToBeanBuilder<ImportRow>(reader)
+                    .withType(ImportRow.class)
+                    .withIgnoreLeadingWhiteSpace(true)
+                    .build()
+                    .parse();
+            } catch (RuntimeException e) {
+                if (e.getCause() instanceof CsvRequiredFieldEmptyException) {
+                    throw new IOException("CSV header invalid: " + e.getCause().getMessage(), e);
+                }
+                throw e;
+            }
         }
     }
 
+    @SuppressWarnings("PMD.AssignmentInOperand")
     private List<ImportResult> processImports(List<ImportRow> importRows) {
         List<ImportResult> results = new ArrayList<>();
         int successCount = 0;
@@ -144,16 +157,14 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         for (ImportRow row : importRows) {
             try {
                 ImportResult result = processRow(row);
-                
-                if (result != null) {
-                    results.add(result);
-                    switch (result.getStatus()) {
-                        case "SUCCESS" -> successCount++;
-                        case "NOT_FOUND" -> notFoundCount++;
-                        case "SKIPPED" -> emptyAltEmailCount++;
-                        case STATUS_ERROR -> errorCount++;
-                        default -> log.warn("Unknown status: {}", result.getStatus());
-                    }
+
+                results.add(result);
+                switch (result.getStatus()) {
+                    case "SUCCESS" -> successCount++;
+                    case "NOT_FOUND" -> notFoundCount++;
+                    case "SKIPPED" -> emptyAltEmailCount++;
+                    case STATUS_ERROR -> errorCount++;
+                    default -> log.warn("Unknown status: {}", result.getStatus()); // NOSONAR 
                 }
             } catch (Exception e) {
                 log.error("Error processing row for email: {}", row.getEmail(), e);
@@ -196,26 +207,22 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
-        Optional<User> existingAltUserEmail = userService
-            .findByAlternativeEmail(row.getAlternativeEmail());
-        
-        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
+        try {
+            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                "SUCCESS",
+                "Alternative email updated successfully"
+            );
+        } catch (Exception e) {
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
                 STATUS_ERROR,
-                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
+                e.getMessage()  
             );
-        }
-
-        userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
-
-        return new ImportResult(
-            row.getEmail(),
-            row.getAlternativeEmail(),
-            "SUCCESS",
-            "Alternative email updated successfully"
-        );
+        } 
     }
 
     private void generateReport(List<ImportResult> results) {
@@ -225,8 +232,19 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 .map(ImportResult::toRow)
                 .toList();
 
-            ReportCsvWriter.writeToCsv(headers, rows, "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
+            Path reportPath = ReportCsvWriter.writeToCsv(headers, rows, 
+                "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
             log.info("Report generated successfully in {}", REPORT_OUTPUT_DIR);
+
+            if (reportPath != null) {
+                File reportFile = reportPath.toFile();
+                if (reportFile.exists()) {
+                    String fileName = reportPath.getFileName().toString();
+                    String blobPath = "reports/" + fileName;
+                    azureVodafoneStorageService.uploadCsvFile(containerName, blobPath, reportFile);
+                    log.info("Report uploaded to Azure: {}/{}", containerName, blobPath);
+                }
+            }
         } catch (IOException e) {
             log.error("Failed to generate report", e);
         }

@@ -3,10 +3,12 @@ package uk.gov.hmcts.reform.preapi.media.storage;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.specialized.BlobInputStream;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.w3c.dom.Element;
 import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
@@ -25,23 +27,24 @@ public class AzureFinalStorageService extends AzureStorageService {
 
     public Duration getRecordingDuration(UUID recordingId) {
         try {
-            var containerName = recordingId.toString();
-            var mpdFile = tryGetBlobWithExtension(containerName, ".mpd");
+            String containerName = recordingId.toString();
+            BlobItem mpdFile = tryGetBlobWithExtension(containerName, ".mpd");
             if (mpdFile == null) {
                 return null;
             }
 
-            @Cleanup var inputStream = client.getBlobContainerClient(containerName).getBlobClient(mpdFile.getName())
+            @Cleanup BlobInputStream inputStream = client.getBlobContainerClient(containerName)
+                .getBlobClient(mpdFile.getName())
                 .openInputStream();
 
-            var contents = DocumentBuilderFactory
+            Element contents = DocumentBuilderFactory
                 .newInstance()
                 .newDocumentBuilder()
                 .parse(inputStream)
                 .getDocumentElement();
             contents.normalize();
 
-            var duration = contents.getAttribute("mediaPresentationDuration");
+            String duration = contents.getAttribute("mediaPresentationDuration");
             return Duration.parse(duration);
         } catch (Exception e) {
             log.error("Something went wrong when attempting to get recording's duration: {}", e.getMessage());

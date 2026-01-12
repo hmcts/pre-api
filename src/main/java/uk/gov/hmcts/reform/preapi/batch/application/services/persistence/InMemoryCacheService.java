@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class InMemoryCacheService {
     private final LoggingService loggingService;
 
@@ -50,7 +52,7 @@ public class InMemoryCacheService {
     }
 
     public Optional<CreateCaseDTO> getCase(String caseRef) {
-        if (caseRef == null || caseRef.trim().isEmpty()) {
+        if (caseRef == null || caseRef.isBlank()) {
             loggingService.logDebug("Attempted to get case with null or empty reference");
             return Optional.empty();
         }
@@ -63,13 +65,13 @@ public class InMemoryCacheService {
         } else {
             loggingService.logInfo("Case not found in cache for reference: '%s'", normalizedRef);
         }
-        
+
 
         return Optional.ofNullable(result);
     }
 
     public void saveCase(String caseRef, CreateCaseDTO caseDTO) {
-        if (caseRef == null || caseRef.trim().isEmpty()) {
+        if (caseRef == null || caseRef.isBlank()) {
             loggingService.logInfo("Case ref is null or empty: %s", caseRef);
             return;
         }
@@ -77,9 +79,9 @@ public class InMemoryCacheService {
             loggingService.logInfo("CaseDTO is null");
             return;
         }
-        
+
         String normalizedRef = normalizeCaseReference(caseRef);
-        loggingService.logInfo("Saving case to cache - Original: '%s', Normalized: '%s', Case ID: %s", 
+        loggingService.logInfo("Saving case to cache - Original: '%s', Normalized: '%s', Case ID: %s",
                           caseRef, normalizedRef, caseDTO.getId());
         caseCache.put(normalizedRef, caseDTO);
     }
@@ -89,7 +91,7 @@ public class InMemoryCacheService {
         if (caseRef == null) {
             return null;
         }
-        return caseRef.trim().toUpperCase().replaceAll("\\s+", " ");  
+        return caseRef.trim().toUpperCase(Locale.UK).replaceAll("\\s+", " ");
     }
 
     public void saveShareBooking(String cacheKey, CreateShareBookingDTO dto) {
@@ -105,7 +107,7 @@ public class InMemoryCacheService {
             loggingService.logWarning("Skipping saveUser: email or userID missing");
             return;
         }
-        String lowerEmail = email.toLowerCase();
+        String lowerEmail = email.toLowerCase(Locale.UK);
         userCache.put(lowerEmail, userID);
         saveHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, userID.toString());
     }
@@ -161,7 +163,7 @@ public class InMemoryCacheService {
         return String.format("vf:%s:%s", entityType, String.join("-", normalizeAll(parts)));
     }
 
-    private static List<String> normalizeAll(String[] parts) {
+    private static List<String> normalizeAll(String... parts) {
         return Arrays.stream(parts)
             .filter(Objects::nonNull)
             .map(String::toLowerCase)

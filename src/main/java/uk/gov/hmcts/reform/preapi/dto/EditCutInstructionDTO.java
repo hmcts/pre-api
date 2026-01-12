@@ -69,17 +69,17 @@ public class EditCutInstructionDTO {
 
             return hours * 3600L + minutes * 60L + seconds;
         } catch (NullPointerException | IndexOutOfBoundsException | NumberFormatException e) {
-            throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS");
+            throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS", e);
         }
     }
 
-    private static String formatTime(long time) {
+    public static String formatTime(long time) {
         if (time < 0) {
             throw new IllegalArgumentException("Time in seconds cannot be negative: " + time);
         }
 
         long hours = time / 3600;
-        long minutes = (time % 3600) / 60;
+        long minutes = time % 3600 / 60;
         long seconds = time % 60;
 
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);

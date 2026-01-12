@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -55,8 +56,8 @@ public class Court extends BaseEntity {
     private Set<Region> regions;
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("courtName", name);
         details.put("courtType", courtType);
         details.put("courtLocationCode", locationCode);

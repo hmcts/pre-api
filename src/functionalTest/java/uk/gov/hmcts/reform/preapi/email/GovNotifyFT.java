@@ -22,13 +22,13 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
-public class GovNotifyFT {
-    private final String toEmailAddress = "test@test.com";
-    private final String fromEmailAddress = "hmcts.prerecorded.evidence@notifications.service.gov.uk";
-    private final String caseReference = "123456";
-    private final String courtName = "Court Name";
-    private final String userFirstName = "John";
-    private final String userLastName = "Doe";
+class GovNotifyFT {
+    private static final String TO_EMAIL_ADDRESS = "test@test.com";
+    private static final String FROM_EMAIL_ADDRESS = "hmcts.prerecorded.evidence@notifications.service.gov.uk";
+    private static final String CASE_REFERENCE = "123456";
+    private static final String COURT_NAME = "Court Name";
+    private static final String USER_FIRST_NAME = "John";
+    private static final String USER_LAST_NAME = "Doe";
 
     @Value("${portal.url")
     private String portalUrl;
@@ -38,18 +38,18 @@ public class GovNotifyFT {
 
     private User createUser() {
         var user = new User();
-        user.setFirstName(userFirstName);
-        user.setLastName(userLastName);
-        user.setEmail(toEmailAddress);
+        user.setFirstName(USER_FIRST_NAME);
+        user.setLastName(USER_LAST_NAME);
+        user.setEmail(TO_EMAIL_ADDRESS);
         return user;
     }
 
     private Case createCase() {
         var court = new Court();
-        court.setName(courtName);
+        court.setName(COURT_NAME);
         var forCase = new Case();
         forCase.setCourt(court);
-        forCase.setReference(caseReference);
+        forCase.setReference(CASE_REFERENCE);
         return forCase;
     }
 
@@ -94,7 +94,7 @@ public class GovNotifyFT {
         var forCase = createCase();
 
         var response = client.recordingReady(user, forCase);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – New Video", response.getSubject());
         compareBody(
             """
@@ -121,7 +121,7 @@ public class GovNotifyFT {
         var forCase = createCase();
 
         var response = client.recordingEdited(user, forCase);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – Edited Video", response.getSubject());
         compareBody(
             """
@@ -147,7 +147,7 @@ public class GovNotifyFT {
         var user = createUser();
 
         var response = client.portalInvite(user);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal Invitation", response.getSubject());
         compareBody(
             """
@@ -193,9 +193,9 @@ public class GovNotifyFT {
         var date = Timestamp.valueOf("2021-01-01 00:00:00.0");
 
         var response = client.casePendingClosure(user, forCase, date);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
-            "[Do Not Reply] Pre-recorded Evidence: Case reference " + caseReference + " access update",
+            "[Do Not Reply] Pre-recorded Evidence: Case reference " + CASE_REFERENCE + " access update",
             response.getSubject()
         );
         compareBody(
@@ -216,9 +216,9 @@ public class GovNotifyFT {
         var forCase = createCase();
 
         var response = client.caseClosed(user, forCase);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
-            "[Do Not Reply] Pre-recorded Evidence: Case reference " + caseReference + " access update",
+            "[Do Not Reply] Pre-recorded Evidence: Case reference " + CASE_REFERENCE + " access update",
             response.getSubject()
         );
         compareBody(
@@ -239,9 +239,9 @@ public class GovNotifyFT {
         var forCase = createCase();
 
         var response = client.caseClosureCancelled(user, forCase);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
-            "[Do Not Reply] Pre-recorded Evidence: Case reference " + caseReference + " access update",
+            "[Do Not Reply] Pre-recorded Evidence: Case reference " + CASE_REFERENCE + " access update",
             response.getSubject()
         );
         compareBody(
@@ -256,13 +256,12 @@ public class GovNotifyFT {
 
     @DisplayName("Should send verify email email")
     @Test
-    @SuppressWarnings("LineLength")
     void verifyEmail() {
 
         var verificationCode = "123456";
 
-        var response = client.emailVerification(toEmailAddress, userFirstName, userLastName, verificationCode);
-        assertEquals(fromEmailAddress, response.getFromEmail());
+        var response = client.emailVerification(TO_EMAIL_ADDRESS, USER_FIRST_NAME, USER_LAST_NAME, verificationCode);
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Account Email Verification Code",
             response.getSubject()

@@ -47,7 +47,7 @@ public class GovNotifyTest {
     @MockitoBean
     NotificationClient mockGovNotifyClient;
 
-    private final String govNotifyEmailResponse = """
+    private static final String govNotifyEmailResponse = """
         {
           "id": "740e5834-3a29-46b4-9a6f-16142fde533a",
           "reference": "STRING",

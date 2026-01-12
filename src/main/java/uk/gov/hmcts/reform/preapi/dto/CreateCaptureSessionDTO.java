@@ -59,13 +59,13 @@ public class CreateCaptureSessionDTO {
         this.ingestAddress = captureSession.getIngestAddress();
         this.liveOutputUrl = captureSession.getLiveOutputUrl();
         this.startedAt = captureSession.getStartedAt();
-        this.startedByUserId = captureSession.getStartedByUser() != null
-            ? captureSession.getStartedByUser().getId()
-            : null;
+        if (captureSession.getStartedByUser() != null) {
+            this.startedByUserId = captureSession.getStartedByUser().getId();
+        }
         this.finishedAt = captureSession.getFinishedAt();
-        this.finishedByUserId = captureSession.getFinishedByUser() != null
-            ? captureSession.getFinishedByUser().getId()
-            : null;
+        if (captureSession.getFinishedByUser() != null) {
+            this.finishedByUserId = captureSession.getFinishedByUser().getId();
+        }
         this.status = captureSession.getStatus();
     }
 
