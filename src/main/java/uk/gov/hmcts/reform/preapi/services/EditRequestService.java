@@ -204,6 +204,42 @@ public class EditRequestService {
     }
 
     @Transactional
+    public void onEditRequestSubmitted(EditRequest request) {
+        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
+        if (court.getGroupEmail() == null) {
+            log.error("Court {} does not have a group email for sending edit request submission email for request: {}",
+                      court.getId(), request.getId());
+            return;
+        }
+
+        try {
+            if (request.getJointlyAgreed()) {
+                emailServiceFactory.getEnabledEmailService().editingJointlyAgreed(court.getGroupEmail(), request);
+            } else {
+                emailServiceFactory.getEnabledEmailService().editingNotJointlyAgreed(court.getGroupEmail(), request);
+            }
+        } catch (Exception e) {
+            log.error("Error sending email on edit request submission: {}", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void onEditRequestRejected(EditRequest request) {
+        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
+        if (court.getGroupEmail() == null) {
+            log.error("Court {} does not have a group email for sending edit request rejection email for request: {}",
+                      court.getId(), request.getId());
+            return;
+        }
+
+        try {
+            emailServiceFactory.getEnabledEmailService().editingRejected(court.getGroupEmail(), request);
+        } catch (Exception e) {
+            log.error("Error sending email on edit request rejection: {}", e.getMessage());
+        }
+    }
+    
+    @Transactional
     public String generateAsset(UUID newRecordingId, EditRequest request) throws InterruptedException {
         String sourceContainer = newRecordingId + "-input";
         if (!azureIngestStorageService.doesContainerExist(sourceContainer)) {
@@ -333,42 +369,6 @@ public class EditRequestService {
 
         request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
         return request;
-    }
-
-    @Transactional
-    public void onEditRequestSubmitted(EditRequest request) {
-        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
-        if (court.getGroupEmail() == null) {
-            log.error("Court {} does not have a group email for sending edit request submission email for request: {}",
-                      court.getId(), request.getId());
-            return;
-        }
-
-        try {
-            if (request.getJointlyAgreed()) {
-                emailServiceFactory.getEnabledEmailService().editingJointlyAgreed(court.getGroupEmail(), request);
-            } else {
-                emailServiceFactory.getEnabledEmailService().editingNotJointlyAgreed(court.getGroupEmail(), request);
-            }
-        } catch (Exception e) {
-            log.error("Error sending email on edit request submission: {}", e.getMessage());
-        }
-    }
-
-    @Transactional
-    public void onEditRequestRejected(EditRequest request) {
-        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
-        if (court.getGroupEmail() == null) {
-            log.error("Court {} does not have a group email for sending edit request rejection email for request: {}",
-                      court.getId(), request.getId());
-            return;
-        }
-
-        try {
-            emailServiceFactory.getEnabledEmailService().editingRejected(court.getGroupEmail(), request);
-        } catch (Exception e) {
-            log.error("Error sending email on edit request rejection: {}", e.getMessage());
-        }
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
