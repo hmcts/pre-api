@@ -27,6 +27,7 @@ public class EditingRejection extends BaseTemplate {
         );
     }
 
+    @Override
     public String getTemplateId() {
         return "aa2a836f-b6f0-46dc-91e0-1698822c5137";
     }

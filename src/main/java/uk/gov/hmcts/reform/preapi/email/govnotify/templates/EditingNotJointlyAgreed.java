@@ -25,6 +25,7 @@ public class EditingNotJointlyAgreed extends BaseTemplate {
         );
     }
 
+    @Override
     public String getTemplateId() {
         return "fb11d2a9-086d-4f27-9208-a3ddfe696919";
     }

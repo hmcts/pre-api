@@ -1347,7 +1347,7 @@ public class EditRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Should trigger request rejection email on edit requesst rejection")
+    @DisplayName("Should trigger request rejection email on edit request rejection")
     void upsertOnRejected() {
         var court = new Court();
         court.setGroupEmail("group-email@example.com");

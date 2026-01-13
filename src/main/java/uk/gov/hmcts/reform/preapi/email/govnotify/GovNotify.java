@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailVerification;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
@@ -29,13 +30,17 @@ import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class GovNotify implements IEmailService {
     private final NotificationClient client;
     private final String portalUrl;
@@ -159,12 +164,12 @@ public class GovNotify implements IEmailService {
     }
 
     @Override
-    public EmailResponse editingJointlyAgreed(String to, EditRequest editRequest) throws EmailFailedToSendException {
-        var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
-        var requestInstructions = fromJson(editRequest.getEditInstruction())
+    public EmailResponse editingJointlyAgreed(String to, EditRequest editRequest) {
+        Booking booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
+        List<EditCutInstructionDTO> requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
-        var template = new EditingJointlyAgreed(
+        EditingJointlyAgreed template = new EditingJointlyAgreed(
             to,
             booking.getCaseId().getReference(),
             requestInstructions.size(),
@@ -189,17 +194,17 @@ public class GovNotify implements IEmailService {
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send edit request jointly agreed email to {}", to, e);
-            throw new EmailFailedToSendException(to);
+            throw new EmailFailedToSendException(to, e);
         }
     }
 
     @Override
-    public EmailResponse editingNotJointlyAgreed(String to, EditRequest editRequest) throws EmailFailedToSendException {
-        var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
-        var requestInstructions = fromJson(editRequest.getEditInstruction())
+    public EmailResponse editingNotJointlyAgreed(String to, EditRequest editRequest) {
+        Booking booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
+        List<EditCutInstructionDTO> requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
-        var template = new EditingNotJointlyAgreed(
+        EditingNotJointlyAgreed template = new EditingNotJointlyAgreed(
             to,
             booking.getCaseId().getReference(),
             requestInstructions.size(),
@@ -224,17 +229,17 @@ public class GovNotify implements IEmailService {
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send edit request not jointly agreed email to {}", to, e);
-            throw new EmailFailedToSendException(to);
+            throw new EmailFailedToSendException(to, e);
         }
     }
 
     @Override
-    public EmailResponse editingRejected(String to, EditRequest editRequest) throws EmailFailedToSendException {
-        var booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
-        var requestInstructions = fromJson(editRequest.getEditInstruction())
+    public EmailResponse editingRejected(String to, EditRequest editRequest) {
+        Booking booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
+        List<EditCutInstructionDTO> requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
-        var template = new EditingRejection(
+        EditingRejection template = new EditingRejection(
             to,
             booking.getCaseId().getReference(),
             editRequest.getRejectionReason(),
@@ -260,7 +265,7 @@ public class GovNotify implements IEmailService {
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send edit request rejection email to {}", to, e);
-            throw new EmailFailedToSendException(to);
+            throw new EmailFailedToSendException(to, e);
         }
     }
 
@@ -269,26 +274,23 @@ public class GovNotify implements IEmailService {
     }
 
     private String generateEditSummary(List<EditCutInstructionDTO> editInstructions) {
-        var summary = new StringBuilder();
+        StringJoiner summary = new StringJoiner("");
         for (int i = 0; i < editInstructions.size(); i++) {
-            var instruction = editInstructions.get(i);
-            summary.append("Edit ").append(i + 1).append(": \n")
-                .append("Start time: ").append(instruction.getStartOfCut()).append("\n")
-                .append("End time: ").append(instruction.getEndOfCut()).append("\n")
-                .append("Time Removed: ").append(calculateTimeRemoved(instruction)).append("\n")
-                .append("Reason: ").append(instruction.getReason()).append("\n\n");
+            EditCutInstructionDTO instruction = editInstructions.get(i);
+            summary.add(format("Edit %s\n", i + 1))
+                .add(format("Start time: %s\n", instruction.getStartOfCut()))
+                .add(format("End time: %s\n", instruction.getEndOfCut()))
+                .add(format("Time Removed: %s\n", calculateTimeRemoved(instruction)))
+                .add(format("Reason: %s\n\n", instruction.getReason()));
         }
 
         return summary.toString();
     }
 
     private String calculateTimeRemoved(EditCutInstructionDTO instruction) {
-        var difference = instruction.getEnd() - instruction.getStart();
+        long difference = instruction.getEnd() - instruction.getStart();
+        Duration duration = Duration.ofSeconds(difference);
 
-        int hours = (int) (difference / 3600);
-        int minutes = (int) ((difference % 3600) / 60);
-        int seconds = (int) (difference % 60);
-
-        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+        return format("%02d:%02d:%02d", duration.toHours(), duration.toMinutesPart(), duration.toSecondsPart());
     }
 }
