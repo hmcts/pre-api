@@ -277,7 +277,7 @@ public class GovNotify implements IEmailService {
         StringJoiner summary = new StringJoiner("");
         for (int i = 0; i < editInstructions.size(); i++) {
             EditCutInstructionDTO instruction = editInstructions.get(i);
-            summary.add(format("Edit %s\n", i + 1))
+            summary.add(format("Edit %s: \n", i + 1))
                 .add(format("Start time: %s\n", instruction.getStartOfCut()))
                 .add(format("End time: %s\n", instruction.getEndOfCut()))
                 .add(format("Time Removed: %s\n", calculateTimeRemoved(instruction)))
