@@ -238,7 +238,7 @@ public class EditRequestService {
             log.error("Error sending email on edit request rejection: {}", e.getMessage());
         }
     }
-    
+
     @Transactional
     public String generateAsset(UUID newRecordingId, EditRequest request) throws InterruptedException {
         String sourceContainer = newRecordingId + "-input";
