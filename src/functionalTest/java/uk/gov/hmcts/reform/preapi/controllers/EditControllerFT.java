@@ -27,9 +27,6 @@ public class EditControllerFT extends FunctionalTestBase {
     private static final String VALID_EDIT_CSV = "src/functionalTest/resources/test/edit/edit_from_csv.csv";
     private static final String EDIT_ENDPOINT = "/edits";
 
-    private static final Map<String, String> MULTIPART_HEADERS =
-        Map.of("Content-Type", MediaType.MULTIPART_FORM_DATA_VALUE);
-
     @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
 

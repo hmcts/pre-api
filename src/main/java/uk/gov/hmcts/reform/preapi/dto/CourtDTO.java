@@ -46,6 +46,7 @@ public class CourtDTO {
     public CourtDTO(Court courtEntity) {
         this.id = courtEntity.getId();
         this.name = courtEntity.getName();
+        this.groupEmail = courtEntity.getGroupEmail();
         this.courtType = courtEntity.getCourtType();
         this.locationCode = courtEntity.getLocationCode();
         this.county = courtEntity.getCounty();
