@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -266,5 +267,10 @@ public class BookingService {
             Pageable.unpaged()
         )
             .toList();
+    }
+
+    @Transactional
+    public List<ShareBooking> findAllSharesForBooking(Booking booking) {
+        return shareBookingService.findAllByBooking(booking);
     }
 }
