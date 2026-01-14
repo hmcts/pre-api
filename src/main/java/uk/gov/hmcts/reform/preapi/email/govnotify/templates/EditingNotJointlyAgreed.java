@@ -9,8 +9,7 @@ public class EditingNotJointlyAgreed extends BaseTemplate {
                                 String courtName,
                                 String witnessName,
                                 String defendantNames,
-                                String editSummary,
-                                String portalLink) {
+                                String editSummary) {
         super(
             to,
             Map.of(
@@ -19,8 +18,7 @@ public class EditingNotJointlyAgreed extends BaseTemplate {
                 "court_name", courtName,
                 "witness_name", witnessName,
                 "defendant_names", defendantNames,
-                "edit_summary", editSummary,
-                "portal_link", portalLink
+                "edit_summary", editSummary
             )
         );
     }

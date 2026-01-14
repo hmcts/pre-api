@@ -169,24 +169,25 @@ public class GovNotify implements IEmailService {
         List<EditCutInstructionDTO> requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
+        String witnessName = booking.getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+            .findFirst()
+            .map(Participant::getFirstName)
+            .orElse("");
+        String defendant = booking.getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+            .map(Participant::getFullName)
+            .collect(Collectors.joining(", "));
         EditingJointlyAgreed template = new EditingJointlyAgreed(
             to,
             booking.getCaseId().getReference(),
             requestInstructions.size(),
             booking.getCaseId().getCourt().getName(),
-            booking.getParticipants()
-                .stream()
-                .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
-                .findFirst()
-                .map(Participant::getFirstName)
-                .orElse(""),
-            booking.getParticipants()
-                .stream()
-                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
-                .map(Participant::getFullName)
-                .collect(Collectors.joining(", ")),
-            generateEditSummary(requestInstructions),
-            portalUrl
+            witnessName,
+            defendant,
+            generateEditSummary(requestInstructions)
         );
 
         try {
@@ -204,24 +205,27 @@ public class GovNotify implements IEmailService {
         List<EditCutInstructionDTO> requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
+        String witnessName = booking.getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+            .findFirst()
+            .map(Participant::getFirstName)
+            .orElse("");
+
+        String defendant = booking.getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+            .map(Participant::getFullName)
+            .collect(Collectors.joining(", "));
+
         EditingNotJointlyAgreed template = new EditingNotJointlyAgreed(
             to,
             booking.getCaseId().getReference(),
             requestInstructions.size(),
             booking.getCaseId().getCourt().getName(),
-            booking.getParticipants()
-                .stream()
-                .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
-                .findFirst()
-                .map(Participant::getFirstName)
-                .orElse(""),
-            booking.getParticipants()
-                .stream()
-                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
-                .map(Participant::getFullName)
-                .collect(Collectors.joining(", ")),
-            generateEditSummary(requestInstructions),
-            portalUrl
+            witnessName,
+            defendant,
+            generateEditSummary(requestInstructions)
         );
 
         try {
@@ -239,25 +243,26 @@ public class GovNotify implements IEmailService {
         List<EditCutInstructionDTO> requestInstructions = fromJson(editRequest.getEditInstruction())
             .getRequestedInstructions();
 
+        String witnessName = booking.getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+            .findFirst()
+            .map(Participant::getFirstName)
+            .orElse("");
+        String defendant = booking.getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+            .map(Participant::getFullName)
+            .collect(Collectors.joining(", "));
         EditingRejection template = new EditingRejection(
             to,
             booking.getCaseId().getReference(),
             editRequest.getRejectionReason(),
             booking.getCaseId().getCourt().getName(),
-            booking.getParticipants()
-                .stream()
-                .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
-                .findFirst()
-                .map(Participant::getFirstName)
-                .orElse(""),
-            booking.getParticipants()
-                .stream()
-                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
-                .map(Participant::getFullName)
-                .collect(Collectors.joining(", ")),
+            witnessName,
+            defendant,
             generateEditSummary(requestInstructions),
-            editRequest.getJointlyAgreed(),
-            portalUrl
+            editRequest.getJointlyAgreed()
         );
 
         try {
@@ -277,11 +282,11 @@ public class GovNotify implements IEmailService {
         StringJoiner summary = new StringJoiner("");
         for (int i = 0; i < editInstructions.size(); i++) {
             EditCutInstructionDTO instruction = editInstructions.get(i);
-            summary.add(format("Edit %s: \n", i + 1))
-                .add(format("Start time: %s\n", instruction.getStartOfCut()))
-                .add(format("End time: %s\n", instruction.getEndOfCut()))
-                .add(format("Time Removed: %s\n", calculateTimeRemoved(instruction)))
-                .add(format("Reason: %s\n\n", instruction.getReason()));
+            summary.add(format("Edit %s: %n", i + 1))
+                .add(format("Start time: %s%n", instruction.getStartOfCut()))
+                .add(format("End time: %s%n", instruction.getEndOfCut()))
+                .add(format("Time Removed: %s%n", calculateTimeRemoved(instruction)))
+                .add(format("Reason: %s%n%n", instruction.getReason()));
         }
 
         return summary.toString();

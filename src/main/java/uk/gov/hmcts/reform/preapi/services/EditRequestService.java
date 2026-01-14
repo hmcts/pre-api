@@ -213,7 +213,7 @@ public class EditRequestService {
         }
 
         try {
-            if (request.getJointlyAgreed()) {
+            if (Boolean.TRUE.equals(request.getJointlyAgreed())) {
                 emailServiceFactory.getEnabledEmailService().editingJointlyAgreed(court.getGroupEmail(), request);
             } else {
                 emailServiceFactory.getEnabledEmailService().editingNotJointlyAgreed(court.getGroupEmail(), request);

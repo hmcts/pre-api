@@ -3,14 +3,14 @@ package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 import java.util.Map;
 
 public class EditingJointlyAgreed extends BaseTemplate {
+
     public EditingJointlyAgreed(String to,
                                 String caseReference,
                                 int editCount,
                                 String courtName,
                                 String witnessName,
                                 String defendantNames,
-                                String editSummary,
-                                String portalLink) {
+                                String editSummary) {
         super(
             to,
             Map.of(
@@ -19,8 +19,7 @@ public class EditingJointlyAgreed extends BaseTemplate {
                 "court_name", courtName,
                 "witness_name", witnessName,
                 "defendant_names", defendantNames,
-                "edit_summary", editSummary,
-                "portal_link", portalLink
+                "edit_summary", editSummary
             )
         );
     }
