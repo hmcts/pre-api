@@ -354,13 +354,21 @@ public class CaptureSessionService {
             .toList();
     }
 
+    /**
+     * Find failed capture sessions for open cases started between fromDate and toDate.
+     *
+     * Only Capture Sessions that are associated with Bookings for Cases that are still open are returned.
+     * @param fromDate - inclusive
+     * @param toDate - exclusive
+     * @return a list of capture sessions associated with open cases that failed within the date range
+     */
     @Transactional
     public List<CaptureSession> findFailedCaptureSessionsStartedBetween(LocalDate fromDate, LocalDate toDate) {
         Timestamp fromTime = Timestamp.valueOf(fromDate.atStartOfDay());
         Timestamp toTime = Timestamp.valueOf(toDate.atStartOfDay().plusDays(1));
 
-        return captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
-            fromTime, toTime, RecordingStatus.FAILURE);
+        return captureSessionRepository.findFilteredCaptureSessions(
+            fromTime, toTime, RecordingStatus.FAILURE, CaseState.OPEN);
     }
 
     private CreateAuditDTO createStopAudit(UUID captureSessionId) {

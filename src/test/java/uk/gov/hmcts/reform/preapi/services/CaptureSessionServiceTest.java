@@ -954,10 +954,12 @@ public class CaptureSessionServiceTest {
             null
         );
 
-        when(captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
-            eq(Timestamp.valueOf("2025-10-01 00:00:00")),
-            eq(Timestamp.valueOf("2025-11-01 00:00:00")),
-            eq(RecordingStatus.FAILURE)))
+        when(captureSessionRepository.findFilteredCaptureSessions(
+                 eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+                 eq(Timestamp.valueOf("2025-11-01 00:00:00")),
+                 eq(RecordingStatus.FAILURE), eq(CaseState.OPEN)
+             )
+        )
             .thenReturn(List.of(failedSession));
 
         List<CaptureSession> result = captureSessionService.findFailedCaptureSessionsStartedBetween(
@@ -967,9 +969,9 @@ public class CaptureSessionServiceTest {
         assertThat(result.getFirst().getId()).isEqualTo(failedSession.getId());
 
         verify(captureSessionRepository, times(1))
-            .findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            .findFilteredCaptureSessions(
             eq(Timestamp.valueOf("2025-10-01 00:00:00")),
-            eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE));
+            eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE), eq(CaseState.OPEN));
     }
 
     @Test
@@ -977,10 +979,11 @@ public class CaptureSessionServiceTest {
         Timestamp startDate = Timestamp.from(Instant.parse("2025-10-01T00:00:00Z"));
         Timestamp endDate = Timestamp.from(Instant.parse("2025-10-31T00:00:00Z"));
 
-        when(captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+        when(captureSessionRepository.findFilteredCaptureSessions(
             eq(Timestamp.valueOf("2025-10-01 00:00:00")),
             eq(Timestamp.valueOf("2025-11-01 00:00:00")),
-            eq(RecordingStatus.FAILURE)
+            eq(RecordingStatus.FAILURE),
+            eq(CaseState.OPEN)
         ))
             .thenReturn(Collections.emptyList());
 
@@ -990,9 +993,9 @@ public class CaptureSessionServiceTest {
         assertThat(result).isEmpty();
 
         verify(captureSessionRepository, times(1))
-            .findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            .findFilteredCaptureSessions(
                 eq(Timestamp.valueOf("2025-10-01 00:00:00")),
-                eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE)
+                eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE), eq(CaseState.OPEN)
             );
     }
 }

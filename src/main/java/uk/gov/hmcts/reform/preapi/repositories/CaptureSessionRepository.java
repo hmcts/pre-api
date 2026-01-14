@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
@@ -84,6 +85,19 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
     )
     List<CaptureSession> findAllPastIncompleteCaptureSessions(@Param("scheduledBefore") Timestamp scheduledBefore);
 
-    List<CaptureSession> findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
-        Timestamp fromTime, Timestamp toTime, RecordingStatus status);
+    @Query("""
+    SELECT cs FROM CaptureSession cs
+    WHERE cs.deletedAt IS NULL
+      AND cs.startedAt BETWEEN :startedAtAfter AND :startedAtBefore
+      AND cs.status = :status
+      AND cs.booking.deletedAt IS NULL
+      AND cs.booking.caseId.state = :caseState
+      AND cs.booking.caseId.deletedAt IS NULL
+""")
+    List<CaptureSession> findFilteredCaptureSessions(
+        @Param("startedAtAfter") Timestamp startedAtAfter,
+        @Param("startedAtBefore") Timestamp startedAtBefore,
+        @Param("status") RecordingStatus status,
+        @Param("caseState") CaseState caseState
+    );
 }
