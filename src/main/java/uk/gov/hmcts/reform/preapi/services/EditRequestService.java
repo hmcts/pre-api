@@ -58,6 +58,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
 import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 
 @Slf4j
@@ -358,11 +359,11 @@ public class EditRequestService {
             EditCutInstructionDTO firstInstruction = instructions.getFirst();
             if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
                 throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
-                                                  + firstInstruction.getStart()
+                                                  + formatTime(firstInstruction.getStart())
                                                   + "), End("
-                                                  + firstInstruction.getEnd()
+                                                  + formatTime(firstInstruction.getEnd())
                                                   + "), Recording Duration("
-                                                  + recordingDuration
+                                                  + formatTime(recordingDuration)
                                                   + ")");
             }
         }
@@ -375,9 +376,9 @@ public class EditRequestService {
             EditCutInstructionDTO curr = instructions.get(i);
             if (curr.getStart() < prev.getEnd()) {
                 throw new BadRequestException("Overlapping instructions: Previous End("
-                                                  + prev.getEnd()
+                                                  + formatTime(prev.getEnd())
                                                   + "), Current Start("
-                                                  + curr.getStart()
+                                                  + formatTime(curr.getStart())
                                                   + ")");
             }
         }
@@ -390,26 +391,26 @@ public class EditRequestService {
             if (instruction.getStart() == instruction.getEnd()) {
                 throw new BadRequestException(
                     "Invalid instruction: Instruction with 0 second duration invalid: Start("
-                        + instruction.getStart()
+                        + formatTime(instruction.getStart())
                         + "), End("
-                        + instruction.getEnd()
+                        + formatTime(instruction.getEnd())
                         + ")");
             }
             if (instruction.getEnd() < instruction.getStart()) {
                 throw new BadRequestException(
                     "Invalid instruction: Instruction with end time before start time: Start("
-                        + instruction.getStart()
+                        + formatTime(instruction.getStart())
                         + "), End("
-                        + instruction.getEnd()
+                        + formatTime(instruction.getEnd())
                         + ")");
             }
             if (instruction.getEnd() > recordingDuration) {
                 throw new BadRequestException("Invalid instruction: Instruction end time exceeding duration: Start("
-                                                  + instruction.getStart()
+                                                  + formatTime(instruction.getStart())
                                                   + "), End("
-                                                  + instruction.getEnd()
+                                                  + formatTime(instruction.getEnd())
                                                   + "), Recording Duration("
-                                                  + recordingDuration
+                                                  + formatTime(recordingDuration)
                                                   + ")");
             }
             if (currentTime < instruction.getStart()) {
