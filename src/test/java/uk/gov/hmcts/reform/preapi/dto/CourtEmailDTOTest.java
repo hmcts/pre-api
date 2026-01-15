@@ -12,7 +12,7 @@ class CourtEmailDTOTest {
 
     @DisplayName("Should be able to create from court")
     @Test
-    public void testConstructor() {
+    void testConstructor() {
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "123");
         court.setGroupEmail("random.email@co.uk");
         var dto = new CourtEmailDTO(court);

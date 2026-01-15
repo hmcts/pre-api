@@ -134,10 +134,9 @@ public class EditRequestServiceTest {
     private ShareBooking shareBooking1;
     private ShareBooking shareBooking2;
 
-    private static String TEST_EMAIL = "test.court@example.com";
-    private static UUID MOCK_RECORDING_ID = UUID.randomUUID();
-    private static UUID MOCK_PARENT_REC_ID = UUID.randomUUID();
-    private static UUID MOCK_CAPTURE_SESSION_ID = UUID.randomUUID();
+    private static UUID mockRecordingId = UUID.randomUUID();
+    private static UUID mockParentRecId = UUID.randomUUID();
+    private static UUID mockCaptureSessionId = UUID.randomUUID();
 
     @BeforeEach
     void setup() {
@@ -171,14 +170,14 @@ public class EditRequestServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         when(mockCaptureSession.getBooking()).thenReturn(booking);
-        when(mockCaptureSession.getId()).thenReturn(MOCK_CAPTURE_SESSION_ID);
+        when(mockCaptureSession.getId()).thenReturn(mockCaptureSessionId);
 
-        when(mockRecording.getId()).thenReturn(MOCK_RECORDING_ID);
+        when(mockRecording.getId()).thenReturn(mockRecordingId);
         when(mockRecording.getCaptureSession()).thenReturn(mockCaptureSession);
         when(mockRecording.getParentRecording()).thenReturn(mockParentRecording);
         when(mockRecording.getDuration()).thenReturn(Duration.ofMinutes(3));
 
-        when(mockParentRecording.getId()).thenReturn(MOCK_PARENT_REC_ID);
+        when(mockParentRecording.getId()).thenReturn(mockParentRecId);
         when(mockParentRecording.getCaptureSession()).thenReturn(mockCaptureSession);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
@@ -466,11 +465,11 @@ public class EditRequestServiceTest {
 
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(MOCK_RECORDING_ID);
+        dto.setSourceRecordingId(mockRecordingId);
         dto.setStatus(EditRequestStatus.PENDING);
         dto.setEditInstructions(instructions);
 
-        when(recordingRepository.findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID))
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId))
             .thenReturn(Optional.of(mockRecording));
 
         var message = assertThrows(
@@ -478,10 +477,10 @@ public class EditRequestServiceTest {
             () -> underTest.upsert(dto)
         ).getMessage();
         assertThat(message)
-            .isEqualTo("Source Recording (" + MOCK_RECORDING_ID + ") does not have a valid duration");
+            .isEqualTo("Source Recording (" + mockRecordingId + ") does not have a valid duration");
 
-        verify(recordingService, times(1)).syncRecordingMetadataWithStorage(MOCK_RECORDING_ID);
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID);
+        verify(recordingService, times(1)).syncRecordingMetadataWithStorage(mockRecordingId);
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
         verify(editRequestRepository, never()).findById(any());
         verify(mockAuth, never()).getAppAccess();
         verify(editRequestRepository, never()).save(any(EditRequest.class));
@@ -693,21 +692,21 @@ public class EditRequestServiceTest {
         editRequest.setSourceRecording(mockRecording);
 
         when(mockRecording.getFilename()).thenReturn("index.mp4");
-        when(recordingService.getNextVersionNumber(MOCK_PARENT_REC_ID)).thenReturn(2);
+        when(recordingService.getNextVersionNumber(mockParentRecId)).thenReturn(2);
 
-        var dto = underTest.createRecordingDto(MOCK_RECORDING_ID, "index.mp4", editRequest);
+        var dto = underTest.createRecordingDto(mockRecordingId, "index.mp4", editRequest);
 
         assertThat(dto).isNotNull();
-        assertThat(dto.getId()).isEqualTo(MOCK_RECORDING_ID);
-        assertThat(dto.getParentRecordingId()).isEqualTo(MOCK_PARENT_REC_ID);
+        assertThat(dto.getId()).isEqualTo(mockRecordingId);
+        assertThat(dto.getParentRecordingId()).isEqualTo(mockParentRecId);
         assertThat(dto.getVersion()).isEqualTo(2);
         assertThat(dto.getEditInstructions())
             .isEqualTo(format("{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,"
                                   + "\"ffmpegInstructions\":null}}", editRequest.getId()));
-        assertThat(dto.getCaptureSessionId()).isEqualTo(MOCK_CAPTURE_SESSION_ID);
+        assertThat(dto.getCaptureSessionId()).isEqualTo(mockCaptureSessionId);
         assertThat(dto.getFilename()).isEqualTo("index.mp4");
 
-        verify(recordingService, times(1)).getNextVersionNumber(MOCK_PARENT_REC_ID);
+        verify(recordingService, times(1)).getNextVersionNumber(mockParentRecId);
     }
 
     @Test
@@ -725,11 +724,11 @@ public class EditRequestServiceTest {
             """);
 
         var newRecordingId = UUID.randomUUID();
-        when(recordingService.getNextVersionNumber(MOCK_PARENT_REC_ID)).thenReturn(3);
+        when(recordingService.getNextVersionNumber(mockParentRecId)).thenReturn(3);
 
         var dto = underTest.createRecordingDto(newRecordingId, "newFile.mp4", editRequest);
         assertThat(dto.getId()).isEqualTo(newRecordingId);
-        assertThat(dto.getParentRecordingId()).isEqualTo(MOCK_PARENT_REC_ID);
+        assertThat(dto.getParentRecordingId()).isEqualTo(mockParentRecId);
         assertThat(dto.getFilename()).isEqualTo("newFile.mp4");
         assertThat(dto.getVersion()).isEqualTo(3);
         assertThat(dto.getEditInstructions())
@@ -988,11 +987,11 @@ public class EditRequestServiceTest {
 
         CreateEditRequestDTO request = new CreateEditRequestDTO();
         request.setId(UUID.randomUUID());
-        request.setSourceRecordingId(MOCK_RECORDING_ID);
+        request.setSourceRecordingId(mockRecordingId);
         request.setStatus(EditRequestStatus.PENDING);
         request.setEditInstructions(new ArrayList<>(List.of(createCut(10, 20, "some reason"))));
 
-        when(recordingRepository.findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID))
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId))
             .thenReturn(Optional.of(mockRecording));
         when(editRequestRepository.findById(request.getId())).thenReturn(Optional.of(new EditRequest()));
 
@@ -1005,7 +1004,7 @@ public class EditRequestServiceTest {
 
         EditRequest editRequest = captor.getValue();
         assertThat(editRequest.getId()).isEqualTo(request.getId());
-        assertThat(editRequest.getSourceRecording().getId()).isEqualTo(MOCK_RECORDING_ID);
+        assertThat(editRequest.getSourceRecording().getId()).isEqualTo(mockRecordingId);
         assertThat(editRequest.getStatus()).isEqualTo(EditRequestStatus.PENDING);
         assertThat(editRequest.getEditInstruction()).isNotNull();
 
@@ -1072,9 +1071,9 @@ public class EditRequestServiceTest {
         returnedByDb.setCreatedBy(courtClerkUser);
 
         when(editRequestRepository.findById(any())).thenReturn(Optional.of(returnedByDb));
-        when(recordingRepository.findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID)).thenReturn(Optional.of(mockRecording));
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId)).thenReturn(Optional.of(mockRecording));
 
-        underTest.upsert(MOCK_RECORDING_ID, file);
+        underTest.upsert(mockRecordingId, file);
 
         ArgumentCaptor<EditRequest> savedEditRequest = ArgumentCaptor.forClass(EditRequest.class);
         verify(editRequestRepository, times(1)).save(savedEditRequest.capture());
@@ -1098,14 +1097,14 @@ public class EditRequestServiceTest {
 
         CreateEditRequestDTO request = new CreateEditRequestDTO();
         request.setId(UUID.randomUUID());
-        request.setSourceRecordingId(MOCK_RECORDING_ID);
+        request.setSourceRecordingId(mockRecordingId);
         request.setStatus(EditRequestStatus.PENDING);
         request.setEditInstructions(new ArrayList<>(List.of(createCut(5, 8, "some new reason"))));
 
         when(mockRecording.getFilename()).thenReturn("filename.mp4");
         when(mockRecording.getDuration()).thenReturn(Duration.ofSeconds(27));
         when(mockParentRecording.getDuration()).thenReturn(Duration.ofSeconds(30));
-        when(recordingRepository.findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID))
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId))
             .thenReturn(Optional.of(mockRecording));
         when(mockRecording.getEditInstruction()).thenReturn(underTest.toJson(originalEdits));
         when(editRequestRepository.findById(request.getId())).thenReturn(Optional.of(new EditRequest()));
@@ -1121,7 +1120,7 @@ public class EditRequestServiceTest {
 
         EditRequest editRequest = captor.getValue();
         assertThat(editRequest.getId()).isEqualTo(request.getId());
-        assertThat(editRequest.getSourceRecording().getId()).isEqualTo(MOCK_PARENT_REC_ID);
+        assertThat(editRequest.getSourceRecording().getId()).isEqualTo(mockParentRecId);
         assertThat(editRequest.getStatus()).isEqualTo(EditRequestStatus.PENDING);
         assertThat(editRequest.getEditInstruction()).isNotNull();
 
@@ -1153,7 +1152,7 @@ public class EditRequestServiceTest {
 
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(MOCK_RECORDING_ID);
+        dto.setSourceRecordingId(mockRecordingId);
         dto.setStatus(EditRequestStatus.SUBMITTED);
         dto.setEditInstructions(instructions);
         dto.setJointlyAgreed(true);
@@ -1162,14 +1161,14 @@ public class EditRequestServiceTest {
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.DRAFT);
 
-        when(recordingRepository.findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID))
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId))
             .thenReturn(Optional.of(mockRecording));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
 
         var response = underTest.upsert(dto);
         assertThat(response).isEqualTo(UpsertResult.UPDATED);
 
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID);
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
         verify(editRequestRepository, times(1)).findById(dto.getId());
         verify(mockAuth, never()).getAppAccess();
         verify(editRequestRepository, times(1)).save(any(EditRequest.class));
@@ -1187,7 +1186,7 @@ public class EditRequestServiceTest {
 
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(MOCK_RECORDING_ID);
+        dto.setSourceRecordingId(mockRecordingId);
         dto.setStatus(EditRequestStatus.SUBMITTED);
         dto.setEditInstructions(instructions);
         dto.setJointlyAgreed(false);
@@ -1196,14 +1195,14 @@ public class EditRequestServiceTest {
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.DRAFT);
 
-        when(recordingRepository.findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID))
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId))
             .thenReturn(Optional.of(mockRecording));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
 
         var response = underTest.upsert(dto);
         assertThat(response).isEqualTo(UpsertResult.UPDATED);
 
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID);
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
         verify(editRequestRepository, times(1)).findById(dto.getId());
         verify(mockAuth, never()).getAppAccess();
         verify(editRequestRepository, times(1)).save(any(EditRequest.class));
@@ -1221,7 +1220,7 @@ public class EditRequestServiceTest {
 
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(MOCK_RECORDING_ID);
+        dto.setSourceRecordingId(mockRecordingId);
         dto.setStatus(EditRequestStatus.REJECTED);
         dto.setEditInstructions(instructions);
         dto.setJointlyAgreed(false);
@@ -1230,14 +1229,14 @@ public class EditRequestServiceTest {
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.SUBMITTED);
 
-        when(recordingRepository.findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID))
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId))
             .thenReturn(Optional.of(mockRecording));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
 
         var response = underTest.upsert(dto);
         assertThat(response).isEqualTo(UpsertResult.UPDATED);
 
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(MOCK_RECORDING_ID);
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
         verify(editRequestRepository, times(1)).findById(dto.getId());
         verify(mockAuth, never()).getAppAccess();
         verify(editRequestRepository, times(1)).save(any(EditRequest.class));

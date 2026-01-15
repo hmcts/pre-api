@@ -17,7 +17,7 @@ public abstract class BaseTemplate {
     public BaseTemplate(String to, Map<String, Object> variables) {
         this.to = to;
         this.reference = generateReference();
-        this.variables = getVariables();
+        this.variables = getVariables(variables);
     }
 
     public abstract String getTemplateId();

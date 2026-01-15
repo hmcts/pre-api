@@ -32,7 +32,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditNotificationService.class)
-public class EditNotificationServiceTest {
+class EditNotificationServiceTest {
 
     @MockitoBean
     private EmailServiceFactory emailServiceFactory;
@@ -67,11 +67,10 @@ public class EditNotificationServiceTest {
     private ShareBooking shareBooking1;
     private ShareBooking shareBooking2;
 
-    private static String TEST_EMAIL = "test.court@example.com";
-
+    private static String testEmail = "test.court@example.com";
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         shareWith1 = HelperFactory.createUser("First", "User", "example1@example.com",
                                                    new Timestamp(System.currentTimeMillis()), null, null);
 
@@ -104,7 +103,7 @@ public class EditNotificationServiceTest {
 
     @DisplayName("Should be able to send notifications")
     @Test
-    public void testSendNotifications() {
+    void testSendNotifications() {
         underTest.sendNotifications(booking);
 
         verify(emailService, times(1)).recordingEdited(shareWith1, testCase);
@@ -114,39 +113,39 @@ public class EditNotificationServiceTest {
 
     @DisplayName("Should be able to notify appropriately when edit request is submitted jointly agreed")
     @Test
-    public void testEditRequestSubmittedJointlyAgreed() {
+    void testEditRequestSubmittedJointlyAgreed() {
         when(mockEditRequest.getJointlyAgreed()).thenReturn(true);
-        court.setGroupEmail(TEST_EMAIL);
+        court.setGroupEmail(testEmail);
         underTest.onEditRequestSubmitted(mockEditRequest);
 
-        verify(emailService, times(1)).editingJointlyAgreed(TEST_EMAIL, mockEditRequest);
+        verify(emailService, times(1)).editingJointlyAgreed(testEmail, mockEditRequest);
         verifyNoMoreInteractions(emailService);
     }
 
     @DisplayName("Should be able to notify appropriately when edit request is submitted not jointly agreed")
     @Test
-    public void testEditRequestSubmittedNotJointlyAgreed() {
+    void testEditRequestSubmittedNotJointlyAgreed() {
         when(mockEditRequest.getJointlyAgreed()).thenReturn(false);
-        court.setGroupEmail(TEST_EMAIL);
+        court.setGroupEmail(testEmail);
         underTest.onEditRequestSubmitted(mockEditRequest);
 
-        verify(emailService, times(1)).editingNotJointlyAgreed(TEST_EMAIL, mockEditRequest);
+        verify(emailService, times(1)).editingNotJointlyAgreed(testEmail, mockEditRequest);
         verifyNoMoreInteractions(emailService);
     }
 
     @DisplayName("Should be able to notify appropriately when edit request is rejected")
     @Test
-    public void testEditRequestRejected() {
-        court.setGroupEmail(TEST_EMAIL);
+    void testEditRequestRejected() {
+        court.setGroupEmail(testEmail);
         underTest.onEditRequestRejected(mockEditRequest);
 
-        verify(emailService, times(1)).editingRejected(TEST_EMAIL, mockEditRequest);
+        verify(emailService, times(1)).editingRejected(testEmail, mockEditRequest);
         verifyNoMoreInteractions(emailService);
     }
 
     @DisplayName("Should not attempt to email if court email address is null")
     @Test
-    public void testEditRequestNotificationsWhenNoCourtEmail() {
+    void testEditRequestNotificationsWhenNoCourtEmail() {
         court.setGroupEmail(null);
 
         underTest.onEditRequestSubmitted(mockEditRequest);
