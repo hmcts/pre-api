@@ -16,7 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.shaded.com.google.common.net.MediaType;
+import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
@@ -1065,7 +1065,7 @@ public class EditRequestServiceTest {
 
         MockMultipartFile file = new MockMultipartFile(
             "file", "edit_instructions.csv",
-            MediaType.CSV_UTF_8.toString(), fileContents.getBytes()
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
         );
 
         EditRequest returnedByDb = new EditRequest();
