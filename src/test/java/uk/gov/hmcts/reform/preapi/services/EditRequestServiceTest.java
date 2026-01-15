@@ -1103,7 +1103,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         );
 
         assertThrows(
-            UnsupportedMediaTypeException.class,
+            NotFoundException.class,
             () -> underTest.upsert(mockRecordingId, file)
         );
     }
