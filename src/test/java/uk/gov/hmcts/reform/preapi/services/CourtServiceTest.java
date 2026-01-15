@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 
@@ -227,6 +228,27 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
 
         assertThrows(
             NotFoundException.class,
+            () -> courtService.updateCourtEmails(file)
+        );
+
+        verifyNoInteractions(courtRepository);
+    }
+
+    @DisplayName("Should throw an error if CSV file is incorrectly formatted")
+    @Test
+    void updateCourtEmailAddressesThrowErrorForInvalidCsv() {
+        final String fileContents = """
+Region,Court,PRE Inbox Address,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+South East,Example Court,PRE.Edits.Example@justice.gov.uk
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        assertThrows(
+            UnknownServerException.class,
             () -> courtService.updateCourtEmails(file)
         );
 
