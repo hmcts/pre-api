@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -50,6 +51,8 @@ public class CourtServiceTest {
     @Autowired
     private CourtService courtService;
 
+    private Set<Region> regions;
+
     private final Pageable pageable = PageRequest.of(0, 20);
 
     @BeforeAll
@@ -59,20 +62,22 @@ public class CourtServiceTest {
         courtEntity.setCourtType(CourtType.CROWN);
         courtEntity.setName("Example Court");
         courtEntity.setLocationCode("123456");
+    }
 
+    @BeforeEach
+    void setUpEntities(){
         var region = new Region();
         region.setId(UUID.randomUUID());
         region.setName("Example Region");
 
-        courtEntity.setRegions(Set.of(region));
+        regions = Set.of(region);
+        courtEntity.setRegions(regions);
     }
 
     @DisplayName("Find a court by it's id and return a model")
     @Test
     void findCourtByIdSuccess() {
-        when(
-            courtRepository.findById(courtEntity.getId())
-        ).thenReturn(Optional.of(courtEntity));
+        when(courtRepository.findById(courtEntity.getId())).thenReturn(Optional.of(courtEntity));
 
         var model = courtService.findById(courtEntity.getId());
         assertThat(model.getId()).isEqualTo(courtEntity.getId());
@@ -168,8 +173,36 @@ public class CourtServiceTest {
     @Test
     void updateCourtEmailAddressesSuccess() {
         final String fileContents = """
-Region,Court,PRE Inbox Address
-South East,Example Court,PRE.Edits.Example@justice.gov.uk
+Court,PRE Inbox Address
+Example Court,PRE.Edits.Example@justice.gov.uk
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.of(courtEntity));
+        when(courtRepository.findAllBy()).thenReturn(List.of(courtEntity));
+
+        courtService.updateCourtEmails(file);
+
+        ArgumentCaptor<Court> updatedCourtSavedInDb = ArgumentCaptor.forClass(Court.class);
+
+        verify(courtRepository, times(1)).save(updatedCourtSavedInDb.capture());
+        assertThat(updatedCourtSavedInDb.getValue().getGroupEmail())
+            .isEqualTo("PRE.Edits.Example@justice.gov.uk");
+
+        Set<Region> regionsSavedInDb = updatedCourtSavedInDb.getValue().getRegions();
+        assertThat(regionsSavedInDb).isEqualTo(regions); // Unchanged from set up
+    }
+
+    @DisplayName("Email address CSV: additional fields are allowed but ignored")
+    @Test
+    void updateCourtEmailAddressesExtraFieldsIgnored() {
+        final String fileContents = """
+Region,Court,PRE Inbox Address,Hot Drink,Breakfast Cereal,Vegetable
+South East,Example Court,PRE.Edits.Example@justice.gov.uk,Coffee,Shreddies,Carrot
             """;
 
         MockMultipartFile file = new MockMultipartFile(
@@ -193,7 +226,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
     @Test
     void updateCourtEmailAddressesIgnoreBlanks() {
         final String fileContents = """
-Region,Court,PRE Inbox Address
+Court,PRE Inbox Address
             """;
 
         MockMultipartFile file = new MockMultipartFile(
@@ -212,8 +245,8 @@ Region,Court,PRE Inbox Address
     @Test
     void updateCourtEmailAddressesThrowErrorForInvalidCourt() {
         final String fileContents = """
-Region,Court,PRE Inbox Address
-South East,Example Court,PRE.Edits.Example@justice.gov.uk
+Court,PRE Inbox Address
+Example Court,PRE.Edits.Example@justice.gov.uk
             """;
 
         MockMultipartFile file = new MockMultipartFile(
@@ -235,8 +268,8 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
     @Test
     void updateCourtEmailAddressesThrowErrorForInvalidCsv() {
         final String fileContents = """
-Region,Court,PRE Inbox Address,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-South East,Example Court,PRE.Edits.Example@justice.gov.uk
+Court,PRE Inbox Address,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Example Court,PRE.Edits.Example@justice.gov.uk
             """;
 
         MockMultipartFile file = new MockMultipartFile(
