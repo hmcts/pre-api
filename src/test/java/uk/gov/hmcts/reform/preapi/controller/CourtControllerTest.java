@@ -300,7 +300,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
 
         verify(courtService, times(1)).updateCourtEmails(file);
     }
-    
+
     @DisplayName("Should throw an exception if updating court email addresses with non-CSV")
     @Test
     void updateCourtEmailAddressesWithNotCSV() {

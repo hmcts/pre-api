@@ -1063,7 +1063,7 @@ public class EditRequestServiceTest {
               }
             """;
 
-        MockMultipartFile file = new MockMultipartFile(
+        final MockMultipartFile file = new MockMultipartFile(
             "file", "edit_instructions.csv",
             PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
         );
