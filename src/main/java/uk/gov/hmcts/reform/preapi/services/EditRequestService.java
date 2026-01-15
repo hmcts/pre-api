@@ -25,12 +25,8 @@ import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
-import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -73,7 +69,7 @@ public class EditRequestService {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
-    private final EmailServiceFactory emailServiceFactory;
+    private final EditNotificationService editNotificationService;
 
     @Autowired
     public EditRequestService(final EditRequestRepository editRequestRepository,
@@ -83,7 +79,7 @@ public class EditRequestService {
                               final AzureIngestStorageService azureIngestStorageService,
                               final AzureFinalStorageService azureFinalStorageService,
                               final MediaServiceBroker mediaServiceBroker,
-                              final EmailServiceFactory emailServiceFactory) {
+                              final EditNotificationService editNotificationService) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -91,7 +87,7 @@ public class EditRequestService {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
-        this.emailServiceFactory = emailServiceFactory;
+        this.editNotificationService = editNotificationService;
     }
 
     @Transactional
@@ -170,17 +166,9 @@ public class EditRequestService {
         CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
 
-        this.sendNotifications(request.getSourceRecording().getCaptureSession().getBooking());
+        editNotificationService.sendNotifications(request.getSourceRecording().getCaptureSession().getBooking());
 
         return recordingService.findById(newRecordingId);
-    }
-
-    @Transactional
-    public void sendNotifications(Booking booking) {
-        booking.getShares()
-            .stream()
-            .map(ShareBooking::getSharedWith)
-            .forEach(u -> emailServiceFactory.getEnabledEmailService().recordingEdited(u, booking.getCaseId()));
     }
 
     @Transactional
@@ -201,42 +189,6 @@ public class EditRequestService {
         createDto.setFilename(filename);
         // duration is auto-generated
         return createDto;
-    }
-
-    @Transactional
-    public void onEditRequestSubmitted(EditRequest request) {
-        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
-        if (court.getGroupEmail() == null) {
-            log.error("Court {} does not have a group email for sending edit request submission email for request: {}",
-                      court.getId(), request.getId());
-            return;
-        }
-
-        try {
-            if (Boolean.TRUE.equals(request.getJointlyAgreed())) {
-                emailServiceFactory.getEnabledEmailService().editingJointlyAgreed(court.getGroupEmail(), request);
-            } else {
-                emailServiceFactory.getEnabledEmailService().editingNotJointlyAgreed(court.getGroupEmail(), request);
-            }
-        } catch (Exception e) {
-            log.error("Error sending email on edit request submission: {}", e.getMessage());
-        }
-    }
-
-    @Transactional
-    public void onEditRequestRejected(EditRequest request) {
-        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
-        if (court.getGroupEmail() == null) {
-            log.error("Court {} does not have a group email for sending edit request rejection email for request: {}",
-                      court.getId(), request.getId());
-            return;
-        }
-
-        try {
-            emailServiceFactory.getEnabledEmailService().editingRejected(court.getGroupEmail(), request);
-        } catch (Exception e) {
-            log.error("Error sending email on edit request rejection: {}", e.getMessage());
-        }
     }
 
     @Transactional
@@ -303,9 +255,9 @@ public class EditRequestService {
 
         if (isUpdate) {
             if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
-                onEditRequestSubmitted(request);
+                editNotificationService.onEditRequestSubmitted(request);
             } else {
-                onEditRequestRejected(request);
+                editNotificationService.onEditRequestRejected(request);
             }
         }
 
