@@ -18,7 +18,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
 @Data
 @NoArgsConstructor
 @Schema(description = "ConcurrentCaptureSessionReportDTO")
