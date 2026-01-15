@@ -14,10 +14,10 @@ public abstract class BaseTemplate {
 
     @Value("${portal.url}") String portalLink;
 
-    public BaseTemplate(String to, Map<String, Object> variables) {
+    public BaseTemplate(String to, Map<String, Object> inputVariables) {
         this.to = to;
         this.reference = generateReference();
-        this.variables = getVariables(variables);
+        this.variables = getVariables(inputVariables);
     }
 
     public abstract String getTemplateId();
@@ -27,9 +27,9 @@ public abstract class BaseTemplate {
     }
 
     private Map<String, Object> getVariables(Map<String, Object> inputVariables) {
-        Map<String, Object> variables = new HashMap<>(inputVariables);
-        variables.put("portal_link", portalLink);
-        return variables;
+        Map<String, Object> variablesMap = new HashMap<>(inputVariables);
+        variablesMap.put("portal_link", portalLink);
+        return variablesMap;
     }
 
 }
