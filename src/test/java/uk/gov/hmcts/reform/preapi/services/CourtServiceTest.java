@@ -35,7 +35,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = CourtService.class)
@@ -65,7 +64,7 @@ public class CourtServiceTest {
     }
 
     @BeforeEach
-    void setUpEntities(){
+    void setUpEntities() {
         var region = new Region();
         region.setId(UUID.randomUUID());
         region.setName("Example Region");
