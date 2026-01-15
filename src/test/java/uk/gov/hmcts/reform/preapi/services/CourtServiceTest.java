@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = CourtService.class)
@@ -200,7 +201,6 @@ Region,Court,PRE Inbox Address
             PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
         );
 
-        when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.of(courtEntity));
         when(courtRepository.findAllBy()).thenReturn(List.of(courtEntity));
 
         courtService.updateCourtEmails(file);
@@ -222,16 +222,13 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         );
 
         when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.empty());
-        when(courtRepository.findAllBy()).thenReturn(List.of(courtEntity));
-
-        courtService.updateCourtEmails(file);
 
         assertThrows(
             NotFoundException.class,
             () -> courtService.updateCourtEmails(file)
         );
 
-        verifyNoInteractions(courtRepository);
+        verify(courtRepository, times(0)).save(any());
     }
 
     @DisplayName("Should throw an error if CSV file is incorrectly formatted")
