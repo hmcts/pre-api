@@ -42,6 +42,7 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.exception.UnsupportedMediaTypeException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
@@ -1023,7 +1024,7 @@ public class EditRequestServiceTest {
 
     @Test
     @DisplayName("Should be able to upsert edit instructions with CSV file")
-    void upsertIsInstructionCombinationWithCSVFile() {
+    void upsertEditInstructionsWithCSVFile() {
 
         final String fileContents = """
             Edit Number,Start time of cut,End time of cut,Total time removed,Reason
@@ -1086,6 +1087,44 @@ public class EditRequestServiceTest {
         JSONAssert.assertEquals(
             expectedEditInstructions, savedEditRequest.getValue().getEditInstruction(), JSONCompareMode.LENIENT);
     }
+
+
+    @DisplayName("Should throw an exception if updating edit instructions with non-CSV")
+    @Test
+    void upsertEditInstructionsWithNotCSVFile() {
+        final String fileContents = """
+Region,Court,PRE Inbox Address
+South East,Example Court,PRE.Edits.Example@justice.gov.uk
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "edits.csv",
+            "text/xml", fileContents.getBytes()
+        );
+
+        assertThrows(
+            UnsupportedMediaTypeException.class,
+            () -> underTest.upsert(mockRecordingId, file)
+        );
+    }
+
+    @DisplayName("Should throw an exception if updating edit instructions with empty file")
+    @Test
+    void upsertEditInstructionsWithEmptyFile() {
+        final String fileContents = """
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "edits.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        assertThrows(
+            BadRequestException.class,
+            () -> underTest.upsert(mockRecordingId, file)
+        );
+    }
+
 
     @Test
     @DisplayName("Should upsert when isOriginalRecordingEdit is false and isInstructionCombination true")
