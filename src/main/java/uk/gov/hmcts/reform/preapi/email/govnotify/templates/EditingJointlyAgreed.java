@@ -10,7 +10,8 @@ public class EditingJointlyAgreed extends BaseTemplate {
                                 String courtName,
                                 String witnessName,
                                 String defendantNames,
-                                String editSummary) {
+                                String editSummary,
+                                String portalUrl) {
         super(
             to,
             Map.of(
@@ -19,7 +20,8 @@ public class EditingJointlyAgreed extends BaseTemplate {
                 "court_name", courtName,
                 "witness_name", witnessName,
                 "defendant_names", defendantNames,
-                "edit_summary", editSummary
+                "edit_summary", editSummary,
+                "portal_link", portalUrl
             )
         );
     }

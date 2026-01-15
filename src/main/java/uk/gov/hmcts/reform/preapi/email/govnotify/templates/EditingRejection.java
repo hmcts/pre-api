@@ -10,7 +10,8 @@ public class EditingRejection extends BaseTemplate {
                             String witnessName,
                             String defendantNames,
                             String editSummary,
-                            boolean jointlyAgreed) {
+                            boolean jointlyAgreed,
+                            String portalUrl) {
         super(
             to,
             Map.of(
@@ -20,7 +21,8 @@ public class EditingRejection extends BaseTemplate {
                 "witness_name", witnessName,
                 "defendant_names", defendantNames,
                 "edit_summary", editSummary,
-                "jointly_agreed", jointlyAgreed ? "Yes" : "No"
+                "jointly_agreed", jointlyAgreed ? "Yes" : "No",
+                "portal_link", portalUrl
             )
         );
     }

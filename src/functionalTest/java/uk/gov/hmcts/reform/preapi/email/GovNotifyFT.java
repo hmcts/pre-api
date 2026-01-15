@@ -30,9 +30,6 @@ class GovNotifyFT {
     private static final String USER_FIRST_NAME = "John";
     private static final String USER_LAST_NAME = "Doe";
 
-    @Value("${portal.url")
-    private String portalUrl;
-
     @Autowired
     GovNotify client;
 

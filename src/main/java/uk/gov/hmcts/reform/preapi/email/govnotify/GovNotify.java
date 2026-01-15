@@ -187,7 +187,8 @@ public class GovNotify implements IEmailService {
             booking.getCaseId().getCourt().getName(),
             witnessName,
             defendant,
-            generateEditSummary(requestInstructions)
+            generateEditSummary(requestInstructions),
+            portalUrl
         );
 
         try {
@@ -225,7 +226,8 @@ public class GovNotify implements IEmailService {
             booking.getCaseId().getCourt().getName(),
             witnessName,
             defendant,
-            generateEditSummary(requestInstructions)
+            generateEditSummary(requestInstructions),
+            portalUrl
         );
 
         try {
@@ -262,7 +264,8 @@ public class GovNotify implements IEmailService {
             witnessName,
             defendant,
             generateEditSummary(requestInstructions),
-            editRequest.getJointlyAgreed()
+            editRequest.getJointlyAgreed(),
+            portalUrl
         );
 
         try {
