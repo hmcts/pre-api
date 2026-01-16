@@ -335,7 +335,7 @@ class ImportUserAlternativeEmailTest {
         verify(userService, times(1)).updateAlternativeEmail(testUser2.getId(), "test2@example.com.cjsm.net");
     }
 
-    @DisplayName("Should handle B2C user not found")
+    @DisplayName("Should handle B2C user not found but still update local DB")
     @Test
     void runHandlesB2CUserNotFound() {
         String csvContent = """
@@ -358,10 +358,11 @@ class ImportUserAlternativeEmailTest {
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
-        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+        // DB update should still happen even though B2C user not found
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
     }
 
-    @DisplayName("Should handle B2C update failure")
+    @DisplayName("Should handle B2C update failure but still update local DB")
     @Test
     void runHandlesB2CUpdateFailure() {
 
@@ -396,7 +397,46 @@ class ImportUserAlternativeEmailTest {
         verify(userService, times(1)).findByOriginalEmail("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
-        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+        // DB update should still happen even though B2C update failed
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+    }
+
+    @DisplayName("Should handle DB update failure after successful B2C update")
+    @Test
+    void runHandlesDBUpdateFailureAfterB2CSuccess() {
+
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmail("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
+        doThrow(new RuntimeException("DB update failed"))
+            .when(userService).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+        verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
     }
 
     @DisplayName("Should skip when alternative email already exists as B2C identity")

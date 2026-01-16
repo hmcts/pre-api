@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -227,6 +228,33 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         }
 
         // Update B2C first
+        ImportResult result = updateB2CAlternativeEmail(row);
+
+        // Update local database only after B2C update succeeds
+        try {
+            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+        } catch (Exception e) {
+            log.error("Failed to update local DB for user {}: {}", row.getEmail(), e.getMessage(), e);
+            if (Objects.equals(result.getStatus(), STATUS_ERROR)) {
+                return new ImportResult(
+                    row.getEmail(),
+                    row.getAlternativeEmail(),
+                    STATUS_ERROR,
+                    "Failed to update local DB: " + e.getMessage() + result.getMessage()
+                );
+            }
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                STATUS_ERROR,
+                "Failed to update local DB: " + e.getMessage()
+            );
+        }
+
+        return result;
+    }
+
+    private ImportResult updateB2CAlternativeEmail(ImportRow row) {
         try {
             Optional<com.microsoft.graph.models.User> maybeB2cUser =
                 b2cGraphService.findUserByPrimaryEmail(row.getEmail());
@@ -263,11 +291,15 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 updatedIdentities.add(newIdentity);
 
                 b2cGraphService.updateUserIdentities(b2cUser.getId(), updatedIdentities);
-                log.info("Added alternative email {} as identity to B2C user {}",
-                    row.getAlternativeEmail(), row.getEmail());
+                log.info(
+                    "Added alternative email {} as identity to B2C user {}",
+                    row.getAlternativeEmail(), row.getEmail()
+                );
             } else {
-                log.info("Alternative email {} already exists as identity for B2C user {}",
-                    row.getAlternativeEmail(), row.getEmail());
+                log.info(
+                    "Alternative email {} already exists as identity for B2C user {}",
+                    row.getAlternativeEmail(), row.getEmail()
+                );
             }
         } catch (Exception e) {
             log.error("Failed to update B2C identity for user {}: {}", row.getEmail(), e.getMessage(), e);
@@ -278,10 +310,6 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 "Failed to update B2C identity: " + e.getMessage()
             );
         }
-
-        // Update local database only after B2C update succeeds
-        userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
-
         return new ImportResult(
             row.getEmail(),
             row.getAlternativeEmail(),
