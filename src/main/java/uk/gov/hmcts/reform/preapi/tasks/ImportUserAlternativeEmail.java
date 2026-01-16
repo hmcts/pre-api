@@ -200,7 +200,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
-        Optional<User> userOpt = userService.findByOriginalEmail(row.getEmail());
+        Optional<User> userOpt = userService.findByOriginalEmailWithPortalAccess(row.getEmail());
 
         if (userOpt.isEmpty()) {
             return new ImportResult(
@@ -213,16 +213,12 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
-        // Check if alternative email already exists for another user
-        Optional<User> existingAltUserEmail = userService
-            .findByAlternativeEmail(row.getAlternativeEmail());
-
-        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
+        if (!shouldUpdateAlternativeEmail(user)) {
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
-                STATUS_ERROR,
-                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
+                "SKIPPED",
+                "User does not meet criteria for alternative email update"
             );
         }
 
@@ -279,8 +275,16 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
-        // Update local database only after B2C update succeeds
-        userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+        try {
+            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+        } catch (Exception e) {
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                STATUS_ERROR,
+                e.getMessage()
+            );
+        }
 
         return new ImportResult(
             row.getEmail(),
@@ -288,6 +292,25 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             "SUCCESS",
             "Alternative email updated successfully in both local DB and B2C"
         );
+    }
+
+    private boolean shouldUpdateAlternativeEmail(User user) {
+        // Check if user has active portal access
+        boolean hasActivePortalAccess = false;
+        if (user.getPortalAccess() != null && !user.getPortalAccess().isEmpty()) {
+            hasActivePortalAccess = user.getPortalAccess().stream()
+                .anyMatch(pa -> pa.getDeletedAt() == null);
+        }
+
+        // Check if user has active app access
+        boolean hasActiveAppAccess = false;
+        if (user.getAppAccess() != null && !user.getAppAccess().isEmpty()) {
+            hasActiveAppAccess = user.getAppAccess().stream()
+                .anyMatch(aa -> aa.getDeletedAt() == null);
+        }
+
+        // Update alternative email for portal users who don't have app access
+        return hasActivePortalAccess && !hasActiveAppAccess;
     }
 
     private void generateReport(List<ImportResult> results) {
@@ -301,14 +324,12 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
             log.info("Report generated successfully in {}", REPORT_OUTPUT_DIR);
 
-            if (reportPath != null) {
-                File reportFile = reportPath.toFile();
-                if (reportFile.exists()) {
-                    String fileName = reportPath.getFileName().toString();
-                    String blobPath = "reports/" + fileName;
-                    azureVodafoneStorageService.uploadCsvFile(containerName, blobPath, reportFile);
-                    log.info("Report uploaded to Azure: {}/{}", containerName, blobPath);
-                }
+            File reportFile = reportPath.toFile();
+            if (reportFile.exists()) {
+                String fileName = reportPath.getFileName().toString();
+                String blobPath = "reports/" + fileName;
+                azureVodafoneStorageService.uploadCsvFile(containerName, blobPath, reportFile);
+                log.info("Report uploaded to Azure: {}/{}", containerName, blobPath);
             }
         } catch (IOException e) {
             log.error("Failed to generate report", e);
