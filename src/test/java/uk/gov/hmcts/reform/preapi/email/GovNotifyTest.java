@@ -351,4 +351,94 @@ public class GovNotifyTest {
 
         assertThat(message).isEqualTo("Failed to send email to: " + getUser().getEmail());
     }
+
+    @DisplayName("Should prefer alternative email when it ends with .cjsm.net")
+    @Test
+    void shouldPreferAlternativeEmailWithCjsmNet() throws Exception {
+        var user = new User();
+        user.setEmail("user@example.com");
+        user.setAlternativeEmail("user@example.com.cjsm.net");
+
+        var method = GovNotify.class.getDeclaredMethod("getUsersPreferredEmail", User.class);
+        method.setAccessible(true);
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        var result = (String) method.invoke(govNotify, user);
+
+        assertThat(result).isEqualTo("user@example.com.cjsm.net");
+    }
+
+    @DisplayName("Should prefer primary email when it ends with .cjsm.net and alternative doesn't")
+    @Test
+    void shouldPreferPrimaryEmailWithCjsmNet() throws Exception {
+        var user = new User();
+        user.setEmail("user@example.com.cjsm.net");
+        user.setAlternativeEmail("user@example.com");
+
+        var method = GovNotify.class.getDeclaredMethod("getUsersPreferredEmail", User.class);
+        method.setAccessible(true);
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        var result = (String) method.invoke(govNotify, user);
+
+        assertThat(result).isEqualTo("user@example.com.cjsm.net");
+    }
+
+    @DisplayName("Should prefer alternative email when both end with .cjsm.net")
+    @Test
+    void shouldPreferAlternativeEmailWhenBothHaveCjsmNet() throws Exception {
+        var user = new User();
+        user.setEmail("user@example1.com.cjsm.net");
+        user.setAlternativeEmail("user@example2.com.cjsm.net");
+
+        var method = GovNotify.class.getDeclaredMethod("getUsersPreferredEmail", User.class);
+        method.setAccessible(true);
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        var result = (String) method.invoke(govNotify, user);
+
+        assertThat(result).isEqualTo("user@example2.com.cjsm.net");
+    }
+
+    @DisplayName("Should fallback to primary email when neither ends with .cjsm.net")
+    @Test
+    void shouldFallbackToPrimaryEmailWhenNoCjsmNet() throws Exception {
+        var user = new User();
+        user.setEmail("user@example.com");
+        user.setAlternativeEmail("user@other.com");
+
+        var method = GovNotify.class.getDeclaredMethod("getUsersPreferredEmail", User.class);
+        method.setAccessible(true);
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        var result = (String) method.invoke(govNotify, user);
+
+        assertThat(result).isEqualTo("user@example.com");
+    }
+
+    @DisplayName("Should fallback to primary email when alternative email is null")
+    @Test
+    void shouldFallbackToPrimaryEmailWhenAlternativeIsNull() throws Exception {
+        var user = new User();
+        user.setEmail("user@example.com");
+        user.setAlternativeEmail(null);
+
+        var method = GovNotify.class.getDeclaredMethod("getUsersPreferredEmail", User.class);
+        method.setAccessible(true);
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        var result = (String) method.invoke(govNotify, user);
+
+        assertThat(result).isEqualTo("user@example.com");
+    }
+
+    @DisplayName("Should prefer primary email when it ends with .cjsm.net and alternative is null")
+    @Test
+    void shouldPreferPrimaryEmailWhenAlternativeIsNullAndPrimaryHasCjsmNet() throws Exception {
+        var user = new User();
+        user.setEmail("user@example.com.cjsm.net");
+        user.setAlternativeEmail(null);
+
+        var method = GovNotify.class.getDeclaredMethod("getUsersPreferredEmail", User.class);
+        method.setAccessible(true);
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        var result = (String) method.invoke(govNotify, user);
+
+        assertThat(result).isEqualTo("user@example.com.cjsm.net");
+    }
 }
