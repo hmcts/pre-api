@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
@@ -13,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
@@ -22,11 +24,15 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public class EditRequestServiceIT extends IntegrationTestBase {
 
     @Autowired
     private EditRequestService editRequestService;
+
+    @MockitoBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     private CaptureSession captureSession;
 
@@ -104,6 +110,7 @@ public class EditRequestServiceIT extends IntegrationTestBase {
     @Transactional
     public void deleteEditRequest() {
         var recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
+
         entityManager.persist(recording);
 
         UUID editRequestId = UUID.randomUUID();
@@ -144,6 +151,9 @@ public class EditRequestServiceIT extends IntegrationTestBase {
     public void upsertWithEmptyInstructionsShouldDeleteEditRequest() {
         var recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
         entityManager.persist(recording);
+
+        when(azureFinalStorageService.getRecordingDuration(recording.getId())).thenReturn(recording.getDuration());
+        when(azureFinalStorageService.getMp4FileName(recording.getId().toString())).thenReturn("filename");
 
         UUID editRequestId = UUID.randomUUID();
         var editRequest = HelperFactory.createEditRequest(
