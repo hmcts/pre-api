@@ -552,6 +552,27 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should ignore attempt to delete non-existent edit request")
+    void deleteNonExistentEditRequestSuccess() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId()))
+            .thenReturn(Optional.of(recording));
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        editRequestService.delete(dto);
+
+        verify(editRequestRepository, times(0)).delete(any(EditRequest.class));
+    }
+
+    @Test
     @DisplayName("Should throw bad request when trying to create new edit request with empty instructions")
     void badRequestEmptyInstructions() {
 
