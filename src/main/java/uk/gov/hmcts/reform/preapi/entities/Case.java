@@ -50,7 +50,7 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
-    @OneToMany
+    @OneToMany(fetch = FetchType.EAGER)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Set<Participant> participants;
 
