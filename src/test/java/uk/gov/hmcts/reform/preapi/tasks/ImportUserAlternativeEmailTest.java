@@ -256,15 +256,14 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("existing@example.com.cjsm.net"))
-            .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net"))
+            .thenReturn(uk.gov.hmcts.reform.preapi.enums.UpsertResult.UPDATED);
 
         task.run();
 
         verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("existing@example.com.cjsm.net");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net");
