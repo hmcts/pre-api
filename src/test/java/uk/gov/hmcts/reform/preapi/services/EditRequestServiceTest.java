@@ -121,6 +121,7 @@ public class EditRequestServiceTest {
 
     @BeforeEach
     void setup() {
+
         recording = HelperFactory.createRecording(captureSession, null, 1, "filename",
                                                   null);
         UUID recordingId = UUID.randomUUID();
@@ -136,7 +137,6 @@ public class EditRequestServiceTest {
             .thenReturn(recording.getFilename());
         when(recordingRepository.findByIdAndDeletedAtIsNull(recordingId))
             .thenReturn(Optional.of(recording));
-
     }
 
     @Test
@@ -161,11 +161,6 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should attempt to perform edit request and return error on ffmpeg service error")
     void performEditFfmpegError() {
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setCaptureSession(captureSession);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
@@ -211,12 +206,9 @@ public class EditRequestServiceTest {
         booking.setId(UUID.randomUUID());
         booking.setCaseId(aCase);
         booking.setShares(Set.of(share1, share2));
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setCaptureSession(captureSession);
+
+        when(captureSession.getBooking()).thenReturn(booking);
+
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
@@ -516,9 +508,6 @@ public class EditRequestServiceTest {
                              .end(180L)
                              .build());
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         var message = assertThrows(
             BadRequestException.class,
             () -> editRequestService.invertInstructions(instructions, recording)
@@ -607,9 +596,6 @@ public class EditRequestServiceTest {
                              .end(60L)
                              .build());
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         var message = assertThrows(
             BadRequestException.class,
             () -> editRequestService.invertInstructions(instructions, recording)
@@ -629,9 +615,6 @@ public class EditRequestServiceTest {
                              .end(50L)
                              .build());
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         var message = assertThrows(
             BadRequestException.class,
             () -> editRequestService.invertInstructions(instructions, recording)
@@ -650,9 +633,6 @@ public class EditRequestServiceTest {
                              .start(60L)
                              .end(200L) // duration is 180
                              .build());
-
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
 
         var message = assertThrows(
             BadRequestException.class,
@@ -678,8 +658,6 @@ public class EditRequestServiceTest {
                              .end(40L)
                              .build());
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
         var message = assertThrows(
             BadRequestException.class,
             () -> editRequestService.invertInstructions(instructions, recording)
@@ -713,9 +691,6 @@ public class EditRequestServiceTest {
                 .build()
         );
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         assertEditInstructionsEq(expectedInvertedInstructions,
                                  editRequestService.invertInstructions(instructions1, recording));
     }
@@ -748,9 +723,6 @@ public class EditRequestServiceTest {
                 .build()
         );
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         assertEditInstructionsEq(expectedInvertedInstructions,
                                  editRequestService.invertInstructions(instructions1, recording));
     }
@@ -766,14 +738,7 @@ public class EditRequestServiceTest {
         var booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(aCase);
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setVersion(1);
-        recording.setCaptureSession(captureSession);
-        recording.setDuration(Duration.ofMinutes(3));
+        when(captureSession.getBooking()).thenReturn(booking);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
@@ -811,15 +776,6 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should return new create recording dto for the edit request")
     void createRecordingSuccess() {
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setVersion(1);
-        recording.setCaptureSession(captureSession);
-        recording.setFilename("index.mp4");
-
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.COMPLETE);
@@ -830,7 +786,7 @@ public class EditRequestServiceTest {
 
         when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
 
-        var dto = editRequestService.createRecordingDto(newRecordingId, "index.mp4", editRequest);
+        var dto = editRequestService.createRecordingDto(newRecordingId, recording.getFilename(), editRequest);
         assertThat(dto).isNotNull();
         assertThat(dto.getId()).isEqualTo(newRecordingId);
         assertThat(dto.getParentRecordingId()).isEqualTo(recording.getId());
@@ -839,7 +795,7 @@ public class EditRequestServiceTest {
             .isEqualTo(format("{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,"
                                   + "\"ffmpegInstructions\":null}}", editRequest.getId()));
         assertThat(dto.getCaptureSessionId()).isEqualTo(captureSession.getId());
-        assertThat(dto.getFilename()).isEqualTo("index.mp4");
+        assertThat(dto.getFilename()).isEqualTo(recording.getFilename());
 
         verify(recordingService, times(1)).getNextVersionNumber(recording.getId());
     }
@@ -882,8 +838,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw not found when generate asset cannot find source container")
     void generateAssetSourceContainerNotFound() {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -904,8 +858,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw not found when generate asset cannot find source container's mp4")
     void generateAssetSourceContainerMp4NotFound() {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -929,8 +881,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw error when import asset fails when generating asset")
     void generateAssetImportAssetError() throws InterruptedException {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -956,8 +906,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw error when import asset fails (returning error) when generating asset")
     void generateAssetImportAssetReturnsError() throws InterruptedException {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -989,8 +937,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw error when generating asset if get mp4 from final fails")
     void generateAssetGetMp4FinalNotFound() throws InterruptedException {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -1035,12 +981,9 @@ public class EditRequestServiceTest {
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(aCase);
-        CaptureSession captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
-        Recording recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setCaptureSession(captureSession);
+
+        when(captureSession.getBooking()).thenReturn(booking);
+
         EditRequest editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
