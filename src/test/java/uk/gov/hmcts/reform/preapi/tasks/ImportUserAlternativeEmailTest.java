@@ -196,6 +196,16 @@ class ImportUserAlternativeEmailTest {
     @DisplayName("Should handle alternative email already exists for another user")
     @Test
     void runHandlesAlternativeEmailExists() {
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
         String csvContent = """
             email,alternativeEmail
             test@example.com,existing@example.com.cjsm.net
@@ -208,6 +218,8 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
         when(userService.updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net"))
             .thenThrow(new uk.gov.hmcts.reform.preapi.exception.ConflictException(
                 "Alternative email: existing@example.com.cjsm.net already exists"));
@@ -215,6 +227,7 @@ class ImportUserAlternativeEmailTest {
         task.run();
 
         verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net");
     }
 
@@ -581,6 +594,8 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
         when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com"))
             .thenThrow(new IllegalArgumentException(
                 "Alternative email cannot be the same as the main email"));
@@ -588,9 +603,10 @@ class ImportUserAlternativeEmailTest {
         task.run();
 
         verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+        // B2C update should not be called since alternative email already exists (same as primary)
+        verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com");
-        // B2C should not be called when local DB update fails
-        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
     }
 
     @DisplayName("Should handle IllegalStateException during processing")
