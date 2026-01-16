@@ -48,6 +48,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -107,13 +108,35 @@ public class EditRequestServiceTest {
     @MockitoBean
     private IEmailService emailService;
 
+    @MockitoBean
+    private EditRequest mockEditRequest;
+
+    @MockitoBean
+    private CaptureSession captureSession;
+
+    private Recording recording;
+
     @Autowired
     private EditRequestService editRequestService;
 
     @BeforeEach
     void setup() {
+        recording = HelperFactory.createRecording(captureSession, null, 1, "filename",
+                                                  null);
+        UUID recordingId = UUID.randomUUID();
+        recording.setId(recordingId);
+        recording.setDuration(Duration.ofMinutes(3));
+
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
+        when(mockEditRequest.getId()).thenReturn(UUID.randomUUID());
+        when(azureFinalStorageService.getRecordingDuration(recordingId))
+            .thenReturn(recording.getDuration());
+        when(azureFinalStorageService.getMp4FileName(recordingId.toString()))
+            .thenReturn(recording.getFilename());
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingId))
+            .thenReturn(Optional.of(recording));
+
     }
 
     @Test
@@ -1158,6 +1181,45 @@ public class EditRequestServiceTest {
 
         assertEditInstructionsEq(List.of(createSegment(0, 10), createSegment(20, 30)),
                                  editInstructions.getFfmpegInstructions());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when editInstructions is null for *new* edit request")
+    void validateEditInstructionsIsEmptyForNewEditRequest() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(recording.getId());
+        dto.setStatus(EditRequestStatus.DRAFT);
+        dto.setEditInstructions(new ArrayList<>());
+
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> editRequestService.upsert(dto)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+    }
+
+    @Test
+    @DisplayName("Should delete edit instruction when editInstructions is empty for *existing* edit request")
+    void validateEditInstructionsIsEmpty() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(recording.getId());
+        dto.setEditInstructions(List.of());
+        dto.setStatus(EditRequestStatus.DRAFT);
+        dto.setEditInstructions(new ArrayList<>());
+
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(mockEditRequest));
+
+        UpsertResult upsertResult = editRequestService.upsert(dto);
+
+        assertThat(upsertResult).isEqualTo(UpsertResult.UPDATED);
+
+        verify(editRequestRepository, times(1)).delete(mockEditRequest);
     }
 
     @Test
