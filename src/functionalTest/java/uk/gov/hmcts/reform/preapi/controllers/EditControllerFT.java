@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
@@ -18,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -26,9 +24,6 @@ import static org.mockito.Mockito.when;
 public class EditControllerFT extends FunctionalTestBase {
     private static final String VALID_EDIT_CSV = "src/functionalTest/resources/test/edit/edit_from_csv.csv";
     private static final String EDIT_ENDPOINT = "/edits";
-
-    private static final Map<String, String> MULTIPART_HEADERS =
-        Map.of("Content-Type", MediaType.MULTIPART_FORM_DATA_VALUE);
 
     @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;

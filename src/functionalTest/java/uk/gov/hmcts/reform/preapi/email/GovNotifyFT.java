@@ -3,14 +3,20 @@ package uk.gov.hmcts.reform.preapi.email;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.sql.Timestamp;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -22,9 +28,6 @@ class GovNotifyFT {
     private static final String COURT_NAME = "Court Name";
     private static final String USER_FIRST_NAME = "John";
     private static final String USER_LAST_NAME = "Doe";
-
-    @Value("${portal.url")
-    private String portalUrl;
 
     @Autowired
     GovNotify client;
@@ -44,6 +47,34 @@ class GovNotifyFT {
         forCase.setCourt(court);
         forCase.setReference(CASE_REFERENCE);
         return forCase;
+    }
+
+    private Participant createParticipant(ParticipantType type) {
+        var participant = new Participant();
+        participant.setFirstName("First");
+        participant.setLastName("Last");
+        participant.setParticipantType(type);
+        return participant;
+    }
+
+    private EditRequest createEditRequest() {
+        var aCase = createCase();
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        booking.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)));
+        var captureSession = new CaptureSession();
+        captureSession.setBooking(booking);
+        var recording = new Recording();
+        recording.setCaptureSession(captureSession);
+        var request = new EditRequest();
+        request.setSourceRecording(recording);
+        request.setEditInstruction(
+            "{\"requestedInstructions\":"
+                + "[{\"start_of_cut\":\"00:00:00\",\"end_of_cut\":\"00:00:30\",\"reason\":\"\",\"start\":0,\"end\":0}],"
+                + "\"ffmpegInstructions\":[]}");
+        return request;
     }
 
     private void compareBody(String expected, EmailResponse emailResponse) {
@@ -239,5 +270,111 @@ class GovNotifyFT {
 
             Kind regards,
             Pre-Recorded Evidence Team""", response);
+    }
+
+    @Test
+    @DisplayName("Should send editing jointly agreed email")
+    @SuppressWarnings("LineLength")
+    void editingJointlyAgreed() {
+        var user = createUser();
+        var forEditRequest = createEditRequest();
+
+        var response = client.editingJointlyAgreed(user.getEmail(), forEditRequest);
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
+        assertEquals(
+            "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456",
+            response.getSubject()
+        );
+        compareBody(
+            """
+            This is a notification that 1 edits have been requested for approval for the following recording:
+
+            Court: Court Name
+            Case reference: 123456
+            Witness name: First
+            Defendant name(s): First Last
+
+            Edit 1:\s
+            Start time: 00:00:00
+            End time: 00:00:30
+            Time Removed: 00:00:00
+            Reason:\s
+
+
+            Edits have been jointly agreed: Yes
+
+            PRE Portal link: [http://localhost:8080](http://localhost:8080)""", response);
+    }
+
+    @Test
+    @DisplayName("Should send editing not jointly agreed email")
+    @SuppressWarnings("LineLength")
+    void editingNotJointlyAgreed() {
+        var user = createUser();
+        var forEditRequest = createEditRequest();
+
+        var response = client.editingNotJointlyAgreed(user.getEmail(), forEditRequest);
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
+        assertEquals(
+            "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456 (NOT JOINTLY AGREED)",
+            response.getSubject()
+        );
+        compareBody(
+            """
+            This is a notification that 1 edits have been requested and may require a mention hearing for the following recording:
+
+            Court: Court Name
+            Case reference: 123456
+            Witness name: First
+            Defendant name(s): First Last
+
+            Edit 1:\s
+            Start time: 00:00:00
+            End time: 00:00:30
+            Time Removed: 00:00:00
+            Reason:\s
+
+
+            Edits have been jointly agreed: No
+
+            PRE Portal link: [http://localhost:8080](http://localhost:8080)""", response);
+    }
+
+    @Test
+    @DisplayName("Should send editing rejection email")
+    @SuppressWarnings("LineLength")
+    void editingRejectionEmail() {
+        var user = createUser();
+        var forEditRequest = createEditRequest();
+        forEditRequest.setRejectionReason("REJECTION REASON");
+        forEditRequest.setJointlyAgreed(true);
+
+        var response = client.editingRejected(user.getEmail(), forEditRequest);
+        assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
+        assertEquals(
+            "[Do Not Reply] Pre-recorded Evidence: Edit request REJECTION for case reference 123456",
+            response.getSubject()
+        );
+        compareBody(
+            """
+            This is a notification that the edit request has been rejected:
+
+            Rejection reason: REJECTION REASON
+
+            Court: Court Name
+            Case reference: 123456
+            Witness name: First
+            Defendant name(s): First Last
+
+            Edit 1:\s
+            Start time: 00:00:00
+            End time: 00:00:30
+            Time Removed: 00:00:00
+            Reason:\s
+
+
+            Edits have been jointly agreed: Yes
+
+            PRE Portal link: [http://localhost:8080](http://localhost:8080)""", response);
     }
 }

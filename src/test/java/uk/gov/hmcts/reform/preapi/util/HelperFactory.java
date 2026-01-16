@@ -50,8 +50,10 @@ public class HelperFactory {
                                   @Nullable String phone,
                                   @Nullable String organisation) { //NOPMD - suppressed UseObjectForClearerAPI
         User user = new User();
+        user.setId(UUID.randomUUID());
         user.setFirstName(firstName);
         user.setLastName(lastName);
+        user.setFullName(firstName + " " + lastName);
         user.setEmail(email);
         user.setDeletedAt(deletedAt);
         user.setPhone(phone);

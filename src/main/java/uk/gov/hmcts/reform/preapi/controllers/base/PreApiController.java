@@ -20,6 +20,8 @@ import java.util.function.Supplier;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PreApiController {
+    public static final String CSV_FILE_TYPE = "text/csv";
+
     protected ResponseEntity<Void> getUpsertResponse(UpsertResult result, UUID id) {
         URI location = ServletUriComponentsBuilder
             .fromCurrentRequest()
