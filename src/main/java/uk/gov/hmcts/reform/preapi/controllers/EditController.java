@@ -13,9 +13,11 @@ import org.springframework.data.web.SortDefault;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -123,6 +125,20 @@ public class EditController extends PreApiController {
         }
 
         return getUpsertResponse(editRequestService.upsert(createEditRequestDTO), id);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_3')")
+    public ResponseEntity<Void> delete(
+        @PathVariable("id") UUID id,
+        @Valid @RequestBody CreateEditRequestDTO deleteEditRequestDTO
+    ) {
+        if (!id.equals(deleteEditRequestDTO.getId())) {
+            throw new PathPayloadMismatchException("editRequestId", "deleteEditRequestDTO.id");
+        }
+
+        editRequestService.delete(deleteEditRequestDTO);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")

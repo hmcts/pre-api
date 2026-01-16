@@ -800,7 +800,6 @@ definitions:
         description: CreateEditRequestInstructions
         items:
           $ref: '#/definitions/EditCutInstructionDTO'
-        minItems: 1
         type: array
       id:
         description: CreateEditRequestId
@@ -831,7 +830,6 @@ definitions:
           - ERROR
         type: string
     required:
-      - edit_instructions
       - id
       - source_recording_id
       - status
@@ -3617,6 +3615,33 @@ paths:
       tags:
         - edit-controller
   '/edits/{id}':
+    delete:
+      consumes:
+        - application/json
+      operationId: delete
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateEditRequestDTO'
+      responses:
+        '200':
+          description: OK
+      tags:
+        - edit-controller
     get:
       operationId: getEditRequestById
       parameters:

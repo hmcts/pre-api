@@ -48,6 +48,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -107,13 +108,35 @@ public class EditRequestServiceTest {
     @MockitoBean
     private IEmailService emailService;
 
+    @MockitoBean
+    private EditRequest mockEditRequest;
+
+    @MockitoBean
+    private CaptureSession captureSession;
+
+    private Recording recording;
+
     @Autowired
     private EditRequestService editRequestService;
 
     @BeforeEach
     void setup() {
+
+        recording = HelperFactory.createRecording(captureSession, null, 1, "filename",
+                                                  null);
+        UUID recordingId = UUID.randomUUID();
+        recording.setId(recordingId);
+        recording.setDuration(Duration.ofMinutes(3));
+
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
+        when(mockEditRequest.getId()).thenReturn(UUID.randomUUID());
+        when(azureFinalStorageService.getRecordingDuration(recordingId))
+            .thenReturn(recording.getDuration());
+        when(azureFinalStorageService.getMp4FileName(recordingId.toString()))
+            .thenReturn(recording.getFilename());
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingId))
+            .thenReturn(Optional.of(recording));
     }
 
     @Test
@@ -138,11 +161,6 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should attempt to perform edit request and return error on ffmpeg service error")
     void performEditFfmpegError() {
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setCaptureSession(captureSession);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
@@ -188,12 +206,9 @@ public class EditRequestServiceTest {
         booking.setId(UUID.randomUUID());
         booking.setCaseId(aCase);
         booking.setShares(Set.of(share1, share2));
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setCaptureSession(captureSession);
+
+        when(captureSession.getBooking()).thenReturn(booking);
+
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
@@ -493,9 +508,6 @@ public class EditRequestServiceTest {
                              .end(180L)
                              .build());
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         var message = assertThrows(
             BadRequestException.class,
             () -> editRequestService.invertInstructions(instructions, recording)
@@ -508,6 +520,74 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should delete edit request when upserting with empty instructions")
+    void deleteEmptyInstructions() {
+        UUID sourceRecordingId = UUID.randomUUID();
+        Recording sourceRecording = new Recording();
+        sourceRecording.setId(sourceRecordingId);
+        sourceRecording.setDuration(Duration.ofSeconds(30));
+
+        CreateEditRequestDTO request = new CreateEditRequestDTO();
+        request.setId(UUID.randomUUID());
+        request.setSourceRecordingId(sourceRecordingId);
+        request.setEditInstructions(new ArrayList<>());
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecordingId))
+            .thenReturn(Optional.of(sourceRecording));
+        when(editRequestRepository.findById(request.getId())).thenReturn(Optional.of(new EditRequest()));
+
+        UpsertResult result = editRequestService.upsert(request);
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+    }
+
+    @Test
+    @DisplayName("Should ignore attempt to delete non-existent edit request")
+    void deleteNonExistentEditRequestSuccess() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId()))
+            .thenReturn(Optional.of(recording));
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        editRequestService.delete(dto);
+
+        verify(editRequestRepository, times(0)).delete(any(EditRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should throw bad request when trying to create new edit request with empty instructions")
+    void badRequestEmptyInstructions() {
+
+        UUID sourceRecordingId = UUID.randomUUID();
+        var sourceRecording = new Recording();
+        sourceRecording.setId(sourceRecordingId);
+        sourceRecording.setDuration(Duration.ofSeconds(30));
+
+        CreateEditRequestDTO originalRequest = new CreateEditRequestDTO();
+        originalRequest.setId(UUID.randomUUID());
+        originalRequest.setSourceRecordingId(sourceRecordingId);
+        originalRequest.setEditInstructions(new ArrayList<>());
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecordingId))
+            .thenReturn(Optional.of(sourceRecording));
+
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> editRequestService.upsert(originalRequest)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+    }
+
+    @Test
     @DisplayName("Should throw bad request when instruction has same value for start and end")
     void invertInstructionsBadRequestStartEndEqual() {
         List<EditCutInstructionDTO> instructions = new ArrayList<>();
@@ -515,9 +595,6 @@ public class EditRequestServiceTest {
                              .start(60L)
                              .end(60L)
                              .build());
-
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
 
         var message = assertThrows(
             BadRequestException.class,
@@ -538,9 +615,6 @@ public class EditRequestServiceTest {
                              .end(50L)
                              .build());
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         var message = assertThrows(
             BadRequestException.class,
             () -> editRequestService.invertInstructions(instructions, recording)
@@ -559,9 +633,6 @@ public class EditRequestServiceTest {
                              .start(60L)
                              .end(200L) // duration is 180
                              .build());
-
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
 
         var message = assertThrows(
             BadRequestException.class,
@@ -587,8 +658,6 @@ public class EditRequestServiceTest {
                              .end(40L)
                              .build());
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
         var message = assertThrows(
             BadRequestException.class,
             () -> editRequestService.invertInstructions(instructions, recording)
@@ -622,9 +691,6 @@ public class EditRequestServiceTest {
                 .build()
         );
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         assertEditInstructionsEq(expectedInvertedInstructions,
                                  editRequestService.invertInstructions(instructions1, recording));
     }
@@ -657,9 +723,6 @@ public class EditRequestServiceTest {
                 .build()
         );
 
-        var recording = new Recording();
-        recording.setDuration(Duration.ofMinutes(3));
-
         assertEditInstructionsEq(expectedInvertedInstructions,
                                  editRequestService.invertInstructions(instructions1, recording));
     }
@@ -675,14 +738,7 @@ public class EditRequestServiceTest {
         var booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(aCase);
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setVersion(1);
-        recording.setCaptureSession(captureSession);
-        recording.setDuration(Duration.ofMinutes(3));
+        when(captureSession.getBooking()).thenReturn(booking);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
@@ -720,15 +776,6 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should return new create recording dto for the edit request")
     void createRecordingSuccess() {
-        var captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setVersion(1);
-        recording.setCaptureSession(captureSession);
-        recording.setFilename("index.mp4");
-
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.COMPLETE);
@@ -739,7 +786,7 @@ public class EditRequestServiceTest {
 
         when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
 
-        var dto = editRequestService.createRecordingDto(newRecordingId, "index.mp4", editRequest);
+        var dto = editRequestService.createRecordingDto(newRecordingId, recording.getFilename(), editRequest);
         assertThat(dto).isNotNull();
         assertThat(dto.getId()).isEqualTo(newRecordingId);
         assertThat(dto.getParentRecordingId()).isEqualTo(recording.getId());
@@ -748,7 +795,7 @@ public class EditRequestServiceTest {
             .isEqualTo(format("{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,"
                                   + "\"ffmpegInstructions\":null}}", editRequest.getId()));
         assertThat(dto.getCaptureSessionId()).isEqualTo(captureSession.getId());
-        assertThat(dto.getFilename()).isEqualTo("index.mp4");
+        assertThat(dto.getFilename()).isEqualTo(recording.getFilename());
 
         verify(recordingService, times(1)).getNextVersionNumber(recording.getId());
     }
@@ -791,8 +838,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw not found when generate asset cannot find source container")
     void generateAssetSourceContainerNotFound() {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -813,8 +858,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw not found when generate asset cannot find source container's mp4")
     void generateAssetSourceContainerMp4NotFound() {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -838,8 +881,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw error when import asset fails when generating asset")
     void generateAssetImportAssetError() throws InterruptedException {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -865,8 +906,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw error when import asset fails (returning error) when generating asset")
     void generateAssetImportAssetReturnsError() throws InterruptedException {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -898,8 +937,6 @@ public class EditRequestServiceTest {
     @DisplayName("Should throw error when generating asset if get mp4 from final fails")
     void generateAssetGetMp4FinalNotFound() throws InterruptedException {
         var editRequest = new EditRequest();
-        var recording = new Recording();
-        recording.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
         var newRecordingId = UUID.randomUUID();
         var sourceContainer = newRecordingId + "-input";
@@ -944,12 +981,9 @@ public class EditRequestServiceTest {
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(aCase);
-        CaptureSession captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
-        Recording recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setCaptureSession(captureSession);
+
+        when(captureSession.getBooking()).thenReturn(booking);
+
         EditRequest editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setSourceRecording(recording);
@@ -1111,6 +1145,45 @@ public class EditRequestServiceTest {
 
         assertEditInstructionsEq(List.of(createSegment(0, 10), createSegment(20, 30)),
                                  editInstructions.getFfmpegInstructions());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when editInstructions is null for *new* edit request")
+    void validateEditInstructionsIsEmptyForNewEditRequest() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(recording.getId());
+        dto.setStatus(EditRequestStatus.DRAFT);
+        dto.setEditInstructions(new ArrayList<>());
+
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> editRequestService.upsert(dto)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+    }
+
+    @Test
+    @DisplayName("Should delete edit instruction when editInstructions is empty for *existing* edit request")
+    void validateEditInstructionsIsEmpty() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(recording.getId());
+        dto.setEditInstructions(List.of());
+        dto.setStatus(EditRequestStatus.DRAFT);
+        dto.setEditInstructions(new ArrayList<>());
+
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(mockEditRequest));
+
+        UpsertResult upsertResult = editRequestService.upsert(dto);
+
+        assertThat(upsertResult).isEqualTo(UpsertResult.UPDATED);
+
+        verify(editRequestRepository, times(1)).delete(mockEditRequest);
     }
 
     @Test

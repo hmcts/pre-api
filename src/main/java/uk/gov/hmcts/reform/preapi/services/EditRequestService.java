@@ -223,6 +223,19 @@ public class EditRequestService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
+    public void delete(CreateEditRequestDTO dto) {
+        Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
+
+        if (req.isEmpty()) {
+            log.info("Attempt to delete non-existing edit request with id {}", dto.getId());
+            return;
+        }
+
+        editRequestRepository.delete(req.get());
+    }
+
+    @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
 
@@ -235,49 +248,26 @@ public class EditRequestService {
                                                         + ") does not have a valid duration");
         }
 
-        boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
+        Optional<EditRequest> existingEditRequest = editRequestRepository.findById(dto.getId());
 
-        boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
-            && sourceRecording.getEditInstruction() != null
-            && !sourceRecording.getEditInstruction().isEmpty();
-
-        EditInstructions prevInstructions = null;
-        if (sourceInstructionsAreNotEmpty) {
-            prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction());
+        boolean isUpdate = existingEditRequest.isPresent();
+        if (dto.getEditInstructions() == null || dto.getEditInstructions().isEmpty()) {
+            if (isUpdate) {
+                log.info(
+                    "Deleting edit request {} for source recording {} as edit instructions are empty",
+                    existingEditRequest.get().getId(), dto.getSourceRecordingId()
+                );
+                delete(dto);
+                return UpsertResult.UPDATED;
+            } else {
+                throw new BadRequestException("Invalid Instruction: Cannot create an edit request with empty"
+                                                  + " instructions");
+            }
         }
-        boolean prevInstructionsAreNotEmpty = prevInstructions != null
-            && prevInstructions.getFfmpegInstructions() != null
-            && !prevInstructions.getFfmpegInstructions().isEmpty()
-            && prevInstructions.getRequestedInstructions() != null
-            && !prevInstructions.getRequestedInstructions().isEmpty();
 
-        boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
+        EditRequest request = getEditRequestToCreateOrUpdate(dto, sourceRecording,
+                                                             existingEditRequest.orElse(new EditRequest()));
 
-        Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
-        EditRequest request = req.orElse(new EditRequest());
-
-        request.setId(dto.getId());
-        request.setSourceRecording(!isInstructionCombination
-                                       ? sourceRecording
-                                       : sourceRecording.getParentRecording());
-        request.setStatus(dto.getStatus());
-        request.setJointlyAgreed(dto.getJointlyAgreed());
-        request.setApprovedAt(dto.getApprovedAt());
-        request.setApprovedBy(dto.getApprovedBy());
-        request.setRejectionReason(dto.getRejectionReason());
-
-        List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
-            ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
-            : dto.getEditInstructions();
-
-        List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
-            requestedEdits,
-            isInstructionCombination ? request.getSourceRecording() : sourceRecording
-        );
-
-        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
-
-        boolean isUpdate = req.isPresent();
         if (!isUpdate) {
             UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
             User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
@@ -307,10 +297,55 @@ public class EditRequestService {
             .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
     }
 
+    private @NotNull EditRequest getEditRequestToCreateOrUpdate(CreateEditRequestDTO dto, Recording sourceRecording,
+                                                                EditRequest request) {
+        boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
+
+        boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
+            && sourceRecording.getEditInstruction() != null
+            && !sourceRecording.getEditInstruction().isEmpty();
+
+        EditInstructions prevInstructions = null;
+        if (sourceInstructionsAreNotEmpty) {
+            prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction());
+        }
+        boolean prevInstructionsAreNotEmpty = prevInstructions != null
+            && prevInstructions.getFfmpegInstructions() != null
+            && !prevInstructions.getFfmpegInstructions().isEmpty()
+            && prevInstructions.getRequestedInstructions() != null
+            && !prevInstructions.getRequestedInstructions().isEmpty();
+
+        boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
+
+        request.setId(dto.getId());
+        request.setSourceRecording(!isInstructionCombination
+                                       ? sourceRecording
+                                       : sourceRecording.getParentRecording());
+        request.setStatus(dto.getStatus());
+        request.setJointlyAgreed(dto.getJointlyAgreed());
+        request.setApprovedAt(dto.getApprovedAt());
+        request.setApprovedBy(dto.getApprovedBy());
+        request.setRejectionReason(dto.getRejectionReason());
+
+        List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
+            ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
+            : dto.getEditInstructions();
+
+        List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
+            requestedEdits,
+            isInstructionCombination ? request.getSourceRecording() : sourceRecording
+        );
+
+        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
+        return request;
+    }
+
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
         try {
-            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(),
-                                                                                      StandardCharsets.UTF_8));
+            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(
+                file.getInputStream(),
+                StandardCharsets.UTF_8
+            ));
             return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
                 .withType(EditCutInstructionDTO.class)
                 .build()
