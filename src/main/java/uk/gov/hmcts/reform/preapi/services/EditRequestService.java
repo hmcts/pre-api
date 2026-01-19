@@ -166,8 +166,6 @@ public class EditRequestService {
         CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
 
-        editNotificationService.sendNotifications(request.getSourceRecording().getCaptureSession().getBooking());
-
         return recordingService.findById(newRecordingId);
     }
 

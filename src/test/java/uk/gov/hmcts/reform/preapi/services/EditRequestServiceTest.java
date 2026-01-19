@@ -284,7 +284,9 @@ public class EditRequestServiceTest {
         verify(azureIngestStorageService, times(1)).getMp4FileName(anyString());
         verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
         verify(azureFinalStorageService, times(1)).getMp4FileName(anyString());
-        verify(editNotificationService, times(1)).sendNotifications(booking);
+
+        // Notification is sent by RecordingListener instead
+        verify(editNotificationService, times(0)).sendNotifications(booking);
     }
 
     @Test
