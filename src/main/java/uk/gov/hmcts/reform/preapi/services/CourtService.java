@@ -112,7 +112,7 @@ public class CourtService {
             courtRepository.save(courtInDb);
         });
 
-        return courtRepository.findAllBy().stream().map(CourtEmailDTO::new).toList();
+        return courtRepository.findAll().stream().map(CourtEmailDTO::new).toList();
     }
 
     private List<CourtEmailDTO> parseCsv(MultipartFile file) {

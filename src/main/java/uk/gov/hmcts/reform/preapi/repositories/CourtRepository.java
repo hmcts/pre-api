@@ -40,7 +40,4 @@ public interface CourtRepository extends JpaRepository<Court, UUID> {
     );
 
     Optional<Court> findFirstByName(String name);
-
-    List<Court> findAllBy();
-
 }

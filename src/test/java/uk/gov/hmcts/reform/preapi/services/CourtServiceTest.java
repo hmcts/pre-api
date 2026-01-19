@@ -182,7 +182,7 @@ Example Court,PRE.Edits.Example@justice.gov.uk
         );
 
         when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.of(courtEntity));
-        when(courtRepository.findAllBy()).thenReturn(List.of(courtEntity));
+        when(courtRepository.findAll()).thenReturn(List.of(courtEntity));
 
         courtService.updateCourtEmails(file);
 
@@ -210,7 +210,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk,Coffee,Shreddies,Carro
         );
 
         when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.of(courtEntity));
-        when(courtRepository.findAllBy()).thenReturn(List.of(courtEntity));
+        when(courtRepository.findAll()).thenReturn(List.of(courtEntity));
 
         courtService.updateCourtEmails(file);
 
@@ -233,7 +233,7 @@ Court,PRE Inbox Address
             PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
         );
 
-        when(courtRepository.findAllBy()).thenReturn(List.of(courtEntity));
+        when(courtRepository.findAll()).thenReturn(List.of(courtEntity));
 
         courtService.updateCourtEmails(file);
 
