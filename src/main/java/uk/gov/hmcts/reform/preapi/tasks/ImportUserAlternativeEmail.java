@@ -245,19 +245,19 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         }
 
         // Update B2C first
-        ImportResult b2cResult = updateB2CAlternativeEmail(row);
+        ImportResult result = updateB2CAlternativeEmail(row);
 
         // Update local database regardless of whether B2C succeeds
         try {
             userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
         } catch (Exception e) {
             log.error("Failed to update local DB for user {}: {}", row.getEmail(), e.getMessage(), e);
-            if (b2cResult != null && Objects.equals(b2cResult.getStatus(), STATUS_ERROR)) {
+            if (Objects.equals(result.getStatus(), STATUS_ERROR)) {
                 return new ImportResult(
                     row.getEmail(),
                     row.getAlternativeEmail(),
                     STATUS_ERROR,
-                    "Failed to update local DB: " + e.getMessage() + ". " + b2cResult.getMessage()
+                    "Failed to update local DB: " + e.getMessage() + result.getMessage()
                 );
             }
             return new ImportResult(
@@ -268,17 +268,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
-        // If B2C failed but DB succeeded, return B2C error
-        if (b2cResult != null) {
-            return b2cResult;
-        }
-
-        return new ImportResult(
-            row.getEmail(),
-            row.getAlternativeEmail(),
-            "SUCCESS",
-            "Alternative email updated successfully in both local DB and B2C"
-        );
+        return result;
     }
 
     private ImportResult updateB2CAlternativeEmail(ImportRow row) {
