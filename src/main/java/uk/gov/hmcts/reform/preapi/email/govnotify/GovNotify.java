@@ -53,8 +53,9 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse recordingReady(User to, Case forCase) {
+        String email = getUsersPreferredEmail(to);
         RecordingReady template = new RecordingReady(
-            to.getEmail(),
+            email,
             to.getFirstName(),
             to.getLastName(),
             forCase.getReference(),
@@ -62,18 +63,19 @@ public class GovNotify implements IEmailService {
             portalUrl
         );
         try {
-            log.info("Recording ready email sent to {}", to.getEmail());
+            log.info("Recording ready email sent to {}", email);
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
-            log.error("Failed to send recording ready email to {}", to.getEmail(), e);
-            throw (EmailFailedToSendException) new EmailFailedToSendException(to.getEmail()).initCause(e);
+            log.error("Failed to send recording ready email to {}", email, e);
+            throw (EmailFailedToSendException) new EmailFailedToSendException(email).initCause(e);
         }
     }
 
     @Override
     public EmailResponse recordingEdited(User to, Case forCase) {
+        String email = getUsersPreferredEmail(to);
         RecordingEdited template = new RecordingEdited(
-            to.getEmail(),
+            email,
             to.getFirstName(),
             to.getLastName(),
             forCase.getReference(),
@@ -81,11 +83,11 @@ public class GovNotify implements IEmailService {
             portalUrl
         );
         try {
-            log.info("Recording edited email sent to {}", to.getEmail());
+            log.info("Recording edited email sent to {}", email);
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
-            log.error("Failed to send recording edited email to {}", to.getEmail(), e);
-            throw (EmailFailedToSendException) new EmailFailedToSendException(to.getEmail()).initCause(e);
+            log.error("Failed to send recording edited email to {}", email, e);
+            throw (EmailFailedToSendException) new EmailFailedToSendException(email).initCause(e);
         }
     }
 
@@ -271,5 +273,14 @@ public class GovNotify implements IEmailService {
         Duration duration = Duration.ofSeconds(difference);
 
         return format("%02d:%02d:%02d", duration.toHours(), duration.toMinutesPart(), duration.toSecondsPart());
+    }
+
+    // If the users alternative email ends with .cjsm.net then use that as the preferred email, else fall back
+    // to the email field.
+    private String getUsersPreferredEmail(User user) {
+        if (user.getAlternativeEmail() != null && user.getAlternativeEmail().endsWith(".cjsm.net")) {
+            return user.getAlternativeEmail();
+        }
+        return user.getEmail();
     }
 }
