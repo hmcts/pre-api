@@ -25,11 +25,8 @@ import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
-import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -72,7 +69,6 @@ public class EditRequestService {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
-    private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
     public EditRequestService(final EditRequestRepository editRequestRepository,
@@ -81,8 +77,7 @@ public class EditRequestService {
                               final RecordingService recordingService,
                               final AzureIngestStorageService azureIngestStorageService,
                               final AzureFinalStorageService azureFinalStorageService,
-                              final MediaServiceBroker mediaServiceBroker,
-                              final EmailServiceFactory emailServiceFactory) {
+                              final MediaServiceBroker mediaServiceBroker) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -90,7 +85,6 @@ public class EditRequestService {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
-        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Transactional
@@ -169,17 +163,7 @@ public class EditRequestService {
         CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
 
-        this.sendNotifications(request.getSourceRecording().getCaptureSession().getBooking());
-
         return recordingService.findById(newRecordingId);
-    }
-
-    @Transactional
-    public void sendNotifications(Booking booking) {
-        booking.getShares()
-            .stream()
-            .map(ShareBooking::getSharedWith)
-            .forEach(u -> emailServiceFactory.getEnabledEmailService().recordingEdited(u, booking.getCaseId()));
     }
 
     @Transactional
