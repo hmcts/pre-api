@@ -45,6 +45,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -54,8 +55,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
+import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
+
 @Slf4j
 @Service
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
 public class EditRequestService {
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
@@ -92,8 +97,8 @@ public class EditRequestService {
     }
 
     @Transactional
-    public Page<EditRequestDTO> findAll(SearchEditRequests params, Pageable pageable) {
-        UserAuthentication auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+    public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
@@ -105,6 +110,21 @@ public class EditRequestService {
     @Transactional
     public Optional<EditRequest> getNextPendingEditRequest() {
         return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    }
+
+    @Transactional
+    public void updateEditRequestStatus(UUID id, EditRequestStatus status) {
+        EditRequest request = editRequestRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+
+        request.setStatus(status);
+        switch (status) {
+            case PROCESSING -> request.setStartedAt(Timestamp.from(Instant.now()));
+            case ERROR, COMPLETE -> request.setFinishedAt(Timestamp.from(Instant.now()));
+            default -> {
+            }
+        }
+        editRequestRepository.save(request);
     }
 
     @Transactional(noRollbackFor = Exception.class)
@@ -122,9 +142,7 @@ public class EditRequestService {
                 EditRequestStatus.PENDING.toString()
             );
         }
-        request.setStartedAt(Timestamp.from(Instant.now()));
-        request.setStatus(EditRequestStatus.PROCESSING);
-        editRequestRepository.saveAndFlush(request);
+        updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
         return request;
     }
 
@@ -136,18 +154,15 @@ public class EditRequestService {
             ffmpegService.performEdit(newRecordingId, request);
             filename = generateAsset(newRecordingId, request);
         } catch (Exception e) {
-            request.setFinishedAt(Timestamp.from(Instant.now()));
-            request.setStatus(EditRequestStatus.ERROR);
-            editRequestRepository.saveAndFlush(request);
+            updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
             throw e;
         }
 
-        request.setFinishedAt(Timestamp.from(Instant.now()));
-        request.setStatus(EditRequestStatus.COMPLETE);
-        editRequestRepository.saveAndFlush(request);
+        updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
 
         CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
+
         return recordingService.findById(newRecordingId);
     }
 
@@ -162,7 +177,8 @@ public class EditRequestService {
         createDto.setParentRecordingId(parentId);
         // if edit on edit without original edits saved (legacy edit),
         //  then these edits will not align with the original timeline
-        createDto.setEditInstructions(request.getEditInstruction());
+        EditInstructionDump dump = new EditInstructionDump(request.getId(), fromJson(request.getEditInstruction()));
+        createDto.setEditInstructions(toJson(dump));
         createDto.setVersion(recordingService.getNextVersionNumber(parentId));
         createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
         createDto.setFilename(filename);
@@ -221,15 +237,21 @@ public class EditRequestService {
 
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
-        EditInstructions prevInstructions = null;
-        boolean isInstructionCombination = !isOriginalRecordingEdit
+        boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
             && sourceRecording.getEditInstruction() != null
-            && !sourceRecording.getEditInstruction().isEmpty()
-            && (prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction())) != null
+            && !sourceRecording.getEditInstruction().isEmpty();
+
+        EditInstructions prevInstructions = null;
+        if (sourceInstructionsAreNotEmpty) {
+            prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction());
+        }
+        boolean prevInstructionsAreNotEmpty = prevInstructions != null
             && prevInstructions.getFfmpegInstructions() != null
             && !prevInstructions.getFfmpegInstructions().isEmpty()
             && prevInstructions.getRequestedInstructions() != null
             && !prevInstructions.getRequestedInstructions().isEmpty();
+
+        boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
 
         Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
         EditRequest request = req.orElse(new EditRequest());
@@ -239,6 +261,10 @@ public class EditRequestService {
                                        ? sourceRecording
                                        : sourceRecording.getParentRecording());
         request.setStatus(dto.getStatus());
+        request.setJointlyAgreed(dto.getJointlyAgreed());
+        request.setApprovedAt(dto.getApprovedAt());
+        request.setApprovedBy(dto.getApprovedBy());
+        request.setRejectionReason(dto.getRejectionReason());
 
         List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
             ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
@@ -246,14 +272,15 @@ public class EditRequestService {
 
         List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
             requestedEdits,
-            isInstructionCombination ? request.getSourceRecording() : sourceRecording);
+            isInstructionCombination ? request.getSourceRecording() : sourceRecording
+        );
 
         request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
 
         boolean isUpdate = req.isPresent();
         if (!isUpdate) {
-            User user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
-                .getAppAccess().getUser();
+            UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+            User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
         }
@@ -267,12 +294,13 @@ public class EditRequestService {
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
         UUID id = UUID.randomUUID();
-        upsert(CreateEditRequestDTO.builder()
-                   .id(id)
-                   .sourceRecordingId(sourceRecordingId)
-                   .editInstructions(parseCsv(file))
-                   .status(EditRequestStatus.PENDING)
-                   .build());
+        CreateEditRequestDTO dto = new CreateEditRequestDTO();
+        dto.setId(id);
+        dto.setSourceRecordingId(sourceRecordingId);
+        dto.setEditInstructions(parseCsv(file));
+        dto.setStatus(EditRequestStatus.PENDING);
+
+        upsert(dto);
 
         return editRequestRepository.findById(id)
             .map(EditRequestDTO::new)
@@ -281,29 +309,31 @@ public class EditRequestService {
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
         try {
-            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
+            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(),
+                                                                                      StandardCharsets.UTF_8));
             return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
                 .withType(EditCutInstructionDTO.class)
                 .build()
                 .parse();
         } catch (Exception e) {
             log.error("Error when reading CSV file: {} ", e.getMessage());
-            throw new UnknownServerException("Uploaded CSV file incorrectly formatted");
+            throw new UnknownServerException("Uploaded CSV file incorrectly formatted", e);
         }
     }
 
-    protected List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
-                                                                final Recording recording) {
+    @SuppressWarnings({"PMD.CognitiveComplexity", "PMD.AvoidLiteralsInIfCondition"})
+    public List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
+                                                             final Recording recording) {
         long recordingDuration = recording.getDuration().toSeconds();
         if (instructions.size() == 1) {
-            EditCutInstructionDTO i = instructions.getFirst();
-            if (i.getStart() == 0 && i.getEnd() == recordingDuration) {
+            EditCutInstructionDTO firstInstruction = instructions.getFirst();
+            if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
                 throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
-                                                  + i.getStart()
+                                                  + formatTime(firstInstruction.getStart())
                                                   + "), End("
-                                                  + i.getEnd()
+                                                  + formatTime(firstInstruction.getEnd())
                                                   + "), Recording Duration("
-                                                  + recordingDuration
+                                                  + formatTime(recordingDuration)
                                                   + ")");
             }
         }
@@ -316,9 +346,9 @@ public class EditRequestService {
             EditCutInstructionDTO curr = instructions.get(i);
             if (curr.getStart() < prev.getEnd()) {
                 throw new BadRequestException("Overlapping instructions: Previous End("
-                                                  + prev.getEnd()
+                                                  + formatTime(prev.getEnd())
                                                   + "), Current Start("
-                                                  + curr.getStart()
+                                                  + formatTime(curr.getStart())
                                                   + ")");
             }
         }
@@ -327,28 +357,30 @@ public class EditRequestService {
         List<FfmpegEditInstructionDTO> invertedInstructions = new ArrayList<>();
 
         // invert
-        for (var instruction : instructions) {
+        for (EditCutInstructionDTO instruction : instructions) {
             if (instruction.getStart() == instruction.getEnd()) {
-                throw new BadRequestException("Invalid instruction: Instruction with 0 second duration invalid: Start("
-                                                  + instruction.getStart()
-                                                  + "), End("
-                                                  + instruction.getEnd()
-                                                  + ")");
+                throw new BadRequestException(
+                    "Invalid instruction: Instruction with 0 second duration invalid: Start("
+                        + formatTime(instruction.getStart())
+                        + "), End("
+                        + formatTime(instruction.getEnd())
+                        + ")");
             }
             if (instruction.getEnd() < instruction.getStart()) {
-                throw new BadRequestException("Invalid instruction: Instruction with end time before start time: Start("
-                                                  + instruction.getStart()
-                                                  + "), End("
-                                                  + instruction.getEnd()
-                                                  + ")");
+                throw new BadRequestException(
+                    "Invalid instruction: Instruction with end time before start time: Start("
+                        + formatTime(instruction.getStart())
+                        + "), End("
+                        + formatTime(instruction.getEnd())
+                        + ")");
             }
             if (instruction.getEnd() > recordingDuration) {
                 throw new BadRequestException("Invalid instruction: Instruction end time exceeding duration: Start("
-                                                  + instruction.getStart()
+                                                  + formatTime(instruction.getStart())
                                                   + "), End("
-                                                  + instruction.getEnd()
+                                                  + formatTime(instruction.getEnd())
                                                   + "), Recording Duration("
-                                                  + recordingDuration
+                                                  + formatTime(recordingDuration)
                                                   + ")");
             }
             if (currentTime < instruction.getStart()) {
@@ -357,7 +389,7 @@ public class EditRequestService {
             currentTime = Math.max(currentTime, instruction.getEnd());
         }
         if (currentTime != recordingDuration) {
-            invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
+            invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime, recordingDuration));
         }
 
         return invertedInstructions;
@@ -399,7 +431,11 @@ public class EditRequestService {
                 long originalMappedStart = originalSegment.getStart() + offsetInSegment;
                 long originalMappedEnd = originalMappedStart + cutLength;
 
-                mappedCuts.add(new EditCutInstructionDTO(originalMappedStart, originalMappedEnd, newCut.getReason()));
+                mappedCuts.add(new EditCutInstructionDTO(
+                    originalMappedStart,
+                    originalMappedEnd,
+                    newCut.getReason()
+                ));
             }
         }
 
@@ -429,11 +465,14 @@ public class EditRequestService {
         return merged;
     }
 
-    protected String toJson(EditInstructions instructions) {
+    protected <E> String toJson(E instructions) {
         try {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
-            throw new UnknownServerException("Something went wrong: " + e.getMessage());
+            throw new UnknownServerException("Something went wrong: " + e.getMessage(), e);
         }
+    }
+
+    private record EditInstructionDump(UUID editRequestId, EditInstructions editInstructions) {
     }
 }

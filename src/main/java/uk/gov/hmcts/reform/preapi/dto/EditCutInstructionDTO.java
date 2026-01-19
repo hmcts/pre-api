@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.opencsv.bean.CsvBindByName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,17 +26,22 @@ public class EditCutInstructionDTO {
     @NotNull
     @CsvBindByName(column = "Start time of cut")
     @Schema(description = "EditInstructionStart")
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$", message = "must be in format HH:MM:SS")
     private String startOfCut;
 
     @NotNull
     @CsvBindByName(column = "End time of cut")
     @Schema(description = "EditInstructionEnd")
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$", message = "must be in format HH:MM:SS")
     private String endOfCut;
 
     @CsvBindByName(column = "Reason")
     private String reason;
 
+    @Schema(hidden = true)
     private Long start;
+
+    @Schema(hidden = true)
     private Long end;
 
     public long getStart() {
@@ -56,24 +62,24 @@ public class EditCutInstructionDTO {
 
     private static long parseTime(String time) {
         try {
-            var units = time.split(":");
+            String[] units = time.split(":");
             int hours = Integer.parseInt(units[0]);
             int minutes = Integer.parseInt(units[1]);
             int seconds = Integer.parseInt(units[2]);
 
             return hours * 3600L + minutes * 60L + seconds;
-        } catch (Exception e) {
-            throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS");
+        } catch (NullPointerException | IndexOutOfBoundsException | NumberFormatException e) {
+            throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS", e);
         }
     }
 
-    private static String formatTime(long time) {
+    public static String formatTime(long time) {
         if (time < 0) {
             throw new IllegalArgumentException("Time in seconds cannot be negative: " + time);
         }
 
         long hours = time / 3600;
-        long minutes = (time % 3600) / 60;
+        long minutes = time % 3600 / 60;
         long seconds = time % 60;
 
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);

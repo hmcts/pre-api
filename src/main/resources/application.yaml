@@ -75,8 +75,14 @@ azure:
     accountName: ${AZURE_VF_SA:}
     connectionString: ${AZURE_VF_SA_CONNECTION_STRING:}
     container: ${AZURE_VF_CONTAINER:prod-migration-1}
+    csvContainer: ${AZURE_VF_CSV_CONTAINER:csv-data}
   managedIdentityClientId: ${AZURE_CLIENT_ID:}
   tenantId: ${AZURE_TENANT_ID:}
+
+  b2c:
+    clientId: ${AZURE_B2C_CLIENT_ID:} # pre-b2c-user-mgmt Application ID
+    clientSecret: ${AZURE_B2C_CLIENT_SECRET:}
+    tenantId: ${AZURE_B2C_TENANT_ID:} # hmcts-stg-external-id directory id
 
 hibernate:
   show_sql: true
@@ -158,7 +164,6 @@ feature-flags:
   enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
-  enable-v2-b2c: ${ENABLE_V2_B2C:false} # when true, enables the B2C API endpoints (S28-4056)
 
 #logging:
 #  level:

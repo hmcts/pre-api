@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@SuppressWarnings("PMD.MethodNamingConventions")
 public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
 
@@ -51,6 +50,7 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         )
         """
     )
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     Page<CaptureSession> searchCaptureSessionsBy(
         @Param("caseReference") String caseReference,
         @Param("bookingId") UUID bookingId,
@@ -83,4 +83,7 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         """
     )
     List<CaptureSession> findAllPastIncompleteCaptureSessions(@Param("scheduledBefore") Timestamp scheduledBefore);
+
+    List<CaptureSession> findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+        Timestamp fromTime, Timestamp toTime, RecordingStatus status);
 }

@@ -27,7 +27,7 @@ public class ProcessMigration extends BaseTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    public void run() {
         startJob(processCSVJob, "Transform");
     }
 }

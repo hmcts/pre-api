@@ -36,12 +36,15 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class UserService {
 
     private final AppAccessRepository appAccessRepository;
@@ -52,6 +55,10 @@ public class UserService {
     private final AppAccessService appAccessService;
     private final PortalAccessService portalAccessService;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    );
 
     @Autowired
     public UserService(AppAccessRepository appAccessRepository,
@@ -85,7 +92,7 @@ public class UserService {
 
     @Transactional
     public AccessDTO findByEmail(String email) {
-        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
+        return userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(email)
             .map(access ->
                      new AccessDTO(
                             access,
@@ -96,7 +103,6 @@ public class UserService {
 
     @Transactional
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
-    @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public Page<UserDTO> findAllBy(
         String name,
         String email,
@@ -116,7 +122,7 @@ public class UserService {
             throw new NotFoundException("Role: " + role);
         }
 
-        var allLatestTermsAndConditions = getAllLatestTermsAndConditions();
+        Set<TermsAndConditions> allLatestTermsAndConditions = getAllLatestTermsAndConditions();
 
         return userRepository.searchAllBy(
             name,
@@ -133,11 +139,10 @@ public class UserService {
     }
 
     @Transactional
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
-        var user = userRepository.findById(createUserDTO.getId());
+        Optional<User> user = userRepository.findById(createUserDTO.getId());
 
-        var isUpdate = user.isPresent();
+        boolean isUpdate = user.isPresent();
         if (isUpdate && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
         }
@@ -152,11 +157,12 @@ public class UserService {
             }
         });
 
-        var entity = user.orElse(new User());
+        User entity = user.orElse(new User());
         entity.setId(createUserDTO.getId());
         entity.setFirstName(createUserDTO.getFirstName());
         entity.setLastName(createUserDTO.getLastName());
         entity.setEmail(createUserDTO.getEmail());
+        entity.setAlternativeEmail(createUserDTO.getAlternativeEmail());
         entity.setPhone(createUserDTO.getPhoneNumber());
         entity.setOrganisation(createUserDTO.getOrganisation());
         userRepository.saveAndFlush(entity);
@@ -186,9 +192,8 @@ public class UserService {
     }
 
     @Transactional
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
-        var user = userRepository.findById(createInviteDTO.getUserId());
+        Optional<User> user = userRepository.findById(createInviteDTO.getUserId());
         if (user.isPresent() && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createInviteDTO.getUserId().toString());
         } else if (user.isPresent() && portalAccessRepository
@@ -197,7 +202,7 @@ public class UserService {
             return UpsertResult.UPDATED;
         }
 
-        var userEntity = user.orElse(new User());
+        User userEntity = user.orElse(new User());
 
         userEntity.setId(createInviteDTO.getUserId());
         userEntity.setFirstName(createInviteDTO.getFirstName());
@@ -207,7 +212,7 @@ public class UserService {
         userEntity.setPhone(createInviteDTO.getPhone());
         userRepository.save(userEntity);
 
-        var portalAccessEntity = portalAccessRepository
+        PortalAccess portalAccessEntity = portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createInviteDTO.getUserId())
             .orElse(new PortalAccess());
 
@@ -246,7 +251,7 @@ public class UserService {
 
     @Transactional
     public void undelete(UUID id) {
-        var entity = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User: " + id));
+        User entity = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User: " + id));
         if (!entity.isDeleted()) {
             return;
         }
@@ -278,8 +283,56 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<User> findByOriginalEmail(String email) {
+        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<User> findByAlternativeEmail(String alternativeEmail) {
+        return userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+    }
+
+    @Transactional
+    public UpsertResult updateAlternativeEmail(UUID userId, String alternativeEmail) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
+
+        String trimmedEmail = alternativeEmail != null ? alternativeEmail.trim() : null;
+
+        if (trimmedEmail != null && !trimmedEmail.isEmpty()) {
+
+            if (!EMAIL_PATTERN.matcher(trimmedEmail).matches()) {
+                throw new IllegalArgumentException(
+                    "Alternative email format is invalid: must be a well-formed email address");
+            }
+
+            if (trimmedEmail.equalsIgnoreCase(user.getEmail())) {
+                throw new IllegalArgumentException(
+                    "Alternative email cannot be the same as the main email");
+            }
+
+            Optional<User> existingUser = userRepository
+                .findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(trimmedEmail);
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                throw new ConflictException(
+                    "Alternative email: " + trimmedEmail + " already exists");
+            }
+        }
+
+        user.setAlternativeEmail(trimmedEmail != null && !trimmedEmail.isEmpty() ? trimmedEmail : null);
+        userRepository.saveAndFlush(user);
+
+        return UpsertResult.UPDATED;
+    }
+
+    @Transactional(readOnly = true)
     public Role getRoleById(UUID roleId) {
         return roleRepository.findById(roleId)
             .orElseThrow(() -> new NotFoundException("Role: " + roleId));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserDTO> findPortalUsersWithCjsmEmail(Pageable pageable) {
+        return userRepository.findPortalUsersWithCjsmEmail(pageable).map(user -> new UserDTO(user, null));
     }
 }

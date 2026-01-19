@@ -19,7 +19,7 @@ public class EditInstructions {
         try {
             return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
         } catch (Exception e) {
-            throw new UnknownServerException("Unable to read edit instructions");
+            throw new UnknownServerException("Unable to read edit instructions", e);
         }
     }
 

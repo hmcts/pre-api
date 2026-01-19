@@ -127,10 +127,15 @@ checkstyle {
 pmd {
   toolVersion = "7.17.0"
   sourceSets = [sourceSets.main]
-  reportsDir = file("$project.buildDir/reports/pmd")
   // https://github.com/pmd/pmd/issues/876
   ruleSets = []
   ruleSetFiles = files("${rootDir}/config/pmd/ruleset.xml")
+  pmdMain {
+    excludes = [
+      '**/batch/**',
+      '**/migration/**'
+    ]
+  }
 }
 
 jacocoTestReport {
@@ -195,7 +200,8 @@ def coverageExclusionList = [
 def duplicateCodeExclusionList = [
   '**uk/gov/hmcts/reform/preapi/entities/**',
   '**uk/gov/hmcts/reform/preapi/controllers/LegacyReportController*',
-  '**uk/gov/hmcts/reform/preapi/services/LegacyReportService*'
+  '**uk/gov/hmcts/reform/preapi/services/LegacyReportService*',
+  '**uk/gov/hmcts/reform/preapi/dto/base/BaseUserDTO*'
 ]
 
 sonarqube {
@@ -278,6 +284,7 @@ ext.libraries = [
 ext['snakeyaml.version'] = '2.0'
 
 dependencies {
+  implementation 'com.microsoft.azure:applicationinsights-core:3.7.6'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: versions.springBoot
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-actuator', version: versions.springBoot
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop', version: versions.springBoot
@@ -331,6 +338,8 @@ dependencies {
 
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
+  implementation group: 'com.microsoft.graph', name: 'microsoft-graph', version: '6.24.0'
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.15.1'
 
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.31.Final')

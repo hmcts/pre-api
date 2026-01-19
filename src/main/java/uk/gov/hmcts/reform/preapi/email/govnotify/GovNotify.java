@@ -40,33 +40,47 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse recordingReady(User to, Case forCase) {
-        var template = new RecordingReady(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference(),
-                                          forCase.getCourt().getName(), portalUrl);
+        String email = getUsersPreferredEmail(to);
+        RecordingReady template = new RecordingReady(
+            email,
+            to.getFirstName(),
+            to.getLastName(),
+            forCase.getReference(),
+            forCase.getCourt().getName(),
+            portalUrl
+        );
         try {
-            log.info("Recording ready email sent to {}", to.getEmail());
+            log.info("Recording ready email sent to {}", email);
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
-            log.error("Failed to send recording ready email to {}", to.getEmail(), e);
-            throw new EmailFailedToSendException(to.getEmail());
+            log.error("Failed to send recording ready email to {}", email, e);
+            throw (EmailFailedToSendException) new EmailFailedToSendException(email).initCause(e);
         }
     }
 
     @Override
     public EmailResponse recordingEdited(User to, Case forCase) {
-        var template = new RecordingEdited(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference(),
-                                           forCase.getCourt().getName(), portalUrl);
+        String email = getUsersPreferredEmail(to);
+        RecordingEdited template = new RecordingEdited(
+            email,
+            to.getFirstName(),
+            to.getLastName(),
+            forCase.getReference(),
+            forCase.getCourt().getName(),
+            portalUrl
+        );
         try {
-            log.info("Recording edited email sent to {}", to.getEmail());
+            log.info("Recording edited email sent to {}", email);
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
-            log.error("Failed to send recording edited email to {}", to.getEmail(), e);
-            throw new EmailFailedToSendException(to.getEmail());
+            log.error("Failed to send recording edited email to {}", email, e);
+            throw (EmailFailedToSendException) new EmailFailedToSendException(email).initCause(e);
         }
     }
 
     @Override
     public EmailResponse portalInvite(User to) {
-        var template = new PortalInvite(to.getEmail(), to.getFirstName(), to.getLastName(), portalUrl,
+        PortalInvite template = new PortalInvite(to.getEmail(), to.getFirstName(), to.getLastName(), portalUrl,
                                         portalUrl + "/assets/files/user-guide.pdf",
                                         portalUrl + "/assets/files/process-guide.pdf",
                                         portalUrl + "/assets/files/faqs.pdf",
@@ -76,63 +90,75 @@ public class GovNotify implements IEmailService {
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send portal invite email to {}", to.getEmail(), e);
-            throw new EmailFailedToSendException(to.getEmail());
+            throw (EmailFailedToSendException) new EmailFailedToSendException(to.getEmail()).initCause(e);
         }
     }
 
     @Override
     public EmailResponse casePendingClosure(User to, Case forCase, Timestamp date) {
-        var template = new CasePendingClosure(to.getEmail(), to.getFirstName(), to.getLastName(),
+        CasePendingClosure template = new CasePendingClosure(to.getEmail(), to.getFirstName(), to.getLastName(),
                                               forCase.getReference(), date);
         try {
             log.info("Case pending closure email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send case pending closure email to {}", to.getEmail(), e);
-            throw new EmailFailedToSendException(to.getEmail());
+            throw (EmailFailedToSendException) new EmailFailedToSendException(to.getEmail()).initCause(e);
         }
     }
 
     @Override
     public EmailResponse caseClosed(User to, Case forCase) {
-        var template = new CaseClosed(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference());
+        CaseClosed template = new CaseClosed(
+            to.getEmail(),
+            to.getFirstName(),
+            to.getLastName(),
+            forCase.getReference()
+        );
         try {
             log.info("Case closed email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send case closed email to {}", to.getEmail(), e);
-            throw new EmailFailedToSendException(to.getEmail());
+            throw (EmailFailedToSendException) new EmailFailedToSendException(to.getEmail()).initCause(e);
         }
     }
 
     @Override
     public EmailResponse caseClosureCancelled(User to, Case forCase) {
-        var template = new CaseClosureCancelled(to.getEmail(), to.getFirstName(), to.getLastName(),
+        CaseClosureCancelled template = new CaseClosureCancelled(to.getEmail(), to.getFirstName(), to.getLastName(),
                                                 forCase.getReference());
         try {
             log.info("Case closure cancelled email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send case closure cancelled email to {}", to.getEmail(), e);
-            throw new EmailFailedToSendException(to.getEmail());
+            throw (EmailFailedToSendException) new EmailFailedToSendException(to.getEmail()).initCause(e);
         }
     }
 
     @Override
     public EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode) {
-        var template = new EmailVerification(
-            email, firstName, lastName, verificationCode
-        );
+        EmailVerification template = new EmailVerification(email, firstName, lastName, verificationCode);
         try {
             log.info("Email verification sent to {}", email);
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
             log.error("Failed to send email verification to {}", email, e);
-            throw new EmailFailedToSendException(email);
+            throw new EmailFailedToSendException(email, e);
         }
     }
 
     private SendEmailResponse sendEmail(BaseTemplate email) throws NotificationClientException {
         return client.sendEmail(email.getTemplateId(), email.getTo(), email.getVariables(), email.getReference());
+    }
+
+    // If the users alternative email ends with .cjsm.net then use that as the preferred email, else fall back
+    // to the email field.
+    private String getUsersPreferredEmail(User user) {
+        if (user.getAlternativeEmail() != null && user.getAlternativeEmail().endsWith(".cjsm.net")) {
+            return user.getAlternativeEmail();
+        }
+        return user.getEmail();
     }
 }
