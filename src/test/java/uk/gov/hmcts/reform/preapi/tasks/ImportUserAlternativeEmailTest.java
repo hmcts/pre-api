@@ -92,6 +92,10 @@ class ImportUserAlternativeEmailTest {
         testUser.setEmail("test@example.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
+        // Add portal access for test user
+        PortalAccess testUserPortalAccess = new PortalAccess();
+        testUserPortalAccess.setDeletedAt(null);
+        testUser.setPortalAccess(Set.of(testUserPortalAccess));
 
         PortalAccess testPortalAccess = new PortalAccess();
         testPortalAccess.setId(UUID.randomUUID());
@@ -170,6 +174,7 @@ class ImportUserAlternativeEmailTest {
         task.run();
 
         verify(userService, never()).findByOriginalEmailWithPortalAccess(anyString());
+<<<<<<< HEAD
         verify(userService, never()).updateAlternativeEmail(any(), anyString());
     }
 
@@ -369,18 +374,6 @@ class ImportUserAlternativeEmailTest {
     @Test
     void runProcessesMultipleRows() {
 
-        User testUser2 = new User();
-        testUser2.setId(UUID.randomUUID());
-        testUser2.setEmail("test2@example.com");
-        testUser2.setFirstName("Test2");
-        testUser2.setLastName("User");
-
-        PortalAccess testUser2PortalAccess = new PortalAccess();
-        testUser2PortalAccess.setId(UUID.randomUUID());
-        testUser2PortalAccess.setUser(testUser2);
-        testUser2PortalAccess.setStatus(AccessStatus.ACTIVE);
-        testUser2.setPortalAccess(Set.of(testUser2PortalAccess));
-
         com.microsoft.graph.models.User b2cUser1 = new com.microsoft.graph.models.User();
         b2cUser1.setId("b2c-user-id-1");
         ObjectIdentity primaryIdentity1 = new ObjectIdentity();
@@ -407,9 +400,23 @@ class ImportUserAlternativeEmailTest {
             test@example.com,test@example.com.cjsm.net
             test2@example.com,test2@example.com.cjsm.net
             """;
+        
+        User testUser2 = new User();
+        testUser2.setId(UUID.randomUUID());
+        testUser2.setEmail("test2@example.com");
+        testUser2.setFirstName("Test2");
+        testUser2.setLastName("User");
+        // Add portal access for testUser2
+        PortalAccess testUser2PortalAccess = new PortalAccess();
+        testUser2PortalAccess.setId(UUID.randomUUID());
+        testUser2PortalAccess.setUser(testUser2);
+        testUser2PortalAccess.setStatus(AccessStatus.ACTIVE);
+        testUser2.setPortalAccess(Set.of(testUser2PortalAccess));
+
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
         );
+
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
         when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
@@ -521,7 +528,7 @@ class ImportUserAlternativeEmailTest {
         );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
@@ -530,7 +537,7 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
@@ -559,7 +566,7 @@ class ImportUserAlternativeEmailTest {
         );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
@@ -572,7 +579,7 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         // DB update should still be attempted even though B2C failed

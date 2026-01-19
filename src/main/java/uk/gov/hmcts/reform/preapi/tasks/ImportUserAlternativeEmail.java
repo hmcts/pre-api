@@ -215,7 +215,6 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
-<<<<<<< HEAD
         // Check if default email already ends with .cjsm.net
         if (user.getEmail() != null && user.getEmail().toLowerCase(Locale.ROOT).endsWith(".cjsm.net")) {
             return new ImportResult(
@@ -236,33 +235,12 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
-        // Check if user has portal access (Level 3)
-        if (!hasPortalAccess(user)) {
-=======
         if (!shouldUpdateAlternativeEmail(user)) {
->>>>>>> dde7ff44 (update try block)
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
                 "SKIPPED",
-<<<<<<< HEAD
-                "User does not have Level 3 access"
-            );
-        }
-
-        // Check if alternative email already exists for another user
-        Optional<User> existingAltUserEmail = userService
-            .findByAlternativeEmail(row.getAlternativeEmail());
-
-        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
-            return new ImportResult(
-                row.getEmail(),
-                row.getAlternativeEmail(),
-                STATUS_ERROR,
-                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
-=======
                 "User does not meet criteria for alternative email update"
->>>>>>> dde7ff44 (update try block)
             );
         }
 
@@ -279,7 +257,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     row.getEmail(),
                     row.getAlternativeEmail(),
                     STATUS_ERROR,
-                    "Failed to update local DB: " + e.getMessage() + result.getMessage()
+                    "Failed to update local DB: " + e.getMessage() + ". " + result.getMessage()
                 );
             }
             return new ImportResult(
@@ -349,21 +327,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 "Failed to update B2C identity: " + e.getMessage()
             );
         }
-<<<<<<< HEAD
-=======
 
-        try {
-            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
-        } catch (Exception e) {
-            return new ImportResult(
-                row.getEmail(),
-                row.getAlternativeEmail(),
-                STATUS_ERROR,
-                e.getMessage()
-            );
-        }
-
->>>>>>> dde7ff44 (update try block)
         return new ImportResult(
             row.getEmail(),
             row.getAlternativeEmail(),
@@ -372,25 +336,18 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         );
     }
 
-<<<<<<< HEAD
     private boolean isBlank(String str) {
         return str == null || str.isBlank();
     }
 
-    private boolean hasPortalAccess(User user) {
-=======
     private boolean shouldUpdateAlternativeEmail(User user) {
         // Check if user has active portal access
         boolean hasActivePortalAccess = false;
->>>>>>> dde7ff44 (update try block)
         if (user.getPortalAccess() != null && !user.getPortalAccess().isEmpty()) {
             hasActivePortalAccess = user.getPortalAccess().stream()
                 .anyMatch(pa -> pa.getDeletedAt() == null);
         }
 
-<<<<<<< HEAD
-        return false;
-=======
         // Check if user has active app access
         boolean hasActiveAppAccess = false;
         if (user.getAppAccess() != null && !user.getAppAccess().isEmpty()) {
@@ -400,7 +357,6 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         // Update alternative email for portal users who don't have app access
         return hasActivePortalAccess && !hasActiveAppAccess;
->>>>>>> dde7ff44 (update try block)
     }
 
     private void generateReport(List<ImportResult> results) {
