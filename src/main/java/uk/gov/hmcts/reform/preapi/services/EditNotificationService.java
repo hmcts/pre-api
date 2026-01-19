@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
@@ -37,11 +38,21 @@ public class EditNotificationService {
             return;
         }
 
+        IEmailService enabledEmailService;
+        try {
+            enabledEmailService = emailServiceFactory.getEnabledEmailService();
+        } catch (IllegalArgumentException e){
+            log.error("Error sending email:  {}", e.getMessage());
+            return;
+        }
+
+        String groupEmail = court.getGroupEmail();
+
         try {
             if (Boolean.TRUE.equals(request.getJointlyAgreed())) {
-                emailServiceFactory.getEnabledEmailService().editingJointlyAgreed(court.getGroupEmail(), request);
+                enabledEmailService.editingJointlyAgreed(groupEmail, request);
             } else {
-                emailServiceFactory.getEnabledEmailService().editingNotJointlyAgreed(court.getGroupEmail(), request);
+                enabledEmailService.editingNotJointlyAgreed(groupEmail, request);
             }
         } catch (Exception e) {
             log.error("Error sending email on edit request submission: {}", e.getMessage());
