@@ -12,15 +12,18 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -84,5 +87,30 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Override
     public boolean isDeleteOperation() {
         return this.isSoftDeleteOperation;
+    }
+
+    public @NotNull String getDefendantName() {
+        if (getParticipants() == null || getParticipants().isEmpty()) {
+            return "";
+        }
+        return getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+            .map(Participant::getFullName)
+            .sorted()
+            .collect(Collectors.joining(", "));
+
+    }
+
+    public @NotNull String getWitnessName() {
+        if (getParticipants() == null || getParticipants().isEmpty()) {
+            return "";
+        }
+        return getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+            .map(Participant::getFirstName)
+            .sorted()
+            .collect(Collectors.joining(", "));
     }
 }
