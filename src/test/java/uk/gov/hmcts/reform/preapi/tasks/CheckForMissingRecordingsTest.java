@@ -181,10 +181,6 @@ public class CheckForMissingRecordingsTest {
                           + ": not in database\\n");
 
         assertThat(slackCaptor.getValue())
-            .contains("\\nCapture session " + captureSessionNoLiveOutputUrl.getId()
-                          + " missing live output url\\n");
-
-        assertThat(slackCaptor.getValue())
             .contains("Missing recording for capture session " + captureSessionRecNotInSA.getId()
                           + ": not in final SA\\n");
     }

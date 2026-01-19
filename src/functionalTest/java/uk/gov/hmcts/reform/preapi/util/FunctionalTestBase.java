@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -47,7 +48,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @SpringBootTest(classes = { Application.class }, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
+@SuppressWarnings({"PMD.JUnit5TestShouldBePackagePrivate", "PMD.GodClass"})
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
     protected static final String COURTS_ENDPOINT = "/courts";
@@ -106,15 +107,13 @@ public class FunctionalTestBase {
         if (authenticatedUserIds == null) {
             authenticatedUserIds = new HashMap<>();
             Arrays.stream(TestingSupportRoles.values())
-                .forEach(role -> {
-                    authenticatedUserIds.put(
-                        role,
-                        doPostRequest("/testing-support/create-authenticated-user/" + role, null)
-                            .body()
-                            .jsonPath()
-                            .getObject("", AuthUserDetails.class)
-                    );
-                });
+                .forEach(role -> authenticatedUserIds.put(
+                    role,
+                    doPostRequest("/testing-support/create-authenticated-user/" + role, null)
+                        .body()
+                        .jsonPath()
+                        .getObject("", AuthUserDetails.class)
+                ));
         }
     }
 
@@ -241,7 +240,6 @@ public class FunctionalTestBase {
         dto.setId(UUID.randomUUID());
         dto.setName("Example Court");
         dto.setCourtType(CourtType.CROWN);
-        dto.setRooms(List.of(UUID.randomUUID()));
         dto.setRegions(List.of(regionId));
         dto.setLocationCode("123456789");
         return dto;
@@ -353,8 +351,7 @@ public class FunctionalTestBase {
         create.setTest(dto.isTest());
         create.setState(dto.getState());
         create.setClosedAt(dto.getClosedAt());
-        create.setParticipants(dto
-                                   .getParticipants()
+        create.setParticipants(dto.getParticipants()
                                    .stream()
                                    .map(this::convertDtoToCreateDto)
                                    .collect(Collectors.toSet()));
@@ -436,6 +433,24 @@ public class FunctionalTestBase {
         return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
     }
 
+    protected CreateCaptureSessionDTO setupCaptureSessionWithOrigins(RecordingOrigin caseOrigin,
+                                                                     RecordingOrigin captureSessionOrigin,
+                                                                     UUID courtId) throws JsonProcessingException {
+        CreateCaseDTO dto = createCase();
+        dto.setOrigin(caseOrigin);
+        dto.setCourtId(courtId);
+        Response putCase = putCase(dto);
+        assertResponseCode(putCase, 201);
+
+        CreateBookingDTO bookingDTO = createBooking(dto.getId(), dto.getParticipants());
+        Response putBooking = putBooking(bookingDTO);
+        assertResponseCode(putBooking, 201);
+
+        CreateCaptureSessionDTO createCaptureSessionDTO = createCaptureSession(bookingDTO.getId());
+        createCaptureSessionDTO.setOrigin(captureSessionOrigin);
+        return createCaptureSessionDTO;
+    }
+
     protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
         return doPutRequest(
             BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
@@ -456,5 +471,18 @@ public class FunctionalTestBase {
     }
 
     protected record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
+    }
+
+    protected Response putInvite(CreateInviteDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            INVITES_ENDPOINT + "/" + dto.getUserId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER);
+    }
+
+    protected Response postRedeem(String email) {
+        return doPostRequest(
+            INVITES_ENDPOINT + "/redeem?email=" + email,
+            TestingSupportRoles.LEVEL_3);
     }
 }

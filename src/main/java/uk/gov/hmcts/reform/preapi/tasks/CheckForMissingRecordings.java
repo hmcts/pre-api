@@ -66,7 +66,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    public void run() {
         log.info("Signing in robot user with email {} on env {}", cronUserEmail, platformEnv);
         signInRobotUser();
 
@@ -106,7 +106,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
     }
 
     private Map<String, RecordingDTO> getRecordingsFromDate(LocalDate yesterday) {
-        var search = new SearchRecordings();
+        SearchRecordings search = new SearchRecordings();
         search.setStartedAt(Timestamp.valueOf(yesterday.atStartOfDay()));
         search.setIncludeDeleted(false);
 
@@ -139,7 +139,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
         recordingsFromDate = new HashMap<>(getRecordingsFromDate(yesterday));
 
         for (String captureSessionId : captureSessionIds) {
-            var recording = recordingsFromDate.get(captureSessionId);
+            RecordingDTO recording = recordingsFromDate.get(captureSessionId);
             if (recording == null) {
                 unhappyRecordings.add(format(
                     "Missing recording for capture session %s: not in database",
@@ -150,13 +150,8 @@ public class CheckForMissingRecordings extends RobotUserTask {
                     "Recording for capture session %s has zero duration in database",
                     captureSessionId
                 ));
-            } else if (recording.getCaptureSession().getLiveOutputUrl() == null) {
-                unhappyRecordings.add(format(
-                    "Capture session %s missing live output url",
-                    captureSessionId
-                ));
             } else {
-                var recordingFromFinalSA = azureFinalStorageService.getRecordingDuration(recording.getId());
+                Duration recordingFromFinalSA = azureFinalStorageService.getRecordingDuration(recording.getId());
                 if (recordingFromFinalSA == null) {
                     unhappyRecordings.add(format(
                         "Missing recording for capture session %s: not in final SA",
@@ -174,6 +169,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
         return emptyList();
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private static List<SlackMessageSection> getSlackMessageSections(Map<RecordingStatus,
         List<String>> captureSessions) {
         List<SlackMessageSection> sections = new ArrayList<>();

@@ -25,14 +25,26 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
     protected UUID captureSessionId;
 
     public CreateRecordingDTO(Recording recording) {
+        super();
         id = recording.getId();
         captureSessionId = recording.getCaptureSession().getId();
-        parentRecordingId = recording.getParentRecording() != null
-            ? recording.getParentRecording().getId()
-            : null;
+        if (recording.getParentRecording() != null) {
+            parentRecordingId = recording.getParentRecording().getId();
+        }
         version = recording.getVersion();
         filename = recording.getFilename();
         duration = recording.getDuration();
         editInstructions = recording.getEditInstruction();
+    }
+
+    public CreateRecordingDTO(RecordingDTO recordingDTO) {
+        super();
+        id = recordingDTO.getId();
+        captureSessionId = recordingDTO.getCaptureSession().getId();
+        parentRecordingId = recordingDTO.getParentRecordingId();
+        version = recordingDTO.getVersion();
+        filename = recordingDTO.getFilename();
+        duration = recordingDTO.getDuration();
+        editInstructions = recordingDTO.getEditInstructions();
     }
 }

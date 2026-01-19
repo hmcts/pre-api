@@ -7,12 +7,15 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class, UserDetailsServiceAutoConfiguration.class})
 @EnableFeignClients
 @EnableScheduling
+@EnableAsync(proxyTargetClass = true)
 @SuppressWarnings("HideUtilityClassConstructor") // Spring needs a constructor, its not a utility class
 public class Application implements CommandLineRunner {
 
@@ -20,8 +23,8 @@ public class Application implements CommandLineRunner {
     ScheduledTaskRunner taskRunner;
 
     public static void main(final String[] args) {
-        final var application = new SpringApplication(Application.class);
-        final var instance = application.run(args);
+        final SpringApplication application = new SpringApplication(Application.class);
+        final ConfigurableApplicationContext instance = application.run(args); //NOPMD - suppressed CloseResource
 
         if (System.getenv("TASK_NAME") != null) {
             instance.close();

@@ -24,19 +24,42 @@ public class SlackMessage {
      * @return A string which is the message content.
      */
     public String toJson() {
-        StringBuilder message = new StringBuilder();
+        return toJson(SlackMessageJsonOptions.builder()
+                          .showEnvironment(true)
+                          .showIcons(true)
+                          .build());
+    }
 
-        message.append(":globe_with_meridians: *Environment:* ")
+    /**
+     * Converts the contents of the model to a JSON string.
+     *
+     * @param options Options for the message.
+     * @return A string which is the message content.
+     */
+    public String toJson(SlackMessageJsonOptions options) {
+        boolean showEnvironment = options.showEnvironment();
+        boolean showIcons = options.showIcons();
+
+        StringBuilder message = new StringBuilder(78);
+
+        if (showEnvironment) {
+            message.append(":globe_with_meridians: *Environment:* ")
                 .append(environment)
                 .append("\n\n");
+        }
 
         sections.forEach(section -> {
-            message.append(":warning: *").append(section.getTitle()).append(":*\n");
+            if (showIcons) {
+                message.append(":warning:");
+            }
+            message
+                .append(" *")
+                .append(section.getTitle()).append(":*\n");
 
             List<String> items = section.getItems();
 
             message.append(items.isEmpty()
-                    ? "\t:white_check_mark: " + section.getEmptyMessage() + "\n\n"
+                    ? (showIcons ? "\t:white_check_mark: " : "") + section.getEmptyMessage() + "\n\n"
                     : String.join("\n", items) + "\n\n");
         });
 

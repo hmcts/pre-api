@@ -3,12 +3,14 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
@@ -23,17 +25,20 @@ public class ProcessCaptureSessions extends RobotUserTask {
     private final CaptureSessionService captureSessionService;
     private final MediaServiceBroker mediaServiceBroker;
     private final EncodeJobService encodeJobService;
+    private final AzureIngestStorageService azureIngestStorageService;
 
-    protected ProcessCaptureSessions(UserService userService,
-                                     UserAuthenticationService userAuthenticationService,
-                                     @Value("${cron-user-email}") String cronUserEmail,
-                                     CaptureSessionService captureSessionService,
-                                     MediaServiceBroker mediaServiceBroker,
-                                     EncodeJobService encodeJobService) {
+    protected ProcessCaptureSessions(final UserService userService,
+                                     final UserAuthenticationService userAuthenticationService,
+                                     final CaptureSessionService captureSessionService,
+                                     final MediaServiceBroker mediaServiceBroker,
+                                     final EncodeJobService encodeJobService,
+                                     final AzureIngestStorageService azureIngestStorageService,
+                                     @Value("${cron-user-email}") String cronUserEmail) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.captureSessionService = captureSessionService;
         this.mediaServiceBroker = mediaServiceBroker;
         this.encodeJobService = encodeJobService;
+        this.azureIngestStorageService = azureIngestStorageService;
     }
 
     @Override
@@ -41,12 +46,12 @@ public class ProcessCaptureSessions extends RobotUserTask {
         signInRobotUser();
         log.info("Starting process capture session task");
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
         encodeJobService.findAllProcessing().forEach(job -> checkJob(job, mediaService));
 
         encodeJobService.findAllProcessing()
             .stream()
-            .filter(job -> job.getCreatedAt().before(Timestamp.from(Instant.now().minusSeconds(120))))
+            .filter(job -> job.getCreatedAt().before(Timestamp.from(Instant.now().minusSeconds(7200)))) // 2hrs
             .forEach(job -> {
                 log.error(
                     "Processing job {} for capture session {} has timed out",
@@ -104,7 +109,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
 
     private void onEncodeFromIngestProcessingComplete(EncodeJobDTO job, IMediaService mediaService) {
         log.info("EncodeFromIngest for capture session {} is complete", job.getCaptureSessionId());
-        var jobName = mediaService.triggerProcessingStep2(job.getRecordingId());
+        String jobName = mediaService.triggerProcessingStep2(job.getRecordingId(), false);
 
         if (jobName == null) {
             log.info("No recording found for capture session {}", job.getCaptureSessionId());
@@ -123,11 +128,13 @@ public class ProcessCaptureSessions extends RobotUserTask {
         encodeJobService.delete(job.getId());
         if (mediaService.verifyFinalAssetExists(job.getRecordingId()) == RecordingStatus.RECORDING_AVAILABLE) {
             log.info("Final asset found for capture session {}", job.getCaptureSessionId());
-            captureSessionService.stopCaptureSession(
+            CaptureSessionDTO captureSession = captureSessionService.stopCaptureSession(
                 job.getCaptureSessionId(),
                 RecordingStatus.RECORDING_AVAILABLE,
                 job.getRecordingId()
             );
+            azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+            azureIngestStorageService.markContainerAsSafeToDelete(job.getRecordingId().toString());
         } else {
             log.error("Final asset not found for capture session {}", job.getCaptureSessionId());
             captureSessionService.stopCaptureSession(job.getCaptureSessionId(), RecordingStatus.FAILURE, null);

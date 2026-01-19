@@ -38,6 +38,7 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -158,7 +159,7 @@ public class CaptureSessionServiceTest {
         captureSessionService.deleteCascade(booking);
 
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
-        verify(recordingService, times(1)).deleteCascade(captureSession);
+        verify(recordingService, times(1)).checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         verify(captureSessionRepository, times(1)).save(captureSession);
     }
 
@@ -166,7 +167,7 @@ public class CaptureSessionServiceTest {
     @Test
     void searchCaptureSessionsSuccess() {
         when(captureSessionRepository.searchCaptureSessionsBy(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -185,7 +186,7 @@ public class CaptureSessionServiceTest {
     void searchCaptureSessionsSuccessNonAdmin() {
         var courtId = UUID.randomUUID();
         when(captureSessionRepository.searchCaptureSessionsBy(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(false);
@@ -211,6 +212,7 @@ public class CaptureSessionServiceTest {
                 null,
                 null,
                 courtId,
+                false,
                 null
             );
     }
@@ -237,6 +239,7 @@ public class CaptureSessionServiceTest {
                      eq(until),
                      isNull(),
                      isNull(),
+                     eq(false),
                      isNull())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
 
@@ -256,7 +259,7 @@ public class CaptureSessionServiceTest {
         captureSessionService.deleteById(captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
-        verify(recordingService, times(1)).deleteCascade(captureSession);
+        verify(recordingService, times(1)).checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         verify(captureSessionRepository, times(1)).saveAndFlush(captureSession);
     }
 
@@ -274,7 +277,7 @@ public class CaptureSessionServiceTest {
         assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
-        verify(recordingService, never()).deleteCascade(any());
+        verify(recordingService, never()).checkIfCaptureSessionHasAssociatedRecordings(any());
         verify(captureSessionRepository, never()).deleteById(any());
     }
 
@@ -662,7 +665,8 @@ public class CaptureSessionServiceTest {
                                                                 userRepository,
                                                                 bookingService,
                                                                 azureFinalStorageService,
-                                                                auditService);
+                                                                auditService,
+                                                                true);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),
@@ -864,7 +868,8 @@ public class CaptureSessionServiceTest {
             .isEqualTo(
                 "Capture Session ("
                     + captureSession.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is STANDBY");
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
         verify(captureSessionRepository, never()).deleteById(captureSession.getId());
@@ -888,7 +893,8 @@ public class CaptureSessionServiceTest {
             .isEqualTo(
                 "Capture Session ("
                     + captureSession.getId()
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is STANDBY");
 
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
         verify(captureSessionRepository, never()).deleteById(captureSession.getId());
@@ -928,5 +934,65 @@ public class CaptureSessionServiceTest {
         assertThat(result.getFirst().getId()).isEqualTo(captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findAllPastIncompleteCaptureSessions(any(Timestamp.class));
+    }
+
+    @Test
+    void findFailedCaptureSessionsStartedBetweenTwoDates() {
+        Timestamp startDate = Timestamp.from(Instant.parse("2025-10-01T00:00:00Z"));
+        Timestamp endDate = Timestamp.from(Instant.parse("2025-10-31T00:00:00Z"));
+
+        CaptureSession failedSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            "ingest address",
+            "live output url",
+            Timestamp.from(Instant.parse("2025-10-15T12:00:00Z")),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+
+        when(captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+            eq(Timestamp.valueOf("2025-11-01 00:00:00")),
+            eq(RecordingStatus.FAILURE)))
+            .thenReturn(List.of(failedSession));
+
+        List<CaptureSession> result = captureSessionService.findFailedCaptureSessionsStartedBetween(
+            startDate.toLocalDateTime().toLocalDate(), endDate.toLocalDateTime().toLocalDate());
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getId()).isEqualTo(failedSession.getId());
+
+        verify(captureSessionRepository, times(1))
+            .findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+            eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoFailedCaptureSessionsBetweenTwoDates() {
+        Timestamp startDate = Timestamp.from(Instant.parse("2025-10-01T00:00:00Z"));
+        Timestamp endDate = Timestamp.from(Instant.parse("2025-10-31T00:00:00Z"));
+
+        when(captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+            eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+            eq(Timestamp.valueOf("2025-11-01 00:00:00")),
+            eq(RecordingStatus.FAILURE)
+        ))
+            .thenReturn(Collections.emptyList());
+
+        List<CaptureSession> result = captureSessionService.findFailedCaptureSessionsStartedBetween(
+            startDate.toLocalDateTime().toLocalDate(), endDate.toLocalDateTime().toLocalDate());
+
+        assertThat(result).isEmpty();
+
+        verify(captureSessionRepository, times(1))
+            .findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
+                eq(Timestamp.valueOf("2025-10-01 00:00:00")),
+                eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE)
+            );
     }
 }

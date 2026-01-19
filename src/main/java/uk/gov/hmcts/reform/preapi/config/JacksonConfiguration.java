@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.config;
 
+import com.azure.core.serializer.json.jackson.JacksonJsonProvider;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.Locale;
 
 import static com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS;
 import static com.fasterxml.jackson.databind.MapperFeature.INFER_BUILDER_TYPE_BINDINGS;
@@ -37,6 +39,7 @@ public class JacksonConfiguration {
                                         .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
                                         .enable(INFER_BUILDER_TYPE_BINDINGS)
                                         .serializationInclusion(JsonInclude.Include.NON_NULL)
+                                        .addModule(JacksonJsonProvider.getJsonSerializableDatabindModule())
                                         .build();
 
         SimpleModule deserialization = new SimpleModule();
@@ -47,20 +50,19 @@ public class JacksonConfiguration {
         datetime.addDeserializer(Timestamp.class, new TimestampDeserializer());
 
         mapper.registerModule(datetime);
-        mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
+        mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.UK));
 
         mapper.registerModule(new ParameterNamesModule());
 
         return mapper;
     }
 
-    private static class TimestampDeserializer extends JsonDeserializer<Timestamp> {
+    private static final class TimestampDeserializer extends JsonDeserializer<Timestamp> {
         @Override
-        public Timestamp deserialize(JsonParser p, DeserializationContext cxt) throws IOException {
-            String timestampStr = p.getText();
+        public Timestamp deserialize(JsonParser parser, DeserializationContext cxt) throws IOException {
+            String timestampStr = parser.getText();
             try {
-                var instant = Instant.parse(timestampStr);
-                return Timestamp.from(instant);
+                return Timestamp.from(Instant.parse(timestampStr));
             } catch (Exception e) {
                 throw new IOException("Failed to parse Date value '" + timestampStr + "'", e);
             }

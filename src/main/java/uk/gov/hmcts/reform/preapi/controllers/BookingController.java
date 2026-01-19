@@ -51,7 +51,6 @@ import static org.springframework.http.ResponseEntity.ok;
 public class BookingController extends PreApiController {
 
     private final BookingService bookingService;
-
     private final ShareBookingService shareBookingService;
 
     @Autowired
@@ -231,8 +230,7 @@ public class BookingController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<ShareBookingDTO> assembler
     ) {
-
-        var resultPage = shareBookingService.getShareLogsForBooking(bookingId, pageable);
+        Page<ShareBookingDTO> resultPage = shareBookingService.getShareLogsForBooking(bookingId, pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
@@ -247,7 +245,6 @@ public class BookingController extends PreApiController {
         bookingService.undelete(bookingId);
         return ok().build();
     }
-
 
     private void validateRequestWithBody(UUID bookingId, CreateBookingDTO createBookingDTO) {
         if (!bookingId.equals(createBookingDTO.getId())) {

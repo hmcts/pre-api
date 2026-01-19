@@ -12,8 +12,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
@@ -21,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Getter
@@ -38,18 +37,16 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "booking_participant",
         joinColumns = @JoinColumn(name = "booking_id", referencedColumnName = "id"),
         inverseJoinColumns = @JoinColumn(name = "participant_id", referencedColumnName = "id")
     )
-    @Fetch(FetchMode.SUBSELECT)
     private Set<Participant> participants;
 
     @OneToMany
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
-    @Fetch(FetchMode.SUBSELECT)
     private Set<CaptureSession> captureSessions;
 
     @OneToMany
@@ -67,8 +64,8 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("caseId", caseId.getId());
         details.put("bookingScheduledFor", scheduledFor);
         details.put("deleted", isDeleted());

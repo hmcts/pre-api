@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class InviteControllerFT extends FunctionalTestBase {
+class InviteControllerFT extends FunctionalTestBase {
     @DisplayName("Create a portal invite for new user")
     @Test
     void createPortalInvite() throws JsonProcessingException {
@@ -191,14 +191,6 @@ public class InviteControllerFT extends FunctionalTestBase {
         dto.setAppAccess(Set.of());
         dto.setPortalAccess(Set.of());
         return dto;
-    }
-
-    private Response putInvite(CreateInviteDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            INVITES_ENDPOINT + "/" + dto.getUserId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
     }
 
     private Response postRedeem(CreateInviteDTO dto) {

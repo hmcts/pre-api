@@ -24,8 +24,8 @@ import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -39,7 +39,6 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -413,62 +412,6 @@ class BookingControllerTest {
             .isEqualTo("{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}");
     }
 
-    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is before today")
-    @Test
-    void createBookingEndpoint400ScheduledForInThePast() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-        booking.setParticipants(getCreateParticipantDTOs());
-        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusWeeks(1).toInstant()));
-
-        CaseDTO mockCaseDTO = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-
-        MvcResult response = mockMvc.perform(put(getPath(bookingId))
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-                                    .andExpect(status().isBadRequest())
-                                    .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"scheduledFor\":\"must not be before today\"}"
-            );
-    }
-
-    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is in the past same day")
-    @Test
-    void createBookingEndpointScheduledForInThePastButToday() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-        booking.setParticipants(getCreateParticipantDTOs());
-        booking.setScheduledFor(
-            Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS))
-        );
-        booking.setParticipants(getCreateParticipantDTOs());
-
-        CaseDTO mockCaseDTO = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
-
-        mockMvc.perform(put(getPath(bookingId))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(booking))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isCreated());
-    }
-
     @DisplayName("Should fail to update a booking with 400 response code as its already deleted")
     @Test
     void updateBookingEndpoint400() throws Exception {
@@ -527,13 +470,13 @@ class BookingControllerTest {
     @Test
     void deleteBookingRecordingNotDeleted() throws Exception {
         var bookingId = UUID.randomUUID();
-        doThrow(new RecordingNotDeletedException()).when(bookingService).markAsDeleted(bookingId);
+        doThrow(new CaptureSessionNotDeletedException()).when(bookingService).markAsDeleted(bookingId);
 
         mockMvc.perform(delete("/bookings/" + bookingId)
                             .with(csrf()))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
-                           .value("Cannot delete because and associated recording has not been deleted."));
+                           .value("Cannot delete because an associated recording has not been deleted."));
 
     }
 

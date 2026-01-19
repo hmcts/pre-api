@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -114,6 +115,16 @@ public class RecordingController extends PreApiController {
         schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
+        name = "version",
+        description = "The version number to search by",
+        schema = @Schema(implementation = Integer.class)
+    )
+    @Parameter(
+        name = "caseOpen",
+        description = "The case status to search by",
+        schema = @Schema(implementation = Boolean.class)
+    )
+    @Parameter(
         name = "sort",
         description = "Sort by",
         schema = @Schema(implementation = String.class),
@@ -139,7 +150,7 @@ public class RecordingController extends PreApiController {
         ) @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<RecordingDTO> assembler
     ) {
-        var resultPage = recordingService.findAll(
+        Page<RecordingDTO> resultPage = recordingService.findAll(
             params,
             params.getIncludeDeleted() != null && params.getIncludeDeleted(),
             pageable
@@ -150,7 +161,6 @@ public class RecordingController extends PreApiController {
         }
 
         return ResponseEntity.ok(assembler.toModel(resultPage));
-
     }
 
     @PutMapping("/{recordingId}")

@@ -8,15 +8,11 @@
 
   <rule ref="category/java/bestpractices.xml">
     <exclude name="GuardLogStatement"/>
-    <exclude name="JUnitTestContainsTooManyAsserts"/>
-    <exclude name="JUnitAssertionsShouldIncludeMessage"/>
-    <exclude name="JUnitTestsShouldIncludeAssert"/>
+    <exclude name="UnitTestContainsTooManyAsserts"/>
+    <exclude name="UnitTestAssertionsShouldIncludeMessage"/>
+    <exclude name="UnitTestShouldIncludeAssert"/>
     <exclude name="UnusedFormalParameter"/>
-  </rule>
-  <rule ref="category/java/bestpractices.xml/UnusedPrivateField">
-    <properties>
-      <property name="ignoredAnnotations" value="Autowired" />
-    </properties>
+    <exclude name="LiteralsFirstInComparisons"/>
   </rule>
   <rule ref="category/java/codestyle.xml">
     <exclude name="AtLeastOneConstructor"/>
@@ -25,7 +21,6 @@
     <exclude name="MethodArgumentCouldBeFinal"/>
     <exclude name="OnlyOneReturn"/>
     <exclude name="TooManyStaticImports"/>
-    <exclude name="DefaultPackage"/>
     <exclude name="CommentDefaultAccessModifier"/>
     <exclude name="FieldNamingConventions"/>
     <exclude name="UnnecessaryAnnotationValueElement"/>
@@ -36,6 +31,7 @@
     <properties>
       <!-- same as any other class -->
       <property name="utilityClassPattern" value="[A-Z][a-zA-Z]+"/>
+      <property name="testClassPattern" value="[A-Z][a-zA-Z]+(FT|IT)?"/>
     </properties>
   </rule>
   <rule ref="category/java/codestyle.xml/MethodNamingConventions">
@@ -57,6 +53,12 @@
     <exclude name="UseObjectForClearerAPI"/>
     <exclude name="LawOfDemeter"/>
   </rule>
+  <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts">
+    <properties>
+      <property name="problemDepth" value="4" />
+    </properties>
+  </rule>
+
   <rule ref="category/java/design.xml/SignatureDeclareThrowsException">
     <properties>
       <property name="IgnoreJUnitCompletely" value="true"/>
@@ -68,9 +70,9 @@
     <exclude name="UncommentedEmptyMethodBody"/>
   </rule>
   <rule ref="category/java/errorprone.xml">
-    <exclude name="BeanMembersShouldSerialize"/>
+    <exclude name="NonSerializableClass"/>
     <exclude name="AvoidDuplicateLiterals"/>
-    <exclude name="DataflowAnomalyAnalysis"/>
+    <exclude name="ReplaceJavaUtilDate"/>
   </rule>
   <rule ref="category/java/multithreading.xml">
     <exclude name="UseConcurrentHashMap"/>
@@ -80,7 +82,7 @@
   <rule ref="category/java/security.xml"/>
   <rule ref="category/java/design.xml/ExcessiveImports">
     <properties>
-      <property name="minimum" value="62.0" />
+      <property name="minimum" value="62" />
     </properties>
   </rule>
   <rule ref="category/java/codestyle.xml/UseUnderscoresInNumericLiterals">

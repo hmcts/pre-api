@@ -1,10 +1,10 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import lombok.Cleanup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -86,8 +86,8 @@ public class StartLiveEventsTest {
         when(booking1.getCaptureSessions()).thenReturn(List.of());
         when(booking2.getCaptureSessions()).thenReturn(List.of());
 
-        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
+        when(bookingService.findAllBookingsForToday())
+            .thenReturn(List.of(booking1, booking2));
 
         var mockMediaService = mock(IMediaService.class);
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mockMediaService);
@@ -99,7 +99,7 @@ public class StartLiveEventsTest {
         captureSession2.setId(UUID.randomUUID());
         captureSession2.setStatus(RecordingStatus.INITIALISING);
 
-        var mockedUUID = mockStatic(UUID.class);
+        @Cleanup var mockedUUID = mockStatic(UUID.class);
         mockedUUID.when(UUID::randomUUID).thenReturn(captureSession1.getId(), captureSession2.getId());
         when(captureSessionService.findById(any())).thenReturn(captureSession1, captureSession2);
 
