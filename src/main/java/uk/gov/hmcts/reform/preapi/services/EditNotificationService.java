@@ -38,17 +38,11 @@ public class EditNotificationService {
             return;
         }
 
-        IEmailService enabledEmailService;
-        try {
-            enabledEmailService = emailServiceFactory.getEnabledEmailService();
-        } catch (IllegalArgumentException e) {
-            log.error("Error sending email:  {}", e.getMessage());
-            return;
-        }
-
         String groupEmail = court.getGroupEmail();
 
         try {
+            IEmailService enabledEmailService = emailServiceFactory.getEnabledEmailService();
+
             if (Boolean.TRUE.equals(request.getJointlyAgreed())) {
                 enabledEmailService.editingJointlyAgreed(groupEmail, request);
             } else {
