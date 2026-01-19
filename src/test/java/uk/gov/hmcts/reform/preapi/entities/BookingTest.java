@@ -21,7 +21,7 @@ class BookingTest {
     private Participant defendantParticipant2;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         testCase = HelperFactory.createCase(
             new Court(),
             "ref1234", true, Timestamp.valueOf(LocalDateTime.now())
@@ -45,7 +45,7 @@ class BookingTest {
     }
 
     @Test
-    public void testGetBookingParticipants() {
+    void testGetBookingParticipants() {
         Booking booking = HelperFactory.createBooking(testCase, Timestamp.valueOf(LocalDateTime.now()), null);
         booking.setId(UUID.randomUUID());
         booking.setParticipants(Set.of(witnessParticipant1, witnessParticipant2,
@@ -59,16 +59,16 @@ class BookingTest {
     }
 
     @Test
-    public void testGetBookingParticipantsEmptySet() {
+    void testGetBookingParticipantsEmptySet() {
         Booking booking = HelperFactory.createBooking(testCase, Timestamp.valueOf(LocalDateTime.now()), null);
         booking.setId(UUID.randomUUID());
         booking.setParticipants(null);
 
         String witnessName = booking.getWitnessName();
-        assertThat(witnessName).isEqualTo("");
+        assertThat(witnessName).isEmpty();
 
         String defendantName = booking.getDefendantName();
-        assertThat(defendantName).isEqualTo("");
+        assertThat(defendantName).isEmpty();
     }
 
 }
