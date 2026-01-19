@@ -230,7 +230,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         // Update B2C first
         ImportResult result = updateB2CAlternativeEmail(row);
 
-        // Update local database only after B2C update succeeds
+        // Update local database regardless of whether B2C succeeds
         try {
             userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
         } catch (Exception e) {
