@@ -44,8 +44,6 @@ import java.util.UUID;
 public class EditController extends PreApiController {
     private final EditRequestService editRequestService;
 
-    public static final String CSV_FILE_TYPE = "text/csv";
-
     @Autowired
     public EditController(EditRequestService editRequestService) {
         super();
