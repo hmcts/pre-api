@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -214,6 +215,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
+<<<<<<< HEAD
         // Check if default email already ends with .cjsm.net
         if (user.getEmail() != null && user.getEmail().toLowerCase(Locale.ROOT).endsWith(".cjsm.net")) {
             return new ImportResult(
@@ -234,41 +236,64 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
+        // Check if user has portal access (Level 3)
+        if (!hasPortalAccess(user)) {
+=======
         if (!shouldUpdateAlternativeEmail(user)) {
+>>>>>>> dde7ff44 (update try block)
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
                 "SKIPPED",
-                "User does not meet criteria for alternative email update"
+<<<<<<< HEAD
+                "User does not have Level 3 access"
             );
         }
 
-        // Update B2C first
-        ImportResult b2cResult = updateB2CIdentity(row);
-        if (b2cResult != null) {
-            return b2cResult;
-        }
+        // Check if alternative email already exists for another user
+        Optional<User> existingAltUserEmail = userService
+            .findByAlternativeEmail(row.getAlternativeEmail());
 
-        try {
-            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
-        } catch (Exception e) {
+        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
                 STATUS_ERROR,
-                e.getMessage()
+                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
+=======
+                "User does not meet criteria for alternative email update"
+>>>>>>> dde7ff44 (update try block)
             );
         }
 
-        return new ImportResult(
-            row.getEmail(),
-            row.getAlternativeEmail(),
-            "SUCCESS",
-            "Alternative email updated successfully in both local DB and B2C"
-        );
+        // Update B2C first
+        ImportResult result = updateB2CAlternativeEmail(row);
+
+        // Update local database regardless of whether B2C succeeds
+        try {
+            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+        } catch (Exception e) {
+            log.error("Failed to update local DB for user {}: {}", row.getEmail(), e.getMessage(), e);
+            if (Objects.equals(result.getStatus(), STATUS_ERROR)) {
+                return new ImportResult(
+                    row.getEmail(),
+                    row.getAlternativeEmail(),
+                    STATUS_ERROR,
+                    "Failed to update local DB: " + e.getMessage() + result.getMessage()
+                );
+            }
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                STATUS_ERROR,
+                "Failed to update local DB: " + e.getMessage()
+            );
+        }
+
+        return result;
     }
 
-    private ImportResult updateB2CIdentity(ImportRow row) {
+    private ImportResult updateB2CAlternativeEmail(ImportRow row) {
         try {
             Optional<com.microsoft.graph.models.User> maybeB2cUser =
                 b2cGraphService.findUserByPrimaryEmail(row.getEmail());
@@ -289,11 +314,13 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 identities = new ArrayList<>();
             }
 
+            // Check if alternative email already exists as an identity
             boolean alternativeEmailExists = identities.stream()
                 .anyMatch(identity -> identity.getIssuerAssignedId() != null
                     && identity.getIssuerAssignedId().equalsIgnoreCase(row.getAlternativeEmail()));
 
             if (!alternativeEmailExists) {
+                // Create new identity for alternative email
                 ObjectIdentity newIdentity = new ObjectIdentity();
                 newIdentity.setSignInType("emailAddress");
                 newIdentity.setIssuer(identities.isEmpty() ? "unknown" : identities.get(0).getIssuer());
@@ -303,14 +330,16 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 updatedIdentities.add(newIdentity);
 
                 b2cGraphService.updateUserIdentities(b2cUser.getId(), updatedIdentities);
-                log.info("Added alternative email {} as identity to B2C user {}",
-                    row.getAlternativeEmail(), row.getEmail());
+                log.info(
+                    "Added alternative email {} as identity to B2C user {}",
+                    row.getAlternativeEmail(), row.getEmail()
+                );
             } else {
-                log.info("Alternative email {} already exists as identity for B2C user {}",
-                    row.getAlternativeEmail(), row.getEmail());
+                log.info(
+                    "Alternative email {} already exists as identity for B2C user {}",
+                    row.getAlternativeEmail(), row.getEmail()
+                );
             }
-
-            return null;
         } catch (Exception e) {
             log.error("Failed to update B2C identity for user {}: {}", row.getEmail(), e.getMessage(), e);
             return new ImportResult(
@@ -320,20 +349,48 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 "Failed to update B2C identity: " + e.getMessage()
             );
         }
+<<<<<<< HEAD
+=======
+
+        try {
+            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+        } catch (Exception e) {
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                STATUS_ERROR,
+                e.getMessage()
+            );
+        }
+
+>>>>>>> dde7ff44 (update try block)
+        return new ImportResult(
+            row.getEmail(),
+            row.getAlternativeEmail(),
+            "SUCCESS",
+            "Alternative email updated successfully in both local DB and B2C"
+        );
     }
 
+<<<<<<< HEAD
     private boolean isBlank(String str) {
         return str == null || str.isBlank();
     }
 
+    private boolean hasPortalAccess(User user) {
+=======
     private boolean shouldUpdateAlternativeEmail(User user) {
         // Check if user has active portal access
         boolean hasActivePortalAccess = false;
+>>>>>>> dde7ff44 (update try block)
         if (user.getPortalAccess() != null && !user.getPortalAccess().isEmpty()) {
             hasActivePortalAccess = user.getPortalAccess().stream()
                 .anyMatch(pa -> pa.getDeletedAt() == null);
         }
 
+<<<<<<< HEAD
+        return false;
+=======
         // Check if user has active app access
         boolean hasActiveAppAccess = false;
         if (user.getAppAccess() != null && !user.getAppAccess().isEmpty()) {
@@ -343,6 +400,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         // Update alternative email for portal users who don't have app access
         return hasActivePortalAccess && !hasActiveAppAccess;
+>>>>>>> dde7ff44 (update try block)
     }
 
     private void generateReport(List<ImportResult> results) {

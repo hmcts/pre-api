@@ -1211,7 +1211,7 @@ public class UserServiceTest {
         User user = new User();
         user.setId(userId);
         user.setEmail("original@example.com");
-        String invalidEmail = "invalid@test"; 
+        String invalidEmail = "invalid@test";
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
@@ -1221,7 +1221,7 @@ public class UserServiceTest {
             .hasMessageContaining("Alternative email format is invalid");
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1242,7 +1242,7 @@ public class UserServiceTest {
             .hasMessageContaining("Alternative email cannot be the same as the main email");
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1253,7 +1253,7 @@ public class UserServiceTest {
         User user = new User();
         user.setId(userId);
         user.setEmail("Original@Example.com");
-        String sameEmail = "original@example.com"; 
+        String sameEmail = "original@example.com";
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
@@ -1263,7 +1263,7 @@ public class UserServiceTest {
             .hasMessageContaining("Alternative email cannot be the same as the main email");
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
