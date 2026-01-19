@@ -273,7 +273,7 @@ public class EditControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 201 when successfully deleted edit request")
+    @DisplayName("Should return 200 when successfully deleted edit request")
     void upsertEditRequestDeleted() throws Exception {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
