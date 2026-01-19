@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -168,6 +170,67 @@ class ImportUserAlternativeEmailTest {
         task.run();
 
         verify(userService, never()).findByOriginalEmailWithPortalAccess(anyString());
+        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+    }
+
+    @DisplayName("Should skip when default email already ends with .cjsm.net")
+    @Test
+    void runSkipsWhenDefaultEmailEndsWithCjsmNet() {
+        User userWithCjsmEmail = new User();
+        userWithCjsmEmail.setId(UUID.randomUUID());
+        userWithCjsmEmail.setEmail("test@example.cjsm.net");
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setDeletedAt(null);
+        userWithCjsmEmail.setPortalAccess(Set.of(portalAccess));
+        userWithCjsmEmail.setAppAccess(Set.of());
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.cjsm.net,test@example.com
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.cjsm.net"))
+            .thenReturn(Optional.of(userWithCjsmEmail));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.cjsm.net");
+        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
+        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+    }
+
+    @DisplayName("Should skip when alternative email is already present")
+    @Test
+    void runSkipsWhenAlternativeEmailAlreadyPresent() {
+        User userWithAltEmail = new User();
+        userWithAltEmail.setId(UUID.randomUUID());
+        userWithAltEmail.setEmail("test@example.com");
+        userWithAltEmail.setAlternativeEmail("existing@example.com.cjsm.net");
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setDeletedAt(null);
+        userWithAltEmail.setPortalAccess(Set.of(portalAccess));
+        userWithAltEmail.setAppAccess(Set.of());
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,new@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
+            .thenReturn(Optional.of(userWithAltEmail));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
         verify(userService, never()).updateAlternativeEmail(any(), anyString());
     }
 
@@ -698,6 +761,7 @@ class ImportUserAlternativeEmailTest {
     @DisplayName("Should handle RuntimeException during CSV parsing that is not CsvRequiredFieldEmptyException")
     @Test
     void runHandlesOtherRuntimeExceptionDuringCsvParsing() throws Exception {
+        // This test covers the case where getInputStream() throws RuntimeException
         InputStreamResource blobResource = mock(InputStreamResource.class);
         when(blobResource.getInputStream())
             .thenThrow(new RuntimeException("IO error during parsing"));
@@ -710,6 +774,23 @@ class ImportUserAlternativeEmailTest {
             .hasMessageContaining("Failed to import user alternative email data: Unexpected error")
             .hasCauseInstanceOf(RuntimeException.class)
             .hasRootCauseMessage("IO error during parsing");
+    }
+
+    @DisplayName("Should handle RuntimeException during CSV parse() that is not CsvRequiredFieldEmptyException")
+    @Test
+    void runHandlesRuntimeExceptionDuringCsvParse() throws Exception {
+        InputStreamResource blobResource = mock(InputStreamResource.class);
+        InputStream inputStream = mock(InputStream.class);
+        when(inputStream.read(any(byte[].class), anyInt(), anyInt())).thenThrow(new RuntimeException("Parse error"));
+        when(blobResource.getInputStream()).thenReturn(inputStream);
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Failed to import user alternative email data: Unexpected error")
+            .hasCauseInstanceOf(RuntimeException.class);
     }
 
     @DisplayName("Should use ClassPathResource when FileSystemResource doesn't exist and useLocalCsv is true")

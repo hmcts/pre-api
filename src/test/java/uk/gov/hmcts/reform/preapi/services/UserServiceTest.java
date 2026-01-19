@@ -1019,6 +1019,34 @@ public class UserServiceTest {
         verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
     }
 
+    @DisplayName("Should find user by original email with portal access successfully")
+    @Test
+    void findByOriginalEmailWithPortalAccessSuccess() {
+        String email = "test@example.com";
+        when(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNullWithPortalAccess(email))
+            .thenReturn(Optional.of(userEntity));
+
+        Optional<User> result = userService.findByOriginalEmailWithPortalAccess(email);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(userEntity.getId());
+        assertThat(result.get().getEmail()).isEqualTo(userEntity.getEmail());
+        verify(userRepository, times(1)).findByEmailIgnoreCaseAndDeletedAtIsNullWithPortalAccess(email);
+    }
+
+    @DisplayName("Should return empty when user with original email not found with portal access")
+    @Test
+    void findByOriginalEmailWithPortalAccessNotFound() {
+        String email = "notfound@example.com";
+        when(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNullWithPortalAccess(email))
+            .thenReturn(Optional.empty());
+
+        Optional<User> result = userService.findByOriginalEmailWithPortalAccess(email);
+
+        assertThat(result).isEmpty();
+        verify(userRepository, times(1)).findByEmailIgnoreCaseAndDeletedAtIsNullWithPortalAccess(email);
+    }
+
     @DisplayName("Should update alternative email successfully")
     @Test
     void updateAlternativeEmailSuccess() {
