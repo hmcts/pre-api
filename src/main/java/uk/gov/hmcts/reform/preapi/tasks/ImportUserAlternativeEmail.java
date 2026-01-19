@@ -245,19 +245,19 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
         }
 
         // Update B2C first
-        ImportResult result = updateB2CAlternativeEmail(row);
+        ImportResult b2cResult = updateB2CAlternativeEmail(row);
 
         // Update local database regardless of whether B2C succeeds
         try {
             userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
         } catch (Exception e) {
             log.error("Failed to update local DB for user {}: {}", row.getEmail(), e.getMessage(), e);
-            if (Objects.equals(result.getStatus(), STATUS_ERROR)) {
+            if (b2cResult != null && Objects.equals(b2cResult.getStatus(), STATUS_ERROR)) {
                 return new ImportResult(
                     row.getEmail(),
                     row.getAlternativeEmail(),
                     STATUS_ERROR,
-                    "Failed to update local DB: " + e.getMessage() + ". " + result.getMessage()
+                    "Failed to update local DB: " + e.getMessage() + ". " + b2cResult.getMessage()
                 );
             }
             return new ImportResult(
@@ -268,7 +268,17 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
-        return result;
+        // If B2C failed but DB succeeded, return B2C error
+        if (b2cResult != null) {
+            return b2cResult;
+        }
+
+        return new ImportResult(
+            row.getEmail(),
+            row.getAlternativeEmail(),
+            "SUCCESS",
+            "Alternative email updated successfully in both local DB and B2C"
+        );
     }
 
     private ImportResult updateB2CAlternativeEmail(ImportRow row) {
@@ -292,13 +302,11 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 identities = new ArrayList<>();
             }
 
-            // Check if alternative email already exists as an identity
             boolean alternativeEmailExists = identities.stream()
                 .anyMatch(identity -> identity.getIssuerAssignedId() != null
                     && identity.getIssuerAssignedId().equalsIgnoreCase(row.getAlternativeEmail()));
 
             if (!alternativeEmailExists) {
-                // Create new identity for alternative email
                 ObjectIdentity newIdentity = new ObjectIdentity();
                 newIdentity.setSignInType("emailAddress");
                 newIdentity.setIssuer(identities.isEmpty() ? "unknown" : identities.get(0).getIssuer());
@@ -318,6 +326,8 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     row.getAlternativeEmail(), row.getEmail()
                 );
             }
+
+            return null;
         } catch (Exception e) {
             log.error("Failed to update B2C identity for user {}: {}", row.getEmail(), e.getMessage(), e);
             return new ImportResult(
@@ -327,13 +337,6 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 "Failed to update B2C identity: " + e.getMessage()
             );
         }
-
-        return new ImportResult(
-            row.getEmail(),
-            row.getAlternativeEmail(),
-            "SUCCESS",
-            "Alternative email updated successfully in both local DB and B2C"
-        );
     }
 
     private boolean isBlank(String str) {

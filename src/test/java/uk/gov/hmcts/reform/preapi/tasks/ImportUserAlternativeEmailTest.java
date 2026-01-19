@@ -174,7 +174,6 @@ class ImportUserAlternativeEmailTest {
         task.run();
 
         verify(userService, never()).findByOriginalEmailWithPortalAccess(anyString());
-<<<<<<< HEAD
         verify(userService, never()).updateAlternativeEmail(any(), anyString());
     }
 
@@ -746,8 +745,6 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
-            .thenReturn(Optional.of(b2cUser));
         when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com"))
             .thenThrow(new IllegalArgumentException(
                 "Alternative email cannot be the same as the main email"));
@@ -755,10 +752,9 @@ class ImportUserAlternativeEmailTest {
         task.run();
 
         verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
-        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
-        // B2C update should not be called since alternative email already exists (same as primary)
-        verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com");
+        // B2C should not be called when local DB update fails
+        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
     }
 
     @DisplayName("Should handle IllegalStateException during processing")
