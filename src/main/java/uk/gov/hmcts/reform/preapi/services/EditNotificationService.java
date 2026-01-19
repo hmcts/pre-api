@@ -41,7 +41,7 @@ public class EditNotificationService {
         IEmailService enabledEmailService;
         try {
             enabledEmailService = emailServiceFactory.getEnabledEmailService();
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             log.error("Error sending email:  {}", e.getMessage());
             return;
         }
