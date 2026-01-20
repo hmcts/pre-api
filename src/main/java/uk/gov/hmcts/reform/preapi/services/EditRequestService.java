@@ -69,6 +69,7 @@ public class EditRequestService {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
+    private final EditNotificationService editNotificationService;
 
     @Autowired
     public EditRequestService(final EditRequestRepository editRequestRepository,
@@ -77,7 +78,8 @@ public class EditRequestService {
                               final RecordingService recordingService,
                               final AzureIngestStorageService azureIngestStorageService,
                               final AzureFinalStorageService azureFinalStorageService,
-                              final MediaServiceBroker mediaServiceBroker) {
+                              final MediaServiceBroker mediaServiceBroker,
+                              final EditNotificationService editNotificationService) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -85,6 +87,7 @@ public class EditRequestService {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
+        this.editNotificationService = editNotificationService;
     }
 
     @Transactional
@@ -273,6 +276,14 @@ public class EditRequestService {
             User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
+        }
+
+        if (isUpdate) {
+            if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
+                editNotificationService.onEditRequestSubmitted(request);
+            } else {
+                editNotificationService.onEditRequestRejected(request);
+            }
         }
 
         editRequestRepository.save(request);

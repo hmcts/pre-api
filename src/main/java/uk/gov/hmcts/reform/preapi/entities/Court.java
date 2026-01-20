@@ -44,6 +44,9 @@ public class Court extends BaseEntity {
     @Column(name = "postcode", length = 8)
     private String postcode;
 
+    @Column(name = "group_email", length = 100)
+    private String groupEmail;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "court_region",
@@ -60,6 +63,7 @@ public class Court extends BaseEntity {
         details.put("courtLocationCode", locationCode);
         details.put("courtCounty", county);
         details.put("courtPostcode", postcode);
+        details.put("courtGroupEmail", groupEmail);
         details.put("courtRegions", Stream.ofNullable(getRegions())
                     .flatMap(regions -> regions.stream().map(Region::getName))
                     .collect(Collectors.toSet()));

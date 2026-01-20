@@ -521,6 +521,9 @@ definitions:
           - MAGISTRATE
           - FAMILY
         type: string
+      group_email:
+        description: CourtGroupEmail
+        type: string
       id:
         description: CourtId
         format: uuid
@@ -539,6 +542,16 @@ definitions:
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
+    type: object
+  CourtEmailDTO:
+    description: CourtEmailDTO
+    properties:
+      group_email:
+        description: CourtGroupEmail
+        type: string
+      name:
+        description: CourtName
+        type: string
     type: object
   CreateAppAccessDTO:
     description: CreateAppAccessDTO
@@ -753,6 +766,9 @@ definitions:
           - CROWN
           - MAGISTRATE
           - FAMILY
+        type: string
+      group_email:
+        description: CreateCourtGroupEmail
         type: string
       id:
         description: CreateCourtId
@@ -1410,6 +1426,9 @@ definitions:
           - CROWN
           - MAGISTRATE
           - FAMILY
+        type: string
+      group_email:
+        description: CourtGroupEmail
         type: string
       id:
         description: CourtId
@@ -3471,6 +3490,35 @@ paths:
           schema:
             $ref: '#/definitions/PagedModelEntityModelCourtDTO'
       summary: 'Search for Courts by court type, name, location code or region name'
+      tags:
+        - court-controller
+  /courts/email:
+    post:
+      consumes:
+        - multipart/form-data
+      operationId: updateCourtEmailAddresses
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - format: binary
+          in: formData
+          name: file
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CourtEmailDTO'
+            type: array
       tags:
         - court-controller
   '/courts/{courtId}':

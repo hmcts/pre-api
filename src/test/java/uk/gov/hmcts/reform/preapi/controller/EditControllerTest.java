@@ -53,7 +53,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.hmcts.reform.preapi.controllers.EditController.CSV_FILE_TYPE;
+import static uk.gov.hmcts.reform.preapi.controllers.base.PreApiController.CSV_FILE_TYPE;
 
 @WebMvcTest(EditController.class)
 @TestPropertySource(properties = {
