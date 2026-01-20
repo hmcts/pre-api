@@ -539,7 +539,7 @@ public class EditRequestServiceTest {
             .thenReturn(Optional.of(sourceRecording));
         when(editRequestRepository.findById(request.getId())).thenReturn(Optional.of(new EditRequest()));
 
-        UpsertResult result = editRequestService.upsert(request);
+        UpsertResult result = underTest.upsert(request);
         assertThat(result).isEqualTo(UpsertResult.UPDATED);
     }
 
@@ -559,7 +559,7 @@ public class EditRequestServiceTest {
             .thenReturn(Optional.of(recording));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
 
-        editRequestService.delete(dto);
+        underTest.delete(dto);
 
         verify(editRequestRepository, times(0)).delete(any(EditRequest.class));
     }
@@ -583,7 +583,7 @@ public class EditRequestServiceTest {
 
         var message = assertThrows(
             BadRequestException.class,
-            () -> editRequestService.upsert(originalRequest)
+            () -> underTest.upsert(originalRequest)
         ).getMessage();
 
         assertThat(message)
