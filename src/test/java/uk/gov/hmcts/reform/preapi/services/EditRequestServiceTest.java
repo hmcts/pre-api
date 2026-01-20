@@ -1223,7 +1223,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         );
 
         assertThrows(
-            NotFoundException.class,
+            BadRequestException.class,
             () -> underTest.upsert(mockRecordingId, file)
         );
     }
