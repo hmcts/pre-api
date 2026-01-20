@@ -265,7 +265,7 @@ def versions = [
   junit           : '5.14.2',
   junitPlatform   : '1.14.2',
   reformLogging   : '5.1.5',
-  restAssured     : '5.5.6',
+  restAssured     : '5.5.7',
   springBoot      : springBoot.class.package.implementationVersion
 ]
 
