@@ -128,47 +128,46 @@ public class EditRequestServiceTest {
     @MockitoBean
     private CaptureSession captureSession;
 
-    private Recording recording;
-
     @Autowired
     private EditRequestService underTest;
 
-    private User shareWith1;
-    private User shareWith2;
     private User courtClerkUser;
-    private Case testCase;
-    private Court court;
     private Booking booking;
-    private ShareBooking shareBooking1;
-    private ShareBooking shareBooking2;
 
-    private static UUID mockRecordingId = UUID.randomUUID();
-    private static UUID mockParentRecId = UUID.randomUUID();
-    private static UUID mockCaptureSessionId = UUID.randomUUID();
+    private static final UUID mockRecordingId = UUID.randomUUID();
+    private static final UUID mockParentRecId = UUID.randomUUID();
+    private static final UUID mockCaptureSessionId = UUID.randomUUID();
 
     @BeforeEach
     void setup() {
+        User shareWith1 = HelperFactory.createUser(
+            "First", "User", "example1@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
-        shareWith1 = HelperFactory.createUser("First", "User", "example1@example.com",
-                                              new Timestamp(System.currentTimeMillis()), null, null);
-
-        shareWith2 = HelperFactory.createUser("Second", "User", "example2@example.com",
-                                              new Timestamp(System.currentTimeMillis()), null, null);
+        User shareWith2 = HelperFactory.createUser(
+            "Second", "User", "example2@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
         courtClerkUser = HelperFactory.createUser("Court", "Clerk", "court.clerk@example.com",
                                                   new Timestamp(System.currentTimeMillis()), null, null);
 
-        court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC");
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC");
 
-        testCase = HelperFactory.createCase(court, "Test Case", false, null);
+        Case testCase = HelperFactory.createCase(court, "Test Case", false, null);
 
         booking = HelperFactory.createBooking(testCase, new Timestamp(System.currentTimeMillis()), null);
 
-        shareBooking1 = HelperFactory.createShareBooking(shareWith1, courtClerkUser, booking,
-                                                         new Timestamp(System.currentTimeMillis()));
+        ShareBooking shareBooking1 = HelperFactory.createShareBooking(
+            shareWith1, courtClerkUser, booking,
+            new Timestamp(System.currentTimeMillis())
+        );
 
-        shareBooking2 = HelperFactory.createShareBooking(shareWith2, courtClerkUser, booking,
-                                                         new Timestamp(System.currentTimeMillis()));
+        ShareBooking shareBooking2 = HelperFactory.createShareBooking(
+            shareWith2, courtClerkUser, booking,
+            new Timestamp(System.currentTimeMillis())
+        );
 
         booking.setShares(Set.of(shareBooking1, shareBooking2));
 
@@ -194,7 +193,7 @@ public class EditRequestServiceTest {
 
         when(azureFinalStorageService.getRecordingDuration(mockRecordingId)).thenReturn(Duration.ofMinutes(3));
         when(azureFinalStorageService.getMp4FileName(mockRecordingId.toString())).thenReturn("filename");
-        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId)).thenReturn(Optional.of(recording));
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId)).thenReturn(Optional.of(mockRecording));
         when(mockEditRequest.getId()).thenReturn(UUID.randomUUID());
     }
 
@@ -556,7 +555,7 @@ public class EditRequestServiceTest {
         dto.setStatus(EditRequestStatus.DRAFT);
 
         when(recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId()))
-            .thenReturn(Optional.of(recording));
+            .thenReturn(Optional.of(mockRecording));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
 
         underTest.delete(dto);
@@ -1110,7 +1109,7 @@ public class EditRequestServiceTest {
     void validateEditInstructionsIsEmptyForNewEditRequest() throws Exception {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(recording.getId());
+        dto.setSourceRecordingId(mockRecordingId);
         dto.setStatus(EditRequestStatus.DRAFT);
         dto.setEditInstructions(new ArrayList<>());
 
@@ -1130,7 +1129,7 @@ public class EditRequestServiceTest {
     void validateEditInstructionsIsEmpty() throws Exception {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(recording.getId());
+        dto.setSourceRecordingId(mockRecordingId);
         dto.setEditInstructions(List.of());
         dto.setStatus(EditRequestStatus.DRAFT);
         dto.setEditInstructions(new ArrayList<>());
@@ -1232,8 +1231,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
     @DisplayName("Should throw an exception if updating edit instructions with empty file")
     @Test
     void upsertEditInstructionsWithEmptyFile() {
-        final String fileContents = """
-            """;
+        final String fileContents = "";
 
         MockMultipartFile file = new MockMultipartFile(
             "file", "edits.csv",
@@ -1241,7 +1239,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         );
 
         assertThrows(
-            NotFoundException.class,
+            BadRequestException.class,
             () -> underTest.upsert(mockRecordingId, file)
         );
     }
