@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.MediaType;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
@@ -62,6 +63,10 @@ public class FunctionalTestBase {
     protected static final String LOCATION_HEADER = "Location";
     protected static final String LEGACY_REPORTS_ENDPOINT = "/reports";
     protected static final String REPORTS_ENDPOINT = "/reports-v2";
+
+    protected static final Map<String, String> MULTIPART_HEADERS =
+        Map.of("Content-Type", MediaType.MULTIPART_FORM_DATA_VALUE);
+
 
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,15 +10,19 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CourtController;
+import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnsupportedMediaTypeException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CourtService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
@@ -27,9 +32,12 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -57,9 +65,16 @@ public class CourtControllerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
 
+    private CourtController underTest;
+
     @BeforeAll
     static void setUp() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+    }
+
+    @BeforeEach
+    void setUpEntities() {
+        underTest = new CourtController(courtService);
     }
 
     @DisplayName("Should get court by id with 200 response code")
@@ -266,6 +281,60 @@ public class CourtControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
                            .value("Invalid UUID string: 12345678"));
+    }
+
+    @DisplayName("Should be able to update court email addresses with CSV")
+    @Test
+    void updateCourtEmailAddressesWithCSV() {
+        final String fileContents = """
+Region,Court,PRE Inbox Address
+South East,Example Court,PRE.Edits.Example@justice.gov.uk
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        underTest.updateCourtEmailAddresses(file);
+
+        verify(courtService, times(1)).updateCourtEmails(file);
+    }
+
+    @DisplayName("Should throw an exception if updating court email addresses with non-CSV")
+    @Test
+    void updateCourtEmailAddressesWithNotCSV() {
+        final String fileContents = """
+Region,Court,PRE Inbox Address
+South East,Example Court,PRE.Edits.Example@justice.gov.uk
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            "text/xml", fileContents.getBytes()
+        );
+
+        assertThrows(
+            UnsupportedMediaTypeException.class,
+            () -> underTest.updateCourtEmailAddresses(file)
+        );
+    }
+
+    @DisplayName("Should throw an exception if updating court email addresses with empty file")
+    @Test
+    void updateCourtEmailAddressesWithEmptyFile() {
+        final String fileContents = """
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        assertThrows(
+            BadRequestException.class,
+            () -> underTest.updateCourtEmailAddresses(file)
+        );
     }
 
     private String getPath(UUID id) {

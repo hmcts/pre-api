@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
@@ -35,6 +36,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -1028,14 +1030,14 @@ public class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
-        when(userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
             .thenReturn(Optional.empty());
 
         userService.updateAlternativeEmail(userId, alternativeEmail);
 
         assertThat(user.getAlternativeEmail()).isEqualTo(alternativeEmail);
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, times(1)).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
         verify(userRepository, times(1)).saveAndFlush(user);
     }
 
@@ -1055,7 +1057,7 @@ public class UserServiceTest {
 
         assertThat(user.getAlternativeEmail()).isNull();
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, times(1)).saveAndFlush(user);
     }
 
@@ -1075,7 +1077,7 @@ public class UserServiceTest {
 
         assertThat(user.getAlternativeEmail()).isNull();
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, times(1)).saveAndFlush(user);
     }
 
@@ -1090,14 +1092,14 @@ public class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
-        when(userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull("trimmed@example.com"))
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull("trimmed@example.com"))
             .thenReturn(Optional.empty());
 
         userService.updateAlternativeEmail(userId, alternativeEmail);
 
         assertThat(user.getAlternativeEmail()).isEqualTo("trimmed@example.com");
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, times(1)).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(
             "trimmed@example.com");
         verify(userRepository, times(1)).saveAndFlush(user);
     }
@@ -1117,7 +1119,7 @@ public class UserServiceTest {
         );
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1138,7 +1140,7 @@ public class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
-        when(userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
             .thenReturn(Optional.of(existingUser));
 
         assertThrows(
@@ -1147,7 +1149,7 @@ public class UserServiceTest {
         );
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, times(1)).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1163,14 +1165,14 @@ public class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
-        when(userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
+        when(userRepository.findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail))
             .thenReturn(Optional.of(user));
 
         userService.updateAlternativeEmail(userId, alternativeEmail);
 
         assertThat(user.getAlternativeEmail()).isEqualTo(alternativeEmail);
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, times(1)).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
+        verify(userRepository, times(1)).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(alternativeEmail);
         verify(userRepository, times(1)).saveAndFlush(user);
     }
 
@@ -1181,7 +1183,7 @@ public class UserServiceTest {
         User user = new User();
         user.setId(userId);
         user.setEmail("original@example.com");
-        String invalidEmail = "invalid@test"; 
+        String invalidEmail = "invalid@test";
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
@@ -1191,7 +1193,7 @@ public class UserServiceTest {
             .hasMessageContaining("Alternative email format is invalid");
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1212,7 +1214,7 @@ public class UserServiceTest {
             .hasMessageContaining("Alternative email cannot be the same as the main email");
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1223,7 +1225,7 @@ public class UserServiceTest {
         User user = new User();
         user.setId(userId);
         user.setEmail("Original@Example.com");
-        String sameEmail = "original@example.com"; 
+        String sameEmail = "original@example.com";
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId))
             .thenReturn(Optional.of(user));
@@ -1233,7 +1235,7 @@ public class UserServiceTest {
             .hasMessageContaining("Alternative email cannot be the same as the main email");
 
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
-        verify(userRepository, never()).findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
+        verify(userRepository, never()).findByAlternativeEmailIgnoreCaseAndDeletedAtIsNull(any());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -1270,5 +1272,29 @@ public class UserServiceTest {
         );
 
         verify(roleRepository, times(1)).findById(roleId);
+    }
+
+    @DisplayName("Find portal users with CJSM email and map to DTO")
+    @Test
+    void findPortalUsersWithCjsmEmailMapsToDTO() {
+        // prepare a user with alternative email set
+        var cjsmUser = new User();
+        cjsmUser.setId(UUID.randomUUID());
+        cjsmUser.setFirstName("CJSM");
+        cjsmUser.setLastName("User");
+        cjsmUser.setEmail("user@cjsm.net");
+        cjsmUser.setAlternativeEmail("alt@cjsm.net");
+        cjsmUser.setAppAccess(new HashSet<>());
+        cjsmUser.setPortalAccess(new HashSet<>());
+
+        when(userRepository.findPortalUsersWithCjsmEmail(any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of(cjsmUser)));
+
+        var page = userService.findPortalUsersWithCjsmEmail(Pageable.unpaged());
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        var dto = page.get().toList().getFirst();
+        assertThat(dto.getEmail()).isEqualTo(cjsmUser.getEmail());
+        assertThat(dto.getAlternativeEmail()).isEqualTo(cjsmUser.getAlternativeEmail());
     }
 }
