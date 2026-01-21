@@ -68,6 +68,14 @@ import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFO
 @SpringBootTest(classes = MediaKind.class)
 @TestPropertySource(properties = {
     "azure.ingestStorage=testIngestStorageAccount",
+    "platform-env=Staging",
+    "mediakind.subscription=pre-mediakind-stg",
+    "mediakind.issuer=testIssuer",
+    "mediakind.symmetricKey=testSymmetricKey",
+    "mediakind.vodStreamingEndpoint=default",
+    "mediakind.liveStreamingEndpoint=default-live",
+    "mediakind.location=uksouth",
+    "mediakind.streaming-locator-on-start=true",
 })
 public class MediaKindTest {
     @MockitoBean
@@ -79,13 +87,11 @@ public class MediaKindTest {
     @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
 
-    @MockitoBean
-    private MediaKindConfiguration mediaKindConfiguration;
+    @Autowired
+    private MediaKind mediaKind;
 
     @Autowired
     private MediaKindClient mediaKindClient;
-
-    private MediaKind mediaKind;
 
     private CaptureSessionDTO captureSession;
 
@@ -94,21 +100,6 @@ public class MediaKindTest {
         captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBookingId(UUID.randomUUID());
-
-        mediaKindConfiguration = new MediaKindConfiguration(
-            "Staging",
-            "pre-mediakind-stg",
-            "testIssuer",
-            "testSymmetricKey",
-            10,
-            10,
-            "default",
-            "default-live",
-            "uksouth"
-        );
-
-        mediaKind = new MediaKind(mediaKindConfiguration, mediaKindClient,
-                                  azureIngestStorageService, azureFinalStorageService);
     }
 
     private MkStreamingLocator createStreamingLocator(String userId, int daysOffset) {
