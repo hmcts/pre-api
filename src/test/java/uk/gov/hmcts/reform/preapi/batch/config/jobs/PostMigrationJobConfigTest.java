@@ -691,7 +691,7 @@ class PostMigrationJobConfigTest {
     }
 
     @Test
-    void createMarkCasesClosedStep_withCaptureSessionNotDeletedExceptionAndNullCaseId_shouldHandleNull() throws Exception {
+    void createMarkCasesClosedStep_captureSessionNotDeletedAndNullCaseId_shouldHandleNull() throws Exception {
         Map<String, Object> jobParams = new HashMap<>();
         jobParams.put("dryRun", "false");
         when(chunkContext.getStepContext()).thenReturn(stepContext);
