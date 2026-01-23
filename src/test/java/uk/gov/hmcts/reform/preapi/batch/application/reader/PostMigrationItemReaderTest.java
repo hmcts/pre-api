@@ -401,6 +401,130 @@ class PostMigrationItemReaderTest {
         );
     }
 
+    @Test
+    void createReaderHandlesNullEmailInSharedUser() throws Exception {
+        MigrationRecord record = migrationRecord("archive-null-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "new@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail(null); 
+        sharedWith.setAlternativeEmail("alt@example.com");
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "new@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderHandlesBlankEmailInSharedUser() throws Exception {
+        MigrationRecord record = migrationRecord("archive-blank-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "new@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("   ");
+        sharedWith.setAlternativeEmail("alt@example.com");
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "new@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderHandlesNullAlternativeEmailInSharedUser() throws Exception {
+        MigrationRecord record = migrationRecord("archive-null-alt-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "new@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("primary@example.com");
+        sharedWith.setAlternativeEmail(null); 
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "new@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderHandlesBlankAlternativeEmailInSharedUser() throws Exception {
+        MigrationRecord record = migrationRecord("archive-blank-alt-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "new@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("primary@example.com");
+        sharedWith.setAlternativeEmail("   "); 
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "new@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
     private boolean invokeChannelMatch(String key, String channel) {
         try {
             var method = PostMigrationItemReader.class
