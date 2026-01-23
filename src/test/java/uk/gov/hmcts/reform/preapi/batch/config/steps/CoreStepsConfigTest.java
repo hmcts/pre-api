@@ -23,9 +23,11 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -597,6 +599,58 @@ class CoreStepsConfigTest {
         Step step = stepsConfig.createChannelUserStep();
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo("channelUserStep");
+    }
+
+    @Test
+    void createChannelUserStep_shouldHandleLocalCsv() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, true);
+
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+    }
+
+    @Test
+    void createChannelUserStep_shouldHandleAzureBlob() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, false);
+
+        Field containerNameField = CoreStepsConfig.class.getDeclaredField("containerName");
+        containerNameField.setAccessible(true);
+        containerNameField.set(stepsConfig, "test-container");
+
+        var mockResource = mock(org.springframework.core.io.InputStreamResource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("channel_name,channel_user,channel_user_email\ncase1,user,email".getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(anyString(), anyString())).thenReturn(mockResource);
+
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+        verify(azureVodafoneStorageService).fetchSingleXmlBlob(anyString(), anyString());
+    }
+
+    @Test
+    void createChannelUserStep_shouldFallbackToClasspathWhenAzureBlobNotFound() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, false);
+
+        Field containerNameField = CoreStepsConfig.class.getDeclaredField("containerName");
+        containerNameField.setAccessible(true);
+        containerNameField.set(stepsConfig, "test-container");
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(anyString(), anyString())).thenReturn(null);
+
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+        verify(loggingService).logWarning("Channel User CSV not found in Azure, falling back to classpath");
     }
 
     @Test
