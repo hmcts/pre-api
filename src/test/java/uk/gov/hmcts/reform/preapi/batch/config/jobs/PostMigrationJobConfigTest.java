@@ -46,6 +46,7 @@ import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -67,6 +68,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -646,6 +648,76 @@ class PostMigrationJobConfigTest {
         assertThat(status).isEqualTo(RepeatStatus.FINISHED);
         verify(caseService).upsert(any());
         verify(migrationTrackerService).addCaseClosureEntry(any());
+    }
+
+    @Test
+    void createMarkCasesClosedStep_withCaptureSessionNotDeletedException_shouldMarkAsBlocked() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Page<BookingDTO> emptyBookings = new PageImpl<>(Collections.emptyList());
+        when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
+            .thenReturn(emptyBookings);
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        CaptureSessionNotDeletedException exception = new CaptureSessionNotDeletedException();
+        doThrow(exception).when(caseService).upsert(any());
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(caseService).upsert(any());
+        verify(loggingService).logWarning(
+            eq("Could not close case %s (%s) - capture session has associated recordings: %s"),
+            eq(caseDTO.getReference()),
+            eq(caseDTO.getId()),
+            anyString()
+        );
+        verify(migrationTrackerService).addCaseClosureEntry(argThat(entry -> {
+            MigrationTrackerService.CaseClosureReportEntry reportEntry = 
+                (MigrationTrackerService.CaseClosureReportEntry) entry;
+            return "BLOCKED_BY_CAPTURE_SESSION".equals(reportEntry.outcome())
+                && reportEntry.failureReason().contains("Cannot close case because capture session");
+        }));
+    }
+
+    @Test
+    void createMarkCasesClosedStep_captureSessionNotDeletedAndNullCaseId_shouldHandleNull() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        caseDTO.setId(null); 
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        CaptureSessionNotDeletedException exception = new CaptureSessionNotDeletedException();
+        doThrow(exception).when(caseService).upsert(any());
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(migrationTrackerService).addCaseClosureEntry(argThat(entry -> {
+            MigrationTrackerService.CaseClosureReportEntry reportEntry = 
+                (MigrationTrackerService.CaseClosureReportEntry) entry;
+            return "BLOCKED_BY_CAPTURE_SESSION".equals(reportEntry.outcome())
+                && "".equals(reportEntry.caseId()); 
+        }));
     }
 
     @Test

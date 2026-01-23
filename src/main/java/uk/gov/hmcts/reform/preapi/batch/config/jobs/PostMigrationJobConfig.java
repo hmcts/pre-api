@@ -38,6 +38,7 @@ import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -301,6 +302,19 @@ public class PostMigrationJobConfig {
                 ));
 
                 closed.incrementAndGet();
+            } catch (CaptureSessionNotDeletedException e) {
+                loggingService.logWarning(
+                    "Could not close case %s (%s) - capture session has associated recordings: %s",
+                    reference, caseDTO.getId(), e.getMessage()
+                );
+                
+                skipped.incrementAndGet();
+                migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
+                    caseDTO.getId() != null ? caseDTO.getId().toString() : "",
+                    reference,
+                    "BLOCKED_BY_CAPTURE_SESSION",
+                    "Cannot close case because capture session has associated recordings that have not been deleted"
+                ));
             } catch (Exception e) {
                 loggingService.logError(
                     "Failed to close case %s (%s): %s — %s",
