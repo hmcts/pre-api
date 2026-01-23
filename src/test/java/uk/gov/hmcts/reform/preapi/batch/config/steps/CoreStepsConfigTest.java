@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -43,6 +44,8 @@ class CoreStepsConfigTest {
     private MigrationWriter itemWriter;
     @Mock
     private LoggingService loggingService;
+    @Mock
+    private AzureVodafoneStorageService azureVodafoneStorageService;
 
     @BeforeEach
     void setup() {
@@ -51,6 +54,7 @@ class CoreStepsConfigTest {
         this.migrationTrackerService = mock(MigrationTrackerService.class);
         this.itemWriter = mock(MigrationWriter.class);
         this.loggingService = mock(LoggingService.class);
+        this.azureVodafoneStorageService = mock(AzureVodafoneStorageService.class);
 
         PlatformTransactionManager transactionManager = new ResourcelessTransactionManager();
 
@@ -60,7 +64,8 @@ class CoreStepsConfigTest {
             itemProcessor,
             migrationTrackerService,
             itemWriter,
-            loggingService
+            loggingService,
+            azureVodafoneStorageService
         );
     }
 
