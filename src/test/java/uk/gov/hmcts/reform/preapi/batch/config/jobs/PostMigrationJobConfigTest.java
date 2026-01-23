@@ -691,6 +691,36 @@ class PostMigrationJobConfigTest {
     }
 
     @Test
+    void createMarkCasesClosedStep_withCaptureSessionNotDeletedExceptionAndNullCaseId_shouldHandleNull() throws Exception {
+        Map<String, Object> jobParams = new HashMap<>();
+        jobParams.put("dryRun", "false");
+        when(chunkContext.getStepContext()).thenReturn(stepContext);
+        when(stepContext.getJobParameters()).thenReturn(jobParams);
+        
+        CaseDTO caseDTO = createTestCaseDTO();
+        caseDTO.setId(null); 
+        when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
+        
+        Map<String, List<String[]>> channelUsersMap = new HashMap<>();
+        when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
+        
+        CaptureSessionNotDeletedException exception = new CaptureSessionNotDeletedException();
+        doThrow(exception).when(caseService).upsert(any());
+        
+        Step step = config.createMarkCasesClosedStep();
+        Tasklet tasklet = extractTasklet(step);
+        RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
+
+        assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+        verify(migrationTrackerService).addCaseClosureEntry(argThat(entry -> {
+            MigrationTrackerService.CaseClosureReportEntry reportEntry = 
+                (MigrationTrackerService.CaseClosureReportEntry) entry;
+            return "BLOCKED_BY_CAPTURE_SESSION".equals(reportEntry.outcome())
+                && "".equals(reportEntry.caseId()); 
+        }));
+    }
+
+    @Test
     void createConditionalWriter_withNonDryRun_shouldCallPostMigrationWriter() throws Exception {
         Method method = PostMigrationJobConfig.class.getDeclaredMethod("createConditionalWriter", 
             PostMigrationWriter.class);

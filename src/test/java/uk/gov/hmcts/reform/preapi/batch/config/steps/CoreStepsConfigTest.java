@@ -663,7 +663,7 @@ class CoreStepsConfigTest {
         Step step = stepsConfig.createChannelUserStep();
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo("channelUserStep");
-        verify(loggingService).logInfo("Reading Channel User CSV from local file: {}", anyString());
+        verify(loggingService).logInfo(eq("Reading Channel User CSV from local file: {}"), anyString());
     }
 
     @Test
