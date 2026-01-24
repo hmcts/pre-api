@@ -68,8 +68,7 @@ public class MigrationTrackerService {
     );
 
     protected static final List<String> CASE_CLOSURE_HEADERS = List.of(
-        "Case Reference", "Case ID", "Outcome", "Recordings Found",
-        "Recordings Deleted", "Failure Reason"
+        "Case Reference", "Case ID", "Outcome", "Failure Reason"
     );
 
     protected static final List<String> SHARE_INVITE_FAILURE_HEADERS = List.of(
@@ -465,8 +464,6 @@ public class MigrationTrackerService {
                 getValueOrEmpty(entry.caseReference()),
                 getValueOrEmpty(entry.caseId()),
                 getValueOrEmpty(entry.outcome()),
-                String.valueOf(entry.recordingsFound()),
-                String.valueOf(entry.recordingsDeleted()),
                 getValueOrEmpty(entry.failureReason())
             ));
         }
@@ -602,8 +599,6 @@ public class MigrationTrackerService {
         String caseId,
         String caseReference,
         String outcome,
-        int recordingsFound,
-        int recordingsDeleted,
         String failureReason
     ) {
     }

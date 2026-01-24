@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
@@ -24,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -36,19 +39,32 @@ public class CoreStepsConfig {
     private final MigrationTrackerService migrationTrackerService;
     private final MigrationWriter itemWriter;
     private final LoggingService loggingService;
+    private final AzureVodafoneStorageService azureVodafoneStorageService;
+
+    @Value("${azure.vodafoneStorage.csvContainer}")
+    private String containerName;
+
+    @Value("${USE_LOCAL_CSV:false}")
+    private boolean useLocalCsv;
+
+    private static final String CHANNEL_USER_CSV_BLOB_PATH = "Channel_User_Report.csv";
+    private static final String CHANNEL_USER_CSV_LOCAL_PATH =
+        "src/main/resources/batch/reference_data/Channel_User_Report.csv";
 
     public CoreStepsConfig(final JobRepository jobRepository,
                            final PlatformTransactionManager transactionManager,
                            final Processor itemProcessor,
                            final MigrationTrackerService migrationTrackerService,
                            final MigrationWriter itemWriter,
-                           final LoggingService loggingService) {
+                           final LoggingService loggingService,
+                           final AzureVodafoneStorageService azureVodafoneStorageService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.itemProcessor = itemProcessor;
         this.migrationTrackerService = migrationTrackerService;
         this.itemWriter = itemWriter;
         this.loggingService = loggingService;
+        this.azureVodafoneStorageService = azureVodafoneStorageService;
     }
 
     @Bean
@@ -67,14 +83,57 @@ public class CoreStepsConfig {
     @Bean
     @JobScope
     public Step createChannelUserStep() {
-        return createReadStep(
-            "channelUserStep",
-            new ClassPathResource(BatchConfiguration.CHANNEL_USER_CSV),
-            new String[]{"channel_name", "channel_user", "channel_user_email"},
-            CSVChannelData.class,
-            false,
-            isDryRun()
-        );
+        try {
+            Resource channelUserResource = getChannelUserCsvResource();
+            return createReadStep(
+                "channelUserStep",
+                channelUserResource,
+                new String[]{"channel_name", "channel_user", "channel_user_email"},
+                CSVChannelData.class,
+                false,
+                isDryRun()
+            );
+        } catch (IOException e) {
+            loggingService.logError("Failed to load Channel User CSV: %s", e.getMessage());
+            throw new IllegalStateException("Failed to load Channel User CSV", e);
+        }
+    }
+
+    private Resource getChannelUserCsvResource() throws IOException {
+        if (useLocalCsv) {
+            loggingService.logInfo("Reading Channel User CSV from local file: {}", CHANNEL_USER_CSV_LOCAL_PATH);
+            Resource resource = new FileSystemResource(CHANNEL_USER_CSV_LOCAL_PATH);
+
+            if (!resource.exists()) {
+                resource = new ClassPathResource(BatchConfiguration.CHANNEL_USER_CSV);
+            }
+
+            if (!resource.exists()) {
+                throw new IOException("Channel User CSV file not found at local path: " + CHANNEL_USER_CSV_LOCAL_PATH);
+            }
+            return resource;
+        } else {
+            loggingService.logInfo(
+                "Reading Channel User CSV from Azure blob: {}/{}",
+                containerName,
+                CHANNEL_USER_CSV_BLOB_PATH
+            );
+            InputStreamResource blobResource = azureVodafoneStorageService
+                .fetchSingleXmlBlob(containerName, CHANNEL_USER_CSV_BLOB_PATH);
+
+            if (blobResource == null) {
+                // Fallback to classpath if Azure blob not found
+                loggingService.logWarning("Channel User CSV not found in Azure, falling back to classpath");
+                Resource resource = new ClassPathResource(BatchConfiguration.CHANNEL_USER_CSV);
+                if (!resource.exists()) {
+                    throw new IOException(
+                        "Channel User CSV file not found in Azure: " + containerName + "/" + CHANNEL_USER_CSV_BLOB_PATH
+                    );
+                }
+                return resource;
+            }
+            return blobResource;
+        }
     }
 
     public Step startLogging() {
