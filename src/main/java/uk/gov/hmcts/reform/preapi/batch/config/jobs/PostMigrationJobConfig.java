@@ -38,9 +38,11 @@ import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
-import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -77,6 +79,8 @@ public class PostMigrationJobConfig {
     private final UserService userService;
     private final PortalAccessRepository portalAccessRepository;
     private final BookingService bookingService;
+    private final RecordingRepository recordingRepository;
+    private final CaptureSessionRepository captureSessionRepository;
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
@@ -101,7 +105,9 @@ public class PostMigrationJobConfig {
                                   final PostMigrationItemProcessor postMigrationItemProcessor,
                                   final UserService userService,
                                   final PortalAccessRepository portalAccessRepository,
-                                  final BookingService bookingService) {
+                                  final BookingService bookingService,
+                                  final RecordingRepository recordingRepository,
+                                  final CaptureSessionRepository captureSessionRepository) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.coreSteps = coreSteps;
@@ -114,6 +120,8 @@ public class PostMigrationJobConfig {
         this.userService = userService;
         this.portalAccessRepository = portalAccessRepository;
         this.bookingService = bookingService;
+        this.recordingRepository = recordingRepository;
+        this.captureSessionRepository = captureSessionRepository;
     }
 
     @Bean
@@ -251,6 +259,40 @@ public class PostMigrationJobConfig {
         }
     }
 
+    private boolean hasBlockingCaptureSessions(CaseDTO caseDTO) {
+        if (caseDTO.getId() == null) {
+            return false;
+        }
+        
+        try {
+            Pageable pageable = PageRequest.of(0, 1000);
+            var bookings = bookingService.findAllByCaseId(caseDTO.getId(), pageable);
+            
+            return bookings.getContent().stream()
+                .flatMap(booking -> booking.getCaptureSessions().stream())
+                .anyMatch(captureSessionDto -> {
+                    if (captureSessionDto.getDeletedAt() != null
+                        || (captureSessionDto.getStatus() != RecordingStatus.FAILURE
+                            && captureSessionDto.getStatus() != RecordingStatus.NO_RECORDING)) {
+                        return false;
+                    }
+                    
+                    // Fetch the entity to check for recordings
+                    return captureSessionRepository.findById(captureSessionDto.getId())
+                        .map(captureSession -> 
+                            recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)
+                        )
+                        .orElse(false);
+                });
+        } catch (Exception e) {
+            loggingService.logWarning(
+                "Error checking capture sessions for case %s: %s", 
+                caseDTO.getReference(), e.getMessage()
+            );
+            return false;
+        }
+    }
+
     private void processCase(CaseDTO caseDTO, Map<String, List<String[]>> channelUsersMap,
         AtomicInteger closed, AtomicInteger skipped, boolean dryRun) {
         String reference = caseDTO.getReference();
@@ -281,6 +323,23 @@ public class PostMigrationJobConfig {
             return;
         }
 
+        // Check if case has capture sessions with associated recordings that would block closure
+        if (hasBlockingCaptureSessions(caseDTO)) {
+            loggingService.logWarning(
+                "Could not close case %s (%s) - capture session has associated recordings",
+                caseDTO.getReference(), caseDTO.getId()
+            );
+            
+            skipped.incrementAndGet();
+            migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
+                caseDTO.getId() != null ? caseDTO.getId().toString() : "",
+                caseDTO.getReference(),
+                "BLOCKED_BY_CAPTURE_SESSION",
+                "Cannot close case because capture session has associated recordings that have not been deleted"
+            ));
+            return;
+        }
+
         if (!hasMatchingChannelUser(reference, channelUsersMap)) {
             loggingService.logDebug(
                 "Case %s does not have matching channel user entry — attempting to close.",
@@ -302,19 +361,6 @@ public class PostMigrationJobConfig {
                 ));
 
                 closed.incrementAndGet();
-            } catch (CaptureSessionNotDeletedException e) {
-                loggingService.logWarning(
-                    "Could not close case %s (%s) - capture session has associated recordings: %s",
-                    reference, caseDTO.getId(), e.getMessage()
-                );
-                
-                skipped.incrementAndGet();
-                migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
-                    caseDTO.getId() != null ? caseDTO.getId().toString() : "",
-                    reference,
-                    "BLOCKED_BY_CAPTURE_SESSION",
-                    "Cannot close case because capture session has associated recordings that have not been deleted"
-                ));
             } catch (Exception e) {
                 loggingService.logError(
                     "Failed to close case %s (%s): %s — %s",

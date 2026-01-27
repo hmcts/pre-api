@@ -48,7 +48,9 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -116,6 +118,12 @@ class PostMigrationJobConfigTest {
     private BookingService bookingService;
 
     @Mock
+    private RecordingRepository recordingRepository;
+
+    @Mock
+    private CaptureSessionRepository captureSessionRepository;
+
+    @Mock
     private StepContribution stepContribution;
 
     @Mock
@@ -140,7 +148,9 @@ class PostMigrationJobConfigTest {
             postMigrationItemProcessor,
             userService,
             portalAccessRepository,
-            bookingService
+            bookingService,
+            recordingRepository,
+            captureSessionRepository
         );
 
         Field emailField = PostMigrationJobConfig.class.getDeclaredField("vodafoneUserEmail");
