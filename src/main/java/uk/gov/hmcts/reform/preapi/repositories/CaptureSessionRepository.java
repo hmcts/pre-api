@@ -85,19 +85,10 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
     )
     List<CaptureSession> findAllPastIncompleteCaptureSessions(@Param("scheduledBefore") Timestamp scheduledBefore);
 
-    @Query("""
-    SELECT cs FROM CaptureSession cs
-    WHERE cs.deletedAt IS NULL
-      AND cs.startedAt BETWEEN :startedAtAfter AND :startedAtBefore
-      AND cs.status = :status
-      AND cs.booking.deletedAt IS NULL
-      AND cs.booking.caseId.state = :caseState
-      AND cs.booking.caseId.deletedAt IS NULL
-""")
-    List<CaptureSession> findFilteredCaptureSessions(
-        @Param("startedAtAfter") Timestamp startedAtAfter,
-        @Param("startedAtBefore") Timestamp startedAtBefore,
-        @Param("status") RecordingStatus status,
-        @Param("caseState") CaseState caseState
+    List<CaptureSession> findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
+        Timestamp startedAtAfter,
+        Timestamp startedAtBefore,
+        RecordingStatus status,
+        CaseState caseState
     );
 }
