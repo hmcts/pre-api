@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * One off task to correct the status of capture sessions that were wrongly marked with the status of failure
@@ -47,7 +48,7 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
         List<CaptureSession> captureSessionsMarkedFailure = getFailedCaptureSessions();
         List<CaptureSession> unusedSessions = filterUnusedCaptureSessionsBySectionFile(captureSessionsMarkedFailure);
         correctCaptureSessionStatuses(unusedSessions);
-        log.info("Correction task completed. {} sessions updated.", unusedSessions.size());
+        log.info("Correction task completed");
     }
 
     public List<CaptureSession> getFailedCaptureSessions() {
@@ -66,10 +67,17 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
     }
 
     public void correctCaptureSessionStatuses(List<CaptureSession> captureSessions) {
+        AtomicInteger updatedCount = new AtomicInteger();
         captureSessions.forEach(session -> {
-            session.setStatus(RecordingStatus.NO_RECORDING);
-            captureSessionService.upsert(new CreateCaptureSessionDTO(session));
-            log.info("Capture Session {} detected as unused. Marked status as NO_RECORDING", session.getId());
+            try {
+                session.setStatus(RecordingStatus.NO_RECORDING);
+                captureSessionService.save(session);
+                log.info("Capture Session {} detected as unused. Marked status as NO_RECORDING", session.getId());
+                updatedCount.getAndIncrement();
+            } catch (Exception e) {
+                log.error("Error updating unused Capture Session {}. Please investigate this session manually. Error: {}", session.getId(), e.getMessage());
+            }
         });
+        log.info("{} out of {} capture sessions processed were updated without errors.", updatedCount, captureSessions.size());
     }
 }
