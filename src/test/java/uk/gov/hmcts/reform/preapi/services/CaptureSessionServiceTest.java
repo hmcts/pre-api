@@ -998,4 +998,18 @@ public class CaptureSessionServiceTest {
                 eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE), eq(CaseState.OPEN)
             );
     }
+
+    @Test
+    void shouldSaveCaptureSession() {
+        CaptureSession captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+
+        when(captureSessionRepository.save(captureSession)).thenReturn(captureSession);
+
+        CaptureSession result = captureSessionService.save(captureSession);
+
+        assertThat(result).isEqualTo(captureSession);
+
+        verify(captureSessionRepository, times(1)).save(captureSession);
+    }
 }

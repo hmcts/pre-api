@@ -359,7 +359,7 @@ public class CaptureSessionService {
      *
      * Only Capture Sessions that are associated with Bookings for Cases that are still open are returned.
      * @param fromDate - inclusive
-     * @param toDate - exclusive
+     * @param toDate - inclusive
      * @return a list of capture sessions associated with open cases that failed within the date range
      */
     @Transactional

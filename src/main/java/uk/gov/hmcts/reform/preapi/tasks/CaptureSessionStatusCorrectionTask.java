@@ -47,7 +47,12 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
         signInRobotUser();
         List<CaptureSession> captureSessionsMarkedFailure = getFailedCaptureSessions();
         List<CaptureSession> unusedSessions = filterUnusedCaptureSessionsBySectionFile(captureSessionsMarkedFailure);
-        correctCaptureSessionStatuses(unusedSessions);
+        if (!unusedSessions.isEmpty()) {
+            correctCaptureSessionStatuses(unusedSessions);
+        }
+        else {
+            log.info("No unused capture sessions found.");
+        }
         log.info("Correction task completed");
     }
 

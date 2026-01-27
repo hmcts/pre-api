@@ -624,4 +624,42 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
             .extracting("id")
             .containsExactlyInAnyOrder(captureSession2.getId());
     }
+
+    @Test
+    @Transactional
+    void shouldReturnFailedCaptureSessionsAssociatedWithDeletedBookings() {
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
+
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase);
+        Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
+        booking.setDeletedAt(Timestamp.valueOf("2025-10-01 00:00:00"));
+        entityManager.persist(booking);
+
+        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.valueOf("2025-11-03 23:59:59"),
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+        entityManager.persist(captureSession2);
+
+        entityManager.flush();
+
+        List<CaptureSession> results =
+            captureSessionService.findFailedCaptureSessionsStartedBetween(startDate, endDate);
+
+        assertThat(results).hasSize(1)
+            .extracting("id")
+            .containsExactlyInAnyOrder(captureSession2.getId());
+    }
 }
