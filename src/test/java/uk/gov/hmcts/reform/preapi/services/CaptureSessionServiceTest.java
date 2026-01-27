@@ -954,7 +954,7 @@ public class CaptureSessionServiceTest {
             null
         );
 
-        when(captureSessionRepository.findFilteredCaptureSessions(
+        when(captureSessionRepository.findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
                  eq(Timestamp.valueOf("2025-10-01 00:00:00")),
                  eq(Timestamp.valueOf("2025-11-01 00:00:00")),
                  eq(RecordingStatus.FAILURE), eq(CaseState.OPEN)
@@ -969,7 +969,7 @@ public class CaptureSessionServiceTest {
         assertThat(result.getFirst().getId()).isEqualTo(failedSession.getId());
 
         verify(captureSessionRepository, times(1))
-            .findFilteredCaptureSessions(
+            .findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
             eq(Timestamp.valueOf("2025-10-01 00:00:00")),
             eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE), eq(CaseState.OPEN));
     }
@@ -979,7 +979,7 @@ public class CaptureSessionServiceTest {
         Timestamp startDate = Timestamp.from(Instant.parse("2025-10-01T00:00:00Z"));
         Timestamp endDate = Timestamp.from(Instant.parse("2025-10-31T00:00:00Z"));
 
-        when(captureSessionRepository.findFilteredCaptureSessions(
+        when(captureSessionRepository.findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
             eq(Timestamp.valueOf("2025-10-01 00:00:00")),
             eq(Timestamp.valueOf("2025-11-01 00:00:00")),
             eq(RecordingStatus.FAILURE),
@@ -993,7 +993,7 @@ public class CaptureSessionServiceTest {
         assertThat(result).isEmpty();
 
         verify(captureSessionRepository, times(1))
-            .findFilteredCaptureSessions(
+            .findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
                 eq(Timestamp.valueOf("2025-10-01 00:00:00")),
                 eq(Timestamp.valueOf("2025-11-01 00:00:00")), eq(RecordingStatus.FAILURE), eq(CaseState.OPEN)
             );
