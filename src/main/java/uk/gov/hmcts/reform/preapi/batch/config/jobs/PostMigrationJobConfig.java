@@ -39,6 +39,7 @@ import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
@@ -277,7 +278,6 @@ public class PostMigrationJobConfig {
                         return false;
                     }
                     
-                    // Fetch the entity to check for recordings
                     return captureSessionRepository.findById(captureSessionDto.getId())
                         .map(captureSession -> 
                             recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)
@@ -361,6 +361,20 @@ public class PostMigrationJobConfig {
                 ));
 
                 closed.incrementAndGet();
+            } catch (CaptureSessionNotDeletedException e) {
+                // Fallback catch in case pre-check missed something (e.g., null case ID)
+                loggingService.logWarning(
+                    "Could not close case %s (%s) - capture session has associated recordings: %s",
+                    reference, caseDTO.getId(), e.getMessage()
+                );
+                
+                skipped.incrementAndGet();
+                migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
+                    caseDTO.getId() != null ? caseDTO.getId().toString() : "",
+                    reference,
+                    "BLOCKED_BY_CAPTURE_SESSION",
+                    "Cannot close case because capture session has associated recordings that have not been deleted"
+                ));
             } catch (Exception e) {
                 loggingService.logError(
                     "Failed to close case %s (%s): %s — %s",
