@@ -817,7 +817,7 @@ public class MigrationTrackerServiceTest {
             ReportCsvWriter.writeToCsv(any(), any(), anyString(), anyString(), anyBoolean())
         ).thenReturn(mockPath);
 
-        migrationTrackerService.writeShareBookingsToCsv("Share_bookings", tempDir.toString());
+        migrationTrackerService.writeShareBookingsToCsvFile("Share_bookings", tempDir.toString());
 
         reportCsvWriter.verify(() ->
             ReportCsvWriter.writeToCsv(
@@ -929,7 +929,7 @@ public class MigrationTrackerServiceTest {
             ReportCsvWriter.writeToCsv(any(), any(), anyString(), anyString(), anyBoolean())
         ).thenThrow(new IOException("boom"));
 
-        migrationTrackerService.writeShareBookingsToCsv("Share_bookings", tempDir.toString());
+        migrationTrackerService.writeShareBookingsToCsvFile("Share_bookings", tempDir.toString());
 
         verify(loggingService, times(1))
             .logError(eq("Failed to write share bookings CSV: %s"), anyString());
