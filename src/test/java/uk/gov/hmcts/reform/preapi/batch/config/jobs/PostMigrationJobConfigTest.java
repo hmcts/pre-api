@@ -41,14 +41,18 @@ import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -116,6 +120,12 @@ class PostMigrationJobConfigTest {
     private BookingService bookingService;
 
     @Mock
+    private RecordingRepository recordingRepository;
+
+    @Mock
+    private CaptureSessionRepository captureSessionRepository;
+
+    @Mock
     private StepContribution stepContribution;
 
     @Mock
@@ -140,7 +150,9 @@ class PostMigrationJobConfigTest {
             postMigrationItemProcessor,
             userService,
             portalAccessRepository,
-            bookingService
+            bookingService,
+            recordingRepository,
+            captureSessionRepository
         );
 
         Field emailField = PostMigrationJobConfig.class.getDeclaredField("vodafoneUserEmail");
@@ -660,27 +672,41 @@ class PostMigrationJobConfigTest {
         CaseDTO caseDTO = createTestCaseDTO();
         when(caseService.getCasesByOrigin(RecordingOrigin.VODAFONE)).thenReturn(List.of(caseDTO));
         
-        Page<BookingDTO> emptyBookings = new PageImpl<>(Collections.emptyList());
+        UUID captureSessionId = UUID.randomUUID();
+        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
+        captureSessionDTO.setId(captureSessionId);
+        captureSessionDTO.setStatus(RecordingStatus.FAILURE);
+        captureSessionDTO.setDeletedAt(null);
+        
+        BookingDTO bookingDTO = new BookingDTO();
+        bookingDTO.setId(UUID.randomUUID());
+        bookingDTO.setCaptureSessions(List.of(captureSessionDTO));
+        
+        Page<BookingDTO> bookings = new PageImpl<>(List.of(bookingDTO));
         when(bookingService.findAllByCaseId(any(UUID.class), any(Pageable.class)))
-            .thenReturn(emptyBookings);
+            .thenReturn(bookings);
+        
+        CaptureSession captureSessionEntity = mock(CaptureSession.class);
+        when(captureSessionRepository.findById(captureSessionId))
+            .thenReturn(Optional.of(captureSessionEntity));
+        
+        when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSessionEntity))
+            .thenReturn(true);
         
         Map<String, List<String[]>> channelUsersMap = new HashMap<>();
         when(cacheService.getAllChannelReferences()).thenReturn(channelUsersMap);
-        
-        CaptureSessionNotDeletedException exception = new CaptureSessionNotDeletedException();
-        doThrow(exception).when(caseService).upsert(any());
         
         Step step = config.createMarkCasesClosedStep();
         Tasklet tasklet = extractTasklet(step);
         RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
 
         assertThat(status).isEqualTo(RepeatStatus.FINISHED);
-        verify(caseService).upsert(any());
+
+        verify(caseService, never()).upsert(any());
         verify(loggingService).logWarning(
-            eq("Could not close case %s (%s) - capture session has associated recordings: %s"),
+            eq("Could not close case %s (%s) - capture session has associated recordings"),
             eq(caseDTO.getReference()),
-            eq(caseDTO.getId()),
-            anyString()
+            eq(caseDTO.getId())
         );
         verify(migrationTrackerService).addCaseClosureEntry(argThat(entry -> {
             MigrationTrackerService.CaseClosureReportEntry reportEntry = 
@@ -712,6 +738,14 @@ class PostMigrationJobConfigTest {
         RepeatStatus status = tasklet.execute(stepContribution, chunkContext);
 
         assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+
+        verify(caseService).upsert(any());
+        verify(loggingService).logWarning(
+            eq("Could not close case %s (%s) - capture session has associated recordings: %s"),
+            eq(caseDTO.getReference()),
+            eq(null),
+            anyString()
+        );
         verify(migrationTrackerService).addCaseClosureEntry(argThat(entry -> {
             MigrationTrackerService.CaseClosureReportEntry reportEntry = 
                 (MigrationTrackerService.CaseClosureReportEntry) entry;

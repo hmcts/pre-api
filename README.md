@@ -545,6 +545,26 @@ A connection string is used to connect to App Insights. This is configured to re
 
 Connecting to App Insights locally is possible, although a bit fiddly. The easiest way is to get the connection string from Azure, set it as an environment variable (`APPLICATIONINSIGHTS_CONNECTION_STRING`), and add the Java agent as a VM argument. You'll also need to remove or comment out the connection string line in the config file.
 
+### Fortify
+
+PRE API has been set up with Fortify at https://emea.fortify.com/Applications/43364
+
+It is not yet possible to run Fortify scans remotely against PR branches, but they can be run locally through an IntelliJ plugin.
+
+1. See [user guide](https://www.microfocus.com/documentation/fortify-on-demand/intj-254/)
+
+2. Download: https://emea.fortify.com/Tools/Downloads
+
+3. Restart IntelliJ
+
+4. Tools > OpenText Core Application Security > Start Scan > Static
+
+5. When you get to the auth page, select Identity Provider:
+  * Base URL: https://api.emea.fortify.com
+  * SSO Login URL: See PRE devs channel wiki on Slack
+
+6. Results will be uploaded to [Fortify PRE API](https://emea.fortify.com/Applications/43364)
+
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
