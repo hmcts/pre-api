@@ -69,6 +69,7 @@ public class EditRequestService {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
+    private final EditNotificationService editNotificationService;
 
     @Autowired
     public EditRequestService(final EditRequestRepository editRequestRepository,
@@ -77,7 +78,8 @@ public class EditRequestService {
                               final RecordingService recordingService,
                               final AzureIngestStorageService azureIngestStorageService,
                               final AzureFinalStorageService azureFinalStorageService,
-                              final MediaServiceBroker mediaServiceBroker) {
+                              final MediaServiceBroker mediaServiceBroker,
+                              final EditNotificationService editNotificationService) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -85,6 +87,7 @@ public class EditRequestService {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
+        this.editNotificationService = editNotificationService;
     }
 
     @Transactional
@@ -235,54 +238,25 @@ public class EditRequestService {
                                                         + ") does not have a valid duration");
         }
 
-        boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
+        Optional<EditRequest> existingEditRequest = editRequestRepository.findById(dto.getId());
+        boolean isUpdate = existingEditRequest.isPresent();
 
-        boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
-            && sourceRecording.getEditInstruction() != null
-            && !sourceRecording.getEditInstruction().isEmpty();
+        EditRequest request = getEditRequestToCreateOrUpdate(dto, sourceRecording,
+                                                             existingEditRequest.orElse(new EditRequest()));
 
-        EditInstructions prevInstructions = null;
-        if (sourceInstructionsAreNotEmpty) {
-            prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction());
-        }
-        boolean prevInstructionsAreNotEmpty = prevInstructions != null
-            && prevInstructions.getFfmpegInstructions() != null
-            && !prevInstructions.getFfmpegInstructions().isEmpty()
-            && prevInstructions.getRequestedInstructions() != null
-            && !prevInstructions.getRequestedInstructions().isEmpty();
-
-        boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
-
-        Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
-        EditRequest request = req.orElse(new EditRequest());
-
-        request.setId(dto.getId());
-        request.setSourceRecording(!isInstructionCombination
-                                       ? sourceRecording
-                                       : sourceRecording.getParentRecording());
-        request.setStatus(dto.getStatus());
-        request.setJointlyAgreed(dto.getJointlyAgreed());
-        request.setApprovedAt(dto.getApprovedAt());
-        request.setApprovedBy(dto.getApprovedBy());
-        request.setRejectionReason(dto.getRejectionReason());
-
-        List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
-            ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
-            : dto.getEditInstructions();
-
-        List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
-            requestedEdits,
-            isInstructionCombination ? request.getSourceRecording() : sourceRecording
-        );
-
-        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
-
-        boolean isUpdate = req.isPresent();
         if (!isUpdate) {
             UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
             User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
+        }
+
+        if (isUpdate) {
+            if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
+                editNotificationService.onEditRequestSubmitted(request);
+            } else {
+                editNotificationService.onEditRequestRejected(request);
+            }
         }
 
         editRequestRepository.save(request);
@@ -305,6 +279,46 @@ public class EditRequestService {
         return editRequestRepository.findById(id)
             .map(EditRequestDTO::new)
             .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
+    }
+
+    private @NotNull EditRequest getEditRequestToCreateOrUpdate(CreateEditRequestDTO dto, Recording sourceRecording,
+                                                                EditRequest request) {
+        boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
+
+        boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
+            && sourceRecording.getEditInstruction() != null
+            && !sourceRecording.getEditInstruction().isEmpty();
+        EditInstructions prevInstructions = null;
+        if (sourceInstructionsAreNotEmpty) {
+            prevInstructions = EditInstructions.tryFromJson(sourceRecording.getEditInstruction());
+        }
+        boolean prevInstructionsAreNotEmpty = prevInstructions != null
+            && prevInstructions.getFfmpegInstructions() != null
+            && !prevInstructions.getFfmpegInstructions().isEmpty()
+            && prevInstructions.getRequestedInstructions() != null
+            && !prevInstructions.getRequestedInstructions().isEmpty();
+
+        boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
+
+        request.setId(dto.getId());
+        request.setSourceRecording(!isInstructionCombination
+                                       ? sourceRecording
+                                       : sourceRecording.getParentRecording());
+        request.setStatus(dto.getStatus());
+        request.setJointlyAgreed(dto.getJointlyAgreed());
+        request.setApprovedAt(dto.getApprovedAt());
+        request.setApprovedBy(dto.getApprovedBy());
+        request.setRejectionReason(dto.getRejectionReason());
+        List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
+            ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
+            : dto.getEditInstructions();
+        List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
+            requestedEdits,
+            isInstructionCombination ? request.getSourceRecording() : sourceRecording
+        );
+
+        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
+        return request;
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
