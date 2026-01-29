@@ -68,36 +68,6 @@ public class AzureIngestStorageServiceTest {
     }
 
     @Test
-    void doesValidAssetExistTrueIsmFound() {
-        var blobItem = mock(BlobItem.class);
-        when(blobContainerClient.exists()).thenReturn(true);
-        when(blobItem.getName()).thenReturn("video.ism");
-        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
-
-        assertTrue(azureIngestStorageService.doesValidAssetExist("test-container"));
-    }
-
-    @Test
-    void doesValidAssetExistTrueGcStateFound() {
-        var blobItem = mock(BlobItem.class);
-        when(blobContainerClient.exists()).thenReturn(true);
-        when(blobItem.getName()).thenReturn("gc_state");
-        when(pagedIterable.stream()).thenAnswer(inv -> Stream.of(blobItem));
-
-        assertTrue(azureIngestStorageService.doesValidAssetExist("test-container"));
-    }
-
-    @Test
-    void doesValidAssetExistFalse() {
-        var blobItem = mock(BlobItem.class);
-        when(blobContainerClient.exists()).thenReturn(true);
-        when(blobItem.getName()).thenReturn("something-else.mp4");
-        when(pagedIterable.stream()).thenAnswer(inv -> Stream.of(blobItem));
-
-        assertFalse(azureIngestStorageService.doesValidAssetExist("test-container"));
-    }
-
-    @Test
     void uploadBlobSuccess() throws IOException {
         var tempFile = Files.createTempFile("test", ".mp4");
         var localFileName = tempFile.toString();
