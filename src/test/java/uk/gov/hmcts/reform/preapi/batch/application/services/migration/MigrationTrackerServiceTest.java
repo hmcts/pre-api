@@ -1011,6 +1011,11 @@ public class MigrationTrackerServiceTest {
 
     @Test
     void writeAndUploadPostMigrationReports_allFilesExist_uploadsAllFiles() throws IOException {
+        Files.createFile(tempDir.resolve("Invited_users.csv"));
+        Files.createFile(tempDir.resolve("Share_bookings.csv"));
+        Files.createFile(tempDir.resolve("Share_invite_failures.csv"));
+        Files.createFile(tempDir.resolve("Case_closure.csv"));
+
         migrationTrackerService.addInvitedUser(mock(CreateInviteDTO.class));
         migrationTrackerService.addShareBooking(new CreateShareBookingDTO());
         migrationTrackerService.addShareInviteFailure(new MigrationTrackerService.ShareInviteFailureEntry(
@@ -1078,6 +1083,9 @@ public class MigrationTrackerServiceTest {
 
     @Test
     void writeAndUploadPostMigrationReports_partialSuccess_uploadsOnlyExistingFiles() throws IOException {
+        Files.createFile(tempDir.resolve("Invited_users.csv"));
+        Files.createFile(tempDir.resolve("Share_bookings.csv"));
+
         migrationTrackerService.addInvitedUser(mock(CreateInviteDTO.class));
         migrationTrackerService.addShareBooking(new CreateShareBookingDTO());
 
@@ -1100,7 +1108,7 @@ public class MigrationTrackerServiceTest {
 
     @Test
     void writeAndUploadPostMigrationReports_usesCorrectContainerAndPaths() throws IOException {
-        File invitedUsersFile = Files.createFile(tempDir.resolve("Invited_users.csv")).toFile();
+        final File invitedUsersFile = Files.createFile(tempDir.resolve("Invited_users.csv")).toFile();
         migrationTrackerService.addInvitedUser(mock(CreateInviteDTO.class));
 
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
