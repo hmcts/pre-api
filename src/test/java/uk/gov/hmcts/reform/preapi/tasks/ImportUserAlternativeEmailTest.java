@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.springframework.core.io.InputStreamResource;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -16,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -27,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -88,12 +92,28 @@ class ImportUserAlternativeEmailTest {
         testUser.setEmail("test@example.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
+        // Add portal access for test user
+        PortalAccess testUserPortalAccess = new PortalAccess();
+        testUserPortalAccess.setDeletedAt(null);
+        testUser.setPortalAccess(Set.of(testUserPortalAccess));
+
+        PortalAccess testPortalAccess = new PortalAccess();
+        testPortalAccess.setId(UUID.randomUUID());
+        testPortalAccess.setUser(testUser);
+        testPortalAccess.setStatus(AccessStatus.ACTIVE);
+        testUser.setPortalAccess(Set.of(testPortalAccess));
 
         otherUser = new User();
         otherUser.setId(UUID.randomUUID());
         otherUser.setEmail("other@example.com");
         otherUser.setFirstName("Other");
         otherUser.setLastName("User");
+
+        PortalAccess otherPortalAccess = new PortalAccess();
+        otherPortalAccess.setId(UUID.randomUUID());
+        otherPortalAccess.setUser(otherUser);
+        otherPortalAccess.setStatus(AccessStatus.ACTIVE);
+        otherUser.setPortalAccess(Set.of(otherPortalAccess));
     }
 
     @DisplayName("Should successfully import alternative email from Azure blob")
@@ -119,8 +139,10 @@ class ImportUserAlternativeEmailTest {
         );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
+            .thenReturn(uk.gov.hmcts.reform.preapi.enums.UpsertResult.UPDATED);
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
 
@@ -128,10 +150,10 @@ class ImportUserAlternativeEmailTest {
 
         verify(azureVodafoneStorageService, times(1)).fetchSingleXmlBlob(TEST_CONTAINER,
                                                                          "alternative_email_import.csv");
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
-        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
     }
 
     @DisplayName("Should skip rows with empty alternative email")
@@ -151,7 +173,68 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, never()).findByOriginalEmail(anyString());
+        verify(userService, never()).findByOriginalEmailWithPortalAccess(anyString());
+        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+    }
+
+    @DisplayName("Should skip when default email already ends with .cjsm.net")
+    @Test
+    void runSkipsWhenDefaultEmailEndsWithCjsmNet() {
+        User userWithCjsmEmail = new User();
+        userWithCjsmEmail.setId(UUID.randomUUID());
+        userWithCjsmEmail.setEmail("test@example.cjsm.net");
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setDeletedAt(null);
+        userWithCjsmEmail.setPortalAccess(Set.of(portalAccess));
+        userWithCjsmEmail.setAppAccess(Set.of());
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.cjsm.net,test@example.com
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.cjsm.net"))
+            .thenReturn(Optional.of(userWithCjsmEmail));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.cjsm.net");
+        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
+        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+    }
+
+    @DisplayName("Should skip when alternative email is already present")
+    @Test
+    void runSkipsWhenAlternativeEmailAlreadyPresent() {
+        User userWithAltEmail = new User();
+        userWithAltEmail.setId(UUID.randomUUID());
+        userWithAltEmail.setEmail("test@example.com");
+        userWithAltEmail.setAlternativeEmail("existing@example.com.cjsm.net");
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setDeletedAt(null);
+        userWithAltEmail.setPortalAccess(Set.of(portalAccess));
+        userWithAltEmail.setAppAccess(Set.of());
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,new@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
+            .thenReturn(Optional.of(userWithAltEmail));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
         verify(userService, never()).updateAlternativeEmail(any(), anyString());
     }
 
@@ -168,18 +251,28 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("notfound@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("notfound@example.com"))
             .thenReturn(Optional.empty());
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("notfound@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("notfound@example.com");
         verify(userService, never()).updateAlternativeEmail(any(), anyString());
     }
 
     @DisplayName("Should handle alternative email already exists for another user")
     @Test
     void runHandlesAlternativeEmailExists() {
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
         String csvContent = """
             email,alternativeEmail
             test@example.com,existing@example.com.cjsm.net
@@ -190,16 +283,19 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("existing@example.com.cjsm.net"))
-            .thenReturn(Optional.of(otherUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net"))
+            .thenThrow(new uk.gov.hmcts.reform.preapi.exception.ConflictException(
+                "Alternative email: existing@example.com.cjsm.net already exists"));
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("existing@example.com.cjsm.net");
-        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
+        verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net");
     }
 
     @DisplayName("Should handle alternative email already exists for same user")
@@ -225,17 +321,16 @@ class ImportUserAlternativeEmailTest {
         );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
-            .thenReturn(Optional.of(testUser));
-        when(userService.findByAlternativeEmail("existing@example.com.cjsm.net"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net"))
+            .thenReturn(uk.gov.hmcts.reform.preapi.enums.UpsertResult.UPDATED);
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByAlternativeEmail("existing@example.com.cjsm.net");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "existing@example.com.cjsm.net");
@@ -254,12 +349,12 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenThrow(new RuntimeException("Database error"));
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(userService, never()).updateAlternativeEmail(any(), anyString());
     }
 
@@ -277,12 +372,6 @@ class ImportUserAlternativeEmailTest {
     @DisplayName("Should process multiple rows successfully")
     @Test
     void runProcessesMultipleRows() {
-
-        User testUser2 = new User();
-        testUser2.setId(UUID.randomUUID());
-        testUser2.setEmail("test2@example.com");
-        testUser2.setFirstName("Test2");
-        testUser2.setLastName("User");
 
         com.microsoft.graph.models.User b2cUser1 = new com.microsoft.graph.models.User();
         b2cUser1.setId("b2c-user-id-1");
@@ -310,14 +399,28 @@ class ImportUserAlternativeEmailTest {
             test@example.com,test@example.com.cjsm.net
             test2@example.com,test2@example.com.cjsm.net
             """;
+        
+        User testUser2 = new User();
+        testUser2.setId(UUID.randomUUID());
+        testUser2.setEmail("test2@example.com");
+        testUser2.setFirstName("Test2");
+        testUser2.setLastName("User");
+        // Add portal access for testUser2
+        PortalAccess testUser2PortalAccess = new PortalAccess();
+        testUser2PortalAccess.setId(UUID.randomUUID());
+        testUser2PortalAccess.setUser(testUser2);
+        testUser2PortalAccess.setStatus(AccessStatus.ACTIVE);
+        testUser2.setPortalAccess(Set.of(testUser2PortalAccess));
+
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
         );
+
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(userService.findByOriginalEmail("test2@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test2@example.com"))
             .thenReturn(Optional.of(testUser2));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser1));
@@ -326,8 +429,8 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(userService, times(1)).findByOriginalEmail("test2@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test2@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test2@example.com");
         verify(b2cGraphService, times(2)).updateUserIdentities(anyString(), anyList());
@@ -348,14 +451,14 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.empty());
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
         // DB update should still happen even though B2C user not found
@@ -385,7 +488,7 @@ class ImportUserAlternativeEmailTest {
         );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
@@ -394,7 +497,7 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         // DB update should still happen even though B2C update failed
@@ -424,7 +527,7 @@ class ImportUserAlternativeEmailTest {
         );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
@@ -433,7 +536,7 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
@@ -462,7 +565,7 @@ class ImportUserAlternativeEmailTest {
         );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
@@ -475,7 +578,7 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         // DB update should still be attempted even though B2C failed
@@ -511,14 +614,14 @@ class ImportUserAlternativeEmailTest {
         );
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         // Should not call updateUserIdentities since identity already exists
         verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
@@ -543,14 +646,14 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
@@ -600,7 +703,7 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
@@ -610,7 +713,7 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "invalid@test");
@@ -640,19 +743,18 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
-        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
-            .thenReturn(Optional.of(b2cUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com"))
+            .thenThrow(new IllegalArgumentException(
+                "Alternative email cannot be the same as the main email"));
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
-        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
-        // Alternative email already exists in B2C (same as primary), so updateUserIdentities should not be called
-        verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
-        // Local DB update should still be attempted
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com");
+        // B2C should not be called when local DB update fails
+        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
     }
 
     @DisplayName("Should handle IllegalStateException during processing")
@@ -679,8 +781,10 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
+        when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net"))
+            .thenReturn(uk.gov.hmcts.reform.preapi.enums.UpsertResult.UPDATED);
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
 
@@ -694,10 +798,10 @@ class ImportUserAlternativeEmailTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Report generation failed");
 
-            verify(userService, times(1)).findByOriginalEmail("test@example.com");
+            verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+            verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
             verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
             verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
-            verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
         }
     }
 
@@ -725,7 +829,7 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
@@ -734,7 +838,7 @@ class ImportUserAlternativeEmailTest {
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("test@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
@@ -743,6 +847,7 @@ class ImportUserAlternativeEmailTest {
     @DisplayName("Should handle RuntimeException during CSV parsing that is not CsvRequiredFieldEmptyException")
     @Test
     void runHandlesOtherRuntimeExceptionDuringCsvParsing() throws Exception {
+        // This test covers the case where getInputStream() throws RuntimeException
         InputStreamResource blobResource = mock(InputStreamResource.class);
         when(blobResource.getInputStream())
             .thenThrow(new RuntimeException("IO error during parsing"));
@@ -757,6 +862,23 @@ class ImportUserAlternativeEmailTest {
             .hasRootCauseMessage("IO error during parsing");
     }
 
+    @DisplayName("Should handle RuntimeException during CSV parse() that is not CsvRequiredFieldEmptyException")
+    @Test
+    void runHandlesRuntimeExceptionDuringCsvParse() throws Exception {
+        InputStreamResource blobResource = mock(InputStreamResource.class);
+        InputStream inputStream = mock(InputStream.class);
+        when(inputStream.read(any(byte[].class), anyInt(), anyInt())).thenThrow(new RuntimeException("Parse error"));
+        when(blobResource.getInputStream()).thenReturn(inputStream);
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Failed to import user alternative email data: Unexpected error")
+            .hasCauseInstanceOf(RuntimeException.class);
+    }
+
     @DisplayName("Should use ClassPathResource when FileSystemResource doesn't exist and useLocalCsv is true")
     @Test
     void runUsesClassPathResourceWhenFileSystemResourceNotFound() throws Exception {
@@ -769,31 +891,46 @@ class ImportUserAlternativeEmailTest {
         user1.setEmail("nazee.kadiu1@hmcts.net");
         user1.setFirstName("Nazee");
         user1.setLastName("Kadiu");
+        PortalAccess user1PortalAccess = new PortalAccess();
+        user1PortalAccess.setId(UUID.randomUUID());
+        user1PortalAccess.setUser(user1);
+        user1PortalAccess.setStatus(AccessStatus.ACTIVE);
+        user1.setPortalAccess(Set.of(user1PortalAccess));
 
         User user2 = new User();
         user2.setId(UUID.randomUUID());
         user2.setEmail("marianne.azzopardi@hmcts.net");
         user2.setFirstName("Marianne");
         user2.setLastName("Azzopardi");
+        PortalAccess user2PortalAccess = new PortalAccess();
+        user2PortalAccess.setId(UUID.randomUUID());
+        user2PortalAccess.setUser(user2);
+        user2PortalAccess.setStatus(AccessStatus.ACTIVE);
+        user2.setPortalAccess(Set.of(user2PortalAccess));
 
         User user3 = new User();
         user3.setId(UUID.randomUUID());
         user3.setEmail("marianne.azzopardi2@hmcts.net");
         user3.setFirstName("Marianne");
         user3.setLastName("Azzopardi");
+        PortalAccess user3PortalAccess = new PortalAccess();
+        user3PortalAccess.setId(UUID.randomUUID());
+        user3PortalAccess.setUser(user3);
+        user3PortalAccess.setStatus(AccessStatus.ACTIVE);
+        user3.setPortalAccess(Set.of(user3PortalAccess));
 
-        when(userService.findByOriginalEmail("nazee.kadiu1@hmcts.net"))
+        when(userService.findByOriginalEmailWithPortalAccess("nazee.kadiu1@hmcts.net"))
             .thenReturn(Optional.of(user1));
-        when(userService.findByOriginalEmail("marianne.azzopardi@hmcts.net"))
+        when(userService.findByOriginalEmailWithPortalAccess("marianne.azzopardi@hmcts.net"))
             .thenReturn(Optional.of(user2));
-        when(userService.findByOriginalEmail("marianne.azzopardi2@hmcts.net"))
+        when(userService.findByOriginalEmailWithPortalAccess("marianne.azzopardi2@hmcts.net"))
             .thenReturn(Optional.of(user3));
 
         task.run();
 
-        verify(userService, times(1)).findByOriginalEmail("nazee.kadiu1@hmcts.net");
-        verify(userService, times(1)).findByOriginalEmail("marianne.azzopardi@hmcts.net");
-        verify(userService, times(1)).findByOriginalEmail("marianne.azzopardi2@hmcts.net");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("nazee.kadiu1@hmcts.net");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("marianne.azzopardi@hmcts.net");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("marianne.azzopardi2@hmcts.net");
         useLocalCsvField.set(task, false);
     }
 
@@ -821,7 +958,7 @@ class ImportUserAlternativeEmailTest {
 
         when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
             .thenReturn(blobResource);
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
@@ -833,7 +970,7 @@ class ImportUserAlternativeEmailTest {
 
             task.run();
 
-            verify(userService, times(1)).findByOriginalEmail("test@example.com");
+            verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
             verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
             verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id"), anyList());
             verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
@@ -849,6 +986,11 @@ class ImportUserAlternativeEmailTest {
         errorUser.setEmail("error@example.com");
         errorUser.setFirstName("Error");
         errorUser.setLastName("User");
+        PortalAccess errorUserPortalAccess = new PortalAccess();
+        errorUserPortalAccess.setId(UUID.randomUUID());
+        errorUserPortalAccess.setUser(errorUser);
+        errorUserPortalAccess.setStatus(AccessStatus.ACTIVE);
+        errorUser.setPortalAccess(Set.of(errorUserPortalAccess));
 
         com.microsoft.graph.models.User b2cUser1 = new com.microsoft.graph.models.User();
         b2cUser1.setId("b2c-user-id-1");
@@ -885,17 +1027,17 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
 
         // SUCCESS
-        when(userService.findByOriginalEmail("test@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser1));
 
         // NOT_FOUND
-        when(userService.findByOriginalEmail("missing@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("missing@example.com"))
             .thenReturn(Optional.empty());
 
         // ERROR
-        when(userService.findByOriginalEmail("error@example.com"))
+        when(userService.findByOriginalEmailWithPortalAccess("error@example.com"))
             .thenReturn(Optional.of(errorUser));
         when(b2cGraphService.findUserByPrimaryEmail("error@example.com"))
             .thenReturn(Optional.of(b2cUser2));
@@ -922,13 +1064,13 @@ class ImportUserAlternativeEmailTest {
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id-1"), anyList());
 
         // SKIPPED
-        verify(userService, never()).findByOriginalEmail("skipped@example.com");
+        verify(userService, never()).findByOriginalEmailWithPortalAccess("skipped@example.com");
 
         // NOT_FOUND
-        verify(userService, times(1)).findByOriginalEmail("missing@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("missing@example.com");
 
         // ERROR
-        verify(userService, times(1)).findByOriginalEmail("error@example.com");
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("error@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("error@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id-2"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(errorUser.getId(), "invalid@test");
