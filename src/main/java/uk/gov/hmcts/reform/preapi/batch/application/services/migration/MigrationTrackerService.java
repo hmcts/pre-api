@@ -217,13 +217,15 @@ public class MigrationTrackerService {
         return writtenFiles;
     }
 
-    public void writeInvitedUsersToCsv(String fileName, String outputDir) {
+    public File writeInvitedUsersToCsvFile(String fileName, String outputDir) {
         List<String> headers = getInvitedUsersHeaders();
         List<List<String>> rows = buildInvitedUserRows();
         try {
-            ReportCsvWriter.writeToCsv(headers, rows, fileName, outputDir, false);
+            Path path = ReportCsvWriter.writeToCsv(headers, rows, fileName, outputDir, false);
+            return path != null ? path.toFile() : null;
         } catch (IOException e) {
-            loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
+            loggingService.logError("Failed to write invited users CSV: %s", e.getMessage());
+            return null;
         }
     }
     
@@ -304,12 +306,12 @@ public class MigrationTrackerService {
 
     public void writeNewUserReport() {
         String outputDir = ensureOutputDir();
-        writeInvitedUsersToCsv("Invited_users", outputDir);
+        writeInvitedUsersToCsvFile("Invited_users", outputDir);
     }
 
     public void writeShareBookingsReport() {
         String outputDir = ensureOutputDir();
-        writeShareBookingsToCsv("Share_bookings", outputDir);
+        writeShareBookingsToCsvFile("Share_bookings", outputDir);
     }
 
     public void writeCaseClosureReport() {
@@ -358,6 +360,46 @@ public class MigrationTrackerService {
         }
     }
 
+    public void writeAndUploadPostMigrationReports() {
+        String timestamp = ensureRunTimestamp();
+        String outputDir = ensureOutputDir();
+
+        File invitedUsersFile = writeInvitedUsersToCsvFile("Invited_users", outputDir);
+        if (invitedUsersFile != null && invitedUsersFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(
+                reportContainer,
+                timestamp + "/Invited_users.csv",
+                invitedUsersFile
+            );
+        }
+
+        File shareBookingsFile = writeShareBookingsToCsvFile("Share_bookings", outputDir);
+        if (shareBookingsFile != null && shareBookingsFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(
+                reportContainer,
+                timestamp + "/Share_bookings.csv",
+                shareBookingsFile
+            );
+        }
+
+        File shareInviteFailureFile = writeShareInviteFailureReport("Share_invite_failures", outputDir);
+        if (shareInviteFailureFile != null && shareInviteFailureFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(
+                reportContainer,
+                timestamp + "/Share_invite_failures.csv",
+                shareInviteFailureFile
+            );
+        }
+
+        File caseClosureFile = writeCaseClosureReport("Case_closure", outputDir);
+        if (caseClosureFile != null && caseClosureFile.exists()) {
+            azureVodafoneStorageService.uploadCsvFile(
+                reportContainer,
+                timestamp + "/Case_closure.csv",
+                caseClosureFile
+            );
+        }
+    }
 
     // ==================================
     // Helpers
@@ -573,12 +615,14 @@ public class MigrationTrackerService {
         return rows;
     }
 
-    public void writeShareBookingsToCsv(String fileName, String outputDir) {
+    public File writeShareBookingsToCsvFile(String fileName, String outputDir) {
         List<List<String>> rows = buildShareBookingsRows();
         try {
-            ReportCsvWriter.writeToCsv(SHARE_BOOKINGS_HEADERS, rows, fileName, outputDir, false);
+            Path path = ReportCsvWriter.writeToCsv(SHARE_BOOKINGS_HEADERS, rows, fileName, outputDir, false);
+            return path != null ? path.toFile() : null;
         } catch (IOException e) {
             loggingService.logError("Failed to write share bookings CSV: %s", e.getMessage());
+            return null;
         }
     }
 
