@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import com.microsoft.graph.models.ObjectIdentity;
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,21 +17,27 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsv
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.B2CGraphService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
 @Component
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class ImportUserAlternativeEmail extends RobotUserTask {
 
     private final AzureVodafoneStorageService azureVodafoneStorageService;
+    private final B2CGraphService b2cGraphService;
 
     @Value("${azure.vodafoneStorage.csvContainer}")
     private String containerName;
@@ -74,9 +82,11 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
     public ImportUserAlternativeEmail(UserService userService,
                                 UserAuthenticationService userAuthenticationService,
                                 @Value("${cron-user-email}") String cronUserEmail,
-                                AzureVodafoneStorageService azureVodafoneStorageService) {
+                                AzureVodafoneStorageService azureVodafoneStorageService,
+                                B2CGraphService b2cGraphService) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.azureVodafoneStorageService = azureVodafoneStorageService;
+        this.b2cGraphService = b2cGraphService;
     }
 
     @Override
@@ -112,7 +122,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 resource = new ClassPathResource("batch/alternative_email_import.csv");
             }
 
-            if (!resource.exists()) {
+            if (!resource.exists()) { // NOSONAR
                 throw new IOException("CSV file not found at local path: " + LOCAL_CSV_PATH);
             }
         } else {
@@ -128,11 +138,18 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(),
                                                                               StandardCharsets.UTF_8))) {
-            return new CsvToBeanBuilder<ImportRow>(reader)
-                .withType(ImportRow.class)
-                .withIgnoreLeadingWhiteSpace(true)
-                .build()
-                .parse();
+            try {
+                return new CsvToBeanBuilder<ImportRow>(reader)
+                    .withType(ImportRow.class)
+                    .withIgnoreLeadingWhiteSpace(true)
+                    .build()
+                    .parse();
+            } catch (RuntimeException e) {
+                if (e.getCause() instanceof CsvRequiredFieldEmptyException) {
+                    throw new IOException("CSV header invalid: " + e.getCause().getMessage(), e);
+                }
+                throw e;
+            }
         }
     }
 
@@ -154,7 +171,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     case "NOT_FOUND" -> notFoundCount++;
                     case "SKIPPED" -> emptyAltEmailCount++;
                     case STATUS_ERROR -> errorCount++;
-                    default -> log.warn("Unknown status: {}", result.getStatus());
+                    default -> log.warn("Unknown status: {}", result.getStatus()); // NOSONAR
                 }
             } catch (Exception e) {
                 log.error("Error processing row for email: {}", row.getEmail(), e);
@@ -197,6 +214,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
+        // Check if alternative email already exists for another user
         Optional<User> existingAltUserEmail = userService
             .findByAlternativeEmail(row.getAlternativeEmail());
 
@@ -209,13 +227,94 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
-        userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+        // Update B2C first
+        ImportResult result = updateB2CAlternativeEmail(row);
 
+        // Update local database regardless of whether B2C succeeds
+        try {
+            userService.updateAlternativeEmail(user.getId(), row.getAlternativeEmail());
+        } catch (Exception e) {
+            log.error("Failed to update local DB for user {}: {}", row.getEmail(), e.getMessage(), e);
+            if (Objects.equals(result.getStatus(), STATUS_ERROR)) {
+                return new ImportResult(
+                    row.getEmail(),
+                    row.getAlternativeEmail(),
+                    STATUS_ERROR,
+                    "Failed to update local DB: " + e.getMessage() + result.getMessage()
+                );
+            }
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                STATUS_ERROR,
+                "Failed to update local DB: " + e.getMessage()
+            );
+        }
+
+        return result;
+    }
+
+    private ImportResult updateB2CAlternativeEmail(ImportRow row) {
+        try {
+            Optional<com.microsoft.graph.models.User> maybeB2cUser =
+                b2cGraphService.findUserByPrimaryEmail(row.getEmail());
+
+            if (maybeB2cUser.isEmpty()) {
+                return new ImportResult(
+                    row.getEmail(),
+                    row.getAlternativeEmail(),
+                    STATUS_ERROR,
+                    "User not found in B2C with email: " + row.getEmail()
+                );
+            }
+
+            com.microsoft.graph.models.User b2cUser = maybeB2cUser.get();
+            List<ObjectIdentity> identities = b2cUser.getIdentities();
+
+            if (identities == null) {
+                identities = new ArrayList<>();
+            }
+
+            // Check if alternative email already exists as an identity
+            boolean alternativeEmailExists = identities.stream()
+                .anyMatch(identity -> identity.getIssuerAssignedId() != null
+                    && identity.getIssuerAssignedId().equalsIgnoreCase(row.getAlternativeEmail()));
+
+            if (!alternativeEmailExists) {
+                // Create new identity for alternative email
+                ObjectIdentity newIdentity = new ObjectIdentity();
+                newIdentity.setSignInType("emailAddress");
+                newIdentity.setIssuer(identities.isEmpty() ? "unknown" : identities.get(0).getIssuer());
+                newIdentity.setIssuerAssignedId(row.getAlternativeEmail());
+
+                List<ObjectIdentity> updatedIdentities = new ArrayList<>(identities);
+                updatedIdentities.add(newIdentity);
+
+                b2cGraphService.updateUserIdentities(b2cUser.getId(), updatedIdentities);
+                log.info(
+                    "Added alternative email {} as identity to B2C user {}",
+                    row.getAlternativeEmail(), row.getEmail()
+                );
+            } else {
+                log.info(
+                    "Alternative email {} already exists as identity for B2C user {}",
+                    row.getAlternativeEmail(), row.getEmail()
+                );
+            }
+        } catch (Exception e) {
+            log.error("Failed to update B2C identity for user {}: {}", row.getEmail(), e.getMessage(), e);
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                STATUS_ERROR,
+                "Failed to update B2C identity: " + e.getMessage()
+            );
+        }
         return new ImportResult(
             row.getEmail(),
             row.getAlternativeEmail(),
             "SUCCESS",
-            "Alternative email updated successfully"
+            "Alternative email updated successfully in both local DB and B2C"
         );
     }
 
@@ -226,8 +325,19 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 .map(ImportResult::toRow)
                 .toList();
 
-            ReportCsvWriter.writeToCsv(headers, rows, "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
+            Path reportPath = ReportCsvWriter.writeToCsv(headers, rows,
+                "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
             log.info("Report generated successfully in {}", REPORT_OUTPUT_DIR);
+
+            if (reportPath != null) {
+                File reportFile = reportPath.toFile();
+                if (reportFile.exists()) {
+                    String fileName = reportPath.getFileName().toString();
+                    String blobPath = "reports/" + fileName;
+                    azureVodafoneStorageService.uploadCsvFile(containerName, blobPath, reportFile);
+                    log.info("Report uploaded to Azure: {}/{}", containerName, blobPath);
+                }
+            }
         } catch (IOException e) {
             log.error("Failed to generate report", e);
         }

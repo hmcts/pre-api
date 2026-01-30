@@ -73,7 +73,7 @@ public class EditCutInstructionDTO {
         }
     }
 
-    private static String formatTime(long time) {
+    public static String formatTime(long time) {
         if (time < 0) {
             throw new IllegalArgumentException("Time in seconds cannot be negative: " + time);
         }

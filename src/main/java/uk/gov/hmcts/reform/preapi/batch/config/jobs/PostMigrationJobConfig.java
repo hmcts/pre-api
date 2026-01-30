@@ -16,12 +16,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PostMigrationItemProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.PostMigrationItemReader;
-import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService.CaseClosureReportEntry;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
@@ -30,29 +29,41 @@ import uk.gov.hmcts.reform.preapi.batch.application.writer.PostMigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
-import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.DATE_TIME_FORMAT;
+
 
 @Configuration
 @SuppressWarnings("PMD.CouplingBetweenObjects")
@@ -62,47 +73,56 @@ public class PostMigrationJobConfig {
     private final CoreStepsConfig coreSteps;
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
-    private final EntityCreationService entityCreationService;
     private final MigrationTrackerService migrationTrackerService;
-    private final MigrationRecordService migrationRecordService;
     private final CaseService caseService;
-    private final BookingService bookingService;
-    private final RecordingService recordingService;
     private final PostMigrationItemReader postMigrationItemReader;
     private final PostMigrationItemProcessor postMigrationItemProcessor;
     private final UserService userService;
+    private final PortalAccessRepository portalAccessRepository;
+    private final BookingService bookingService;
+    private final RecordingRepository recordingRepository;
+    private final CaptureSessionRepository captureSessionRepository;
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
+
+    private static final String STATUS_SKIPPED = "SKIPPED";
+    private static final String ENTITY_TYPE_SHARE_BOOKING = "ShareBooking";
+    private static final String REASON_USER_INACTIVE_OR_DELETED = "User is inactive or deleted";
+    private static final String REASON_SHARED_WITH_USER_NULL = "SharedWithUser is null";
+    private static final String LOG_USER_DELETED = "User %s is deleted - skipping";
+    private static final String LOG_USER_DELETED_PORTAL_ACCESS = "User %s has deleted portal access - skipping";
+    private static final String LOG_USER_INACTIVE_PORTAL_ACCESS = "User %s has INACTIVE portal access - skipping";
+    private static final String LOG_ERROR_CHECKING_USER_STATUS = "Error checking user status for %s: %s";
 
     public PostMigrationJobConfig(final JobRepository jobRepository,
                                   final PlatformTransactionManager transactionManager,
                                   final CoreStepsConfig coreSteps,
                                   final LoggingService loggingService,
                                   final InMemoryCacheService cacheService,
-                                  final EntityCreationService entityCreationService,
                                   final MigrationTrackerService migrationTrackerService,
-                                  final MigrationRecordService migrationRecordService,
                                   final CaseService caseService,
-                                  final BookingService bookingService,
-                                  final RecordingService recordingService,
                                   final PostMigrationItemReader postMigrationItemReader,
                                   final PostMigrationItemProcessor postMigrationItemProcessor,
-                                  final UserService userService) {
+                                  final UserService userService,
+                                  final PortalAccessRepository portalAccessRepository,
+                                  final BookingService bookingService,
+                                  final RecordingRepository recordingRepository,
+                                  final CaptureSessionRepository captureSessionRepository) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.coreSteps = coreSteps;
         this.loggingService = loggingService;
         this.cacheService = cacheService;
-        this.entityCreationService = entityCreationService;
         this.migrationTrackerService = migrationTrackerService;
-        this.migrationRecordService = migrationRecordService;
         this.caseService = caseService;
-        this.bookingService = bookingService;
-        this.recordingService = recordingService;
         this.postMigrationItemReader = postMigrationItemReader;
         this.postMigrationItemProcessor = postMigrationItemProcessor;
         this.userService = userService;
+        this.portalAccessRepository = portalAccessRepository;
+        this.bookingService = bookingService;
+        this.recordingRepository = recordingRepository;
+        this.captureSessionRepository = captureSessionRepository;
     }
 
     @Bean
@@ -149,18 +169,13 @@ public class PostMigrationJobConfig {
 
                 AtomicInteger closed = new AtomicInteger();
                 AtomicInteger skipped = new AtomicInteger();
-                AtomicInteger recordingsFound = new AtomicInteger();
-                AtomicInteger recordingsDeleted = new AtomicInteger();
 
                 vodafoneCases.forEach(caseDTO ->
-                    processCase(caseDTO, channelUsersMap, closed, skipped, dryRun, recordingsFound, recordingsDeleted)
+                    processCase(caseDTO, channelUsersMap, closed, skipped, dryRun)
                 );
 
                 loggingService.logInfo("Case closure summary — Total: %d, Closed: %d, Skipped: %d",
                     vodafoneCases.size(), closed.get(), skipped.get());
-
-                loggingService.logInfo("Recording cleanup summary — Found: %d, Removed: %d",
-                    recordingsFound.get(), recordingsDeleted.get());
 
                 migrationTrackerService.writeCaseClosureReport();
 
@@ -198,10 +213,8 @@ public class PostMigrationJobConfig {
     public Step createWriteReportsStep() {
         return new StepBuilder("writeReportsStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
-                migrationTrackerService.writeNewUserReport();
-                migrationTrackerService.writeShareBookingsReport();
-                migrationTrackerService.writeShareInviteFailureReport();
-                loggingService.logInfo("Reports written successfully");
+                migrationTrackerService.writeAndUploadPostMigrationReports();
+                loggingService.logInfo("Reports written and uploaded successfully");
                 return RepeatStatus.FINISHED;
             }, transactionManager)
             .build();
@@ -217,9 +230,69 @@ public class PostMigrationJobConfig {
         return cases;
     }
 
+    private boolean hasRecentBookings(CaseDTO caseDTO) {
+        if (caseDTO.getId() == null) {
+            return false;
+        }
+        
+        try {
+            LocalDateTime sixMonthsAgoLocal = LocalDateTime.now().minusMonths(6);
+            Timestamp sixMonthsAgo = Timestamp.from(
+                sixMonthsAgoLocal.atZone(ZoneId.systemDefault()).toInstant()
+            );
+            
+            Pageable pageable = PageRequest.of(0, 1000);
+            var bookings = bookingService.findAllByCaseId(caseDTO.getId(), pageable);
+            
+            return bookings.getContent().stream()
+                .anyMatch(booking -> 
+                    booking.getScheduledFor() != null 
+                    && booking.getScheduledFor().after(sixMonthsAgo)
+                );
+        } catch (Exception e) {
+            loggingService.logWarning(
+                "Error checking bookings for case %s: %s", 
+                caseDTO.getReference(), e.getMessage()
+            );
+            return true;
+        }
+    }
+
+    private boolean hasBlockingCaptureSessions(CaseDTO caseDTO) {
+        if (caseDTO.getId() == null) {
+            return false;
+        }
+        
+        try {
+            Pageable pageable = PageRequest.of(0, 1000);
+            var bookings = bookingService.findAllByCaseId(caseDTO.getId(), pageable);
+            
+            return bookings.getContent().stream()
+                .flatMap(booking -> booking.getCaptureSessions().stream())
+                .anyMatch(captureSessionDto -> {
+                    if (captureSessionDto.getDeletedAt() != null
+                        || (captureSessionDto.getStatus() != RecordingStatus.FAILURE
+                            && captureSessionDto.getStatus() != RecordingStatus.NO_RECORDING)) {
+                        return false;
+                    }
+                    
+                    return captureSessionRepository.findById(captureSessionDto.getId())
+                        .map(captureSession -> 
+                            recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)
+                        )
+                        .orElse(false);
+                });
+        } catch (Exception e) {
+            loggingService.logWarning(
+                "Error checking capture sessions for case %s: %s", 
+                caseDTO.getReference(), e.getMessage()
+            );
+            return false;
+        }
+    }
+
     private void processCase(CaseDTO caseDTO, Map<String, List<String[]>> channelUsersMap,
-        AtomicInteger closed, AtomicInteger skipped, boolean dryRun,
-        AtomicInteger recordingsFound, AtomicInteger recordingsDeleted) {
+        AtomicInteger closed, AtomicInteger skipped, boolean dryRun) {
         String reference = caseDTO.getReference();
 
         if (caseDTO.getState() == CaseState.CLOSED) {
@@ -229,9 +302,38 @@ public class PostMigrationJobConfig {
                 caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                 reference,
                 "ALREADY_CLOSED",
-                0,
-                0,
                 "Case already in CLOSED state"
+            ));
+            return;
+        }
+
+        // Check for recent bookings (less than 6 months old)
+        if (hasRecentBookings(caseDTO)) {
+            loggingService.logInfo("Skipping case %s — has bookings less than 6 months old.", reference);
+            skipped.incrementAndGet();
+            CaseClosureReportEntry entry = new CaseClosureReportEntry(
+                caseDTO.getId() != null ? caseDTO.getId().toString() : "",
+                reference,
+                STATUS_SKIPPED,
+                "Case has bookings less than 6 months old"
+            );
+            migrationTrackerService.addCaseClosureEntry(entry);
+            return;
+        }
+
+        // Check if case has capture sessions with associated recordings that would block closure
+        if (hasBlockingCaptureSessions(caseDTO)) {
+            loggingService.logWarning(
+                "Could not close case %s (%s) - capture session has associated recordings",
+                caseDTO.getReference(), caseDTO.getId()
+            );
+            
+            skipped.incrementAndGet();
+            migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
+                caseDTO.getId() != null ? caseDTO.getId().toString() : "",
+                caseDTO.getReference(),
+                "BLOCKED_BY_CAPTURE_SESSION",
+                "Cannot close case because capture session has associated recordings that have not been deleted"
             ));
             return;
         }
@@ -241,43 +343,46 @@ public class PostMigrationJobConfig {
                 "Case %s does not have matching channel user entry — attempting to close.",
                                     reference);
             try {
-                CleanupStats cleanupStats = deleteActiveRecordings(caseDTO, dryRun);
-                recordingsFound.addAndGet(cleanupStats.found());
-                recordingsDeleted.addAndGet(cleanupStats.deleted());
-
                 if (!dryRun) {
                     caseService.upsert(buildClosedCaseDTO(caseDTO));
-                    loggingService.logInfo(
-                        "Closed Vodafone case: %s (%s). Removed %d recording(s).",
-                        reference, caseDTO.getId(), cleanupStats.deleted());
                 } else {
                     loggingService.logInfo(
-                        "[DRY RUN] Would close Vodafone case: %s (%s). Would remove %d recording(s).",
-                        reference, caseDTO.getId(), cleanupStats.found());
+                        "[DRY RUN] Would close Vodafone case: %s (%s).",
+                        reference, caseDTO.getId());
                 }
 
                 migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
                     caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                     reference,
                     dryRun ? "DRY_RUN_CLOSE" : "CLOSED",
-                    cleanupStats.found(),
-                    cleanupStats.deleted(),
                     ""
                 ));
 
                 closed.incrementAndGet();
+            } catch (CaptureSessionNotDeletedException e) {
+                loggingService.logWarning(
+                    "Could not close case %s (%s) - capture session has associated recordings: %s",
+                    reference, caseDTO.getId(), e.getMessage()
+                );
+                
+                skipped.incrementAndGet();
+                migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
+                    caseDTO.getId() != null ? caseDTO.getId().toString() : "",
+                    reference,
+                    "BLOCKED_BY_CAPTURE_SESSION",
+                    "Cannot close case because capture session has associated recordings that have not been deleted"
+                ));
             } catch (Exception e) {
                 loggingService.logError(
                     "Failed to close case %s (%s): %s — %s",
                     reference, caseDTO.getId(), e.getClass().getSimpleName(), e.getMessage()
                 );
+                
                 skipped.incrementAndGet();
                 migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
                     caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                     reference,
                     "FAILED",
-                    0,
-                    0,
                     e.getMessage()
                 ));
             }
@@ -287,9 +392,7 @@ public class PostMigrationJobConfig {
             migrationTrackerService.addCaseClosureEntry(new CaseClosureReportEntry(
                 caseDTO.getId() != null ? caseDTO.getId().toString() : "",
                 reference,
-                "SKIPPED",
-                0,
-                0,
+                STATUS_SKIPPED,
                 "Matching channel user data found"
             ));
         }
@@ -298,54 +401,6 @@ public class PostMigrationJobConfig {
     private boolean hasMatchingChannelUser(String reference, Map<String, List<String[]>> channelUsersMap) {
         return channelUsersMap.keySet().stream()
             .anyMatch(k -> k.toLowerCase(Locale.UK).contains(reference.toLowerCase(Locale.UK)));
-    }
-
-    private CleanupStats deleteActiveRecordings(CaseDTO caseDTO, boolean dryRun) {
-        AtomicInteger discoveredCount = new AtomicInteger();
-        AtomicInteger deletedCount = new AtomicInteger();
-
-        bookingService.findAllByCaseId(caseDTO.getId(), Pageable.unpaged()).forEach(booking -> {
-            if (booking.getCaptureSessions() == null) {
-                return;
-            }
-
-            booking.getCaptureSessions().forEach(captureSession -> {
-                SearchRecordings params = new SearchRecordings();
-                params.setCaptureSessionId(captureSession.getId());
-
-                var recordings = recordingService.findAll(params, false, Pageable.unpaged());
-                if (recordings.isEmpty()) {
-                    return;
-                }
-
-                recordings.forEach(recording -> {
-                    discoveredCount.incrementAndGet();
-
-                    if (dryRun) {
-                        loggingService.logDebug(
-                            "[DRY RUN] Would delete recording %s for case %s (capture session %s)",
-                            recording.getId(), caseDTO.getReference(), captureSession.getId()
-                        );
-                    } else {
-                        try {
-                            recordingService.deleteById(recording.getId());
-                            deletedCount.incrementAndGet();
-                            loggingService.logDebug(
-                                "Deleted recording %s for case %s (capture session %s)",
-                                recording.getId(), caseDTO.getReference(), captureSession.getId()
-                            );
-                        } catch (Exception ex) {
-                            loggingService.logError(
-                                "Failed to delete recording %s for case %s: %s",
-                                recording.getId(), caseDTO.getReference(), ex.getMessage()
-                            );
-                        }
-                    }
-                });
-            });
-        });
-
-        return new CleanupStats(discoveredCount.get(), deletedCount.get());
     }
 
     private CreateCaseDTO buildClosedCaseDTO(CaseDTO caseDTO) {
@@ -377,9 +432,6 @@ public class PostMigrationJobConfig {
         return dto;
     }
 
-    private record CleanupStats(int found, int deleted) {
-    }
-
     private String resolveEmailForShare(PostMigratedItemGroup item, CreateShareBookingDTO share) {
         if (item.getInvites() != null) {
             String email = item.getInvites().stream()
@@ -395,7 +447,11 @@ public class PostMigrationJobConfig {
 
         if (share.getSharedWithUser() != null) {
             try {
-                return userService.findById(share.getSharedWithUser()).getEmail();
+                var user = userService.findById(share.getSharedWithUser());
+                return user.getEmail();
+            } catch (NotFoundException e) {
+                loggingService.logWarning(
+                    "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
             } catch (Exception e) {
                 loggingService.logWarning(
                     "Could not find user email for ID: %s - %s", share.getSharedWithUser(), e.getMessage());
@@ -423,6 +479,21 @@ public class PostMigrationJobConfig {
 
                         if (item.getInvites() != null) {
                             for (CreateInviteDTO invite : item.getInvites()) {
+                                if (invite.getUserId() != null 
+                                    && !isUserActiveForMigration(invite.getUserId(), invite.getEmail())) {
+                                    loggingService.logWarning(
+                                        "[DRY RUN] Skipping invite for inactive/deleted user: %s", invite.getEmail());
+                                    migrationTrackerService.addShareInviteFailure(
+                                        new MigrationTrackerService.ShareInviteFailureEntry(
+                                            "Invite",
+                                            invite.getUserId().toString(),
+                                            invite.getEmail(),
+                                            STATUS_SKIPPED,
+                                            REASON_USER_INACTIVE_OR_DELETED,
+                                            DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
+                                    ));
+                                    continue;
+                                }
                                 migrationTrackerService.addInvitedUser(invite);
                             }
                         }
@@ -430,6 +501,21 @@ public class PostMigrationJobConfig {
                         if (item.getShareBookings() != null) {
                             for (CreateShareBookingDTO share : item.getShareBookings()) {
                                 String email = resolveEmailForShare(item, share);
+                                String skipReason = getSkipReasonForShare(share, email);
+                                if (skipReason != null) {
+                                    loggingService.logWarning(
+                                        "[DRY RUN] Skipping share booking: %s", skipReason);
+                                    migrationTrackerService.addShareInviteFailure(
+                                        new MigrationTrackerService.ShareInviteFailureEntry(
+                                            ENTITY_TYPE_SHARE_BOOKING,
+                                            share.getId() != null ? share.getId().toString() : "",
+                                            email.isEmpty() ? "unknown" : email,
+                                            STATUS_SKIPPED,
+                                            skipReason,
+                                            DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(LocalDateTime.now())
+                                    ));
+                                    continue;
+                                }
                                 migrationTrackerService.addShareBooking(share);
                                 migrationTrackerService.addShareBookingReport(share, email, vodafoneUserEmail);
                             }
@@ -444,6 +530,48 @@ public class PostMigrationJobConfig {
                 postMigrationWriter.write(chunk);
             }
         };
+    }
+
+    private String getSkipReasonForShare(CreateShareBookingDTO share, String email) {
+        if (share.getSharedWithUser() == null) {
+            return REASON_SHARED_WITH_USER_NULL;
+        }
+        if (!isUserActiveForMigration(share.getSharedWithUser(), email)) {
+            return REASON_USER_INACTIVE_OR_DELETED;
+        }
+        return null;
+    }
+
+    private boolean isUserActiveForMigration(UUID userId, String email) {
+        try {
+            var user = userService.findById(userId);
+            if (user.getDeletedAt() != null) {
+                loggingService.logDebug(LOG_USER_DELETED, email);
+                return false;
+            }
+            
+            var portalAccess = portalAccessRepository
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId);
+            
+            if (portalAccess.isEmpty()) {
+                var deletedPortalAccess = portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId);
+                if (!deletedPortalAccess.isEmpty()) {
+                    loggingService.logDebug(LOG_USER_DELETED_PORTAL_ACCESS, email);
+                    return false;
+                }
+                return true;
+            }
+            
+            if (portalAccess.get().getStatus() == AccessStatus.INACTIVE) {
+                loggingService.logDebug(LOG_USER_INACTIVE_PORTAL_ACCESS, email);
+                return false;
+            }
+            
+            return true;
+        } catch (Exception e) {
+            loggingService.logWarning(LOG_ERROR_CHECKING_USER_STATUS, email, e.getMessage());
+            return false;
+        }
     }
 
 }
