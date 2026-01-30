@@ -1376,9 +1376,9 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
-    @DisplayName("Should pass advanced settings name when creating streaming endpoint")
+    @DisplayName("Should not pass advanced settings name for VOD playback when creating streaming endpoint")
     @Test
-    void playAssetStreamingEndpointNotFoundUsesAdvancedSettingsName() throws InterruptedException {
+    void playAssetStreamingEndpointNotFoundDoesNotUseAdvancedSettingsName() throws InterruptedException {
         mediaKindConfiguration = new MediaKindConfiguration(
             "Staging",
             "pre-mediakind-stg",
@@ -1445,7 +1445,7 @@ public class MediaKindTest {
         ArgumentCaptor<MkStreamingEndpoint> endpointCaptor = ArgumentCaptor.forClass(MkStreamingEndpoint.class);
         verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), endpointCaptor.capture());
         assertThat(endpointCaptor.getValue().getProperties().getAdvancedSettingsName())
-            .isEqualTo("ap-jitp-hmcts-disable-edge-buffer");
+            .isNull();
     }
 
     @DisplayName("Should throw not found error when both dash and hls are null")
