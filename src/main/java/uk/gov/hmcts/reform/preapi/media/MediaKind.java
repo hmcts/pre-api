@@ -807,11 +807,17 @@ public class MediaKind implements IMediaService {
                                     .builder()
                                     .name(Tier.Standard)
                                     .build())
+                            .advancedSettingsName(getStreamingEndpointAdvancedSettingsName())
                             .build())
                     .build());
             mediaKindClient.startStreamingEndpoint(endpointName);
             return checkStreamingEndpointReady(endpoint);
         }
+    }
+
+    private String getStreamingEndpointAdvancedSettingsName() {
+        String advancedSettingsName = configuration.getStreamingEndpointAdvancedSettingsName();
+        return (advancedSettingsName == null || advancedSettingsName.isBlank()) ? null : advancedSettingsName;
     }
 
     private MkStreamingLocator getOrCreateStreamingLocator(String liveEventId) {
