@@ -161,7 +161,8 @@ public class CaptureSessionController extends PreApiController {
     }
 
     @PutMapping("/trigger-registration/{captureSessionId}")
-    @Operation(operationId = "triggerRegistrationForCaptureSession", summary = "Register a Capture Session")
+    @Operation(operationId = "triggerRegistrationForCaptureSession",
+        summary = "Register a Capture Session that got stuck in PROCESSING state")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
     public ResponseEntity<Void> registerCaptureSession(@PathVariable UUID captureSessionId) {
 
