@@ -383,8 +383,6 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
     @Test
     @Transactional
     void shouldNotReturnFailedCaptureSessionsWithinDateRangeThatHaveBeenDeleted() {
-        LocalDate startDate = LocalDate.of(2025, 10, 1);
-        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
@@ -392,6 +390,8 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
         entityManager.persist(aCase);
         Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
         entityManager.persist(booking);
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         // Capture sessions within the specified dates but marked as deleted
         CaptureSession captureSession1 = HelperFactory.createCaptureSession(
@@ -433,8 +433,6 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
     @Test
     @Transactional
     void shouldReturnFailedCaptureSessionsAtTheEdgesOfDateRange() {
-        LocalDate startDate = LocalDate.of(2025, 10, 1);
-        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
@@ -442,6 +440,8 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
         entityManager.persist(aCase);
         Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
         entityManager.persist(booking);
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         // Capture session at the very edge of start date
         CaptureSession captureSession1 = HelperFactory.createCaptureSession(
@@ -486,8 +486,6 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
     @Test
     @Transactional
     void shouldNotReturnFailedCaptureSessionsAssociatedWithClosedCases() {
-        LocalDate startDate = LocalDate.of(2025, 10, 1);
-        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
@@ -496,6 +494,8 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
         entityManager.persist(aCase);
         Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
         entityManager.persist(booking);
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         // Capture session at the very edge of start date
         CaptureSession captureSession1 = HelperFactory.createCaptureSession(
@@ -538,8 +538,6 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
     @Test
     @Transactional
     void shouldNotReturnFailedCaptureSessionsAssociatedWithPendingCloseCases() {
-        LocalDate startDate = LocalDate.of(2025, 10, 1);
-        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
@@ -548,6 +546,8 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
         entityManager.persist(aCase);
         Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
         entityManager.persist(booking);
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         // Capture session at the very edge of start date
         CaptureSession captureSession1 = HelperFactory.createCaptureSession(
@@ -590,8 +590,6 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
     @Test
     @Transactional
     void shouldReturnFailedCaptureSessionsAssociatedWithDeletedCases() {
-        LocalDate startDate = LocalDate.of(2025, 10, 1);
-        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
@@ -600,6 +598,8 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
         entityManager.persist(aCase);
         Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
         entityManager.persist(booking);
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         CaptureSession captureSession2 = HelperFactory.createCaptureSession(
             booking,
@@ -628,8 +628,6 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
     @Test
     @Transactional
     void shouldReturnFailedCaptureSessionsAssociatedWithDeletedBookings() {
-        LocalDate startDate = LocalDate.of(2025, 10, 1);
-        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
@@ -638,6 +636,8 @@ public class CaptureSessionServiceIT extends IntegrationTestBase {
         Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
         booking.setDeletedAt(Timestamp.valueOf("2025-10-01 00:00:00"));
         entityManager.persist(booking);
+        LocalDate startDate = LocalDate.of(2025, 10, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 3);
 
         CaptureSession captureSession2 = HelperFactory.createCaptureSession(
             booking,

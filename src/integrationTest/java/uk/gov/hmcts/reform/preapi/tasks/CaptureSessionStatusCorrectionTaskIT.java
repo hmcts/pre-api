@@ -29,10 +29,11 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.tuple;
 
+@SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
 public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
 
     @Autowired
@@ -72,73 +73,101 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void shouldNotChangeStatusOfFailedCaptureSessionsThatHaveSectionFiles() {
+    public void shouldRunWithoutErrorsWhenNoCaptureSessionsExist() {
 
-        //Setup failed capture session data in database and storage
-        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
-        entityManager.persist(court);
-        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
-        entityManager.persist(aCase);
-        Booking booking1 = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking1);
-        Booking booking2 = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking2);
+        Court court = persistCourt();
 
-        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
-            booking1,
-            RecordingOrigin.PRE,
-            null,
-            null,
-            Timestamp.valueOf("2025-10-01 00:00:00"),
-            null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
-        );
-        entityManager.persist(captureSession1);
-
-        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
-            booking2,
-            RecordingOrigin.PRE,
-            null,
-            null,
-            Timestamp.valueOf("2025-11-03 23:59:59"),
-            null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
-        );
-        entityManager.persist(captureSession2);
-
-        //Add the robot user that signs in to the database
-        User robotUser = HelperFactory.createUser("robot", "user", cronUserEmail, null, null, null);
-        entityManager.persist(robotUser);
-
-        Role role = HelperFactory.createRole("Super User");
-        entityManager.persist(role);
-
-        AppAccess appAccess = HelperFactory.createAppAccess(robotUser, court, role, true, null, null, true);
-        entityManager.persist(appAccess);
-
-        robotUser.setAppAccess(new HashSet<>(List.of(appAccess)));
-        entityManager.merge(robotUser);
+        //Add the robot user that runs the task
+        persistRobotUser(cronUserEmail, court);
 
         entityManager.flush();
 
-        var testContainer1 = createContainer(String.valueOf(captureSession1.getBooking().getId()));
+        //Run correction task
+        captureSessionStatusCorrectionTask.run();
+    }
 
-        var testContainer2 = createContainer(String.valueOf(captureSession2.getBooking().getId()));
+    @Test
+    @Transactional
+    public void shouldNotCorrectStatusOfNonFailedCaptureSessions() {
 
-        testContainer1.getBlobClient("0/section").upload(
-            new ByteArrayInputStream("section file content".getBytes()),
-            "section file content".length()
+        //Setup capture session data in database
+        Court court = persistCourt();
+        Case aCase = persistCase(court, null, CaseState.OPEN, null);
+        Booking booking = persistBooking(aCase, Timestamp.from(Instant.now()), null);
+
+        CaptureSession captureSession1 = persistCaptureSession(
+            booking,
+            null,
+            Timestamp.valueOf("2025-09-28 00:00:00"),
+            null,
+            RecordingStatus.RECORDING_AVAILABLE
         );
 
-        testContainer2.getBlobClient("0/section").upload(
-            new ByteArrayInputStream("section file content".getBytes()),
-            "section file content".length()
+        //Add the robot user that runs the task
+        persistRobotUser(cronUserEmail, court);
+
+        entityManager.flush();
+
+        //Run correction task
+        captureSessionStatusCorrectionTask.run();
+
+        //Create containers and add section file blobs
+        BlobContainerClient testContainer1 = createBlob(
+            captureSession1.getBooking().getId(),
+            "0/not_a_section",
+            "I_AM_NOT_A_SECTION_FILE"
+        );
+
+        //Verify statuses have not changed
+        CaptureSession updatedSession1 = entityManager.find(CaptureSession.class, captureSession1.getId());
+
+        assertThat(updatedSession1.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+
+        //Clean up
+        deleteContainer(testContainer1);
+    }
+
+    @Test
+    @Transactional
+    public void shouldNotChangeStatusOfFailedCaptureSessionsThatHaveSectionFiles() {
+
+        //Setup failed capture session data in database
+        Court court = persistCourt();
+        Case aCase = persistCase(court, null, CaseState.OPEN, null);
+        Booking booking1 = persistBooking(aCase, Timestamp.from(Instant.now()), null);
+        Booking booking2 = persistBooking(aCase, Timestamp.from(Instant.now()), null);
+
+        CaptureSession captureSession1 = persistCaptureSession(
+            booking1,
+            null,
+            Timestamp.valueOf("2025-09-28 00:00:00"),
+            null,
+            RecordingStatus.FAILURE
+        );
+
+        CaptureSession captureSession2 = persistCaptureSession(
+            booking2,
+            null,
+            Timestamp.valueOf("2025-11-03 23:59:59"),
+            null,
+            RecordingStatus.FAILURE
+        );
+
+        //Add the robot user that runs the task
+        persistRobotUser(cronUserEmail, court);
+
+        entityManager.flush();
+
+        //Create containers and add section file blobs
+        BlobContainerClient testContainer1 = createBlob(
+            captureSession1.getBooking().getId(),
+            "0/section",
+            "I_AM_A_SECTION_FILE"
+        );
+        BlobContainerClient testContainer2 = createBlob(
+            captureSession2.getBooking().getId(),
+            "0/section",
+            "I_AM_A_SECTION_FILE"
         );
 
         //Run correction task
@@ -160,72 +189,84 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
     @Transactional
     public void shouldCorrectTheStatusOfUnusedCaptureSessions() {
 
-        //Setup unused capture session data in database and storage
-        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
-        entityManager.persist(court);
-        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
-        entityManager.persist(aCase);
-        Booking booking1 = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking1);
-        Booking booking2 = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking2);
+        //Setup unused capture session data in database
+        Court court = persistCourt();
+        Case aCase = persistCase(court, null, CaseState.OPEN, null);
+        Booking booking1 = persistBooking(aCase, Timestamp.from(Instant.now()), null);
+        Booking booking2 = persistBooking(aCase, Timestamp.from(Instant.now()), null);
 
-        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
+        CaptureSession captureSession1 = persistCaptureSession(
             booking1,
-            RecordingOrigin.PRE,
-            null,
             null,
             Timestamp.valueOf("2025-09-28 00:00:00"),
             null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSession1);
 
-        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
+        CaptureSession captureSession2 = persistCaptureSession(
             booking2,
-            RecordingOrigin.PRE,
-            null,
             null,
             Timestamp.valueOf("2025-11-03 23:59:59"),
             null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSession2);
 
-        //Add the robot user that signs in to the database
-        User robotUser = HelperFactory.createUser("robot", "user", cronUserEmail, null, null, null);
-        entityManager.persist(robotUser);
-
-        Role role = HelperFactory.createRole("Super User");
-        entityManager.persist(role);
-
-        AppAccess appAccess = HelperFactory.createAppAccess(robotUser, court, role, true, null, null, true);
-        entityManager.persist(appAccess);
-
-        robotUser.setAppAccess(new HashSet<>(List.of(appAccess)));
-        entityManager.merge(robotUser);
+        //Add the robot user that runs the task
+        persistRobotUser(cronUserEmail, court);
 
         entityManager.flush();
 
-        var testContainer1 = createContainer(String.valueOf(captureSession1.getBooking().getId()));
+        //Create containers and add non-section file blobs
+        BlobContainerClient testContainer =
+            createBlob(captureSession1.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        BlobContainerClient testContainer2 =
+            createBlob(captureSession2.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
 
-        var testContainer2 = createContainer(String.valueOf(captureSession2.getBooking().getId()));
+        //Run correction task
+        captureSessionStatusCorrectionTask.run();
 
-        testContainer1.getBlobClient("I_AM_NOT_A_SECTION_FILE").upload(
-            new ByteArrayInputStream("I_AM_NOT_A_SECTION_FILE".getBytes()),
-            "I_AM_NOT_A_SECTION_FILE".length()
+        //Verify statuses have been corrected
+        CaptureSession updatedSession1 = entityManager.find(CaptureSession.class, captureSession1.getId());
+        CaptureSession updatedSession2 = entityManager.find(CaptureSession.class, captureSession2.getId());
+
+        assertThat(updatedSession1.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
+        assertThat(updatedSession2.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
+
+        //Clean up
+        deleteContainer(testContainer);
+        deleteContainer(testContainer2);
+    }
+
+    @Test
+    @Transactional
+    public void shouldUpdateStatusOfFailedCaptureSessionsWithoutContainersToNoRecording() {
+
+        //Setup unused capture session data in database
+        Court court = persistCourt();
+        Case aCase = persistCase(court, null, CaseState.OPEN, null);
+        Booking booking1 = persistBooking(aCase, Timestamp.from(Instant.now()), null);
+        Booking booking2 = persistBooking(aCase, Timestamp.from(Instant.now()), null);
+
+        CaptureSession captureSession1 = persistCaptureSession(
+            booking1,
+            null,
+            Timestamp.valueOf("2025-09-28 00:00:00"),
+            null,
+            RecordingStatus.FAILURE
         );
 
-        testContainer2.getBlobClient("I_AM_NOT_A_SECTION_FILE").upload(
-            new ByteArrayInputStream("I_AM_NOT_A_SECTION_FILE".getBytes()),
-            "I_AM_NOT_A_SECTION_FILE".length()
+        CaptureSession captureSession2 = persistCaptureSession(
+            booking2,
+            null,
+            Timestamp.valueOf("2025-11-03 23:59:59"),
+            null,
+            RecordingStatus.FAILURE
         );
+
+        //Add the robot user that runs the task
+        persistRobotUser(cronUserEmail, court);
+
+        entityManager.flush();
 
         //Run correction task
         captureSessionStatusCorrectionTask.run();
@@ -242,80 +283,39 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
     @Transactional
     public void shouldNotCorrectCaptureSessionsThatAreFromPendingClosureCases() {
 
-        //Setup unused capture session data in database and storage that are from a closed and pending close case
-        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
-        entityManager.persist(court);
-        Case closedCase = HelperFactory.createCase(court, "CASE12345", true, null);
-        closedCase.setClosedAt(Timestamp.from(Instant.now()));
-        closedCase.setState(CaseState.CLOSED);
-        entityManager.persist(closedCase);
+        //Setup unused capture session data in database
+        Court court = persistCourt();
+        Case pendingClosureCase = persistCase(court, null, CaseState.PENDING_CLOSURE, null);
+        Case pendingClosureCase2 = persistCase(court, null, CaseState.PENDING_CLOSURE,
+                                              Timestamp.valueOf("2025-09-28 00:00:00"));
 
-        Case pendingClosureCase = HelperFactory.createCase(court, "CASE12345", true, null);
-        pendingClosureCase.setClosedAt(Timestamp.from(Instant.now()));
-        pendingClosureCase.setState(CaseState.PENDING_CLOSURE);
-        entityManager.persist(pendingClosureCase);
+        Booking booking1 = persistBooking(pendingClosureCase, Timestamp.from(Instant.now()), null);
+        Booking booking2 = persistBooking(pendingClosureCase2, Timestamp.from(Instant.now()), null);
 
-        Booking booking1 = HelperFactory.createBooking(closedCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking1);
-        Booking booking2 = HelperFactory.createBooking(pendingClosureCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking2);
-
-        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
+        CaptureSession captureSession1 = persistCaptureSession(
             booking1,
-            RecordingOrigin.PRE,
-            null,
             null,
             Timestamp.valueOf("2025-09-28 00:00:00"),
             null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSession1);
 
-        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
+        CaptureSession captureSession2 = persistCaptureSession(
             booking2,
-            RecordingOrigin.PRE,
-            null,
             null,
             Timestamp.valueOf("2025-11-03 23:59:59"),
             null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSession2);
 
         //Add the robot user that signs in to the database
-        User robotUser = HelperFactory.createUser("robot", "user", cronUserEmail, null, null, null);
-        entityManager.persist(robotUser);
-
-        Role role = HelperFactory.createRole("Super User");
-        entityManager.persist(role);
-
-        AppAccess appAccess = HelperFactory.createAppAccess(robotUser, court, role, true, null, null, true);
-        entityManager.persist(appAccess);
-
-        robotUser.setAppAccess(new HashSet<>(List.of(appAccess)));
-        entityManager.merge(robotUser);
+        persistRobotUser(cronUserEmail, court);
 
         entityManager.flush();
 
-        var testContainer1 = createContainer(String.valueOf(captureSession1.getBooking().getId()));
-
-        var testContainer2 = createContainer(String.valueOf(captureSession2.getBooking().getId()));
-
-        testContainer1.getBlobClient("I_AM_NOT_A_SECTION_FILE").upload(
-            new ByteArrayInputStream("I_AM_NOT_A_SECTION_FILE".getBytes()),
-            "I_AM_NOT_A_SECTION_FILE".length()
-        );
-
-        testContainer2.getBlobClient("I_AM_NOT_A_SECTION_FILE").upload(
-            new ByteArrayInputStream("I_AM_NOT_A_SECTION_FILE".getBytes()),
-            "I_AM_NOT_A_SECTION_FILE".length()
-        );
+        //Create containers and add non-section file blobs
+        createBlob(captureSession1.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        createBlob(captureSession2.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
 
         //Run correction task
         captureSessionStatusCorrectionTask.run();
@@ -332,75 +332,38 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
     @Transactional
     public void shouldNotCorrectCaptureSessionsThatAreFromClosedCases() {
 
-        //Setup unused capture session data in database and storage that are from a closed case
-        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
-        entityManager.persist(court);
-        Case closedCase = HelperFactory.createCase(court, "CASE12345", true, null);
-        closedCase.setClosedAt(Timestamp.from(Instant.now()));
+        //Setup unused capture session data in database
+        Court court = persistCourt();
+        Case closedCase = persistCase(court, null, CaseState.CLOSED, null);
         closedCase.setState(CaseState.CLOSED);
         entityManager.persist(closedCase);
 
-        Booking booking1 = HelperFactory.createBooking(closedCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking1);
-        Booking booking2 = HelperFactory.createBooking(closedCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking2);
+        Booking booking1 = persistBooking(closedCase, Timestamp.from(Instant.now()), null);
+        Booking booking2 = persistBooking(closedCase, Timestamp.from(Instant.now()), null);
 
-        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
+        CaptureSession captureSession1 = persistCaptureSession(
             booking1,
-            RecordingOrigin.PRE,
-            null,
             null,
             Timestamp.valueOf("2025-09-28 00:00:00"),
             null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSession1);
 
-        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
+        CaptureSession captureSession2 = persistCaptureSession(
             booking2,
-            RecordingOrigin.PRE,
-            null,
             null,
             Timestamp.valueOf("2025-11-03 23:59:59"),
             null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSession2);
 
         //Add the robot user that signs in to the database
-        User robotUser = HelperFactory.createUser("robot", "user", cronUserEmail, null, null, null);
-        entityManager.persist(robotUser);
-
-        Role role = HelperFactory.createRole("Super User");
-        entityManager.persist(role);
-
-        AppAccess appAccess = HelperFactory.createAppAccess(robotUser, court, role, true, null, null, true);
-        entityManager.persist(appAccess);
-
-        robotUser.setAppAccess(new HashSet<>(List.of(appAccess)));
-        entityManager.merge(robotUser);
+        persistRobotUser(cronUserEmail, court);
 
         entityManager.flush();
 
-        var testContainer1 = createContainer(String.valueOf(captureSession1.getBooking().getId()));
-
-        var testContainer2 = createContainer(String.valueOf(captureSession2.getBooking().getId()));
-
-        testContainer1.getBlobClient("gc_state").upload(
-            new ByteArrayInputStream("section file content".getBytes()),
-            "section file content".length()
-        );
-
-        testContainer2.getBlobClient("gc_state").upload(
-            new ByteArrayInputStream("gc stuff".getBytes()),
-            "gc stuff".length()
-        );
+        createBlob(captureSession1.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        createBlob(captureSession2.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
 
         //Run correction task
         captureSessionStatusCorrectionTask.run();
@@ -417,129 +380,74 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
     @Transactional
     public void shouldUpdateUnusedCaptureSessionAssociatedWithDeletedBookingsGracefully() {
 
-        //Setup unused capture session data in database and storage
-        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
-        entityManager.persist(court);
-        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
-        aCase.setState(CaseState.OPEN);
+        //Setup unused capture session data in database
+        Court court = persistCourt();
+        Case aCase = persistCase(court, null, CaseState.OPEN, null);
         entityManager.persist(aCase);
 
-        Booking deletedBooking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), Timestamp.from(Instant.now()), null);
-        entityManager.persist(deletedBooking);
-        Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking);
-        Booking booking2 = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking2);
-        Booking deletedBooking2 = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), Timestamp.from(Instant.now()), null);
-        entityManager.persist(deletedBooking2);
+        Booking deletedBooking = persistBooking(aCase, Timestamp.from(Instant.now()),
+            Timestamp.from(Instant.now()));
+        Booking booking = persistBooking(aCase, Timestamp.from(Instant.now()), null);
+        Booking booking2 = persistBooking(aCase, Timestamp.from(Instant.now()), null);
+        Booking deletedBooking2 = persistBooking(aCase, Timestamp.from(Instant.now()), Timestamp.from(Instant.now()));
 
-        CaptureSession captureSessionFromDeletedBooking = HelperFactory.createCaptureSession(
-            deletedBooking,
-            RecordingOrigin.PRE,
-            null,
+        CaptureSession captureSessionFromDeletedBooking = persistCaptureSession(deletedBooking,
             null,
             Timestamp.valueOf("2025-10-01 00:00:00"),
             null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSessionFromDeletedBooking);
 
-        CaptureSession captureSession1 = HelperFactory.createCaptureSession(
-            booking,
-            RecordingOrigin.PRE,
+        CaptureSession captureSession1 = persistCaptureSession(booking,
             null,
+            Timestamp.valueOf("2025-09-28 00:00:00"),
             null,
-            Timestamp.valueOf("2025-10-01 00:00:00"),
-            null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSession1);
 
-        CaptureSession captureSession2 = HelperFactory.createCaptureSession(
-            booking2,
-            RecordingOrigin.PRE,
-            null,
+        CaptureSession captureSession2 = persistCaptureSession(booking2,
             null,
             Timestamp.valueOf("2025-11-03 23:59:59"),
             null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSession2);
 
-        CaptureSession captureSessionFromDeletedBooking2 = HelperFactory.createCaptureSession(
-            deletedBooking2,
-            RecordingOrigin.PRE,
+        CaptureSession captureSessionFromDeletedBooking2 = persistCaptureSession(deletedBooking2,
             null,
+            Timestamp.valueOf("2025-12-15 12:00:00"),
             null,
-            Timestamp.valueOf("2025-10-01 00:00:00"),
-            null,
-            null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSessionFromDeletedBooking2);
 
-        //Add the robot user that signs in to the database
-        User robotUser = HelperFactory.createUser("robot", "user", cronUserEmail, null, null, null);
-        entityManager.persist(robotUser);
-
-        Role role = HelperFactory.createRole("Super User");
-        entityManager.persist(role);
-
-        AppAccess appAccess = HelperFactory.createAppAccess(robotUser, court, role, true, null, null, true);
-        entityManager.persist(appAccess);
-
-        robotUser.setAppAccess(new HashSet<>(List.of(appAccess)));
-        entityManager.merge(robotUser);
+        //Add the robot user that runs task
+        persistRobotUser(cronUserEmail, court);
 
         entityManager.flush();
 
-        var testContainer1 = createContainer(String.valueOf(captureSession1.getBooking().getId()));
-        var testContainer2 = createContainer(String.valueOf(captureSession2.getBooking().getId()));
-        var testContainer3 = createContainer(String.valueOf(captureSessionFromDeletedBooking.getBooking().getId()));
-        var testContainer4 = createContainer(String.valueOf(captureSessionFromDeletedBooking2.getBooking().getId()));
-
-        testContainer1.getBlobClient("I_AM_NOT_A_SECTION_FILE").upload(
-            new ByteArrayInputStream("I_AM_NOT_A_SECTION_FILE".getBytes()),
-            "I_AM_NOT_A_SECTION_FILE".length()
+        //Create containers and add non-section file blobs
+        createBlob(captureSession1.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        createBlob(captureSession2.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        createBlob(
+            captureSessionFromDeletedBooking.getBooking().getId(),
+            "I_AM_NOT_A_SECTION_FILE",
+            "I_AM_NOT_A_SECTION_FILE"
         );
-        testContainer2.getBlobClient("gc_state").upload(
-            new ByteArrayInputStream("I_AM_NOT_A_SECTION_FILE".getBytes()),
-            "I_AM_NOT_A_SECTION_FILE".length()
-        );
-        testContainer3.getBlobClient("I_AM_NOT_A_SECTION_FILE").upload(
-            new ByteArrayInputStream("gc stuff".getBytes()),
-            "gc stuff".length()
-        );
-        testContainer4.getBlobClient("I_AM_NOT_A_SECTION_FILE").upload(
-            new ByteArrayInputStream("gc stuff".getBytes()),
-            "I_AM_NOT_A_SECTION_FILE".length()
+        createBlob(
+            captureSessionFromDeletedBooking2.getBooking().getId(),
+            "I_AM_NOT_A_SECTION_FILE",
+            "I_AM_NOT_A_SECTION_FILE"
         );
 
-        System.out.println("Status before correction:" + captureSession1.getStatus() + " " + captureSession2.getStatus() + " " +
-            captureSessionFromDeletedBooking.getStatus() + " " + captureSessionFromDeletedBooking2.getStatus());
         //Run correction task
         captureSessionStatusCorrectionTask.run();
-        entityManager.clear();
-
-        System.out.println("Status after correction:" + captureSession1.getStatus() + " " + captureSession2.getStatus() + " " +
-                               captureSessionFromDeletedBooking.getStatus() + " " + captureSessionFromDeletedBooking2.getStatus());
 
         //Verify statuses have been corrected
         captureSession1 = entityManager.find(CaptureSession.class, captureSession1.getId());
         captureSession2 = entityManager.find(CaptureSession.class, captureSession2.getId());
-        captureSessionFromDeletedBooking = entityManager.find(CaptureSession.class, captureSessionFromDeletedBooking.getId());
-        captureSessionFromDeletedBooking2 = entityManager.find(CaptureSession.class, captureSessionFromDeletedBooking2.getId());
+        captureSessionFromDeletedBooking = entityManager.find(
+            CaptureSession.class, captureSessionFromDeletedBooking.getId());
+        captureSessionFromDeletedBooking2 = entityManager.find(
+            CaptureSession.class, captureSessionFromDeletedBooking2.getId());
 
         assertThat(captureSession1)
             .extracting("id", "status")
@@ -562,53 +470,30 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
     @Transactional
     public void shouldUpdateUnusedCaptureSessionAssociatedWithDeletedUsersGracefully() {
 
-        //Setup unused capture session data in database and storage
-        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
-        entityManager.persist(court);
-        Case aCase = HelperFactory.createCase(court, "CASE12345", true, null);
-        aCase.setState(CaseState.OPEN);
-        entityManager.persist(aCase);
-        User deletedUser = HelperFactory.createUser("deleted", "user", "deleted@deleted.com",
-                                                    Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(deletedUser);
+        //Setup unused capture session data in database
+        Court court = persistCourt();
+        Case aCase = persistCase(court, null, CaseState.OPEN, null);
+        User deletedUser = persistUser("Iamdeleted@deleted.com", Timestamp.from(Instant.now()));
+        Booking booking = persistBooking(aCase, Timestamp.from(Instant.now()), null);
 
-        Booking booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null, null);
-        entityManager.persist(booking);
-
-        CaptureSession captureSessionFromDeletedUser = HelperFactory.createCaptureSession(
+        CaptureSession captureSessionFromDeletedUser = persistCaptureSession(
             booking,
-            RecordingOrigin.PRE,
-            null,
-            null,
-            Timestamp.valueOf("2025-10-01 00:00:00"),
             deletedUser,
+            Timestamp.valueOf("2025-10-01 00:00:00"),
             null,
-            null,
-            RecordingStatus.FAILURE,
-            null
+            RecordingStatus.FAILURE
         );
-        entityManager.persist(captureSessionFromDeletedUser);
 
-        //Add the robot user that signs in to the database
-        User robotUser = HelperFactory.createUser("robot", "user", cronUserEmail, null, null, null);
-        entityManager.persist(robotUser);
-
-        Role role = HelperFactory.createRole("Super User");
-        entityManager.persist(role);
-
-        AppAccess appAccess = HelperFactory.createAppAccess(robotUser, court, role, true, null, null, true);
-        entityManager.persist(appAccess);
-
-        robotUser.setAppAccess(new HashSet<>(List.of(appAccess)));
-        entityManager.merge(robotUser);
+        // Add the robot user that runs the task
+        persistRobotUser(cronUserEmail, court);
 
         entityManager.flush();
 
-        var testContainer3 = createContainer(String.valueOf(captureSessionFromDeletedUser.getBooking().getId()));
-
-        testContainer3.getBlobClient("i_am_not_a_section_file").upload(
-            new ByteArrayInputStream("i_am_not_a_section_file".getBytes()),
-            "i_am_not_a_section_file".length()
+        // Create blob container and add non-section file blob
+        createBlob(
+            captureSessionFromDeletedUser.getBooking().getId(),
+            "I_AM_NOT_A_SECTION_FILE",
+            "I_AM_NOT_A_SECTION_FILE"
         );
 
         //Run correction task
@@ -622,5 +507,78 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
         assertThat(captureSessionFromDeletedUser)
             .extracting("id", "status")
             .containsExactlyInAnyOrder(captureSessionFromDeletedUser.getId(), RecordingStatus.NO_RECORDING);
+    }
+
+    private Booking persistBooking(Case aCase, Timestamp scheduledFor, Timestamp deletedAt) {
+        Booking booking = HelperFactory.createBooking(aCase, scheduledFor, deletedAt, null);
+        entityManager.persist(booking);
+        return booking;
+    }
+
+    private CaptureSession persistCaptureSession(
+        Booking booking,
+        User startedBy,
+        Timestamp startedAt,
+        Timestamp deletedAt,
+        RecordingStatus status
+    ) {
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            startedAt,
+            startedBy,
+            null,
+            null,
+            status,
+            deletedAt
+        );
+        entityManager.persist(captureSession);
+        return captureSession;
+    }
+
+    private Court persistCourt() {
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Default Court", "0000");
+        entityManager.persist(court);
+        return court;
+    }
+
+    private Case persistCase(Court court, Timestamp deletedAt, CaseState state, Timestamp closedAt) {
+        Case aCase = HelperFactory.createCase(court, "CASE12345", true, deletedAt);
+        aCase.setState(state);
+        aCase.setClosedAt(closedAt);
+        entityManager.persist(aCase);
+        return aCase;
+    }
+
+    private User persistUser(String email, Timestamp deletedAt) {
+        User user = HelperFactory.createUser("first", "last", email, deletedAt, null, null);
+        entityManager.persist(user);
+        return user;
+    }
+
+    private User persistRobotUser(String email, Court court) {
+        User robotUser = persistUser(email, null);
+
+        Role role = HelperFactory.createRole("Super User");
+        entityManager.persist(role);
+
+        AppAccess appAccess = HelperFactory.createAppAccess(robotUser, court, role, true, null, null, true);
+        entityManager.persist(appAccess);
+
+        robotUser.setAppAccess(new HashSet<>(List.of(appAccess)));
+        entityManager.merge(robotUser);
+
+        return robotUser;
+    }
+
+    private BlobContainerClient createBlob(UUID bookingId, String blobName, String content) {
+        BlobContainerClient container = createContainer(String.valueOf(bookingId));
+        container.getBlobClient(blobName).upload(
+            new ByteArrayInputStream(content.getBytes()),
+            content.length()
+        );
+        return container;
     }
 }
