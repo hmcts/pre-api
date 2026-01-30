@@ -1,10 +1,10 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
@@ -13,7 +13,9 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * One off task to correct the status of capture sessions that were wrongly marked with the status of failure
@@ -46,15 +48,19 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
         signInRobotUser();
         List<CaptureSession> captureSessionsMarkedFailure = getFailedCaptureSessions();
         List<CaptureSession> unusedSessions = filterUnusedCaptureSessionsBySectionFile(captureSessionsMarkedFailure);
-        correctCaptureSessionStatuses(unusedSessions);
-        log.info("Correction task completed. {} sessions updated.", unusedSessions.size());
+        if (!unusedSessions.isEmpty()) {
+            correctCaptureSessionStatuses(unusedSessions);
+        } else {
+            log.info("No unused capture sessions found.");
+        }
+        log.info("Correction task completed");
     }
 
-    public List<CaptureSession> getFailedCaptureSessions() {
+    private List<CaptureSession> getFailedCaptureSessions() {
         return captureSessionService.findFailedCaptureSessionsStartedBetween(THRESHOLD_DATE, LocalDate.now());
     }
 
-    public List<CaptureSession> filterUnusedCaptureSessionsBySectionFile(List<CaptureSession> captureSessions) {
+    private List<CaptureSession> filterUnusedCaptureSessionsBySectionFile(List<CaptureSession> captureSessions) {
 
         return captureSessions.stream()
             .filter(session -> session != null && session.getBooking() != null)
@@ -65,11 +71,27 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
             .toList();
     }
 
-    public void correctCaptureSessionStatuses(List<CaptureSession> captureSessions) {
+    private void correctCaptureSessionStatuses(List<CaptureSession> captureSessions) {
+        List<UUID> erroredSessionIds = new ArrayList<>();
+        List<UUID> successfulSessionIds = new ArrayList<>();
         captureSessions.forEach(session -> {
-            session.setStatus(RecordingStatus.NO_RECORDING);
-            captureSessionService.upsert(new CreateCaptureSessionDTO(session));
-            log.info("Capture Session {} detected as unused. Marked status as NO_RECORDING", session.getId());
+            try {
+                session.setStatus(RecordingStatus.NO_RECORDING);
+                captureSessionService.save(session);
+                successfulSessionIds.add(session.getId());
+            } catch (Exception e) {
+                erroredSessionIds.add(session.getId());
+            }
         });
+        log.info(
+            "{} out of {} capture sessions processed were updated without errors. Successful capture session IDs: {}",
+                 successfulSessionIds.size(), captureSessions.size(),
+            StringUtils.join(successfulSessionIds, ", "));
+        if (!erroredSessionIds.isEmpty()) {
+            log.error(
+                "Failed to update {} capture sessions. Errored capture session IDs: {}",
+                erroredSessionIds.size(), StringUtils.join(erroredSessionIds, ", ")
+            );
+        }
     }
 }
