@@ -85,6 +85,7 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
     )
     List<CaptureSession> findAllPastIncompleteCaptureSessions(@Param("scheduledBefore") Timestamp scheduledBefore);
 
+    @SuppressWarnings("PMD.MethodNamingConventions")
     List<CaptureSession> findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
         Timestamp startedAtAfter,
         Timestamp startedAtBefore,
