@@ -3199,7 +3199,7 @@ paths:
       responses:
         '200':
           description: OK
-      summary: Register a Capture Session
+      summary: Register a Capture Session that got stuck in PROCESSING state
       tags:
         - capture-session-controller
   '/capture-sessions/{captureSessionId}':
