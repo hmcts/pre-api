@@ -193,9 +193,7 @@ class PostMigrationJobConfigTest {
 
         tasklet.execute(stepContribution, chunkContext);
 
-        verify(migrationTrackerService).writeNewUserReport();
-        verify(migrationTrackerService).writeShareBookingsReport();
-        verify(migrationTrackerService).writeShareInviteFailureReport();
+        verify(migrationTrackerService).writeAndUploadPostMigrationReports();
     }
 
     private Tasklet extractTasklet(Step step) throws Exception {
@@ -1048,7 +1046,7 @@ class PostMigrationJobConfigTest {
 
         tasklet.execute(stepContribution, chunkContext);
 
-        verify(loggingService).logInfo("Reports written successfully");
+        verify(loggingService).logInfo("Reports written and uploaded successfully");
     }
 
     @Test

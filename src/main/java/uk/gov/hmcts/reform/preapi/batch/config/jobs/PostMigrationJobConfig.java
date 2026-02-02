@@ -213,10 +213,8 @@ public class PostMigrationJobConfig {
     public Step createWriteReportsStep() {
         return new StepBuilder("writeReportsStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
-                migrationTrackerService.writeNewUserReport();
-                migrationTrackerService.writeShareBookingsReport();
-                migrationTrackerService.writeShareInviteFailureReport();
-                loggingService.logInfo("Reports written successfully");
+                migrationTrackerService.writeAndUploadPostMigrationReports();
+                loggingService.logInfo("Reports written and uploaded successfully");
                 return RepeatStatus.FINISHED;
             }, transactionManager)
             .build();
@@ -362,7 +360,6 @@ public class PostMigrationJobConfig {
 
                 closed.incrementAndGet();
             } catch (CaptureSessionNotDeletedException e) {
-                // Fallback catch in case pre-check missed something (e.g., null case ID)
                 loggingService.logWarning(
                     "Could not close case %s (%s) - capture session has associated recordings: %s",
                     reference, caseDTO.getId(), e.getMessage()
