@@ -140,7 +140,8 @@ public class DataExtractionService {
             archiveItem.getFileName(),
             archiveItem.getFileSizeMb(),
             archiveItem.getArchiveId(),
-            archiveItem.getArchiveName()
+            archiveItem.getArchiveName(),
+            archiveItem.getCreatedAt()
         );
     }
 }
