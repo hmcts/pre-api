@@ -16,8 +16,6 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
-
-import java.util.regex.Matcher;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
@@ -38,6 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -226,7 +225,8 @@ public class MigrationRecordService {
             return false;
         }
 
-        LocalDateTime createTimeFromArchiveName = patternMatcherService.findMatchingPattern(archiveItem.getSanitizedArchiveName())
+        LocalDateTime createTimeFromArchiveName = patternMatcherService
+            .findMatchingPattern(archiveItem.getSanitizedArchiveName())
             .flatMap(entry -> {
                 Matcher matcher = entry.getValue();
                 try {
@@ -244,7 +244,8 @@ public class MigrationRecordService {
 
         if (resolvedCreateTime == null) {
             log.warn(
-                "Skipping archive: create_time is required but could not be parsed from archive_name or create_time. archiveId={}, archiveName={}, rawCreateTime={}",
+                "Skipping archive: create_time is required but could not be parsed from archive_name or create_time. "
+                    + "archiveId={}, archiveName={}, rawCreateTime={}",
                 archiveItem.getArchiveId(),
                 archiveItem.getArchiveName(),
                 archiveItem.getCreateTime()
