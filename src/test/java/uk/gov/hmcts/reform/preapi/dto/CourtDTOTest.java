@@ -10,9 +10,10 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CourtDTOTest {
+
     @DisplayName("CourtDTO.regions should be sorted by region name")
     @Test
-    public void testRegionSorting() {
+    void testRegionSorting() {
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "123");
         court.setRegions(Set.of(
             HelperFactory.createRegion("Region BBB", Set.of(court)),

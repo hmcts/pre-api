@@ -37,8 +37,9 @@ public class AzureFinalStorageService extends AzureStorageService {
                 .getBlobClient(mpdFile.getName())
                 .openInputStream();
 
-            Element contents = DocumentBuilderFactory
-                .newInstance()
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            Element contents = factory
                 .newDocumentBuilder()
                 .parse(inputStream)
                 .getDocumentElement();

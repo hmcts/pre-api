@@ -79,6 +79,11 @@ azure:
   managedIdentityClientId: ${AZURE_CLIENT_ID:}
   tenantId: ${AZURE_TENANT_ID:}
 
+  b2c:
+    clientId: ${AZURE_B2C_CLIENT_ID:} # pre-b2c-user-mgmt Application ID
+    clientSecret: ${AZURE_B2C_CLIENT_SECRET:}
+    tenantId: ${AZURE_B2C_TENANT_ID:} # hmcts-stg-external-id directory id
+
 hibernate:
   show_sql: true
 
@@ -99,9 +104,11 @@ mediakind:
   token: ${MEDIA_KIND_TOKEN:}
   issuer: ${ISSUER:https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/}
   symmetricKey: ${SYMMETRIC_KEY:}
+  job-poll-interval: 10000
+  streaming-endpoint-polling-interval: 2000
   vodStreamingEndpoint: ${MEDIA_KIND_VOD_STREAMING_ENDPOINT:default}
   liveStreamingEndpoint: ${MEDIA_KIND_LIVE_STREAMING_ENDPOINT:default-live}
-  location: ${MEDIA_KIND_LOCATION:uksouth}
+  location: ${MEDIA_KIND_LOCATION:uksouth-4}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 
