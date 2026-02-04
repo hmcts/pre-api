@@ -89,7 +89,7 @@ public class ProcessCSVJobConfig {
     @StepScope
     public ListItemReader<MigrationRecord> pendingMigrationRecordReader(MigrationRecordRepository repository,
                                                                         LoggingService loggingService) {
-        List<MigrationRecord> pending = repository.findAllByStatus(VfMigrationStatus.PENDING);
+        List<MigrationRecord> pending = repository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
         loggingService.startRun("pending migration records", pending.size());
 
         if (pending.isEmpty()) {

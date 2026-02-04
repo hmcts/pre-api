@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.PatternMatcherService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -58,6 +59,9 @@ public class MigrationRecordServiceTest {
 
     @MockitoBean
     private LoggingService loggingService;
+
+    @MockitoBean
+    private PatternMatcherService patternMatcherService;
 
     @Autowired
     private MigrationRecordService migrationRecordService;
@@ -481,6 +485,7 @@ public class MigrationRecordServiceTest {
         CSVArchiveListData data = new CSVArchiveListData();
         data.setArchiveId("newId");
         data.setArchiveName("newName");
+        data.setCreateTime("26/03/2025 12:00");
 
         when(migrationRecordRepository.findByArchiveId("newId")).thenReturn(Optional.empty());
 
@@ -1684,7 +1689,7 @@ public class MigrationRecordServiceTest {
     @DisplayName("Should skip updateToFailed in DRY-RUN mode")
     void updateToFailedShouldSkipInDryRun() {
         MigrationRecordService dryRunService = new MigrationRecordService(
-            migrationRecordRepository, courtRepository, loggingService, true
+            migrationRecordRepository, courtRepository, loggingService, patternMatcherService, true
         );
 
         dryRunService.updateToFailed("test-id", "reason", "error");
@@ -1697,7 +1702,7 @@ public class MigrationRecordServiceTest {
     @DisplayName("Should skip updateToSuccess in DRY-RUN mode")
     void updateToSuccessShouldSkipInDryRun() {
         MigrationRecordService dryRunService = new MigrationRecordService(
-            migrationRecordRepository, courtRepository, loggingService, true
+            migrationRecordRepository, courtRepository, loggingService, patternMatcherService, true
         );
 
         dryRunService.updateToSuccess("test-id");
@@ -1710,7 +1715,7 @@ public class MigrationRecordServiceTest {
     @DisplayName("Should skip markReadyAsSubmitted in DRY-RUN mode and return false")
     void markReadyAsSubmittedShouldSkipInDryRun() {
         MigrationRecordService dryRunService = new MigrationRecordService(
-            migrationRecordRepository, courtRepository, loggingService, true
+            migrationRecordRepository, courtRepository, loggingService, patternMatcherService, true
         );
 
         boolean result = dryRunService.markReadyAsSubmitted();
