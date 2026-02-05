@@ -1,6 +1,6 @@
  # renovate: datasource=github-releases depName=microsoft/ApplicationInsights-Java
 ARG APP_INSIGHTS_AGENT_VERSION=3.7.7
-FROM eclipse-temurin:21-jre-jammy AS build-env
+FROM eclipse-temurin:21.0.9_10-jre-jammy AS build-env
 RUN apt-get update && apt-get install -y ffmpeg
 
 WORKDIR /usr/local/bin
