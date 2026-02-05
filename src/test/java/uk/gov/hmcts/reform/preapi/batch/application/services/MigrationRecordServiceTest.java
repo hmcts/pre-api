@@ -579,7 +579,7 @@ public class MigrationRecordServiceTest {
         record2.setArchiveId("pending2");
         record2.setStatus(VfMigrationStatus.PENDING);
 
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(List.of(record1, record2));
 
         List<MigrationRecord> result = migrationRecordService.getPendingMigrationRecords();
@@ -587,20 +587,20 @@ public class MigrationRecordServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result).containsExactly(record1, record2);
 
-        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository, times(1)).findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
     }
 
     @Test
     @DisplayName("Should return empty list when no pending migration records are available")
     void getPendingMigrationRecordsReturnsEmptyListWhenNoPendingRecords() {
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(List.of());
 
         List<MigrationRecord> result = migrationRecordService.getPendingMigrationRecords();
 
         assertThat(result).isEmpty();
 
-        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository, times(1)).findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
     }
 
     @Test
