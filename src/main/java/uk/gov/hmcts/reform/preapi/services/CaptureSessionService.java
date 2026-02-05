@@ -354,13 +354,36 @@ public class CaptureSessionService {
             .toList();
     }
 
+    /**
+     * Find failed capture sessions for open cases started between fromDate and toDate.
+     * Only Capture Sessions that are associated with Bookings for Cases that are still open are returned.
+     * @param fromDate - inclusive
+     * @param toDate - inclusive
+     * @return a list of capture sessions associated with open cases that failed within the date range
+     */
     @Transactional
     public List<CaptureSession> findFailedCaptureSessionsStartedBetween(LocalDate fromDate, LocalDate toDate) {
         Timestamp fromTime = Timestamp.valueOf(fromDate.atStartOfDay());
         Timestamp toTime = Timestamp.valueOf(toDate.atStartOfDay().plusDays(1));
 
-        return captureSessionRepository.findAllByStartedAtIsBetweenAndDeletedAtIsNullAndStatusIs(
-            fromTime, toTime, RecordingStatus.FAILURE);
+        return captureSessionRepository.findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
+            fromTime, toTime, RecordingStatus.FAILURE, CaseState.OPEN);
+    }
+
+    /**
+     * Save Capture Session without validation. Should not be used in normal API flow.
+     *
+     * <p>Saves the given CaptureSession entity to the database. Created to be used by the
+     * CaptureSessionStatusCorrectionTask.
+     * See {@link uk.gov.hmcts.reform.preapi.tasks.CaptureSessionStatusCorrectionTask}.
+     * Should be removed once that task is no longer needed.</p>
+     * @param createCaptureSessionDTO - the CaptureSession entity to be saved
+     * @return the saved CaptureSession entity
+     */
+    @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createCaptureSessionDTO)")
+    public CaptureSession save(CaptureSession createCaptureSessionDTO) {
+        return captureSessionRepository.save(createCaptureSessionDTO);
     }
 
     private CreateAuditDTO createStopAudit(UUID captureSessionId) {
