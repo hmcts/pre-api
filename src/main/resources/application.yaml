@@ -109,6 +109,7 @@ mediakind:
   vodStreamingEndpoint: ${MEDIA_KIND_VOD_STREAMING_ENDPOINT:default}
   liveStreamingEndpoint: ${MEDIA_KIND_LIVE_STREAMING_ENDPOINT:default-live}
   location: ${MEDIA_KIND_LOCATION:uksouth-4}
+  streaming-endpoint-advanced-settings-name: ${MEDIA_KIND_STREAMING_ENDPOINT_ADVANCED_SETTINGS_NAME:}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 
