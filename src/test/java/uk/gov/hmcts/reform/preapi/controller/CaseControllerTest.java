@@ -7,10 +7,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CaseController;
@@ -20,9 +20,9 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
@@ -66,13 +66,13 @@ class CaseControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private CaseService caseService;
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
+    @MockitoBean
     private ScheduledTaskRunner taskRunner;
 
     @BeforeAll
@@ -533,12 +533,12 @@ class CaseControllerTest {
     @Test
     void deleteCaseRecordingNotDeleted() throws Exception {
         var caseId = UUID.randomUUID();
-        doThrow(new RecordingNotDeletedException()).when(caseService).deleteById(caseId);
+        doThrow(new CaptureSessionNotDeletedException()).when(caseService).deleteById(caseId);
         mockMvc.perform(delete("/cases/" + caseId)
                             .with(csrf()))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
-                           .value("Cannot delete because and associated recording has not been deleted."));
+                           .value("Cannot delete because an associated recording has not been deleted."));
 
     }
 

@@ -4,9 +4,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
@@ -20,13 +20,13 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AuditListener.class)
 public class AuditListenerTest {
-    @MockBean
+    @MockitoBean
     private UserAuthentication userAuthentication;
 
-    @MockBean
+    @MockitoBean
     private AppAccessRepository appAccessRepository;
 
-    @MockBean
+    @MockitoBean
     private HttpServletRequest request;
 
     @Autowired

@@ -1,5 +1,6 @@
 java:
-  devmemoryLimits: '2048Mi'
+  devmemoryLimits: '3Gi'
+  devmemoryRequests: '3Gi'
   postgresql:
     enabled: true
     primary:
@@ -8,6 +9,7 @@ java:
         scripts:
           init.sql: |-
             CREATE EXTENSION IF NOT EXISTS pgcrypto;
+            CREATE EXTENSION IF NOT EXISTS pg_trgm;
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
@@ -21,6 +23,14 @@ java:
     MEDIA_SERVICE: MediaKind
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
+    AZURE_VF_SA: prevodasastg
+    ENABLE_AUTOMATED_EDITING: true
+    ENABLE_ENHANCED_PROCESSING: true
+    ENABLE_NULL_DURATION_UPSERT: true
+    ENABLE_MIGRATED_DATA: false
+    TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE: 50
+    TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL: 10000
+    ENABLE_V2_B2C: true
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}

@@ -4,13 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.RecordingController;
@@ -55,13 +56,13 @@ class RecordingControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private RecordingService recordingService;
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
+    @MockitoBean
     private ScheduledTaskRunner taskRunner;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -513,6 +514,66 @@ class RecordingControllerTest {
             .andReturn();
 
         verify(recordingService, times(1)).findAll(any(), eq(true), any());
+    }
+
+    @Test
+    @DisplayName("Should search by case open status = true")
+    void getRecordingsCaseOpenTrue() throws Exception {
+        var mockRecordingDTO = new RecordingDTO();
+        mockRecordingDTO.setId(UUID.randomUUID());
+        when(recordingService.findAll(any(), anyBoolean(), any()))
+            .thenReturn(new PageImpl<>(List.of(mockRecordingDTO)));
+
+        mockMvc.perform(get("/recordings?caseOpen=true")
+                            .with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(mockRecordingDTO.getId().toString()));
+
+        var argCaptor = ArgumentCaptor.forClass(SearchRecordings.class);
+        verify(recordingService, times(1)).findAll(argCaptor.capture(), eq(false), any());
+
+        assertThat(argCaptor.getValue().getCaseOpen()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should search by case open status = false")
+    void getRecordingsCaseOpenFalse() throws Exception {
+        var mockRecordingDTO = new RecordingDTO();
+        mockRecordingDTO.setId(UUID.randomUUID());
+        when(recordingService.findAll(any(), anyBoolean(), any()))
+            .thenReturn(new PageImpl<>(List.of(mockRecordingDTO)));
+
+        mockMvc.perform(get("/recordings?caseOpen=false")
+                            .with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(mockRecordingDTO.getId().toString()));
+
+        var argCaptor = ArgumentCaptor.forClass(SearchRecordings.class);
+        verify(recordingService, times(1)).findAll(argCaptor.capture(), eq(false), any());
+
+        assertThat(argCaptor.getValue().getCaseOpen()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should search by case open status = null")
+    void getRecordingsCaseOpenNull() throws Exception {
+        var mockRecordingDTO = new RecordingDTO();
+        mockRecordingDTO.setId(UUID.randomUUID());
+        when(recordingService.findAll(any(), anyBoolean(), any()))
+            .thenReturn(new PageImpl<>(List.of(mockRecordingDTO)));
+
+        mockMvc.perform(get("/recordings")
+                            .with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(mockRecordingDTO.getId().toString()));
+
+        var argCaptor = ArgumentCaptor.forClass(SearchRecordings.class);
+        verify(recordingService, times(1)).findAll(argCaptor.capture(), eq(false), any());
+
+        assertThat(argCaptor.getValue().getCaseOpen()).isNull();
     }
 
     @DisplayName("Should undelete a recording by id and return a 200 response")

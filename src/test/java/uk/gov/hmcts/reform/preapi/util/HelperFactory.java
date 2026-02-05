@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.util;
 
 import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
@@ -12,12 +11,12 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
-import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -25,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.entities.UserTermsAccepted;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -111,6 +111,7 @@ public class HelperFactory {
         testCase.setCourt(court);
         testCase.setReference(reference);
         testCase.setTest(test);
+        testCase.setOrigin(RecordingOrigin.PRE);
         testCase.setDeletedAt(deletedAt);
         testCase.setState(CaseState.OPEN);
         return testCase;
@@ -144,6 +145,7 @@ public class HelperFactory {
                                                       @Nullable RecordingStatus status,
                                                       @Nullable Timestamp deletedAt) {
         CaptureSession captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
         captureSession.setOrigin(origin);
         captureSession.setIngestAddress(ingestAddress);
@@ -154,6 +156,7 @@ public class HelperFactory {
         captureSession.setFinishedByUser(finishedBy);
         captureSession.setStatus(status);
         captureSession.setDeletedAt(deletedAt);
+        captureSession.setRecordings(Set.of());
         return captureSession;
     }
 
@@ -176,13 +179,6 @@ public class HelperFactory {
         region.setName(name);
         region.setCourts(courts);
         return region;
-    }
-
-    public static Room createRoom(String name, Set<Court> courts) {
-        Room room = new Room();
-        room.setName(name);
-        room.setCourts(courts);
-        return room;
     }
 
     public static Recording createRecording(CaptureSession captureSession,
@@ -228,6 +224,23 @@ public class HelperFactory {
         termsAccepted.setTermsAndConditions(termsAndConditions);
         termsAccepted.setAcceptedAt(acceptedAt);
         return termsAccepted;
+    }
+
+    public static EditRequest createEditRequest(Recording sourceRecording,
+                                                String editInstructions,
+                                                EditRequestStatus status,
+                                                User createdBy,
+                                                @Nullable Timestamp startedAt,
+                                                @Nullable Timestamp finishedAt) {
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(sourceRecording);
+        editRequest.setEditInstruction(editInstructions);
+        editRequest.setStatus(status);
+        editRequest.setCreatedBy(createdBy);
+        editRequest.setStartedAt(startedAt);
+        editRequest.setFinishedAt(finishedAt);
+        return editRequest;
     }
 
     public static CreateParticipantDTO createParticipantDTO(String firstName,
@@ -295,16 +308,5 @@ public class HelperFactory {
         dto.setResourceState(resourceState);
         dto.setInputRtmp(inputRtmp);
         return dto;
-    }
-
-    public CreateInviteDTO createInviteDTO(User user) {
-        var invite = new CreateInviteDTO();
-        invite.setUserId(user.getId());
-        invite.setFirstName(user.getFirstName());
-        invite.setLastName(user.getLastName());
-        invite.setEmail(user.getEmail());
-        invite.setOrganisation(user.getOrganisation());
-        invite.setPhone(user.getPhone());
-        return invite;
     }
 }

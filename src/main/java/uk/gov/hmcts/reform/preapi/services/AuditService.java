@@ -79,7 +79,17 @@ public class AuditService {
     ) {
         return auditRepository
             .searchAll(after, before, functionalArea, source, userName, courtId, caseReference, pageable)
-            .map(this::toDto);
+            .map(audit -> {
+                var createdById = audit.getCreatedBy();
+                if (createdById == null) {
+                    return new AuditDTO(audit);
+                }
+                return appAccessRepository.findById(createdById)
+                    .map(aa -> new AuditDTO(audit, aa.getUser()))
+                    .orElseGet(() -> portalAccessRepository.findById(createdById)
+                        .map(pa -> new AuditDTO(audit, pa.getUser()))
+                        .orElseGet(() -> new AuditDTO(audit)));
+            });
     }
 
     public List<Audit> getAuditsByTableRecordId(UUID tableRecordId) {
