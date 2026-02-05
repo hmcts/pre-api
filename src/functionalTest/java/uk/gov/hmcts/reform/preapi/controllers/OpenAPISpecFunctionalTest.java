@@ -12,7 +12,7 @@ import static org.springframework.http.HttpStatus.OK;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class OpenAPISpecFunctionalTest {
-    private static final String SPEC_ENDPOINT = "/v3/api-docs";
+    private static final String SPEC_ENDPOINT = "/v3/api-docs/pre-api";
 
     @LocalServerPort
     private int port;

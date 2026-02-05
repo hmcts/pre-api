@@ -31,8 +31,11 @@ public class PerformEditRequest extends RobotUserTask {
         signInRobotUser();
         log.info("Running PerformEditRequest task");
 
-        editRequestService.getPendingEditRequests()
-            .forEach(this::attemptPerformEditRequest);
+        // claims the oldest existing pending request and performs edit
+        editRequestService.getNextPendingEditRequest()
+            .ifPresentOrElse(
+                this::attemptPerformEditRequest,
+                () -> log.info("No pending edit requests found"));
     }
 
     private void attemptPerformEditRequest(EditRequest editRequest) {
@@ -40,11 +43,12 @@ public class PerformEditRequest extends RobotUserTask {
         try {
             EditRequest lockedRequest = editRequestService.markAsProcessing(editRequest.getId());
             editRequestService.performEdit(lockedRequest);
-            // todo generate asset (including create recording entity)
-            // todo copy edit instructions to recording (?)
         } catch (PessimisticLockingFailureException | ResourceInWrongStateException e) {
             // edit request is locked or has already been updated to a different state so it is skipped
             log.info("Skipping EditRequest {}, already reserved by another process", editRequest.getId());
+        } catch (InterruptedException e) {
+            log.error("Error while performing EditRequest {}", editRequest.getId(), e);
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             log.error("Error while performing EditRequest {}", editRequest.getId(), e);
         }

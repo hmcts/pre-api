@@ -12,10 +12,12 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MediaServiceControllerFT extends FunctionalTestBase {
+class MediaServiceControllerFT extends FunctionalTestBase {
 
-    @DisplayName("Should return links to play back a vod on demand")
+    private static final String VOD_ENDPOINT = "/media-service/vod";
+
     @Test
+    @DisplayName("Should return links to play back a vod")
     void vodLinks() throws JsonProcessingException {
         var captureSession = createCaptureSession();
         var putCaptureSession = putCaptureSession(captureSession);
@@ -37,8 +39,16 @@ public class MediaServiceControllerFT extends FunctionalTestBase {
         assertResponseCode(links.peek(), 404);
     }
 
+    @Test
+    @DisplayName("Should return 403 when level 4 user attempts to access a vod")
+    void getVodLevel4() {
+        Response getVodResponse = doGetRequest(VOD_ENDPOINT + "?recordingId=" + UUID.randomUUID(),
+                                               TestingSupportRoles.LEVEL_4);
+        assertResponseCode(getVodResponse, 403);
+    }
+
     private ResponseBody<Response> getVodLinks(UUID recordingId) {
-        return doGetRequest("/media-service/vod?recordingId=" + recordingId + "&mediaService=MediaKind",
+        return doGetRequest(VOD_ENDPOINT + "?recordingId=" + recordingId + "&mediaService=MediaKind",
                             TestingSupportRoles.SUPER_USER);
     }
 }

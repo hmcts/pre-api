@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import feign.Request;
 import feign.Response;
+import lombok.Cleanup;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -31,7 +32,7 @@ public class FeignErrorDecoderTest {
     @DisplayName("Test for 404")
     @Test
     void test404() throws JsonProcessingException {
-        var response = Response.builder()
+        @Cleanup var response = Response.builder()
                                 .request(REQUEST)
                                 .headers(Collections.singletonMap("AcceptTest", Collections.singletonList("Yes")))
                                 .status(HttpStatus.NOT_FOUND.value())
@@ -48,7 +49,7 @@ public class FeignErrorDecoderTest {
     @Test
     @SuppressWarnings("checkstyle:linelength")
     void test400() throws JsonProcessingException {
-        var response = Response.builder()
+        @Cleanup var response = Response.builder()
                                .request(REQUEST)
                                .headers(Collections.singletonMap("AcceptTest", Collections.singletonList("Yes")))
                                .status(HttpStatus.BAD_REQUEST.value())
@@ -64,7 +65,7 @@ public class FeignErrorDecoderTest {
     @DisplayName("Test for 400 which should be a 409")
     @Test
     void test400to409() throws JsonProcessingException {
-        var response = Response.builder()
+        @Cleanup var response = Response.builder()
                                .request(REQUEST)
                                .headers(Collections.singletonMap("AcceptTest", Collections.singletonList("Yes")))
                                .status(HttpStatus.BAD_REQUEST.value())
@@ -80,7 +81,7 @@ public class FeignErrorDecoderTest {
     @DisplayName("Test for 409")
     @Test
     void test409() throws JsonProcessingException {
-        var response = Response.builder()
+        @Cleanup var response = Response.builder()
             .request(REQUEST)
             .headers(Collections.singletonMap("AcceptTest", Collections.singletonList("Yes")))
             .status(HttpStatus.CONFLICT.value())

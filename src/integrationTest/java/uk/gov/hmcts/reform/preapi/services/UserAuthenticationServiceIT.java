@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class UserAuthenticationServiceIT extends IntegrationTestBase {
+class UserAuthenticationServiceIT extends IntegrationTestBase {
     @Autowired
     private UserAuthenticationService userAuthenticationService;
 
@@ -68,7 +68,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void loadAppUserByIdSuccess() {
+    void loadAppUserByIdSuccess() {
         var userWithValidId = userAuthenticationService.loadAppUserById(appAccess.getId().toString());
         assertEquals(userWithValidId.getUserId(), appAccess.getUser().getId());
         assertEquals(userWithValidId.getAppAccess(), appAccess);
@@ -80,7 +80,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void loadPortalUserByIdSuccess() {
+    void loadPortalUserByIdSuccess() {
         var userWithValidId = userAuthenticationService.loadAppUserById(portalAccess.getId().toString());
         assertEquals(userWithValidId.getUserId(), portalAccess.getUser().getId());
         assertEquals(userWithValidId.getPortalAccess(), portalAccess);
@@ -92,7 +92,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void loadUserByIdNotFound() {
+    void loadUserByIdNotFound() {
         var id = UUID.randomUUID();
         var message = assertThrows(
             BadCredentialsException.class,
@@ -104,7 +104,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void loadUserByIdNull() {
+    void loadUserByIdNull() {
         var message = assertThrows(
             BadCredentialsException.class,
             () ->  userAuthenticationService.loadAppUserById(null)
@@ -116,7 +116,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void loadUserByIdNotUuid() {
+    void loadUserByIdNotUuid() {
         var id = "1234567890";
         var message = assertThrows(
             BadCredentialsException.class,
@@ -128,7 +128,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void loadUserByIdEmpty() {
+    void loadUserByIdEmpty() {
         var id = "";
         var message = assertThrows(
             BadCredentialsException.class,
@@ -140,7 +140,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void loadUserByIdAppInactive() {
+    void loadUserByIdAppInactive() {
         appAccess.setActive(false);
         entityManager.persist(appAccess);
         var id = appAccess.getId().toString();
@@ -155,7 +155,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void loadUserByIdAppDeleted() {
+    void loadUserByIdAppDeleted() {
         appAccess.setDeletedAt(Timestamp.from(Instant.now()));
         entityManager.persist(appAccess);
         var id = appAccess.getId().toString();
@@ -170,7 +170,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void loadUserByIdAppUserDeleted() {
+    void loadUserByIdAppUserDeleted() {
         var user = appAccess.getUser();
         user.setDeletedAt(Timestamp.from(Instant.now()));
         entityManager.persist(user);

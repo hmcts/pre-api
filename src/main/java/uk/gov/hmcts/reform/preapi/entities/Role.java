@@ -8,6 +8,7 @@ import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -22,8 +23,8 @@ public class Role extends BaseEntity {
     private String description;
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("roleName", getName());
         return details;
     }

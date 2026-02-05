@@ -2,17 +2,22 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
-import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -44,7 +49,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 400);
         assertThat(deleteResponse.getBody().jsonPath().getString("message"))
-            .isEqualTo("Cannot delete because and associated recording has not been deleted.");
+            .isEqualTo("Cannot delete because an associated recording has not been deleted.");
         assertRecordingExists(recordingId, true);
     }
 
@@ -96,8 +101,6 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(booking.getId()).isEqualTo(bookingId);
         var region = booking.getCaseDTO().getCourt().getRegions().stream().findFirst();
         assertThat(region.orElseGet(RegionDTO::new).getName()).isEqualTo("Foo Region");
-        var rooms = booking.getCaseDTO().getCourt().getRooms().stream().findFirst();
-        assertThat(rooms.orElseGet(RoomDTO::new).getName()).isEqualTo("Foo Room");
 
         // validate the court referenced does exist
         var courtResponse = assertCourtExists(booking.getCaseDTO().getCourt().getId(), true);
@@ -118,7 +121,12 @@ class BookingControllerFT extends FunctionalTestBase {
         // set scheduledFor to yesterday
         createBooking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusDays(1).toInstant()));
 
-        var putResponse = putBooking(createBooking);
+        putBooking(createBooking);
+        var putResponse = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + createBooking.getId(),
+            OBJECT_MAPPER.writeValueAsString(createBooking),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putResponse, 400);
     }
 
@@ -444,14 +452,18 @@ class BookingControllerFT extends FunctionalTestBase {
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity),
-            TestingSupportRoles.SUPER_USER
+            TestingSupportRoles.LEVEL_1
         );
         assertResponseCode(putCase, 201);
 
-        var putBooking = putBooking(booking);
+        var putBooking = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putBooking, 400);
-        assertThat(putBooking.body().jsonPath().getString("scheduledFor"))
-            .isEqualTo("must not be before today");
+        assertThat(putBooking.body().jsonPath().getString("message"))
+            .isEqualTo("Scheduled date must not be in the past");
     }
 
     @DisplayName("Create a booking with a participant that is not part of the case")
@@ -604,7 +616,12 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // attempt update
         booking.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay().plusDays(1)));
-        var putBooking2 = putBooking(booking);
+        var putBooking2 = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            TestingSupportRoles.LEVEL_1
+        );
+
         assertResponseCode(putBooking2, 400);
         assertThat(putBooking2.body().jsonPath().getString("message"))
             .isEqualTo(
@@ -614,7 +631,11 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // attempt create
         var booking2 = createBooking(caseEntity.getId(), participants);
-        var putBooking3 = putBooking(booking2);
+        var putBooking3 = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking2.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking2),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putBooking3, 400);
         assertThat(putBooking3.body().jsonPath().getString("message"))
             .isEqualTo(
@@ -651,12 +672,20 @@ class BookingControllerFT extends FunctionalTestBase {
         // close case
         caseEntity.setState(CaseState.PENDING_CLOSURE);
         caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
-        var putCase2 = putCase(caseEntity);
+        var putCase2 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putCase2, 204);
 
         // attempt update
         booking.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay().plusDays(1)));
-        var putBooking2 = putBooking(booking);
+        var putBooking2 = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putBooking2, 400);
         assertThat(putBooking2.body().jsonPath().getString("message"))
             .isEqualTo(
@@ -666,7 +695,11 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // attempt create
         var booking2 = createBooking(caseEntity.getId(), participants);
-        var putBooking3 = putBooking(booking2);
+        var putBooking3 = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking2.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking2),
+            TestingSupportRoles.LEVEL_1
+        );
         assertResponseCode(putBooking3, 400);
         assertThat(putBooking3.body().jsonPath().getString("message"))
             .isEqualTo(
@@ -742,67 +775,293 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(responseData2.get(2).getId()).isEqualTo(booking1.getId());
     }
 
-    /*
-    @DisplayName("Scenario: Search for a booking by schedule date")
-    @Test
-    void searchBookingByScheduleDate() throws JsonProcessingException {
-        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=false")
+    class WithMigratedDataDisabled extends FunctionalTestBase {
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to VODAFONE bookings to non super user requests")
+        void getById(TestingSupportRoles role) throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.VODAFONE);
+            caseDto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
 
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = doPutRequest(
+                CASES_ENDPOINT + "/" + caseDto.getId(),
+                OBJECT_MAPPER.writeValueAsString(caseDto),
+                TestingSupportRoles.SUPER_USER
+            );
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+
+            assertBookingExists(booking.getId(), true);
+
+            var request = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), role);
+            assertResponseCode(request, 403);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class,
+            names = {"SUPER_USER", "LEVEL_3"},
+            mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to VODAFONE bookings to non super user requests")
+        void findAllBookingsHideVodafoneCasesForNonSuperUser(TestingSupportRoles role) throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.VODAFONE);
+            caseDto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
+
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = doPutRequest(
+                CASES_ENDPOINT + "/" + caseDto.getId(),
+                OBJECT_MAPPER.writeValueAsString(caseDto),
+                TestingSupportRoles.SUPER_USER
+            );
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+
+            var getBookings = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
+            assertResponseCode(getBookings, 200);
+            assertThat(getBookings.body().jsonPath().getInt("page.totalElements")).isEqualTo(0);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class,
+            names = {"SUPER_USER", "LEVEL_3"},
+            mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to VODAFONE_VISIBLE bookings to non super user requests")
+        void findAllBookingsVodafoneVisibleCasesForNonSuperUser(TestingSupportRoles role)
+            throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.VODAFONE_VISIBLE);
+            caseDto.setCourtId(authenticatedUserIds.get(role).courtId());
+
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = doPutRequest(
+                CASES_ENDPOINT + "/" + caseDto.getId(),
+                OBJECT_MAPPER.writeValueAsString(caseDto),
+                TestingSupportRoles.SUPER_USER
+            );
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+
+            var getBookings = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
+            assertResponseCode(getBookings, 200);
+            assertThat(getBookings.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class,
+            names = {"SUPER_USER", "LEVEL_3"},
+            mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not hide bookings with VODAFONE capture session in non super user requests")
+        void findAllBookingsHideVodafoneCasesForNonSuperUserWhereCaptureSessionIsVf(TestingSupportRoles role)
+            throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.PRE);
+            caseDto.setCourtId(authenticatedUserIds.get(role).courtId());
+
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = putCase(caseDto);
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+
+            // should show when booking doesn't have a vf capture session
+            var getBookings1 = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
+            assertResponseCode(getBookings1, 200);
+            assertThat(getBookings1.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+
+            CreateCaptureSessionDTO captureSession = createCaptureSession(booking.getId());
+            captureSession.setOrigin(RecordingOrigin.VODAFONE);
+            var putCaptureSession = putCaptureSession(captureSession);
+            assertResponseCode(putCaptureSession, 201);
+
+            var getBookings2 = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
+            assertResponseCode(getBookings2, 200);
+            assertThat(getBookings2.body().jsonPath().getInt("page.totalElements")).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("Should not hide VODAFONE bookings for super users")
+        void findAllBookingsNotHideVodafoneCasesForSuperUser() throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.VODAFONE);
+            caseDto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
+
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = doPutRequest(
+                CASES_ENDPOINT + "/" + caseDto.getId(),
+                OBJECT_MAPPER.writeValueAsString(caseDto),
+                TestingSupportRoles.SUPER_USER
+            );
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+            assertBookingExists(booking.getId(), true);
+
+            var getBookings = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(),
+                                        TestingSupportRoles.SUPER_USER);
+            assertResponseCode(getBookings, 200);
+            assertThat(getBookings.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=true")
+    class WithMigratedDataEnabled extends FunctionalTestBase {
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class)
+        @DisplayName("Should allow access to VODAFONE bookings when feature flag enabled")
+        void getById(TestingSupportRoles role) throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.VODAFONE);
+            caseDto.setCourtId(authenticatedUserIds.get(role).courtId());
+
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = doPutRequest(
+                CASES_ENDPOINT + "/" + caseDto.getId(),
+                OBJECT_MAPPER.writeValueAsString(caseDto),
+                TestingSupportRoles.SUPER_USER
+            );
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+
+            var request = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), role);
+            assertResponseCode(request, 200);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class)
+        @DisplayName("Should allow access to VODAFONE bookings when toggled on")
+        void findAllBookingsNotHideVodafoneCases(TestingSupportRoles role) throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.VODAFONE);
+            caseDto.setCourtId(authenticatedUserIds.get(role).courtId());
+
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = doPutRequest(
+                CASES_ENDPOINT + "/" + caseDto.getId(),
+                OBJECT_MAPPER.writeValueAsString(caseDto),
+                TestingSupportRoles.SUPER_USER
+            );
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+
+            var getBookings = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
+            assertResponseCode(getBookings, 200);
+            assertThat(getBookings.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+        }
+    }
+
+    @Test
+    @DisplayName("Scenario: Search for a booking by schedule date")
+    void searchBookingByScheduleDate() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath()
             .getUUID("bookingId");
 
-        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr, true);
-
+        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr,
+                                           TestingSupportRoles.SUPER_USER);
         var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
 
         dateToSearchStr = LocalDate.now().toString();
-
-        bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr, true);
-
+        bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr,
+                                       TestingSupportRoles.SUPER_USER);
         bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().noneMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
 
-    @DisplayName("Scenario: Search for a booking by schedule date and case reference")
     @Test
-    void searchBookingByScheduleDateAndCaseReference() throws JsonProcessingException {
-        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
-
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+    @DisplayName("Scenario: Search for a booking by schedule date and case reference")
+    void searchBookingByScheduleDateAndCaseReference() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath()
             .getUUID("bookingId");
 
-        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr
-            + "&caseReference=4567890123", true);
-
+        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr
+                                               + "&caseReference=4567890123", TestingSupportRoles.SUPER_USER);
         var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertResponseCode(bookingResponse, 200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
 
-    @DisplayName("Scenario: Search for a booking by partial case reference")
     @Test
-    void searchBookingByPartialCaseReference() throws JsonProcessingException {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+    @DisplayName("Scenario: Search for a booking by partial case reference")
+    void searchBookingByPartialCaseReference() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath()
             .getUUID("bookingId");
 
-        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=456789", true);
-
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=456789", TestingSupportRoles.SUPER_USER);
         var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
-    */
 }

@@ -12,21 +12,25 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "bookings")
 public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;
 
@@ -36,7 +40,7 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "booking_participant",
         joinColumns = @JoinColumn(name = "booking_id", referencedColumnName = "id"),
@@ -63,8 +67,8 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("caseId", caseId.getId());
         details.put("bookingScheduledFor", scheduledFor);
         details.put("deleted", isDeleted());
@@ -83,5 +87,30 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Override
     public boolean isDeleteOperation() {
         return this.isSoftDeleteOperation;
+    }
+
+    public @NotNull String getDefendantName() {
+        if (getParticipants() == null || getParticipants().isEmpty()) {
+            return "";
+        }
+        return getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+            .map(Participant::getFullName)
+            .sorted()
+            .collect(Collectors.joining(", "));
+
+    }
+
+    public @NotNull String getWitnessName() {
+        if (getParticipants() == null || getParticipants().isEmpty()) {
+            return "";
+        }
+        return getParticipants()
+            .stream()
+            .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+            .map(Participant::getFirstName)
+            .sorted()
+            .collect(Collectors.joining(", "));
     }
 }

@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -18,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Getter
@@ -25,7 +27,7 @@ import java.util.Set;
 @Entity
 @Table(name = "participants")
 public class Participant extends CreatedModifiedAtEntity {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;
 
@@ -46,9 +48,16 @@ public class Participant extends CreatedModifiedAtEntity {
     @ManyToMany(mappedBy = "participants")
     private Set<Booking> bookings;
 
+    @Transient
+    private String fullName;
+
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("caseId", caseId.getId());
         details.put("firstName", firstName);
         details.put("lastName", lastName);

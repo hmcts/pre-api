@@ -3,20 +3,25 @@ package uk.gov.hmcts.reform.preapi.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportArgsRecord;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -34,6 +39,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class ReportService {
 
     private final CaptureSessionRepository captureSessionRepository;
@@ -62,70 +68,76 @@ public class ReportService {
     }
 
     @Transactional
-    public List<ConcurrentCaptureSessionReportDTO> reportCaptureSessions() {
+    public List<ConcurrentCaptureSessionReportDTOV2> reportCaptureSessions() {
         return captureSessionRepository
             .reportConcurrentCaptureSessions()
             .stream()
-            .map(ConcurrentCaptureSessionReportDTO::new)
+            .map(ConcurrentCaptureSessionReportDTOV2::new)
             .collect(Collectors.toList());
     }
 
     @Transactional
-    public List<RecordingsPerCaseReportDTO> reportRecordingsPerCase() {
+    public List<RecordingsPerCaseReportDTOV2> reportRecordingsPerCase() {
         return recordingRepository
             .countRecordingsPerCase()
             .stream()
-            .map(data -> new RecordingsPerCaseReportDTO((Case) data[0], ((Long) data[1]).intValue()))
+            .map(data -> new RecordingsPerCaseReportDTOV2((Case) data[0], ((Long) data[1]).intValue()))
             .toList();
     }
 
     @Transactional
-    public List<EditReportDTO> reportEdits() {
+    public List<EditReportDTOV2> reportEdits() {
         return recordingRepository
             .findAllByParentRecordingIsNotNull()
             .stream()
-            .map(EditReportDTO::new)
-            .sorted(Comparator.comparing(EditReportDTO::getCreatedAt))
-            .toList();
+            .sorted(Comparator.comparing(Recording::getCreatedAt))
+            .map(EditReportDTOV2::new)
+            .collect(Collectors.toList());
     }
 
     @Transactional
-    public List<SharedReportDTO> reportShared(
+    public List<SharedReportDTOV2> reportShared(
         UUID courtId,
         UUID bookingId,
         UUID sharedWithId,
-        String sharedWithEmail
+        String sharedWithEmail,
+        boolean onlyActive
     ) {
         return shareBookingRepository
-            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail)
+            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail, onlyActive)
             .stream()
-            .map(SharedReportDTO::new)
-            .sorted(Comparator.comparing(SharedReportDTO::getSharedAt))
-            .toList();
+            .sorted(Comparator.comparing(ShareBooking::getCreatedAt))
+            .map(SharedReportDTOV2::new)
+            .collect(Collectors.toList());
     }
 
     @Transactional
-    public List<ScheduleReportDTO> reportScheduled() {
+    public List<ScheduleReportDTOV2> reportScheduled() {
         return captureSessionRepository
             .findAllByStatus(RecordingStatus.RECORDING_AVAILABLE)
             .stream()
-            .map(ScheduleReportDTO::new)
-            .sorted(Comparator.comparing(ScheduleReportDTO::getScheduledFor))
+            .sorted(Comparator.comparing(c -> c.getBooking().getScheduledFor()))
+            .map(ScheduleReportDTOV2::new)
+            .collect(Collectors.toList());
+    }
+
+    public List<UserRecordingPlaybackReportDTOV2> userRecordingPlaybackReport() {
+        return auditRepository
+            .findAllAccessAttempts()
+            .stream()
+            .map(a -> {
+                PlaybackReportArgsRecord args = toPlaybackReport(a);
+                return new UserRecordingPlaybackReportDTOV2(args.audit(), args.user(), args.recording());
+            })
             .toList();
     }
 
     @Transactional
-    public List<PlaybackReportDTO> reportPlayback(AuditLogSource source) {
-        if (source == null) {
-            return auditRepository
-                .findAllAccessAttempts()
-                .stream()
-                .map(this::toPlaybackReport)
-                .toList();
-        } else if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
-            final var activityPlay = "Play";
-            final var functionalAreaVideoPlayer = "Video Player";
-            final var functionalAreaViewRecordings = "View Recordings";
+    public List<PlaybackReportDTOV2> reportPlayback(AuditLogSource source) {
+        if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
+            final String activityPlay = "Play";
+            final String functionalAreaVideoPlayer = "Video Player";
+            final String functionalAreaViewRecordings = "View Recordings";
 
             return auditRepository
                 .findBySourceAndFunctionalAreaAndActivity(
@@ -136,7 +148,10 @@ public class ReportService {
                     activityPlay
                 )
                 .stream()
-                .map(this::toPlaybackReport)
+                .map(a -> {
+                    PlaybackReportArgsRecord args = toPlaybackReport(a);
+                    return new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
+                })
                 .toList();
         } else {
             throw new NotFoundException("Report for playback source: " + source);
@@ -144,23 +159,23 @@ public class ReportService {
     }
 
     @Transactional
-    public List<CompletedCaptureSessionReportDTO> reportCompletedCaptureSessions() {
+    public List<CompletedCaptureSessionReportDTOV2> reportCompletedCaptureSessions() {
         return recordingRepository
-            .findAllByParentRecordingIsNull()
+            .findAllCompletedCaptureSessionsWithRecordings()
             .stream()
-            .map(CompletedCaptureSessionReportDTO::new)
-            .sorted(Comparator.comparing(CompletedCaptureSessionReportDTO::getScheduledFor))
-            .toList();
+            .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
+            .map(CompletedCaptureSessionReportDTOV2::new)
+            .collect(Collectors.toList());
     }
 
     @Transactional
-    public List<AccessRemovedReportDTO> reportAccessRemoved() {
+    public List<AccessRemovedReportDTOV2> reportAccessRemoved() {
         return shareBookingRepository
             .findAllByDeletedAtIsNotNull()
             .stream()
-            .map(AccessRemovedReportDTO::new)
-            .sorted(Comparator.comparing(AccessRemovedReportDTO::getRemovedAt))
-            .toList();
+            .sorted(Comparator.comparing(ShareBooking::getDeletedAt))
+            .map(AccessRemovedReportDTOV2::new)
+            .collect(Collectors.toList());
     }
 
     @Transactional
@@ -183,9 +198,8 @@ public class ReportService {
             .toList();
     }
 
-    private PlaybackReportDTO toPlaybackReport(Audit audit) {
-        // S28-3604 discovered audit details records Recording Id as recordingId _and_ recordinguid
-        var auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
+    private PlaybackReportArgsRecord toPlaybackReport(Audit audit) {
+        boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
         UUID recordingId = null;
         if (auditDetails) {
             if (audit.getAuditDetails().hasNonNull("recordingId")) {
@@ -195,20 +209,33 @@ public class ReportService {
             }
         }
 
-        return new PlaybackReportDTO(
-            audit,
-            audit.getCreatedBy() != null
-                ? userRepository
-                .findById(audit.getCreatedBy())
-                .orElse(appAccessRepository.findById(audit.getCreatedBy())
-                            .map(AppAccess::getUser)
-                            .orElse(portalAccessRepository.findById(audit.getCreatedBy())
-                                        .map(PortalAccess::getUser)
-                                        .orElse(null)))
-                : null,
-            recordingId != null
-                ? recordingRepository.findById(recordingId).orElse(null)
-                : null
-        );
+        User user = audit.getCreatedBy() != null
+            ? userRepository.findById(audit.getCreatedBy())
+                            .orElse(appAccessRepository.findById(audit.getCreatedBy())
+                                                       .map(AppAccess::getUser)
+                                                       .orElse(portalAccessRepository.findById(audit.getCreatedBy())
+                                                                                     .map(PortalAccess::getUser)
+                                                                                     .orElse(null)))
+            : null;
+
+        Recording recording = recordingId != null
+            ? recordingRepository.findById(recordingId).orElse(null)
+            : null;
+
+        return new PlaybackReportArgsRecord(audit, user, recording);
+    }
+
+    @Transactional
+    public List<UserPrimaryCourtReportDTO> reportUserPrimaryCourts() {
+
+        return this.appAccessRepository.getUserPrimaryCourtsForReport()
+            .stream()
+            .map(access -> new UserPrimaryCourtReportDTO(access.getUser().getFirstName(),
+                                                         access.getUser().getLastName(),
+                                                         access.getCourt().getName(),
+                                                         access.isActive(),
+                                                         access.getRole().getName(),
+                                                         access.getLastAccess()))
+            .toList();
     }
 }

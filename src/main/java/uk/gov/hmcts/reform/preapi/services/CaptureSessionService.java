@@ -1,7 +1,10 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.microsoft.applicationinsights.TelemetryClient;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -34,12 +38,15 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class CaptureSessionService {
 
     private final RecordingService recordingService;
@@ -50,6 +57,11 @@ public class CaptureSessionService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final AuditService auditService;
 
+    @Setter
+    private boolean enableMigratedData;
+
+    private final TelemetryClient telemetry = new TelemetryClient();
+
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
@@ -57,7 +69,8 @@ public class CaptureSessionService {
                                  UserRepository userRepository,
                                  @Lazy BookingService bookingService,
                                  AzureFinalStorageService azureFinalStorageService,
-                                 AuditService auditService) {
+                                 AuditService auditService,
+                                 @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
@@ -65,18 +78,19 @@ public class CaptureSessionService {
         this.bookingService = bookingService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.auditService = auditService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @Transactional
     public CaptureSessionDTO findByLiveEventId(String liveEventId) {
         try {
-            var liveEventUUID = new UUID(
+            UUID liveEventUUID = new UUID(
                 Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
                 Long.parseUnsignedLong(liveEventId.substring(16), 16)
             );
             return this.findById(liveEventUUID);
         } catch (Exception e) {
-            throw new NotFoundException("CaptureSession: " + liveEventId);
+            throw (NotFoundException) new NotFoundException("CaptureSession: " + liveEventId).initCause(e);
         }
     }
 
@@ -99,13 +113,13 @@ public class CaptureSessionService {
         UUID courtId,
         Pageable pageable
     ) {
-        var until = scheduledFor.isEmpty()
+        Timestamp until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
 
-        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
-        var authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        List<UUID> authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
+        UUID authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
 
         return captureSessionRepository
             .searchCaptureSessionsBy(
@@ -118,25 +132,25 @@ public class CaptureSessionService {
                 until,
                 authorisedBookings,
                 authorisedCourt,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
             .map(CaptureSessionDTO::new);
     }
 
     @Transactional
-    public List<CaptureSession> findAvailableSessionsByDate(LocalDate date) {
+    public List<CaptureSession> findSessionsByDate(LocalDate date) {
         Timestamp fromTime = Timestamp.valueOf(date.atStartOfDay());
         Timestamp toTime = Timestamp.valueOf(date.atStartOfDay().plusDays(1));
 
         return captureSessionRepository
-            .findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE,
-                                                                     fromTime, toTime);
+            .findAllByStartedAtIsBetweenAndDeletedAtIsNull(fromTime, toTime);
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #id)")
     public void deleteById(UUID id) {
-        var captureSession = captureSessionRepository
+        CaptureSession captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + id));
 
@@ -146,12 +160,13 @@ public class CaptureSessionService {
             throw new ResourceInWrongStateException(
                 "Capture Session ("
                     + id
-                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                    + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                    + "Current state is "
                     + captureSession.getStatus()
             );
         }
 
-        recordingService.deleteCascade(captureSession);
+        recordingService.checkIfCaptureSessionHasAssociatedRecordings(captureSession);
         captureSession.setDeleteOperation(true);
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
         captureSessionRepository.saveAndFlush(captureSession);
@@ -168,11 +183,12 @@ public class CaptureSessionService {
                     throw new ResourceInWrongStateException(
                         "Capture Session ("
                             + captureSession.getId()
-                            + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                            + ") must be in state RECORDING_AVAILABLE, FAILURE or NO_RECORDING to be deleted. "
+                            + "Current state is "
                             + captureSession.getStatus()
                     );
                 }
-                recordingService.deleteCascade(captureSession);
+                recordingService.checkIfCaptureSessionHasAssociatedRecordings(captureSession);
                 captureSession.setDeleteOperation(true);
                 captureSession.setDeletedAt(Timestamp.from(Instant.now()));
                 captureSessionRepository.save(captureSession);
@@ -182,15 +198,16 @@ public class CaptureSessionService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createCaptureSessionDTO)")
     public UpsertResult upsert(CreateCaptureSessionDTO createCaptureSessionDTO) {
-        var foundCaptureSession = captureSessionRepository.findById(createCaptureSessionDTO.getId());
+        Optional<CaptureSession> foundCaptureSession = captureSessionRepository
+            .findById(createCaptureSessionDTO.getId());
 
         if (foundCaptureSession.isPresent() && foundCaptureSession.get().isDeleted()) {
             throw new ResourceInDeletedStateException("CaptureSessionDTO", createCaptureSessionDTO.getId().toString());
         }
 
-        var captureSession = foundCaptureSession.orElse(new CaptureSession());
+        CaptureSession captureSession = foundCaptureSession.orElse(new CaptureSession());
 
-        var booking = bookingRepository
+        Booking booking = bookingRepository
             .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + createCaptureSessionDTO.getBookingId()));
 
@@ -203,13 +220,13 @@ public class CaptureSessionService {
             );
         }
 
-        var startedByUser = createCaptureSessionDTO.getStartedByUserId() != null
+        User startedByUser = createCaptureSessionDTO.getStartedByUserId() != null
             ? userRepository
             .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getStartedByUserId())
             .orElseThrow(() -> new NotFoundException("User: " + createCaptureSessionDTO.getStartedByUserId()))
             : null;
 
-        var finishedByUser = createCaptureSessionDTO.getFinishedByUserId() != null
+        User finishedByUser = createCaptureSessionDTO.getFinishedByUserId() != null
             ? userRepository
             .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getFinishedByUserId())
             .orElseThrow(() -> new NotFoundException("User: " + createCaptureSessionDTO.getFinishedByUserId()))
@@ -225,18 +242,19 @@ public class CaptureSessionService {
         captureSession.setFinishedAt(createCaptureSessionDTO.getFinishedAt());
         captureSession.setFinishedByUser(finishedByUser);
         captureSession.setStatus(createCaptureSessionDTO.getStatus());
+        Map<String, String> properties = new HashMap<>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
 
         captureSessionRepository.save(captureSession);
-
-        var isUpdate = foundCaptureSession.isPresent();
-
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return foundCaptureSession.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #id)")
     public void undelete(UUID id) {
-        var entity =
+        CaptureSession entity =
             captureSessionRepository.findById(id).orElseThrow(() -> new NotFoundException("Capture Session: " + id));
         bookingService.undelete(entity.getBooking().getId());
         if (!entity.isDeleted()) {
@@ -248,7 +266,7 @@ public class CaptureSessionService {
 
     @Transactional
     public CaptureSessionDTO startCaptureSession(UUID id, RecordingStatus status, String ingestAddress) {
-        var captureSession = captureSessionRepository
+        CaptureSession captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + id));
 
@@ -258,34 +276,43 @@ public class CaptureSessionService {
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
+
         captureSession.setIngestAddress(ingestAddress);
 
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     public CaptureSessionDTO stopCaptureSession(UUID captureSessionId,
                                                 RecordingStatus status,
                                                 UUID recordingId) {
-        var captureSession = captureSessionRepository
+        CaptureSession captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
 
         log.info("Stopping capture session {} with status {}", captureSessionId, status);
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
 
         UUID userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
 
         switch (status) {
             case PROCESSING -> {
-                var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
+                User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
 
                 captureSession.setFinishedByUser(user);
                 captureSession.setFinishedAt(Timestamp.from(Instant.now()));
             }
             case RECORDING_AVAILABLE -> {
-                var recording = new CreateRecordingDTO();
+                CreateRecordingDTO recording = new CreateRecordingDTO();
                 recording.setId(recordingId);
                 recording.setCaptureSessionId(captureSessionId);
                 recording.setVersion(1);
@@ -297,8 +324,7 @@ public class CaptureSessionService {
                 recordingService.upsert(recording);
                 auditService.upsert(createStopAudit(captureSessionId), userId);
             }
-            case NO_RECORDING, FAILURE ->
-                auditService.upsert(createStopAudit(captureSessionId), userId);
+            case NO_RECORDING, FAILURE -> auditService.upsert(createStopAudit(captureSessionId), userId);
             default -> {
             }
         }
@@ -308,12 +334,56 @@ public class CaptureSessionService {
 
     @Transactional
     public CaptureSessionDTO setCaptureSessionStatus(UUID captureSessionId, RecordingStatus status) {
-        var captureSession = captureSessionRepository
+        CaptureSession captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
+
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
+    }
+
+    @Transactional
+    public List<CaptureSessionDTO> findAllPastIncompleteCaptureSessions() {
+        return captureSessionRepository.findAllPastIncompleteCaptureSessions(Timestamp.from(Instant.now())).stream()
+            .map(CaptureSessionDTO::new)
+            .toList();
+    }
+
+    /**
+     * Find failed capture sessions for open cases started between fromDate and toDate.
+     * Only Capture Sessions that are associated with Bookings for Cases that are still open are returned.
+     * @param fromDate - inclusive
+     * @param toDate - inclusive
+     * @return a list of capture sessions associated with open cases that failed within the date range
+     */
+    @Transactional
+    public List<CaptureSession> findFailedCaptureSessionsStartedBetween(LocalDate fromDate, LocalDate toDate) {
+        Timestamp fromTime = Timestamp.valueOf(fromDate.atStartOfDay());
+        Timestamp toTime = Timestamp.valueOf(toDate.atStartOfDay().plusDays(1));
+
+        return captureSessionRepository.findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
+            fromTime, toTime, RecordingStatus.FAILURE, CaseState.OPEN);
+    }
+
+    /**
+     * Save Capture Session without validation. Should not be used in normal API flow.
+     *
+     * <p>Saves the given CaptureSession entity to the database. Created to be used by the
+     * CaptureSessionStatusCorrectionTask.
+     * See {@link uk.gov.hmcts.reform.preapi.tasks.CaptureSessionStatusCorrectionTask}.
+     * Should be removed once that task is no longer needed.</p>
+     * @param createCaptureSessionDTO - the CaptureSession entity to be saved
+     * @return the saved CaptureSession entity
+     */
+    @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createCaptureSessionDTO)")
+    public CaptureSession save(CaptureSession createCaptureSessionDTO) {
+        return captureSessionRepository.save(createCaptureSessionDTO);
     }
 
     private CreateAuditDTO createStopAudit(UUID captureSessionId) {

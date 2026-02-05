@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -42,8 +43,8 @@ public class UserTermsAccepted extends BaseEntity {
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("userId", getUser().getId());
         details.put("termsAndConditions", getTermsAndConditions().getId());
         details.put("acceptedAt", getAcceptedAt());

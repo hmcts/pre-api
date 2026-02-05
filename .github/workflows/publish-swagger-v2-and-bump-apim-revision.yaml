@@ -8,19 +8,19 @@ jobs:
   publish-swagger-v2:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Install dependencies
         run: npm install -g api-spec-converter
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: 21
           distribution: 'temurin'
@@ -68,24 +68,26 @@ jobs:
           fi
 
           # get the revision number from the main.tf file in master
-          master_revision=$(grep -i 'revision' main.tf | grep -oE '[0-9]+')
-          branch_revision=$(grep -i 'revision' infrastructure/main.tf | grep -oE '[0-9]+')
+          master_revision=$(grep -i 'api_revision' main.tf | grep -oE '[0-9]+')
+          branch_revision=$(grep -i 'api_revision' infrastructure/main.tf | grep -oE '[0-9]+')
 
           if cmp "master.pre-api-stg.yaml" "pre-api-stg.yaml"; then
             echo "No changes to pre-api-stg.yaml"
             if [[ $master_revision -gt $branch_revision ]]; then
               echo "Master revision is greater than branch revision"
-              awk -v new_revision="$master_revision" 'BEGIN{FS=OFS="\""} /revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
+              awk -v new_revision="$master_revision" 'BEGIN{FS=OFS="\""} /api_revision=/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
               git add infrastructure/main.tf
               commit_message="${commit_message} Bump APIm revision to $master_revision"
             fi
           else
             echo "API Spec has changed compared to master, ensure revision is incremented"
             if [[ $master_revision -ge $branch_revision ]]; then
+              echo "Master revision $master_revision is less than/equal to branch revision $branch_revision"
               new_revision=$((master_revision + 1))
-              awk -v new_revision="$new_revision" 'BEGIN{FS=OFS="\""} /revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
+              echo "New revision number: $new_revision"
+              sed -e "s/^  api_revision.*\"$branch_revision\"/  api_revision = \"$new_revision\"/"  infrastructure/main.tf > temp && mv temp infrastructure/main.tf
               git add infrastructure/main.tf
-              commit_message="${commit_message} Bump APIm revision to $new_revision"
+              commit_message="${commit_message} Bumped APIm revision to $new_revision"
             fi
           fi
 

@@ -10,6 +10,9 @@ locals {
   env_to_deploy    = 1
   env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
+  api_revision     = "137"
+  # Stg allows dev to access it. For all other envs we only allow calls from the same env
+  pre_apim_b2c_dev_client_id = var.pre_apim_b2c_dev_client_id != "" ? var.pre_apim_b2c_dev_client_id : var.pre_apim_b2c_client_id
 }
 
 data "azurerm_client_config" "current" {}
@@ -41,7 +44,7 @@ module "pre_api" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API"
-  revision              = "95"
+  revision              = local.api_revision
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url
@@ -117,28 +120,6 @@ resource "azurerm_key_vault_secret" "apim_subscription_portal_secondary_key" {
   key_vault_id = data.azurerm_key_vault.keyvault.id
 }
 
-module "apim_subscription_editvm" {
-  count            = local.env_to_deploy
-  sub_display_name = "PRE Edit VM subscription"
-  source           = "git@github.com:hmcts/cnp-module-api-mgmt-subscription?ref=master"
-  api_mgmt_name    = "sds-api-mgmt-${var.env}"
-  api_mgmt_rg      = "ss-${var.env}-network-rg"
-  state            = "active"
-  allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
-}
-resource "azurerm_key_vault_secret" "apim_subscription_editvm_primary_key" {
-  count        = local.env_to_deploy
-  name         = "apim-sub-editvm-primary-key"
-  value        = module.apim_subscription_editvm[0].subscription_primary_key
-  key_vault_id = data.azurerm_key_vault.keyvault.id
-}
-resource "azurerm_key_vault_secret" "apim_subscription_editvm_secondary_key" {
-  count        = local.env_to_deploy
-  name         = "apim-sub-editvm-secondary-key"
-  value        = module.apim_subscription_editvm[0].subscription_secondary_key
-  key_vault_id = data.azurerm_key_vault.keyvault.id
-}
-
 module "pre-api-mgmt-api-policy" {
   count         = local.env_to_deploy
   source        = "git@github.com:hmcts/cnp-module-api-mgmt-api-policy?ref=master"
@@ -172,6 +153,75 @@ module "pre-api-mgmt-api-policy" {
     <on-error>
         <base />
     </on-error>
+</policies>
+XML
+}
+
+module "pre_b2c_product" {
+  source                = "git@github.com:hmcts/cnp-module-api-mgmt-product?ref=master"
+  api_mgmt_name         = "sds-api-mgmt-${var.env}"
+  api_mgmt_rg           = "ss-${var.env}-network-rg"
+  approval_required     = false
+  name                  = "pre-api-b2c"
+  published             = true
+  subscription_required = false
+}
+
+module "pre_api_b2c" {
+  source                = "git@github.com:hmcts/cnp-module-api-mgmt-api?ref=master"
+  name                  = "pre-api-b2c"
+  api_mgmt_rg           = "ss-${var.env}-network-rg"
+  api_mgmt_name         = "sds-api-mgmt-${var.env}"
+  display_name          = "Pre Recorded Evidence API B2C"
+  revision              = local.api_revision
+  product_id            = module.pre_b2c_product.product_id
+  path                  = "pre-api-b2c"
+  service_url           = local.apim_service_url
+  swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api-b2c.json"
+  content_format        = "openapi+json-link"
+  protocols             = ["http", "https"]
+  subscription_required = false
+}
+
+module "pre-api-b2c-mgmt-api-policy" {
+  source                 = "git@github.com:hmcts/cnp-module-api-mgmt-api-policy?ref=master"
+  api_name               = module.pre_api_b2c.name
+  api_mgmt_name          = "sds-api-mgmt-${var.env}"
+  api_mgmt_rg            = "ss-${var.env}-network-rg"
+  api_policy_xml_content = <<XML
+<policies>
+  <inbound>
+    <base />
+    <validate-jwt header-name="Authorization" require-scheme="Bearer" failed-validation-httpcode="401">
+      <openid-config url="https://login.microsoftonline.com/${var.tenant_id}/v2.0/.well-known/openid-configuration" />
+      <audiences>
+        <audience>api://${var.pre_apim_b2c_client_id}</audience>
+        <audience>${var.pre_apim_b2c_client_id}</audience>
+        <audience>api://${local.pre_apim_b2c_dev_client_id}</audience>
+        <audience>${local.pre_apim_b2c_dev_client_id}</audience>
+      </audiences>
+      <issuers>
+        <issuer>https://login.microsoftonline.com/${var.tenant_id}/v2.0</issuer>
+      </issuers>
+      <required-claims>
+        <claim name="roles" match="all">
+          <value>pre.api.request.b2c</value>
+        </claim>
+      </required-claims>
+    </validate-jwt>
+    <cors>
+      <allowed-origins>
+        <origin>*</origin>
+      </allowed-origins>
+      <allowed-methods>
+        <method>GET</method>
+        <method>POST</method>
+      </allowed-methods>
+    </cors>
+  </inbound>
+  <backend><base /></backend>
+  <outbound><base /></outbound>
+  <on-error><base /></on-error>
 </policies>
 XML
 }

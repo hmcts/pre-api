@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,7 +50,7 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
-    @OneToMany
+    @OneToMany(fetch = FetchType.EAGER)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Set<Participant> participants;
 
@@ -71,8 +72,8 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("courtName", court.getName());
         details.put("caseReference", reference);
         details.put("caseParticipants", Stream.ofNullable(getParticipants())

@@ -2,23 +2,27 @@ package uk.gov.hmcts.reform.preapi.services;
 
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = CourtService.class)
@@ -42,13 +47,12 @@ public class CourtServiceTest {
     @MockitoBean
     private RegionRepository regionRepository;
 
-    @MockitoBean
-    private RoomRepository roomRepository;
-
     @Autowired
     private CourtService courtService;
 
-    private Pageable pageable = PageRequest.of(0, 20);
+    private Set<Region> regions;
+
+    private final Pageable pageable = PageRequest.of(0, 20);
 
     @BeforeAll
     static void setUp() {
@@ -57,20 +61,22 @@ public class CourtServiceTest {
         courtEntity.setCourtType(CourtType.CROWN);
         courtEntity.setName("Example Court");
         courtEntity.setLocationCode("123456");
+    }
 
+    @BeforeEach
+    void setUpEntities() {
         var region = new Region();
         region.setId(UUID.randomUUID());
         region.setName("Example Region");
 
-        courtEntity.setRegions(Set.of(region));
+        regions = Set.of(region);
+        courtEntity.setRegions(regions);
     }
 
     @DisplayName("Find a court by it's id and return a model")
     @Test
     void findCourtByIdSuccess() {
-        when(
-            courtRepository.findById(courtEntity.getId())
-        ).thenReturn(Optional.of(courtEntity));
+        when(courtRepository.findById(courtEntity.getId())).thenReturn(Optional.of(courtEntity));
 
         var model = courtService.findById(courtEntity.getId());
         assertThat(model.getId()).isEqualTo(courtEntity.getId());
@@ -119,7 +125,6 @@ public class CourtServiceTest {
         var courtEntity = new Court();
 
         when(regionRepository.existsById(any())).thenReturn(true);
-        when(roomRepository.existsById(any())).thenReturn(true);
         when(courtRepository.findById(courtModel.getId())).thenReturn(Optional.empty());
         when(courtRepository.save(courtEntity)).thenReturn(courtEntity);
 
@@ -138,7 +143,6 @@ public class CourtServiceTest {
         var courtEntity = new Court();
 
         when(regionRepository.existsById(any())).thenReturn(true);
-        when(roomRepository.existsById(any())).thenReturn(true);
         when(courtRepository.findById(courtModel.getId())).thenReturn(Optional.of(courtEntity));
         when(courtRepository.save(courtEntity)).thenReturn(courtEntity);
 
@@ -164,23 +168,119 @@ public class CourtServiceTest {
         );
     }
 
-    @DisplayName("Create/update a court with an invalid room")
+    @DisplayName("Should update court addresses")
     @Test
-    void updateCourtRoomBadRequest() {
-        var roomId = UUID.randomUUID();
-        var courtModel = new CreateCourtDTO();
-        courtModel.setId(UUID.randomUUID());
-        courtModel.setName("Example Court");
-        courtModel.setCourtType(CourtType.CROWN);
-        courtModel.setLocationCode("1234567890");
-        courtModel.setRooms(List.of(roomId));
+    void updateCourtEmailAddressesSuccess() {
+        final String fileContents = """
+Court,PRE Inbox Address
+Example Court,PRE.Edits.Example@justice.gov.uk
+            """;
 
-        when(regionRepository.existsById(any())).thenReturn(true);
-        when(roomRepository.existsById(roomId)).thenReturn(false);
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.of(courtEntity));
+        when(courtRepository.findAll()).thenReturn(List.of(courtEntity));
+
+        courtService.updateCourtEmails(file);
+
+        ArgumentCaptor<Court> updatedCourtSavedInDb = ArgumentCaptor.forClass(Court.class);
+
+        verify(courtRepository, times(1)).save(updatedCourtSavedInDb.capture());
+        assertThat(updatedCourtSavedInDb.getValue().getGroupEmail())
+            .isEqualTo("PRE.Edits.Example@justice.gov.uk");
+
+        Set<Region> regionsSavedInDb = updatedCourtSavedInDb.getValue().getRegions();
+        assertThat(regionsSavedInDb).isEqualTo(regions); // Unchanged from set up
+    }
+
+    @DisplayName("Email address CSV: additional fields are allowed but ignored")
+    @Test
+    void updateCourtEmailAddressesExtraFieldsIgnored() {
+        final String fileContents = """
+Region,Court,PRE Inbox Address,Hot Drink,Breakfast Cereal,Vegetable
+South East,Example Court,PRE.Edits.Example@justice.gov.uk,Coffee,Shreddies,Carrot
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.of(courtEntity));
+        when(courtRepository.findAll()).thenReturn(List.of(courtEntity));
+
+        courtService.updateCourtEmails(file);
+
+        ArgumentCaptor<Court> updatedCourtSavedInDb = ArgumentCaptor.forClass(Court.class);
+
+        verify(courtRepository, times(1)).save(updatedCourtSavedInDb.capture());
+        assertThat(updatedCourtSavedInDb.getValue().getGroupEmail())
+            .isEqualTo("PRE.Edits.Example@justice.gov.uk");
+    }
+
+    @DisplayName("Should ignore blank lines in CSV file when updating court email addresses")
+    @Test
+    void updateCourtEmailAddressesIgnoreBlanks() {
+        final String fileContents = """
+Court,PRE Inbox Address
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        when(courtRepository.findAll()).thenReturn(List.of(courtEntity));
+
+        courtService.updateCourtEmails(file);
+
+        verify(courtRepository, times(0)).save(any());
+    }
+
+    @DisplayName("Should throw an error if court does not exist when updating court email addresses")
+    @Test
+    void updateCourtEmailAddressesThrowErrorForInvalidCourt() {
+        final String fileContents = """
+Court,PRE Inbox Address
+Example Court,PRE.Edits.Example@justice.gov.uk
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.empty());
 
         assertThrows(
             NotFoundException.class,
-            () -> courtService.upsert(courtModel)
+            () -> courtService.updateCourtEmails(file)
         );
+
+        verify(courtRepository, times(0)).save(any());
+    }
+
+    @DisplayName("Should throw an error if CSV file is incorrectly formatted")
+    @Test
+    void updateCourtEmailAddressesThrowErrorForInvalidCsv() {
+        final String fileContents = """
+Court,PRE Inbox Address,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Example Court,PRE.Edits.Example@justice.gov.uk
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        assertThrows(
+            UnknownServerException.class,
+            () -> courtService.updateCourtEmails(file)
+        );
+
+        verifyNoInteractions(courtRepository);
     }
 }

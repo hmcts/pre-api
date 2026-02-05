@@ -47,8 +47,6 @@ public class BookingDTO {
     @Schema(description = "BookingModifiedAt")
     private Timestamp modifiedAt;
 
-    // room?
-
     public BookingDTO(Booking bookingEntity) {
         this.id = bookingEntity.getId();
         this.caseDTO = new CaseDTO(bookingEntity.getCaseId());

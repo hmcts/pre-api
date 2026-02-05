@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
@@ -25,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -32,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -43,7 +46,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -60,6 +65,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(MediaServiceController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@TestPropertySource(properties = {"feature-flags.enable-enhanced-processing=true"})
 public class MediaServiceControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -87,6 +93,9 @@ public class MediaServiceControllerTest {
 
     @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
+
+    @MockitoBean
+    private EncodeJobService encodeJobService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -565,26 +574,63 @@ public class MediaServiceControllerTest {
         var dto2 = new CaptureSessionDTO();
         dto2.setId(captureSessionId);
         dto2.setStatus(RecordingStatus.PROCESSING);
-        var dto3 = new CaptureSessionDTO();
-        dto3.setId(captureSessionId);
-        dto3.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.triggerProcessingStep1(eq(dto), eq(dto.getId().toString().replace("-", "")), any(UUID.class)))
+            .thenReturn("jobName");
         when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any()))
             .thenReturn(dto2);
-        when(mediaService.stopLiveEvent(any(), any())).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(captureSessionService.stopCaptureSession(
-            eq(captureSessionId),
-            eq(RecordingStatus.RECORDING_AVAILABLE),
-            any()
-        )).thenReturn(dto3);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
-               .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
+               .andExpect(jsonPath("$.status").value("PROCESSING"));
+
+        verify(captureSessionService, times(1)).findById(captureSessionId);
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(mediaService, times(1)).stopLiveEvent(eq(dto), any(UUID.class));
+        verify(mediaService, times(1)).triggerProcessingStep1(eq(dto), anyString(), any(UUID.class));
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class));
+        verify(captureSessionService, never())
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), isNull());
+        verify(captureSessionService, never())
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), isNull());
+    }
+
+    @DisplayName("Should successfully stop capture session and return 200 when no recording found")
+    @Test
+    void stopCaptureSessionNoRecordingSuccess() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setStatus(RecordingStatus.RECORDING);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+        var dto2 = new CaptureSessionDTO();
+        dto2.setId(captureSessionId);
+        dto2.setStatus(RecordingStatus.NO_RECORDING);
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.triggerProcessingStep1(eq(dto), eq(dto.getId().toString().replace("-", "")), any(UUID.class)))
+            .thenReturn(null);
+        when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), any()))
+            .thenReturn(dto2);
+
+        mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+            .andExpect(jsonPath("$.status").value("NO_RECORDING"));
+
+        verify(captureSessionService, times(1)).findById(captureSessionId);
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(mediaService, times(1)).stopLiveEvent(eq(dto), any(UUID.class));
+        verify(mediaService, times(1)).triggerProcessingStep1(eq(dto), anyString(), any(UUID.class));
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), isNull());
     }
 
     @Test
@@ -622,7 +668,7 @@ public class MediaServiceControllerTest {
     }
 
     @Test
-    @DisplayName("Should throw 500 when encountering failure in encoding process")
+    @DisplayName("Should update capture session when media service encounters error and return the error")
     void stopLiveEventFailureEncounteredInternalServerError() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
@@ -632,30 +678,20 @@ public class MediaServiceControllerTest {
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
-        when(captureSessionService.stopCaptureSession(eq(captureSessionId),
-                                                      eq(RecordingStatus.PROCESSING),
-                                                      any(UUID.class)))
-            .thenReturn(dto);
-        when(mediaService.stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class)))
-            .thenReturn(RecordingStatus.FAILURE);
+        doThrow(new UnknownServerException("Something went wrong"))
+            .when(mediaService).triggerProcessingStep1(any(), any(), any());
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
             .andExpect(status().isInternalServerError())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(
-                jsonPath("$.message")
-                    .value(
-                        "Unknown Server Exception: Encountered an error during encoding process for CaptureSession("
-                            + captureSessionId
-                            + ")"));
+            .andExpect(jsonPath("$.message").value("Unknown Server Exception: Something went wrong"));
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(captureSessionService, times(1)).findById(captureSessionId);
-        verify(captureSessionService, times(1))
-            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class));
         verify(mediaService, times(1)).stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class));
+        verify(mediaService, times(1)).triggerProcessingStep1(any(), any(), any());
         verify(captureSessionService, times(1))
-            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), any(UUID.class));
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), isNull());
     }
 
     @Test
@@ -693,32 +729,6 @@ public class MediaServiceControllerTest {
                               .value("Resource Capture Session("
                                          + captureSessionId
                                          + ") is in a FAILURE state. Expected state is STANDBY or RECORDING."));
-    }
-
-    @Test
-    @DisplayName("Should update capture session when media service encounters error and return the error")
-    void stopCaptureSessionMediaServiceError() throws Exception {
-        var captureSessionId = UUID.randomUUID();
-        var dto = new CaptureSessionDTO();
-        dto.setId(captureSessionId);
-        dto.setStatus(RecordingStatus.RECORDING);
-        dto.setStartedAt(Timestamp.from(Instant.now()));
-        var dto2 = new CaptureSessionDTO();
-        dto2.setId(captureSessionId);
-        dto2.setStatus(RecordingStatus.PROCESSING);
-
-        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any()))
-            .thenReturn(dto2);
-        doThrow(new NotFoundException("example error"))
-            .when(mediaService).stopLiveEvent(any(), any());
-
-        mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-               .andExpect(status().isNotFound())
-               .andExpect(content().contentType(MediaType.APPLICATION_JSON));
-
-        verify(captureSessionService, times(2)).stopCaptureSession(any(), any(), any());
     }
 
     @Test
@@ -878,7 +888,7 @@ public class MediaServiceControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 200 with updated capture session when gc_state exists")
+    @DisplayName("Should return 200 with updated capture session when streaming path exists")
     void checkStreamCaptureSessionGcStateExists() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -890,9 +900,10 @@ public class MediaServiceControllerTest {
         dto2.setId(dto.getId());
         dto2.setStatus(RecordingStatus.RECORDING);
 
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.checkLiveFeedAvailable(dto.getId())).thenReturn(true);
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
         when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
-        when(azureIngestStorageService.doesBlobExist(dto.getBookingId().toString(), "gc_state")).thenReturn(true);
         when(captureSessionService.setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING)).thenReturn(dto2);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
@@ -907,7 +918,7 @@ public class MediaServiceControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 200 with updated capture session when .ism file does not exist")
+    @DisplayName("Should return 404 with updated capture session when .ism file does not exist")
     void checkStreamCaptureSessionIsmFileNotExists() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -915,9 +926,10 @@ public class MediaServiceControllerTest {
         dto.setStartedAt(Timestamp.from(Instant.now()));
         dto.setBookingId(UUID.randomUUID());
 
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.checkLiveFeedAvailable(dto.getId())).thenReturn(false);
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
         when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
-        when(azureIngestStorageService.doesBlobExist(dto.getBookingId().toString(), "gc_state")).thenReturn(false);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
             .andExpect(status().isNotFound())
@@ -930,7 +942,7 @@ public class MediaServiceControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 404 when .ism file/gc_state does not exist (recording has not started)")
+    @DisplayName("Should return 404 when .ism file does not exist (recording has not started)")
     void createLiveEventStreamingLocatorIsmNotFound() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var captureSession = new CaptureSessionDTO();
@@ -938,10 +950,10 @@ public class MediaServiceControllerTest {
         captureSession.setStatus(RecordingStatus.STANDBY);
         captureSession.setBookingId(UUID.randomUUID());
 
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.checkLiveFeedAvailable(captureSessionId)).thenReturn(false);
         when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
         when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
-            .thenReturn(false);
-        when(azureIngestStorageService.doesBlobExist(captureSession.getBookingId().toString(), "gc_state"))
             .thenReturn(false);
 
         mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
@@ -952,7 +964,6 @@ public class MediaServiceControllerTest {
 
         verify(azureIngestStorageService, times(1))
             .doesIsmFileExist(captureSession.getBookingId().toString());
-        verify(azureIngestStorageService, times(1)).doesBlobExist(captureSession.getBookingId().toString(), "gc_state");
         verify(mediaService, never()).playLiveEvent(any());
     }
 
@@ -1042,7 +1053,7 @@ public class MediaServiceControllerTest {
             .thenReturn("something-else.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.importAsset(any())).thenReturn(
+        when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(true))).thenReturn(
             new GenerateAssetResponseDTO("asset", "container", "description", JobState.FINISHED.toString())
         );
 

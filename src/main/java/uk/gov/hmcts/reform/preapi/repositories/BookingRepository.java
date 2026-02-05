@@ -31,54 +31,32 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         SELECT b FROM Booking b
         LEFT JOIN b.captureSessions cs
         INNER JOIN b.caseId
-        WHERE
-            (
-                (
-                    :reference IS NULL OR
-                    b.caseId.reference ILIKE %:reference%
-                )
-                AND
-                (
-                    CAST(:caseId as uuid) IS NULL OR
-                    b.caseId.id = :caseId
-                )
-                AND
-                (
-                    CAST(:courtId as uuid) IS NULL OR
-                    b.caseId.court.id = :courtId
-                )
-                AND
-                (
-                    CAST(:scheduledForFrom as Timestamp) IS NULL OR
-                    CAST(:scheduledForUntil as Timestamp) IS NULL OR
-                    CAST(FUNCTION('TIMEZONE', 'Europe/London', b.scheduledFor) as Timestamp)
-                    BETWEEN :scheduledForFrom AND :scheduledForUntil
-                )
-                AND (
-                    CAST(:participantId as uuid) IS NULL OR EXISTS (
-                        SELECT 1 FROM b.participants p
-                        WHERE p.id = :participantId
-                    )
-                )
+        WHERE (
+            (:reference IS NULL OR b.caseId.reference ILIKE %:reference%)
+            AND (CAST(:caseId as uuid) IS NULL OR b.caseId.id = :caseId)
+            AND (CAST(:courtId as uuid) IS NULL OR b.caseId.court.id = :courtId)
+            AND (CAST(:scheduledForFrom as Timestamp) IS NULL OR
+                CAST(:scheduledForUntil as Timestamp) IS NULL OR
+                CAST(FUNCTION('TIMEZONE', 'Europe/London', b.scheduledFor) as Timestamp)
+                BETWEEN :scheduledForFrom AND :scheduledForUntil)
+            AND (CAST(:participantId as uuid) IS NULL OR EXISTS (
+                SELECT 1 FROM b.participants p WHERE p.id = :participantId))
             )
             AND b.deletedAt IS NULL
-            AND (
-                :authorisedBookings IS NULL OR
-                b.id IN :authorisedBookings
-            )
-            AND (CAST(:authCourtId as uuid) IS NULL OR
-                b.caseId.court.id = :authCourtId
-            )
+            AND (:includeVodafone = TRUE OR
+                (b.caseId.origin != 'VODAFONE' AND NOT EXISTS (
+                    SELECT 1 FROM CaptureSession cs
+                    WHERE cs.booking.id = b.id
+                    AND cs.origin = 'VODAFONE')))
+            AND (:authorisedBookings IS NULL OR b.id IN :authorisedBookings)
+            AND (CAST(:authCourtId as uuid) IS NULL OR b.caseId.court.id = :authCourtId)
             AND (:statuses IS NULL OR EXISTS (
                 SELECT 1 FROM b.captureSessions AS cs
-                WHERE cs.status in :statuses
-            ))
+                WHERE cs.status in :statuses))
             AND (:notStatuses IS NULL OR NOT EXISTS (
                 SELECT 1 FROM b.captureSessions AS cs
-                WHERE cs.status in :notStatuses
-            ))
-            AND (
-                :hasRecordings IS NULL
+                WHERE cs.status in :notStatuses))
+            AND (:hasRecordings IS NULL
                 OR (:hasRecordings = TRUE AND EXISTS (
                     SELECT 1 FROM CaptureSession c
                     WHERE c.booking.id = b.id
@@ -88,10 +66,10 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                     SELECT 1 FROM CaptureSession c
                     WHERE c.booking.id = b.id
                     AND c.status = 'RECORDING_AVAILABLE'
-                ))
-            )
+                )))
         """
     )
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     Page<Booking> searchBookingsBy(
         @Param("caseId") UUID caseId,
         @Param("reference") String reference,
@@ -104,8 +82,19 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("hasRecordings") Boolean hasRecordings,
         @Param("statuses") List<RecordingStatus> statuses,
         @Param("notStatuses") List<RecordingStatus> notStatuses,
+        @Param("includeVodafone") boolean includeVodafone,
         Pageable pageable
     );
 
     List<Booking> findAllByCaseIdAndDeletedAtIsNull(Case caseId);
+
+    @Query(
+        """
+        SELECT b FROM Booking b
+        WHERE b.scheduledFor < :scheduledBefore
+        AND b.captureSessions IS EMPTY
+        AND b.deletedAt IS NULL
+        """
+    )
+    List<Booking> findAllPastUnusedBookings(@Param("scheduledBefore") Timestamp scheduledBefore);
 }

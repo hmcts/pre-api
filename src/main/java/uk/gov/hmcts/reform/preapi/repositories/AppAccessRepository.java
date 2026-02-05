@@ -7,16 +7,15 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@SuppressWarnings({"PMD.MethodNamingConventions", "PMD.UseObjectForClearerAPI"})
+@SuppressWarnings("PMD.MethodNamingConventions")
 public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
 
-    ArrayList<AppAccess> findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID userId);
+    List<AppAccess> findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID userId);
 
     List<AppAccess> findAllByUser_IdAndDeletedAtIsNotNull(UUID id);
 
@@ -30,4 +29,13 @@ public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
         """
     )
     Optional<AppAccess> findByIdValidUser(@Param("userId") UUID userId);
+
+    @Query(
+        """
+        SELECT a FROM AppAccess a
+        WHERE a.defaultCourt IS TRUE
+        ORDER BY a.user.lastName ASC
+        """
+    )
+    List<AppAccess> getUserPrimaryCourtsForReport();
 }
