@@ -92,7 +92,7 @@ class ImportUserAlternativeEmailTest {
         testUser.setEmail("test@example.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
-        // Add portal access for test user
+
         PortalAccess testUserPortalAccess = new PortalAccess();
         testUserPortalAccess.setDeletedAt(null);
         testUser.setPortalAccess(Set.of(testUserPortalAccess));
@@ -393,24 +393,22 @@ class ImportUserAlternativeEmailTest {
         identities2.add(primaryIdentity2);
         b2cUser2.setIdentities(identities2);
 
+        User testUser2 = new User();
+        testUser2.setId(UUID.randomUUID());
+        testUser2.setEmail("test2@example.com");
+        testUser2.setFirstName("Test2");
+        testUser2.setLastName("User");
+        PortalAccess testUser2PortalAccess = new PortalAccess();
+        testUser2PortalAccess.setId(UUID.randomUUID());
+        testUser2PortalAccess.setUser(testUser2);
+        testUser2PortalAccess.setStatus(AccessStatus.ACTIVE);
+        testUser2.setPortalAccess(Set.of(testUser2PortalAccess));
 
         String csvContent = """
             email,alternativeEmail
             test@example.com,test@example.com.cjsm.net
             test2@example.com,test2@example.com.cjsm.net
             """;
-        
-        User testUser2 = new User();
-        testUser2.setId(UUID.randomUUID());
-        testUser2.setEmail("test2@example.com");
-        testUser2.setFirstName("Test2");
-        testUser2.setLastName("User");
-        // Add portal access for testUser2
-        PortalAccess testUser2PortalAccess = new PortalAccess();
-        testUser2PortalAccess.setId(UUID.randomUUID());
-        testUser2PortalAccess.setUser(testUser2);
-        testUser2PortalAccess.setStatus(AccessStatus.ACTIVE);
-        testUser2.setPortalAccess(Set.of(testUser2PortalAccess));
 
         InputStreamResource blobResource = new InputStreamResource(
             new ByteArrayInputStream(csvContent.getBytes())
@@ -461,7 +459,6 @@ class ImportUserAlternativeEmailTest {
         verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
         verify(b2cGraphService, never()).updateUserIdentities(anyString(), anyList());
-        // DB update should still happen even though B2C user not found
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com.cjsm.net");
     }
 
@@ -1074,6 +1071,149 @@ class ImportUserAlternativeEmailTest {
         verify(b2cGraphService, times(1)).findUserByPrimaryEmail("error@example.com");
         verify(b2cGraphService, times(1)).updateUserIdentities(eq("b2c-user-id-2"), anyList());
         verify(userService, times(1)).updateAlternativeEmail(errorUser.getId(), "invalid@test");
+    }
+
+    @DisplayName("Should throw IOException when local CSV file doesn't exist")
+    @Test
+    void runThrowsIOExceptionWhenLocalCsvFileNotFound() throws Exception {
+        Field useLocalCsvField = ImportUserAlternativeEmail.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.set(task, true);
+
+        assertThatThrownBy(() -> task.run())
+            .isInstanceOf(IllegalStateException.class)
+            .hasCauseInstanceOf(IOException.class)
+            .hasMessageContaining("CSV file not found at local path");
+
+        useLocalCsvField.set(task, false);
+    }
+
+    @DisplayName("Should skip when user doesn't meet criteria for alternative email update")
+    @Test
+    void runSkipsWhenUserDoesNotMeetCriteria() {
+        User userWithAppAccess = new User();
+        userWithAppAccess.setId(UUID.randomUUID());
+        userWithAppAccess.setEmail("test@example.com");
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setDeletedAt(null);
+        userWithAppAccess.setPortalAccess(Set.of(portalAccess));
+        uk.gov.hmcts.reform.preapi.entities.AppAccess appAccess = new uk.gov.hmcts.reform.preapi.entities.AppAccess();
+        appAccess.setDeletedAt(null);
+        userWithAppAccess.setAppAccess(Set.of(appAccess));
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
+            .thenReturn(Optional.of(userWithAppAccess));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
+        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+    }
+
+    @DisplayName("Should skip when user has no portal access")
+    @Test
+    void runSkipsWhenUserHasNoPortalAccess() {
+        User userWithoutPortalAccess = new User();
+        userWithoutPortalAccess.setId(UUID.randomUUID());
+        userWithoutPortalAccess.setEmail("test@example.com");
+        userWithoutPortalAccess.setPortalAccess(Set.of());
+        userWithoutPortalAccess.setAppAccess(Set.of());
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
+            .thenReturn(Optional.of(userWithoutPortalAccess));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
+        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+    }
+
+    @DisplayName("Should handle exception in processRow catch block")
+    @Test
+    void runHandlesExceptionInProcessRowCatchBlock() {
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
+            .thenThrow(new RuntimeException("Unexpected error in processRow"));
+
+        task.run();
+
+        verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
+        verify(userService, never()).updateAlternativeEmail(any(), anyString());
+    }
+
+    @DisplayName("Should upload report to Azure when report file exists")
+    @Test
+    void runUploadsReportToAzureWhenFileExists() {
+        com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
+        b2cUser.setId("b2c-user-id");
+        ObjectIdentity primaryIdentity = new ObjectIdentity();
+        primaryIdentity.setSignInType("emailAddress");
+        primaryIdentity.setIssuer("contoso.onmicrosoft.com");
+        primaryIdentity.setIssuerAssignedId("test@example.com");
+        List<ObjectIdentity> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        b2cUser.setIdentities(identities);
+
+        String csvContent = """
+            email,alternativeEmail
+            test@example.com,test@example.com.cjsm.net
+            """;
+        InputStreamResource blobResource = new InputStreamResource(
+            new ByteArrayInputStream(csvContent.getBytes())
+        );
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(TEST_CONTAINER, "alternative_email_import.csv"))
+            .thenReturn(blobResource);
+        when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
+            .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
+
+        try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
+            java.io.File mockFile = mock(java.io.File.class);
+            when(mockFile.exists()).thenReturn(true);
+            Path mockReportPath = mock(Path.class);
+            when(mockReportPath.toFile()).thenReturn(mockFile);
+            when(mockReportPath.getFileName()).thenReturn(java.nio.file.Paths.get("Alternative_Email_Report-test.csv"));
+            
+            reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
+                any(), any(), anyString(), anyString(), anyBoolean()))
+                .thenReturn(mockReportPath);
+
+            task.run();
+
+            verify(azureVodafoneStorageService, times(1))
+                .uploadCsvFile(eq(TEST_CONTAINER), eq("reports/Alternative_Email_Report-test.csv"), eq(mockFile));
+        }
     }
 }
 
