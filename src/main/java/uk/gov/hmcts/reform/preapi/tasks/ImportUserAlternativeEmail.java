@@ -354,8 +354,13 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
     private void generateReport(List<ImportResult> results) {
         try {
+            if (results == null || results.isEmpty()) {
+                log.warn("No results to generate report for");
+                return;
+            }
             List<String> headers = List.of("email", "alternativeEmail", "status", "message");
             List<List<String>> rows = results.stream()
+                .filter(result -> result != null)
                 .map(ImportResult::toRow)
                 .toList();
 

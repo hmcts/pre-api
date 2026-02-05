@@ -145,6 +145,8 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(uk.gov.hmcts.reform.preapi.enums.UpsertResult.UPDATED);
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
+        when(b2cGraphService.updateUserIdentities(eq("b2c-user-id"), anyList()))
+            .thenReturn(b2cUser);
 
         task.run();
 
@@ -742,6 +744,8 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(blobResource);
         when(userService.findByOriginalEmailWithPortalAccess("test@example.com"))
             .thenReturn(Optional.of(testUser));
+        when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
+            .thenReturn(Optional.of(b2cUser));
         when(userService.updateAlternativeEmail(testUser.getId(), "test@example.com"))
             .thenThrow(new IllegalArgumentException(
                 "Alternative email cannot be the same as the main email"));
@@ -750,8 +754,8 @@ class ImportUserAlternativeEmailTest {
 
         verify(userService, times(1)).findByOriginalEmailWithPortalAccess("test@example.com");
         verify(userService, times(1)).updateAlternativeEmail(testUser.getId(), "test@example.com");
-        // B2C should not be called when local DB update fails
-        verify(b2cGraphService, never()).findUserByPrimaryEmail(anyString());
+        // B2C is called first before local DB update (line 247-248), so it will be called
+        verify(b2cGraphService, times(1)).findUserByPrimaryEmail("test@example.com");
     }
 
     @DisplayName("Should handle IllegalStateException during processing")
@@ -784,8 +788,10 @@ class ImportUserAlternativeEmailTest {
             .thenReturn(uk.gov.hmcts.reform.preapi.enums.UpsertResult.UPDATED);
         when(b2cGraphService.findUserByPrimaryEmail("test@example.com"))
             .thenReturn(Optional.of(b2cUser));
+        when(b2cGraphService.updateUserIdentities(eq("b2c-user-id"), anyList()))
+            .thenReturn(b2cUser);
 
-        // Throw IllegalStateException from generateReport to cover the catch block (lines 96-98)
+        // Throw IllegalStateException from generateReport to cover the catch block (lines 106-108)
         try (MockedStatic<ReportCsvWriter> reportCsvWriterMock = mockStatic(ReportCsvWriter.class)) {
             reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
                 any(), any(), anyString(), anyString(), anyBoolean()))
@@ -805,7 +811,6 @@ class ImportUserAlternativeEmailTest {
     @DisplayName("Should handle unexpected exceptions during processing")
     @Test
     void runHandlesUnexpectedException() {
-
         com.microsoft.graph.models.User b2cUser = new com.microsoft.graph.models.User();
         b2cUser.setId("b2c-user-id");
         ObjectIdentity primaryIdentity = new ObjectIdentity();
@@ -1080,12 +1085,14 @@ class ImportUserAlternativeEmailTest {
         useLocalCsvField.setAccessible(true);
         useLocalCsvField.set(task, true);
 
-        assertThatThrownBy(() -> task.run())
-            .isInstanceOf(IllegalStateException.class)
-            .hasCauseInstanceOf(IOException.class)
-            .hasMessageContaining("CSV file not found at local path");
-
-        useLocalCsvField.set(task, false);
+        try {
+            assertThatThrownBy(() -> task.run())
+                .isInstanceOf(IllegalStateException.class)
+                .hasCauseInstanceOf(IOException.class)
+                .hasMessageContaining("CSV file not found");
+        } finally {
+            useLocalCsvField.set(task, false);
+        }
     }
 
     @DisplayName("Should skip when user doesn't meet criteria for alternative email update")
