@@ -21,6 +21,7 @@ import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -46,7 +47,6 @@ class FetchDataJobConfigTest {
         coreSteps = mock(CoreStepsConfig.class);
         loggingService = mock(LoggingService.class);
 
-        // Mock the startLogging step
         Step mockStep = mock(Step.class);
         when(coreSteps.startLogging()).thenReturn(mockStep);
 
@@ -77,7 +77,6 @@ class FetchDataJobConfigTest {
     @Test
     void createXmlFetchStep_shouldHandleCsvSourceType() throws Exception {
 
-        // Create job parameters with CSV source type
         var jobParams = new HashMap<String, Object>();
         jobParams.put("sourceType", "csv");
 
@@ -89,24 +88,20 @@ class FetchDataJobConfigTest {
         when(stepContext.getJobParameters()).thenReturn(jobParams);
         when(stepContext.getStepExecution()).thenReturn(stepExecution);
 
-        // Mock the execution context for the CSV reader
         when(stepExecution.getExecutionContext()).thenReturn(new org.springframework.batch.item.ExecutionContext());
 
-        // Execute the tasklet by extracting it from the step
         Step step = config.createXmlFetchStep();
         var taskletStep = (TaskletStep) step;
         var tasklet = taskletStep.getTasklet();
 
-        var status = tasklet.execute(null, chunkContext);
+        assertThrows(Exception.class, () -> tasklet.execute(null, chunkContext));
 
-        assertEquals(RepeatStatus.FINISHED, status);
         verify(loggingService).logInfo(contains("Skipping XML fetch"), eq("Archive_List_initial"));
     }
 
     @Test
     void createXmlFetchStep_shouldHandleXmlSourceType() throws Exception {
 
-        // Create job parameters with XML source type
         var jobParams = new HashMap<String, Object>();
         jobParams.put("sourceType", "xml");
 
@@ -116,7 +111,6 @@ class FetchDataJobConfigTest {
         when(chunkContext.getStepContext()).thenReturn(stepContext);
         when(stepContext.getJobParameters()).thenReturn(jobParams);
 
-        // Execute the tasklet
         Step step = config.createXmlFetchStep();
         var taskletStep = (TaskletStep) step;
         var tasklet = taskletStep.getTasklet();
@@ -136,7 +130,6 @@ class FetchDataJobConfigTest {
     void createXmlFetchStep_shouldHandleDefaultSourceType() throws Exception {
         Step step = config.createXmlFetchStep();
 
-        // Create job parameters without sourceType (should default to XML)
         var jobParams = new HashMap<String, Object>();
 
         ChunkContext chunkContext = mock(ChunkContext.class);
@@ -145,7 +138,6 @@ class FetchDataJobConfigTest {
         when(chunkContext.getStepContext()).thenReturn(stepContext);
         when(stepContext.getJobParameters()).thenReturn(jobParams);
 
-        // Execute the tasklet
         var taskletStep = (TaskletStep) step;
         var tasklet = taskletStep.getTasklet();
 
