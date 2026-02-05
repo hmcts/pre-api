@@ -28,6 +28,9 @@ java:
     ENABLE_MIGRATED_DATA: false
     MEDIA_KIND_SUBSCRIPTION: pre-mkio-stg
     MEDIA_KIND_SUBSCRIPTION_ID: 36a78cf2-290d-4621-b974-eda4a570ef70
+    MEDIA_KIND_STREAMING_ENDPOINT_ADVANCED_SETTINGS_NAME: ap-jitp-hmcts-disable-edge-buffer
+    MEDIA_KIND_VOD_STREAMING_ENDPOINT: vod
+    MEDIA_KIND_LIVE_STREAMING_ENDPOINT: live
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}

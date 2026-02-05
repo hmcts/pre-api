@@ -59,6 +59,7 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     MEDIA_KIND_VOD_STREAMING_ENDPOINT: default
     MEDIA_KIND_LIVE_STREAMING_ENDPOINT: default-live
     MEDIA_KIND_LOCATION: uksouth-4
+    MEDIA_KIND_STREAMING_ENDPOINT_ADVANCED_SETTINGS_NAME: ""
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
     AZURE_FINAL_SA: "prefinalsa{{ .Values.global.environment }}"
     AZURE_VF_SA: "prevodasa{{ .Values.global.environment }}"
