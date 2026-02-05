@@ -20,6 +20,7 @@ public class MediaKindConfiguration {
     private final String vodStreamingEndpoint;
     private final String liveStreamingEndpoint;
     private final String location;
+    private final String streamingEndpointAdvancedSettingsName;
 
     @Autowired
     public MediaKindConfiguration(
@@ -31,7 +32,8 @@ public class MediaKindConfiguration {
         @Value("${mediakind.streaming-endpoint-polling-interval}") int streamingEndpointPollingInterval,
         @Value("${mediakind.vodStreamingEndpoint}") String vodStreamingEndpoint,
         @Value("${mediakind.liveStreamingEndpoint}") String liveStreamingEndpoint,
-        @Value("${mediakind.location}") String location
+        @Value("${mediakind.location}") String location,
+        @Value("${mediakind.streaming-endpoint-advanced-settings-name:}") String streamingEndpointAdvancedSettingsName
     ) {
         this.environmentTag = env;
         this.subscription = subscription;
@@ -42,6 +44,7 @@ public class MediaKindConfiguration {
         this.vodStreamingEndpoint = vodStreamingEndpoint;
         this.liveStreamingEndpoint = liveStreamingEndpoint;
         this.location = location;
+        this.streamingEndpointAdvancedSettingsName = streamingEndpointAdvancedSettingsName;
     }
 
 }
