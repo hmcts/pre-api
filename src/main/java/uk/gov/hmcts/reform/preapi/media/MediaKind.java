@@ -28,6 +28,7 @@ import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
@@ -95,10 +96,18 @@ import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitised
     "PMD.TooManyMethods",
 })
 public class MediaKind implements IMediaService {
-    private final MediaKindConfiguration configuration;
+    private final String environmentTag;
+    private final String subscription;
+    private final String issuer;
+    private final String symmetricKey;
+    private final String vodStreamingEndpoint;
+    private final String liveStreamingEndpoint;
+    private final String location;
+
     private final MediaKindClient mediaKindClient;
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
+
     private final TelemetryClient telemetryClient = new TelemetryClient();
 
     public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
@@ -111,12 +120,24 @@ public class MediaKind implements IMediaService {
 
     @Autowired
     public MediaKind(
-        MediaKindConfiguration configuration,
+        @Value("${platform-env}") String env,
+        @Value("${mediakind.subscription}") String subscription,
+        @Value("${mediakind.issuer:}") String issuer,
+        @Value("${mediakind.symmetricKey:}") String symmetricKey,
+        @Value("${mediakind.vodStreamingEndpoint}") String vodStreamingEndpoint,
+        @Value("${mediakind.liveStreamingEndpoint}") String liveStreamingEndpoint,
+        @Value("${mediakind.location}") String location,
         MediaKindClient mediaKindClient,
         AzureIngestStorageService azureIngestStorageService,
         AzureFinalStorageService azureFinalStorageService
     ) {
-        this.configuration = configuration;
+        this.environmentTag = env;
+        this.subscription = subscription;
+        this.issuer = issuer;
+        this.symmetricKey = symmetricKey;
+        this.vodStreamingEndpoint = vodStreamingEndpoint;
+        this.liveStreamingEndpoint = liveStreamingEndpoint;
+        this.location = location;
         this.mediaKindClient = mediaKindClient;
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
@@ -128,11 +149,11 @@ public class MediaKind implements IMediaService {
             throw new AssetFilesNotFoundException(assetName);
         }
         // todo check asset has files
-        createContentKeyPolicy(userId, configuration.getSymmetricKey());
+        createContentKeyPolicy(userId, symmetricKey);
         getOrCreateStreamingPolicy(userId);
         String streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
 
-        String hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(configuration.getVodStreamingEndpoint())
+        String hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(vodStreamingEndpoint)
             .getProperties().getHostName();
         MkStreamingLocatorUrlPaths paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
 
@@ -150,9 +171,9 @@ public class MediaKind implements IMediaService {
             hls != null ? hostName + hls : null,
             paths.getDrm().getClearKey().getLicenseAcquisitionUrl(),
             JWT.create()
-                .withIssuer(configuration.getIssuer())
+                .withIssuer(issuer)
                 .withAudience(userId)
-                .sign(Algorithm.HMAC256(configuration.getSymmetricKey()))
+                .sign(Algorithm.HMAC256(symmetricKey))
         );
     }
 
@@ -220,7 +241,7 @@ public class MediaKind implements IMediaService {
     public String playLiveEvent(UUID captureSessionId) throws InterruptedException {
         String liveEventId = getSanitisedLiveEventId(captureSessionId);
         checkLiveEventExists(liveEventId);
-        getOrCreateStreamingEndpoint(configuration.getLiveStreamingEndpoint());
+        getOrCreateStreamingEndpoint(liveStreamingEndpoint);
 
         getOrCreateStreamingLocator(liveEventId);
         return constructManifestPath(liveEventId);
@@ -478,7 +499,11 @@ public class MediaKind implements IMediaService {
                                 .atTime(LocalTime.MAX)
                                 .atZone(now.getOffset())
                                 .toInstant()
-                        )).build()).build());
+                        ))
+                        .build())
+                .build()
+        );
+
         return streamingLocatorName;
     }
 
@@ -507,9 +532,12 @@ public class MediaKind implements IMediaService {
                                         new StreamingPolicyContentKeys()
                                             .withDefaultKey(new DefaultKey()
                                                                 .withLabel("ContentKey_AES")
-                                                                .withPolicyName(defaultContentKeyPolicy))))
-                            .build())
-                    .build());
+                                                                .withPolicyName(defaultContentKeyPolicy)))
+                            )
+                            .build()
+                    )
+                    .build()
+            );
         }
     }
 
@@ -525,7 +553,7 @@ public class MediaKind implements IMediaService {
                                                 .name("key")
                                                 .restriction(
                                                     new ContentKeyPolicyTokenRestriction()
-                                                        .withIssuer(configuration.getIssuer())
+                                                        .withIssuer(issuer)
                                                         .withAudience(userId)
                                                         .withRestrictionTokenType(
                                                             ContentKeyPolicyRestrictionTokenType.JWT)
@@ -565,9 +593,12 @@ public class MediaKind implements IMediaService {
                                 MkTransformOutput.builder()
                                     .relativePriority(MkTransformOutput.MkTransformPriority.Normal)
                                     .preset(getMkBuiltInPreset(transformName))
-                                    .build()))
-                            .build())
-                    .build());
+                                    .build()
+                            ))
+                            .build()
+                    )
+                    .build()
+            );
         }
     }
 
@@ -626,7 +657,7 @@ public class MediaKind implements IMediaService {
         MkJob job = null;
         do {
             if (job != null) {
-                TimeUnit.MILLISECONDS.sleep(configuration.getJobPollingInterval());
+                TimeUnit.MILLISECONDS.sleep(10000);
             }
             job = mediaKindClient.getJob(transformName, jobName);
         } while (!hasJobCompleted(job));
@@ -639,7 +670,7 @@ public class MediaKind implements IMediaService {
 
         while (streamingEndpoint.getProperties().getResourceState()
             != MkStreamingEndpointProperties.ResourceState.Running) {
-            TimeUnit.MILLISECONDS.sleep(configuration.getJobPollingInterval()); // wait 2 seconds
+            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
             streamingEndpoint = mediaKindClient.getStreamingEndpointByName(endpointName);
         }
         return streamingEndpoint;
@@ -651,14 +682,17 @@ public class MediaKind implements IMediaService {
                 liveEventName,
                 liveOutputName,
                 MkLiveOutput.builder()
-                    .properties(MkLiveOutput.MkLiveOutputProperties.builder()
-                                    .description("Live output for: " + liveEventName)
-                                    .assetName(liveEventName)
-                                    .archiveWindowLength("PT8H")
-                                    .hls(new Hls().withFragmentsPerTsSegment(5))
-                                    .manifestName(liveEventName)
-                                    .build())
-                    .build());
+                            .properties(MkLiveOutput.MkLiveOutputProperties.builder()
+                                                                           .description(
+                                                                               "Live output for: " + liveEventName
+                                                                           )
+                                                                           .assetName(liveEventName)
+                                                                           .archiveWindowLength("PT8H")
+                                                                           .hls(new Hls().withFragmentsPerTsSegment(5))
+                                                                           .manifestName(liveEventName)
+                                                                           .build())
+                            .build()
+            );
         } catch (ConflictException e) {
             throw new ConflictException("Live Output: " + liveOutputName, e);
         } catch (NotFoundException e) {
@@ -692,7 +726,8 @@ public class MediaKind implements IMediaService {
                                                             : azureIngestStorageService.getStorageAccountName())
                                     .description(description)
                                     .build())
-                    .build());
+                    .build()
+            );
         } catch (ConflictException e) {
             throw new ConflictException("Asset: " + assetName, e);
         }
@@ -705,9 +740,9 @@ public class MediaKind implements IMediaService {
             mediaKindClient.putLiveEvent(
                 getSanitisedLiveEventId(captureSession.getId()),
                 MkLiveEvent.builder()
-                           .location(configuration.getLocation())
+                           .location(location)
                            .tags(Map.of(
-                               "environment", configuration.getEnvironmentTag(),
+                               "environment", environmentTag,
                                "application", "pre-recorded evidence",
                                "businessArea", "cross-cutting",
                                "builtFrom", "pre-api"
@@ -751,7 +786,8 @@ public class MediaKind implements IMediaService {
                                                      )
                                         )
                                         .build())
-                           .build());
+                           .build()
+            );
         } catch (ConflictException e) {
             log.info("Live Event already exists. Continuing...");
         }
@@ -794,9 +830,9 @@ public class MediaKind implements IMediaService {
             MkStreamingEndpoint endpoint = mediaKindClient.createStreamingEndpoint(
                 endpointName,
                 MkStreamingEndpoint.builder()
-                    .location(configuration.getLocation())
+                    .location(location)
                     .tags(Map.of(
-                        "environment", configuration.getEnvironmentTag(),
+                        "environment", environmentTag,
                         "application", "pre-recorded evidence"))
                     .properties(
                         MkStreamingEndpointProperties.builder()
@@ -806,7 +842,8 @@ public class MediaKind implements IMediaService {
                                 MkStreamingEndpointSku
                                     .builder()
                                     .name(Tier.Standard)
-                                    .build())
+                                    .build()
+                            )
                             .build())
                     .build());
             mediaKindClient.startStreamingEndpoint(endpointName);
@@ -838,7 +875,8 @@ public class MediaKind implements IMediaService {
                                     .streamingLocatorId(sanitisedLiveEventId)
                                     .streamingPolicyName(STREAMING_POLICY_CLEAR_STREAMING_ONLY)
                                     .build())
-                    .build());
+                    .build()
+            );
         } catch (ConflictException e) {
             log.info("Streaming locator already exists");
             throw e;
@@ -852,7 +890,7 @@ public class MediaKind implements IMediaService {
         log.info("Generating manifest path");
         String localManifestPath = "/" + liveEventId + "/index.qfm/manifest(format=m3u8-cmaf)";
         log.info(localManifestPath);
-        return HTTPS_PREFIX + getHostname(configuration.getLiveStreamingEndpoint()) + localManifestPath;
+        return HTTPS_PREFIX + getHostname(liveStreamingEndpoint) + localManifestPath;
     }
 
     // Not required now we construct manifest path from live event
@@ -877,9 +915,9 @@ public class MediaKind implements IMediaService {
         return "ep-"
                + endpointName
                + "-"
-               + configuration.getSubscription()
+               + subscription
                + "."
-               + configuration.getLocation()
+               + location
                + ".streaming.mediakind.com";
     }
 
