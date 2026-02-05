@@ -66,6 +66,13 @@ public class AuditController {
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    @Operation(operationId = "getAudit", summary = "Get an Audit Entry")
+    public HttpEntity<AuditDTO> getAuditById(@PathVariable UUID id) {
+        return ResponseEntity.ok(auditService.findById(id));
+    }
+
     @GetMapping
     @Operation(operationId = "getAuditLogs", summary = "Search all Audits")
     @Parameter(

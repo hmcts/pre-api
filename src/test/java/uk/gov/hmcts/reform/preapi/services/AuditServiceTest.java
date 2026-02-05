@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
@@ -295,5 +296,35 @@ class AuditServiceTest {
 
         verify(appAccessRepository, times(1)).findById(audit.getCreatedBy());
         verify(portalAccessRepository, times(1)).findById(audit.getCreatedBy());
+    }
+
+    @Test
+    @DisplayName("Should return audit by id")
+    public void getAuditByIdSuccess() {
+        audit.setId(UUID.randomUUID());
+        when(auditRepository.findById(audit.getId())).thenReturn(Optional.of(audit));
+
+        var result = auditService.findById(audit.getId());
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(audit.getId());
+        assertThat(result.getActivity()).isEqualTo(audit.getActivity());
+        assertThat(result.getCategory()).isEqualTo(audit.getCategory());
+        assertThat(result.getFunctionalArea()).isEqualTo(audit.getFunctionalArea());
+        assertThat(result.getTableName()).isEqualTo(audit.getTableName());
+        assertThat(result.getTableRecordId()).isEqualTo(audit.getTableRecordId());
+        assertThat(result.getSource()).isEqualTo(audit.getSource());
+        assertThat(result.getCreatedBy().getId()).isEqualTo(audit.getCreatedBy());
+    }
+
+    @Test
+    @DisplayName("Should throw not found error when audit by id does not exist")
+    public void getAuditByIdNotFound() {
+        var id = UUID.randomUUID();
+        when(auditRepository.findById(id)).thenReturn(Optional.empty());
+
+        var message = assertThrows(NotFoundException.class, () -> auditService.findById(id))
+            .getMessage();
+        assertThat(message).isEqualTo("Not found: Audit: " + id);
     }
 }
