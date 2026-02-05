@@ -31,7 +31,7 @@ SQL_QUERY="""
   export PGPASSWORD
 
   echo "Executing query"
-  psql -t -h $POSTGRES_HOST -U "$DB_USER" -d $DB_NAME -c "$SQL_QUERY" -o $OUTPUT_DIR/$CAPTURE_SESSIONS_CSV
+  psql -t -h $POSTGRES_HOST -U "$DB_USER" -d $DB_NAME -c "$SQL_QUERY" -o $CAPTURE_SESSIONS_CSV
 }
 
 main

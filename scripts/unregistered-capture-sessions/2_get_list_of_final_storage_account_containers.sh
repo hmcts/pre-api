@@ -12,7 +12,8 @@ NUM_RESULTS=20000
 main() {
   mkdir -p $OUTPUT_DIR
 
-  for i in {0..9} {a..z}
+  # Only goes up to f because UUID is 128-bit
+  for i in {0..9} {a..f}
   do
       echo "Getting list of containers with prefix $i"
       az storage container list --prefix "$i" --query "[].{name:name}" --num-results $NUM_RESULTS --output tsv  --account-name $ACCOUNT_NAME --auth-mode login --include-metadata false > "$OUTPUT_DIR/storage_containers_$i.txt"
