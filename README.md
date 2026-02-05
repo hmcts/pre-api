@@ -34,9 +34,12 @@
 
 ### Intro to Pre-Recorded Evidence System
 
-The Pre-Recorded Evidence (PRE) system is a new service that allows the capturing of a video recorded hearing or testimony,
-and allows this recording to be securely shared to advocates, or played back in court. You can learn more about the service
+The Pre-Recorded Evidence (PRE) system is a service from HM Courts and Tribunal Service.
+
+It allows the capturing of a video-recorded hearing or testimony. Recordings can be securely shared to advocates, or played back in court. You can learn more about the service
 [here](https://tools.hmcts.net/confluence/display/S28/Pre-Recorded+Evidence).
+
+If you can access Gov Slack, you can find us [on our Slack channel](https://moj.enterprise.slack.com/archives/C08M18G0KHV). Otherwise, please fill this contact form https://www.gov.uk/contact/govuk and ask for the issue to be referred to the Pre-Recorded Evidence technical team.
 
 ### Purpose of pre-api in the System
 
