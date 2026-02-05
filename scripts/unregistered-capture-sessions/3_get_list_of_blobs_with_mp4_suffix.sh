@@ -13,8 +13,6 @@ REGEX_UUID='^[a-z0-9]{32}[a-z0-9_]+\.mp4$'
 main() {
   mkdir -p $BLOBS_DIR
 
-  echo "capture_session_id_from_track_name,recording_id_container_name" >> "$output_file"
-
   # Only goes up to f because UUID is 128-bit
   for i in {0..9} {a..f}
   do
@@ -38,6 +36,9 @@ main() {
                output_file="$BLOBS_DIR/blobs-mp4-list-$file_prefix.csv"
                if ! [ -e "$output_file" ] ; then
                    touch "$output_file"
+
+                   # Headers for the CSV file
+                   echo "capture_session_id_from_track_name,recording_id_container_name" >> "$output_file"
                fi
 
                echo "$capture_session_id_from_track_name,$recording_id_container_name" >> "$output_file"

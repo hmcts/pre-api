@@ -1,4 +1,4 @@
-#!/opt/homebrew/bin/bash
+#!/bin/bash
 
 # =================================================================================
 # Script Name: 4_match_up_missing_capture_sessions_with_blobs.sh
@@ -11,8 +11,6 @@ OUTPUT_DIR="output"
 CAPTURE_SESSIONS_CSV="$OUTPUT_DIR/capture_sessions_no_recording_in_database.csv"
 
 BLOBS_DIR="$OUTPUT_DIR/storage-blobs"
-
-BLOBS_CSV="$BLOBS_DIR/blobs-mp4-list-4.csv"
 
 CONCLUSIONS_CSV="$OUTPUT_DIR/conclusions.csv"
 
@@ -32,31 +30,17 @@ main() {
      exit
   fi
 
-  if [ ! -f $BLOBS_CSV ]; then
-     echo "$BLOBS_CSV does not exist. You need to run the previous scripts first."
-     exit
+  if [ ! -f $CONCLUSIONS_CSV ]; then
+     touch "$CONCLUSIONS_CSV"
+     # Headers for the CSV file
+     echo "capture_session_id_from_track_name,recording_id_container_name" >> "$CONCLUSIONS_CSV"
   fi
 
-  touch "$CONCLUSIONS_CSV"
-
-#  grep -if "${CAPTURE_SESSIONS_CSV}" "${BLOBS_CSV}" >> $CONCLUSIONS_CSV
-#
-#  while IFS="," read -r recording_id_container_name capture_session_id_from_track_name
-#  do
-#    echo "Container Name-$recording_id_container_name"
-#    echo "Capture Session ID: $capture_session_id_from_track_name"
-#    echo ""
-#  done < <(tail -n +2 $BLOBS_CSV)
-
   while IFS= read -r capture_session_id; do
-    without_hyphens="${capture_session_id//-}"
-#    echo "Checking capture session: $without_hyphens"
-
-    grep "$without_hyphens" $BLOBS_CSV
-
+    nohyphens="${capture_session_id//-}"
+    echo "Checking capture session: $nohyphens"
+    grep -r "${BLOBS_DIR}" -e $nohyphens --no-filename >> "$CONCLUSIONS_CSV"
   done < "$CAPTURE_SESSIONS_CSV"
-
-
 }
 
 main
