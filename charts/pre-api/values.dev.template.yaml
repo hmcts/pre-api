@@ -14,8 +14,8 @@ java:
                         VALUES (
                           gen_random_uuid(),
                           'CROWN',
-                          'Snaresbrook Court',
-                          '431',
+                          'Hello Court',
+                          '1057',
                           'E17 5NT',
                           'London'
                         );
