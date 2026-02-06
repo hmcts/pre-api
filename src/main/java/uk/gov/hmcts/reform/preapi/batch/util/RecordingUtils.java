@@ -3,8 +3,13 @@ package uk.gov.hmcts.reform.preapi.batch.util;
 import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 @UtilityClass
@@ -66,6 +71,38 @@ public class RecordingUtils {
             return Integer.parseInt(part.replaceAll("[^0-9]", ""));
         } catch (NumberFormatException e) {
             return 0;
+        }
+    }
+
+    public static Optional<LocalDateTime> parseDatePatternToLocalDateTime(String datePattern) {
+        if (datePattern == null || datePattern.isBlank()) {
+            return Optional.empty();
+        }
+        String trimmed = datePattern.trim();
+        try {
+            if (trimmed.matches("\\d{6}")) {
+                LocalDate date = LocalDate.parse(trimmed, DateTimeFormatter.ofPattern("yyMMdd"));
+                return Optional.of(date.atTime(12, 0));
+            }
+            if (trimmed.matches("\\d{2}-\\d{2}-\\d{4}-\\d{4}")) {
+                return Optional.of(LocalDateTime.parse(trimmed,
+                    DateTimeFormatter.ofPattern("dd-MM-yyyy-HHmm")));
+            }
+            if (trimmed.matches("\\d{2}-\\d{2}-\\d{4}")) {
+                LocalDate date = LocalDate.parse(trimmed, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                return Optional.of(date.atTime(12, 0));
+            }
+            if (trimmed.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                LocalDate date = LocalDate.parse(trimmed, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                return Optional.of(date.atTime(12, 0));
+            }
+            if (trimmed.matches("\\d{2}\\.\\d{2}\\.\\d{4}")) {
+                LocalDate date = LocalDate.parse(trimmed, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+                return Optional.of(date.atTime(12, 0));
+            }
+            return Optional.empty();
+        } catch (DateTimeParseException e) {
+            return Optional.empty();
         }
     }
 
