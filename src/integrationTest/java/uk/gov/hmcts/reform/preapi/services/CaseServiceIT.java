@@ -471,6 +471,7 @@ class CaseServiceIT extends IntegrationTestBase {
 
         var finishedAt = Timestamp.from(startedAt.toInstant().plusSeconds(60));
         var editRequest = HelperFactory.createEditRequest(
+            UUID.randomUUID(),
             recording,
             "{}",
             status,
