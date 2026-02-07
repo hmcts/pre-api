@@ -22,15 +22,18 @@ import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.ProcessingService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -59,6 +62,9 @@ public class CaptureSessionControllerTest {
     private CaptureSessionService captureSessionService;
 
     @MockitoBean
+    private ProcessingService processingService;
+
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
     @MockitoBean
@@ -69,6 +75,8 @@ public class CaptureSessionControllerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String CAPTURE_SESSION_ID_PATH = "/capture-sessions/{id}";
+
+    private static final String CAPTURE_SESSION_REGISTRATION_PATH = "/capture-sessions/trigger-registration/{id}";
 
     @BeforeAll
     static void setUp() {
@@ -475,4 +483,89 @@ public class CaptureSessionControllerTest {
             .andExpect(jsonPath("$.message")
                            .value("Not found: Capture Session: " + captureSessionId));
     }
+
+    @DisplayName("Should register capture session with 204 response code")
+    @Test
+    void registerCaptureSessionSuccess() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
+        captureSessionDTO.setId(id);
+        captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
+
+        Instant exceedingTimeout = ProcessingService.PROCESSING_TIMEOUT.toInstant().minus(1, ChronoUnit.HOURS);
+        captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
+
+        when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
+
+        when(processingService.register(id)).thenReturn(UpsertResult.UPDATED);
+
+        when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.UPDATED);
+
+        MvcResult response = mockMvc.perform(put(CAPTURE_SESSION_REGISTRATION_PATH, id)
+                                                 .with(csrf()))
+            .andExpect(status().isNoContent())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+        assertThat(response.getResponse().getHeaderValue("Location"))
+            .isEqualTo(TEST_URL + "/capture-sessions/trigger-registration/" + id);
+    }
+
+    @DisplayName("Attempt to register a non-existent capture session should return a 404 response")
+    @Test
+    void registerCaptureSessionNotFound() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        when(captureSessionService.findById(captureSessionId)).thenReturn(null);
+
+        mockMvc.perform(put(CAPTURE_SESSION_REGISTRATION_PATH, captureSessionId)
+                            .with(csrf()))
+            .andExpect(status().isNotFound());
+    }
+
+    @DisplayName("Attempt to register a non-processing capture session should fail with 400 error")
+    @Test
+    void registerNonProcessingCaptureSession() throws Exception {
+        UUID id = UUID.randomUUID();
+        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
+        captureSessionDTO.setId(id);
+        captureSessionDTO.setStatus(RecordingStatus.FAILURE);
+
+        Instant exceedingTimeout = ProcessingService.PROCESSING_TIMEOUT.toInstant().minus(1, ChronoUnit.HOURS);
+        captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
+
+        when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
+
+        MvcResult response = mockMvc.perform(put(CAPTURE_SESSION_REGISTRATION_PATH, id)
+                                                 .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(format("{\"message\":"
+                                  + "\"Capture session with ID %s is in an incorrect state for registration: %s\"}",
+                              id, RecordingStatus.FAILURE));
+    }
+
+    @DisplayName("Attempt to register a capture session finished within agreed timeout should fail with 400 error")
+    @Test
+    void registerRecentlyFinishedCaptureSession() throws Exception {
+        UUID id = UUID.randomUUID();
+        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
+        captureSessionDTO.setId(id);
+        captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
+
+        captureSessionDTO.setFinishedAt(Timestamp.from(Instant.now()));
+
+        when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
+
+        MvcResult response = mockMvc.perform(put(CAPTURE_SESSION_REGISTRATION_PATH, id)
+                                                 .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .contains(format("{\"message\":\"Capture session with ID %s started processing at ", id));
+    }
+
 }
