@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.PatternMatcherService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -58,6 +59,9 @@ public class MigrationRecordServiceTest {
 
     @MockitoBean
     private LoggingService loggingService;
+
+    @MockitoBean
+    private PatternMatcherService patternMatcherService;
 
     @Autowired
     private MigrationRecordService migrationRecordService;
@@ -481,6 +485,7 @@ public class MigrationRecordServiceTest {
         CSVArchiveListData data = new CSVArchiveListData();
         data.setArchiveId("newId");
         data.setArchiveName("newName");
+        data.setCreateTime("26/03/2025 12:00");
 
         when(migrationRecordRepository.findByArchiveId("newId")).thenReturn(Optional.empty());
 
@@ -505,6 +510,28 @@ public class MigrationRecordServiceTest {
         assertThat(inserted).isFalse();
 
         verify(migrationRecordRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should not insert when resolvedCreateTime is null")
+    void insertPendingShouldReturnFalseWhenCreateTimeIsNull() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setArchiveId("testId");
+        data.setArchiveName("testName");
+        data.setCreateTime(null);
+
+        when(migrationRecordRepository.findByArchiveId("testId")).thenReturn(Optional.empty());
+        when(patternMatcherService.findMatchingPattern(any(String.class))).thenReturn(Optional.empty());
+
+        boolean inserted = migrationRecordService.insertPending(data);
+
+        assertThat(inserted).isFalse();
+        verify(migrationRecordRepository, never()).save(any());
+        verify(loggingService).logError(
+            contains("Skipping archive: create_time is required but could not be parsed"),
+            eq("testId"),
+            eq((String) null)
+        );
     }
 
     @Test
@@ -574,7 +601,7 @@ public class MigrationRecordServiceTest {
         record2.setArchiveId("pending2");
         record2.setStatus(VfMigrationStatus.PENDING);
 
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(List.of(record1, record2));
 
         List<MigrationRecord> result = migrationRecordService.getPendingMigrationRecords();
@@ -582,20 +609,20 @@ public class MigrationRecordServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result).containsExactly(record1, record2);
 
-        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository, times(1)).findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
     }
 
     @Test
     @DisplayName("Should return empty list when no pending migration records are available")
     void getPendingMigrationRecordsReturnsEmptyListWhenNoPendingRecords() {
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(List.of());
 
         List<MigrationRecord> result = migrationRecordService.getPendingMigrationRecords();
 
         assertThat(result).isEmpty();
 
-        verify(migrationRecordRepository, times(1)).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository, times(1)).findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
     }
 
     @Test
@@ -1424,7 +1451,7 @@ public class MigrationRecordServiceTest {
     void updateIgnoredRecordWithNullCourtId() {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
-        dto.setCourtId(null); // null courtId
+        dto.setCourtId(null); 
         dto.setUrn("updated-urn");
         dto.setDefendantName("updated-defendant");
         dto.setWitnessName("updated-witness");
@@ -1451,9 +1478,9 @@ public class MigrationRecordServiceTest {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
         dto.setCourtId(UUID.randomUUID());
-        dto.setUrn(null); // null urn
-        dto.setDefendantName(""); // empty defendantName
-        dto.setWitnessName(null); // null witnessName
+        dto.setUrn(null);
+        dto.setDefendantName(""); 
+        dto.setWitnessName(null);
         dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
         dto.setStatus(VfMigrationStatus.FAILED);
 
@@ -1487,7 +1514,7 @@ public class MigrationRecordServiceTest {
         dto.setUrn("URN1234567");
         dto.setDefendantName("defendant-name");
         dto.setWitnessName("witness-name");
-        dto.setRecordingVersion(null); // null - should try to parse from entity
+        dto.setRecordingVersion(null); 
         dto.setRecordingVersionNumber(null);
         dto.setStatus(VfMigrationStatus.FAILED);
 
@@ -1495,8 +1522,8 @@ public class MigrationRecordServiceTest {
         court.setName("Test Court");
 
         final MigrationRecord migrationRecord = createMigrationRecord();
-        migrationRecord.setStatus(VfMigrationStatus.IGNORED); // / so validation is skipped
-        migrationRecord.setRecordingVersion("INVALID_VERSION"); // Invalid enum value
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED); 
+        migrationRecord.setRecordingVersion("INVALID_VERSION"); 
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
         when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
@@ -1562,7 +1589,7 @@ public class MigrationRecordServiceTest {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
         dto.setCourtId(UUID.randomUUID());
-        dto.setUrn("   "); // Empty/whitespace
+        dto.setUrn("   "); 
         dto.setDefendantName("defendant-name");
         dto.setWitnessName("witness-name");
         dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
@@ -1661,7 +1688,7 @@ public class MigrationRecordServiceTest {
         dto.setUrn("URN1234567");
         dto.setDefendantName("defendant-name");
         dto.setWitnessName("witness-name");
-        dto.setRecordingVersion(null); // null and entity also has null
+        dto.setRecordingVersion(null); 
         dto.setStatus(VfMigrationStatus.FAILED);
 
         final Court court = new Court();
@@ -1669,7 +1696,7 @@ public class MigrationRecordServiceTest {
 
         final MigrationRecord migrationRecord = createMigrationRecord();
         migrationRecord.setStatus(VfMigrationStatus.IGNORED);
-        migrationRecord.setRecordingVersion(null); // Also null
+        migrationRecord.setRecordingVersion(null); 
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
         when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
@@ -1684,7 +1711,7 @@ public class MigrationRecordServiceTest {
     @DisplayName("Should skip updateToFailed in DRY-RUN mode")
     void updateToFailedShouldSkipInDryRun() {
         MigrationRecordService dryRunService = new MigrationRecordService(
-            migrationRecordRepository, courtRepository, loggingService, true
+            migrationRecordRepository, courtRepository, loggingService, patternMatcherService, true
         );
 
         dryRunService.updateToFailed("test-id", "reason", "error");
@@ -1697,7 +1724,7 @@ public class MigrationRecordServiceTest {
     @DisplayName("Should skip updateToSuccess in DRY-RUN mode")
     void updateToSuccessShouldSkipInDryRun() {
         MigrationRecordService dryRunService = new MigrationRecordService(
-            migrationRecordRepository, courtRepository, loggingService, true
+            migrationRecordRepository, courtRepository, loggingService, patternMatcherService, true
         );
 
         dryRunService.updateToSuccess("test-id");
@@ -1710,7 +1737,7 @@ public class MigrationRecordServiceTest {
     @DisplayName("Should skip markReadyAsSubmitted in DRY-RUN mode and return false")
     void markReadyAsSubmittedShouldSkipInDryRun() {
         MigrationRecordService dryRunService = new MigrationRecordService(
-            migrationRecordRepository, courtRepository, loggingService, true
+            migrationRecordRepository, courtRepository, loggingService, patternMatcherService, true
         );
 
         boolean result = dryRunService.markReadyAsSubmitted();
