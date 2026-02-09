@@ -193,6 +193,9 @@ project.tasks['check'].dependsOn integration
 def coverageExclusionList = [
   '**uk/gov/hmcts/reform/preapi/data/exception/PendingMigrationScriptException*',
   '**uk/gov/hmcts/reform/preapi/data/migration/FlywayNoOpStrategy*',
+  '**uk/gov/hmcts/reform/preapi/batch/**',
+  '**uk/gov/hmcts/reform/preapi/dto/migration/**',
+  '**uk/gov/hmcts/reform/preapi/tasks/migration/**',
   '**uk/gov/hmcts/reform/preapi/controllers/TestingSupportController*',
   '**/uk/gov/hmcts/reform/preapi/Application.java',
 ]
