@@ -34,7 +34,7 @@ public class FetchDataJobConfig {
     // public static final String CONTAINER_NAME = "poc";
     // public static final String XML_PREFIX = "MS06";
     public static final String XML_PREFIX = "";
-    public static final String CONTAINER_NAME = "prod-migration-1";
+    public static final String CONTAINER_NAME = "prod-migration-2";
     public static final String FULL_PATH = "src/main/resources/batch";
     private static final String CSV = "csv";
 

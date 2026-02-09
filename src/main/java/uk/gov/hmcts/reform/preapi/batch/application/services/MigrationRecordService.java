@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.PatternMatcherService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -35,6 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -45,6 +47,7 @@ public class MigrationRecordService {
     private final MigrationRecordRepository migrationRecordRepository;
     private final LoggingService loggingService;
     private final CourtRepository courtRepository;
+    private final PatternMatcherService patternMatcherService;
     private final boolean dryRun;
 
     private static final long EPOCH_THRESHOLD_SECONDS_TO_MILLIS = 100_000_000_000L;
@@ -53,10 +56,12 @@ public class MigrationRecordService {
     public MigrationRecordService(final MigrationRecordRepository migrationRecordRepository,
                                   final CourtRepository courtRepository,
                                   final LoggingService loggingService,
+                                  final PatternMatcherService patternMatcherService,
                                   @Value("${migration.dry-run:false}") boolean dryRun) {
         this.migrationRecordRepository = migrationRecordRepository;
         this.courtRepository = courtRepository;
         this.loggingService = loggingService;
+        this.patternMatcherService = patternMatcherService;
         this.dryRun = dryRun;
     }
 
@@ -107,7 +112,7 @@ public class MigrationRecordService {
     }
 
     public List<MigrationRecord> getPendingMigrationRecords() {
-        return migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING);
+        return migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
     }
 
     @Transactional
@@ -220,12 +225,43 @@ public class MigrationRecordService {
             return false;
         }
 
+        LocalDateTime createTimeFromArchiveName = patternMatcherService
+            .findMatchingPattern(archiveItem.getSanitizedArchiveName())
+            .flatMap(entry -> {
+                Matcher matcher = entry.getValue();
+                try {
+                    String dateGroup = matcher.group("date");
+                    return RecordingUtils.parseDatePatternToLocalDateTime(dateGroup);
+                } catch (Exception e) {
+                    return Optional.empty();
+                }
+            })
+            .orElse(null);
+
+        LocalDateTime resolvedCreateTime = createTimeFromArchiveName != null
+            ? createTimeFromArchiveName
+            : archiveItem.getCreateTimeAsLocalDateTime();
+
+        if (resolvedCreateTime == null) {
+            log.warn(
+                "Skipping archive: create_time is required but could not be parsed from archive_name or create_time. "
+                    + "archiveId={}, archiveName={}, rawCreateTime={}",
+                archiveItem.getArchiveId(),
+                archiveItem.getArchiveName(),
+                archiveItem.getCreateTime()
+            );
+            loggingService.logError(
+                "Skipping archive: create_time is required but could not be parsed. archiveId=%s, rawCreateTime=%s",
+                archiveItem.getArchiveId(),
+                archiveItem.getCreateTime()
+            );
+            return false;
+        }
+
         upsert(
             archiveItem.getArchiveId(),
             archiveItem.getArchiveName(),
-            Optional.ofNullable(archiveItem.getCreateTimeAsLocalDateTime())
-                .map(Timestamp::valueOf)
-                .orElse(null),
+            Timestamp.valueOf(resolvedCreateTime),
             archiveItem.getDuration(),
             null,
             null,
@@ -398,7 +434,12 @@ public class MigrationRecordService {
         if (duplicates.isEmpty()) {
             return false;
         }
-        duplicates.sort(Comparator.comparing(MigrationRecord::getCreateTime).reversed());
+        duplicates.sort(
+            Comparator.comparing(
+                MigrationRecord::getCreateTime,
+                Comparator.nullsFirst(Comparator.naturalOrder())
+            ).reversed()
+        );
         MigrationRecord preferredRecord = duplicates.getFirst();
 
         for (MigrationRecord record : duplicates) {

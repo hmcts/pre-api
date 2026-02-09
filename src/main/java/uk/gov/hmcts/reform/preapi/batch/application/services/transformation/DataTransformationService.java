@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -170,7 +171,10 @@ public class DataTransformationService {
             RecordingUtils.getStandardizedVersionNumberFromType(versionType),
             isMostRecent
         );
-        // Build final recording
+
+        // use date from archive name first, fallback to created_at
+        LocalDateTime recordingTimestamp = resolveRecordingTimestamp(extracted);
+
         return ProcessedRecording.builder()
             .archiveId(extracted.getArchiveId())
             .archiveName(extracted.getArchiveName())
@@ -180,7 +184,7 @@ public class DataTransformationService {
 
             .state(determineState(shareBookingContacts))
 
-            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTimeAsLocalDateTime()))
+            .recordingTimestamp(Timestamp.valueOf(recordingTimestamp))
             .duration(Duration.ofSeconds(extracted.getDuration()))
 
             .urn(extracted.getUrn())
@@ -203,6 +207,20 @@ public class DataTransformationService {
             .shareBookingContacts(shareBookingContacts)
 
             .build();
+    }
+
+    /**
+     * Resolves the recording timestamp for scheduling (scheduled_for).
+     * Uses date extracted from archive name first; falls back to created_at if unparseable.
+     *
+     * @param extracted the extracted metadata
+     * @return LocalDateTime for the recording timestamp
+     */
+    protected LocalDateTime resolveRecordingTimestamp(ExtractedMetadata extracted) {
+        return RecordingUtils.parseDatePatternToLocalDateTime(extracted.getDatePattern())
+            .or(() -> Optional.ofNullable(extracted.getCreatedAt())
+                .map(Timestamp::toLocalDateTime))
+            .orElseGet(extracted::getCreateTimeAsLocalDateTime);
     }
 
     /**
