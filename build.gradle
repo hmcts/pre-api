@@ -11,7 +11,7 @@ plugins {
   id 'jacoco'
   id 'io.spring.dependency-management' version '1.1.7'
   id 'org.springframework.boot' version '3.5.6'
-  id 'org.owasp.dependencycheck' version '12.1.6'
+  id 'org.owasp.dependencycheck' version '12.2.0'
   id 'com.github.ben-manes.versions' version '0.53.0'
   id 'org.sonarqube' version '6.3.1.5724'
   id "io.freefair.lombok" version "9.0.0"
@@ -193,6 +193,9 @@ project.tasks['check'].dependsOn integration
 def coverageExclusionList = [
   '**uk/gov/hmcts/reform/preapi/data/exception/PendingMigrationScriptException*',
   '**uk/gov/hmcts/reform/preapi/data/migration/FlywayNoOpStrategy*',
+  '**uk/gov/hmcts/reform/preapi/batch/**',
+  '**uk/gov/hmcts/reform/preapi/dto/migration/**',
+  '**uk/gov/hmcts/reform/preapi/tasks/migration/**',
   '**uk/gov/hmcts/reform/preapi/controllers/TestingSupportController*',
   '**/uk/gov/hmcts/reform/preapi/Application.java',
 ]
@@ -284,7 +287,7 @@ ext.libraries = [
 ext['snakeyaml.version'] = '2.0'
 
 dependencies {
-  implementation 'com.microsoft.azure:applicationinsights-core:3.7.6'
+  implementation 'com.microsoft.azure:applicationinsights-core:3.7.7'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: versions.springBoot
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-actuator', version: versions.springBoot
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop', version: versions.springBoot
@@ -342,7 +345,7 @@ dependencies {
   implementation group: 'com.azure', name: 'azure-identity', version: '1.18.2'
 
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.41.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.42.Final')
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.10:all'

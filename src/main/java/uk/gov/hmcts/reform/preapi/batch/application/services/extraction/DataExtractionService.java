@@ -122,6 +122,9 @@ public class DataExtractionService {
         if (Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase(Locale.UK))
             && (versionNumber == null || versionNumber.isEmpty())) {
             versionNumber = "1";
+        } else if (Constants.VALID_COPY_TYPES.contains(versionType.toUpperCase(Locale.UK))
+            && (versionNumber == null || versionNumber.isEmpty())) {
+            versionNumber = "1";
         }
 
         return new ExtractedMetadata(
@@ -140,7 +143,8 @@ public class DataExtractionService {
             archiveItem.getFileName(),
             archiveItem.getFileSizeMb(),
             archiveItem.getArchiveId(),
-            archiveItem.getArchiveName()
+            archiveItem.getArchiveName(),
+            archiveItem.getCreatedAt()
         );
     }
 }

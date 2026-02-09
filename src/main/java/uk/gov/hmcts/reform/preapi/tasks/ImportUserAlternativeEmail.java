@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -192,7 +193,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
     }
 
     private ImportResult processRow(ImportRow row) {
-        if (row.getAlternativeEmail() == null || row.getAlternativeEmail().trim().isEmpty()) {
+        if (isBlank(row.getAlternativeEmail())) {
             return new ImportResult(
                 row.getEmail(),
                 "",
@@ -201,7 +202,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             );
         }
 
-        Optional<User> userOpt = userService.findByOriginalEmail(row.getEmail());
+        Optional<User> userOpt = userService.findByOriginalEmailWithPortalAccess(row.getEmail());
 
         if (userOpt.isEmpty()) {
             return new ImportResult(
@@ -214,16 +215,32 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
 
         User user = userOpt.get();
 
-        // Check if alternative email already exists for another user
-        Optional<User> existingAltUserEmail = userService
-            .findByAlternativeEmail(row.getAlternativeEmail());
-
-        if (existingAltUserEmail.isPresent() && !existingAltUserEmail.get().getId().equals(user.getId())) {
+        // Check if default email already ends with .cjsm.net
+        if (user.getEmail() != null && user.getEmail().toLowerCase(Locale.ROOT).endsWith(".cjsm.net")) {
             return new ImportResult(
                 row.getEmail(),
                 row.getAlternativeEmail(),
-                STATUS_ERROR,
-                "Alternative email already exists for another user: " + existingAltUserEmail.get().getEmail()
+                "SKIPPED",
+                "Default email already ends with .cjsm.net"
+            );
+        }
+
+        // Check if alternative email is already present
+        if (!isBlank(user.getAlternativeEmail())) {
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                "SKIPPED",
+                "Alternative email already present for user"
+            );
+        }
+
+        if (!shouldUpdateAlternativeEmail(user)) {
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                "SKIPPED",
+                "User does not meet criteria for alternative email update"
             );
         }
 
@@ -275,13 +292,11 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 identities = new ArrayList<>();
             }
 
-            // Check if alternative email already exists as an identity
             boolean alternativeEmailExists = identities.stream()
                 .anyMatch(identity -> identity.getIssuerAssignedId() != null
                     && identity.getIssuerAssignedId().equalsIgnoreCase(row.getAlternativeEmail()));
 
             if (!alternativeEmailExists) {
-                // Create new identity for alternative email
                 ObjectIdentity newIdentity = new ObjectIdentity();
                 newIdentity.setSignInType("emailAddress");
                 newIdentity.setIssuer(identities.isEmpty() ? "unknown" : identities.get(0).getIssuer());
@@ -301,6 +316,8 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     row.getAlternativeEmail(), row.getEmail()
                 );
             }
+
+            return null;
         } catch (Exception e) {
             log.error("Failed to update B2C identity for user {}: {}", row.getEmail(), e.getMessage(), e);
             return new ImportResult(
@@ -310,18 +327,40 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 "Failed to update B2C identity: " + e.getMessage()
             );
         }
-        return new ImportResult(
-            row.getEmail(),
-            row.getAlternativeEmail(),
-            "SUCCESS",
-            "Alternative email updated successfully in both local DB and B2C"
-        );
+    }
+
+    private boolean isBlank(String str) {
+        return str == null || str.isBlank();
+    }
+
+    private boolean shouldUpdateAlternativeEmail(User user) {
+        // Check if user has active portal access
+        boolean hasActivePortalAccess = false;
+        if (user.getPortalAccess() != null && !user.getPortalAccess().isEmpty()) {
+            hasActivePortalAccess = user.getPortalAccess().stream()
+                .anyMatch(pa -> pa.getDeletedAt() == null);
+        }
+
+        // Check if user has active app access
+        boolean hasActiveAppAccess = false;
+        if (user.getAppAccess() != null && !user.getAppAccess().isEmpty()) {
+            hasActiveAppAccess = user.getAppAccess().stream()
+                .anyMatch(aa -> aa.getDeletedAt() == null);
+        }
+
+        // Update alternative email for portal users who don't have app access
+        return hasActivePortalAccess && !hasActiveAppAccess;
     }
 
     private void generateReport(List<ImportResult> results) {
         try {
+            if (results == null || results.isEmpty()) {
+                log.warn("No results to generate report for");
+                return;
+            }
             List<String> headers = List.of("email", "alternativeEmail", "status", "message");
             List<List<String>> rows = results.stream()
+                .filter(result -> result != null)
                 .map(ImportResult::toRow)
                 .toList();
 
@@ -329,14 +368,12 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                 "Alternative_Email_Report", REPORT_OUTPUT_DIR, true);
             log.info("Report generated successfully in {}", REPORT_OUTPUT_DIR);
 
-            if (reportPath != null) {
-                File reportFile = reportPath.toFile();
-                if (reportFile.exists()) {
-                    String fileName = reportPath.getFileName().toString();
-                    String blobPath = "reports/" + fileName;
-                    azureVodafoneStorageService.uploadCsvFile(containerName, blobPath, reportFile);
-                    log.info("Report uploaded to Azure: {}/{}", containerName, blobPath);
-                }
+            File reportFile = reportPath.toFile();
+            if (reportFile.exists()) {
+                String fileName = reportPath.getFileName().toString();
+                String blobPath = "reports/" + fileName;
+                azureVodafoneStorageService.uploadCsvFile(containerName, blobPath, reportFile);
+                log.info("Report uploaded to Azure: {}/{}", containerName, blobPath);
             }
         } catch (IOException e) {
             log.error("Failed to generate report", e);

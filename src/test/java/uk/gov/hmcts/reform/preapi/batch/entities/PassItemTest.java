@@ -30,7 +30,8 @@ class PassItemTest {
             "test.mp4",
             "5MB",
             "arch456",
-            "TestFile.mp4"
+            "TestFile.mp4",
+            null
         );
 
         ProcessedRecording recording = ProcessedRecording.builder()
