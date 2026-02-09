@@ -155,7 +155,7 @@ tasks:
     batch-size: ${TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE:50}
     poll-interval: ${TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL:10000}
     max-sleep-time: ${TASK_BATCH_IMPORT_MISSING_ASSETS_MAX_SLEEP_TIME:1800000}
-    mp4-source-container: prod-migration-1
+    mp4-source-container: prod-migration-2
 
 
 #logging:
