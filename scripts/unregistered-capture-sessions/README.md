@@ -11,10 +11,9 @@ The faulty code was introduced on Jul 18, 2024  ([commit link](https://github.co
 The basic idea is to check if we have un-noticed capture sessions which have not been registered in the database. This will enable us to make the recordings visible, and will reassure the service owners that there are no missing recordings of past hearings.
 
 1. Get all capture sessions with status NO_RECORDING from the database >> write to file
-2. Get a list of containers from Azure Storage Account. Loop through them and check blobs. If a blob matches *missing capture session ID without hyphens* with resolution and ".mp4", then write the container name and track file name to an aggregated list in a file
-3. Check if any capture session IDs from 1 have matching tracks from 2
-
-The Azure Storage Account check is super slow, because we have about 20,000 storage containers. I don't think there's a way to do a single query for all the blobs, filtering by file name, so we have to loop through each container. For this reason I have split the loop into "begins with".
+2. Get a list of containers from Azure Storage Account.
+3. Loop through the list of containers and list the blobs. If a blob name matches *missing capture session ID without hyphens* (32 chars) with ".mp4" suffix, then write the container name and track file name to an aggregated list in a file
+4. Check if any capture session IDs from 1 have matching tracks from 3
 
 ## Pre-reqs
 
@@ -37,6 +36,18 @@ Run the scripts in order.
 The script for extracting from the database will need some input (which subscription, plus logging in).
 
 The scripts will not work unless you are connected to F5 VPN.
+
+The Azure Storage Account check (script #3) is super slow. It takes around 15 minutes to run per 1,000 storage containers, and we have about 20,000 storage containers. I don't think there's a way to do a single query for all the blobs, filtering by file name, so we have to loop through each container. For this reason I have split the loop into "begins with", to make it easier to restart from a later point. To restart from a later point by changing the prefix of the containers to be checked:
+
+E.g. to restart from containers beginning with 4, change this:
+
+`for i in {0..9} {a..f}`
+
+to this:
+
+`for i in {4..9} {a..f}`
+
+The prefix goes up to `f` because UUIDs are 128-bit.
 
 ## Running via manual process
 
