@@ -165,7 +165,7 @@ public class ProcessCSVJobConfigTest {
     @Test
     void shouldCreatePendingMigrationRecordReaderWithRecords() {
         List<MigrationRecord> pendingRecords = Arrays.asList(migrationRecord1, migrationRecord2);
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(pendingRecords);
 
         ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
@@ -174,14 +174,14 @@ public class ProcessCSVJobConfigTest {
         );
 
         assertThat(result).isNotNull();
-        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository).findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
         verify(loggingService).logInfo("Found %d pending migration records.", 2);
     }
 
     @Test
     void shouldCreatePendingMigrationRecordReaderWithEmptyList() {
         List<MigrationRecord> emptyList = Collections.emptyList();
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(emptyList);
 
         ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
@@ -190,7 +190,7 @@ public class ProcessCSVJobConfigTest {
         );
 
         assertThat(result).isNotNull();
-        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository).findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
         verify(loggingService).logInfo("No pending migration records found.");
     }
 
@@ -203,7 +203,7 @@ public class ProcessCSVJobConfigTest {
     @Test
     void shouldLogStartRunInPendingMigrationRecordReader() {
         List<MigrationRecord> pendingRecords = Arrays.asList(migrationRecord1, migrationRecord2);
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(pendingRecords);
 
         ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
@@ -218,7 +218,7 @@ public class ProcessCSVJobConfigTest {
     @Test
     void shouldLogStartRunWithEmptyListInPendingMigrationRecordReader() {
         List<MigrationRecord> emptyList = Collections.emptyList();
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(emptyList);
 
         ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
@@ -306,7 +306,7 @@ public class ProcessCSVJobConfigTest {
     @Test
     void shouldCreatePendingMigrationRecordReaderWithSingleRecord() {
         List<MigrationRecord> singleRecord = Collections.singletonList(migrationRecord1);
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(singleRecord);
 
         ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
@@ -315,7 +315,7 @@ public class ProcessCSVJobConfigTest {
         );
 
         assertThat(result).isNotNull();
-        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository).findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
         verify(loggingService).startRun("pending migration records", 1);
         verify(loggingService).logInfo("Found %d pending migration records.", 1);
     }
@@ -323,7 +323,7 @@ public class ProcessCSVJobConfigTest {
     @Test
     void shouldCreatePendingMigrationRecordReaderWithLargeList() {
         List<MigrationRecord> largeList = Collections.nCopies(100, migrationRecord1);
-        when(migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING))
+        when(migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING))
             .thenReturn(largeList);
 
         ListItemReader<MigrationRecord> result = processCSVJobConfig.pendingMigrationRecordReader(
@@ -332,7 +332,7 @@ public class ProcessCSVJobConfigTest {
         );
 
         assertThat(result).isNotNull();
-        verify(migrationRecordRepository).findAllByStatus(VfMigrationStatus.PENDING);
+        verify(migrationRecordRepository).findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
         verify(loggingService).startRun("pending migration records", 100);
         verify(loggingService).logInfo("Found %d pending migration records.", 100);
     }

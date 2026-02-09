@@ -104,7 +104,8 @@ public class MediaKindTest {
             10,
             "default",
             "default-live",
-            "uksouth"
+            "uksouth",
+            ""
         );
 
         mediaKind = new MediaKind(mediaKindConfiguration, mediaKindClient,
@@ -1428,8 +1429,82 @@ public class MediaKindTest {
         verify(mockClient, times(1))
             .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class));
+        ArgumentCaptor<MkStreamingEndpoint> endpointCaptor = ArgumentCaptor.forClass(MkStreamingEndpoint.class);
+        verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), endpointCaptor.capture());
+        assertThat(endpointCaptor.getValue().getProperties().getAdvancedSettingsName()).isNull();
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
+    }
+
+    @DisplayName("Should not pass advanced settings name for VOD playback when creating streaming endpoint")
+    @Test
+    void playAssetStreamingEndpointNotFoundDoesNotUseAdvancedSettingsName() throws InterruptedException {
+        mediaKindConfiguration = new MediaKindConfiguration(
+            "Staging",
+            "pre-mediakind-stg",
+            "testIssuer",
+            "testSymmetricKey",
+            10,
+            10,
+            "default",
+            "default-live",
+            "uksouth",
+            "ap-jitp-hmcts-disable-edge-buffer"
+        );
+        mediaKind = new MediaKind(mediaKindConfiguration, mediaKindClient,
+                                  azureIngestStorageService, azureFinalStorageService);
+
+        var assetName = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
+        var asset = createMkAsset(assetName);
+        var streamingEndpoint = MkStreamingEndpoint.builder()
+            .name("default")
+            .properties(
+                MkStreamingEndpointProperties.builder()
+                    .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                    .hostName("example.com/")
+                    .build()
+            )
+            .build();
+
+        var streamingPaths = MkStreamingLocatorUrlPaths.builder()
+            .streamingPaths(List.of(
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol.Hls)
+                    .build(),
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths
+                                           .MkStreamingLocatorStreamingPath
+                                           .StreamingProtocol.Dash)
+                    .build()
+            ))
+            .drm(new MkStreamingLocatorUrlPaths
+                .MkStreamingLocatorDrm(new MkStreamingLocatorUrlPaths
+                .MkDrmClearKey("license url")))
+            .build();
+
+        when(mockClient.getAsset(assetName)).thenReturn(asset);
+        when(mockClient.getStreamingEndpointByName("default"))
+            .thenThrow(NotFoundException.class)
+            .thenReturn(streamingEndpoint);
+        when(mockClient.createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class)))
+            .thenReturn(streamingEndpoint);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
+
+        mediaKind.playAsset(assetName, userId);
+
+        ArgumentCaptor<MkStreamingEndpoint> endpointCaptor = ArgumentCaptor.forClass(MkStreamingEndpoint.class);
+        verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), endpointCaptor.capture());
+        assertThat(endpointCaptor.getValue().getProperties().getAdvancedSettingsName())
+            .isNull();
     }
 
     @DisplayName("Should throw not found error when both dash and hls are null")

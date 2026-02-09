@@ -132,7 +132,7 @@ public class MediaKind implements IMediaService {
         getOrCreateStreamingPolicy(userId);
         String streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
 
-        String hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(configuration.getVodStreamingEndpoint())
+        String hostName = HTTPS_PREFIX + getOrCreateStreamingEndpoint(configuration.getVodStreamingEndpoint(), true)
             .getProperties().getHostName();
         MkStreamingLocatorUrlPaths paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
 
@@ -220,7 +220,7 @@ public class MediaKind implements IMediaService {
     public String playLiveEvent(UUID captureSessionId) throws InterruptedException {
         String liveEventId = getSanitisedLiveEventId(captureSessionId);
         checkLiveEventExists(liveEventId);
-        getOrCreateStreamingEndpoint(configuration.getLiveStreamingEndpoint());
+        getOrCreateStreamingEndpoint(configuration.getLiveStreamingEndpoint(), false);
 
         getOrCreateStreamingLocator(liveEventId);
         return constructManifestPath(liveEventId);
@@ -781,7 +781,8 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private MkStreamingEndpoint getOrCreateStreamingEndpoint(String endpointName) throws InterruptedException {
+    private MkStreamingEndpoint getOrCreateStreamingEndpoint(String endpointName, boolean isVodPlayback)
+        throws InterruptedException {
         try {
             MkStreamingEndpoint endpoint = mediaKindClient.getStreamingEndpointByName(endpointName);
             if (endpoint.getProperties().getResourceState() != MkStreamingEndpointProperties.ResourceState.Running) {
@@ -806,11 +807,17 @@ public class MediaKind implements IMediaService {
                                     .builder()
                                     .name(Tier.Standard)
                                     .build())
+                            .advancedSettingsName(isVodPlayback ? null : getStreamingEndpointAdvancedSettingsName())
                             .build())
                     .build());
             mediaKindClient.startStreamingEndpoint(endpointName);
             return checkStreamingEndpointReady(endpoint);
         }
+    }
+
+    private String getStreamingEndpointAdvancedSettingsName() {
+        String advancedSettingsName = configuration.getStreamingEndpointAdvancedSettingsName();
+        return (advancedSettingsName == null || advancedSettingsName.isBlank()) ? null : advancedSettingsName;
     }
 
     private MkStreamingLocator getOrCreateStreamingLocator(String liveEventId) {
