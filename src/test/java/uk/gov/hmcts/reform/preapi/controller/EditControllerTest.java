@@ -46,6 +46,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -272,6 +273,54 @@ public class EditControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 200 when successfully deleted edit request")
+    void upsertEditRequestDeleted() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
+
+        mockMvc.perform(delete(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk());
+
+        verify(editRequestService, times(1)).delete(any(CreateEditRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("Delete should return 400 when path and payload IDs do not match")
+    void deleteEditRequestPathPayloadMismatch() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+        var differentId = UUID.randomUUID();
+
+        mockMvc.perform(delete(TEST_URL + "/edits/" + differentId)
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Path editRequestId does not match payload property deleteEditRequestDTO.id"));
+    }
+
+
+    @Test
     @DisplayName("Should return 204 when successfully updated edit request")
     void upsertEditRequestUpdated() throws Exception {
         var dto = new CreateEditRequestDTO();
@@ -367,40 +416,6 @@ public class EditControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.sourceRecordingId").value("must not be null"));
-    }
-
-    @Test
-    @DisplayName("Should return 400 when editInstructions is null")
-    void validateEditInstructionsIsNull() throws Exception {
-        var dto = new CreateEditRequestDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setStatus(EditRequestStatus.DRAFT);
-
-        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(dto))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return 400 when editInstructions is empty")
-    void validateEditInstructionsIsEmpty() throws Exception {
-        var dto = new CreateEditRequestDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of());
-        dto.setStatus(EditRequestStatus.DRAFT);
-
-        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(dto))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.editInstructions").value("must not be empty"));
     }
 
     @Test
