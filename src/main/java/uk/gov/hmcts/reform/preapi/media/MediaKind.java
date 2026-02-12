@@ -363,10 +363,9 @@ public class MediaKind implements IMediaService {
     @Override
     public String triggerProcessingStep1(CaptureSessionDTO captureSession, String captureSessionNoHyphen,
                                          UUID recordingId) {
-        if (!azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString())) {
-            log.info("No valid asset files found for capture session [{}] in container named [{}]",
-                     captureSession.getId(),
-                     captureSession.getBookingId().toString()
+        if (!checkLiveFeedAvailable(captureSession.getId())) {
+            log.info("No valid recording content found for capture session [{}] in Mediakind",
+                     captureSession.getId()
             );
             azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
             return null;
