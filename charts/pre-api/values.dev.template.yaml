@@ -10,6 +10,15 @@ java:
           init.sql: |-
             CREATE EXTENSION IF NOT EXISTS pgcrypto;
             CREATE EXTENSION IF NOT EXISTS pg_trgm;
+            INSERT INTO public.courts (id, court_type, name, location_code, postcode, county)
+                        VALUES (
+                          gen_random_uuid(),
+                          'CROWN',
+                          'Hello Court',
+                          '1057',
+                          'E17 5NT',
+                          'London'
+                        );
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
