@@ -37,6 +37,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
+
 @Slf4j
 @Component
 public class BatchImportMissingMkAssets extends RobotUserTask {
@@ -185,7 +187,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             );
             return true;
         } catch (Exception e) {
-            String message = String.format(
+            String message = format(
                 "Failed to copy blob '%s' between containers: %s -> %s",
                 blobName,
                 azureVodafoneStorageService.getStorageAccountName() + "/" + vfSourceContainer,
@@ -222,10 +224,9 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
         } while (!jobs.isEmpty() && sleptFor < maxSleepTime);
         if (!jobs.isEmpty()) {
             log.error(
-                "Timeout waiting for transform jobs to complete for batch, {} job(s) still processing", jobs.size());
-            jobs.forEach(job -> {
-                log.error("Unknown job processing state: {}", job);
-            });
+                format("Timeout waiting for transform jobs to complete for batch, %d job(s) still processing. "
+                           + "Job names: %s",
+                jobs.size(), String.join(", ", jobs)));
             var unknownJobs = jobs;
             return jobNames.stream().filter(name -> !unknownJobs.contains(name)).toList();
         } else {
@@ -330,7 +331,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             writer.println("RecordingId,CaseReference,Filename,Duration,MigrationStatus,ErrorMessage");
 
             for (ReportItem item : reportItems) {
-                String line = String.format(
+                String line = format(
                     "%s,%s,%s,%d,%s,%s",
                     item.recordingId,
                     item.caseReference,

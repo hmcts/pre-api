@@ -464,7 +464,7 @@ public class BatchImportMissingMkAssetsTest {
         assertThat(output.getOut())
             .contains("Timeout waiting for transform jobs to complete for batch, 1 job(s) still processing");
         assertThat(output.getOut()).contains("Waiting for 1/1 transform jobs to complete for batch");
-        assertThat(output.getOut()).contains("Unknown job processing state: " + jobName);
+        assertThat(output.getOut()).contains("Job names: " + jobName);
     }
 
     @Test
@@ -474,25 +474,25 @@ public class BatchImportMissingMkAssetsTest {
         recording1.setId(UUID.randomUUID());
         recording1.setDuration(null);
         recording1.setDeletedAt(null);
-        
+
         CaptureSessionDTO captureSession1 = new CaptureSessionDTO();
         captureSession1.setOrigin(RecordingOrigin.VODAFONE);
         recording1.setCaptureSession(captureSession1);
-        
+
         RecordingDTO recording2 = new RecordingDTO();
         recording2.setId(UUID.randomUUID());
-        recording2.setDuration(Duration.ofMinutes(5)); 
+        recording2.setDuration(Duration.ofMinutes(5));
         recording2.setDeletedAt(null);
-        
+
         CaptureSessionDTO captureSession2 = new CaptureSessionDTO();
         captureSession2.setOrigin(RecordingOrigin.VODAFONE);
         recording2.setCaptureSession(captureSession2);
-        
+
         when(recordingService.findAllVodafoneRecordings())
             .thenReturn(List.of(recording1));
-        
+
         List<RecordingDTO> result = recordingService.findAllVodafoneRecordings();
-        
+
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getId()).isEqualTo(recording1.getId());
         verify(recordingService, times(1)).findAllVodafoneRecordings();
