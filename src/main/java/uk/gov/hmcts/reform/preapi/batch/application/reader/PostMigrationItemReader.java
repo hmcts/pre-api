@@ -111,6 +111,15 @@ public class PostMigrationItemReader {
 
             for (String[] user : matchedUsers) {
                 String email = user[1];
+                if (email == null || email.isBlank()) {
+                    loggingService.logWarning(
+                        "Skipping channel user with missing email for record %s, groupKey=%s, user=%s",
+                        orig.getArchiveId(),
+                        orig.getRecordingGroupKey(),
+                        user[0]
+                    );
+                    continue;
+                }
                 String fullName = user[0];
                 String[] nameParts = fullName.split("\\.");
                 String firstName = nameParts.length > 0 ? nameParts[0] : "Unknown";

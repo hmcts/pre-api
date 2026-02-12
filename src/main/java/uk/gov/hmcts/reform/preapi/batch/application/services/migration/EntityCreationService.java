@@ -281,6 +281,15 @@ public class EntityCreationService {
                                                                   String email,
                                                                   String firstName,
                                                                   String lastName) {
+        if (email == null || email.isBlank()) {
+            loggingService.logWarning(
+                "Cannot create share booking: email is null or blank for user %s %s",
+                firstName,
+                lastName
+            );
+            return null;
+        }
+
         loggingService.logDebug("Preparing data for share booking and user: %s %s %s", email, firstName, lastName);
         String lowerEmail = email.toLowerCase();
 

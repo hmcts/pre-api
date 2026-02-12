@@ -883,6 +883,72 @@ public class EntityCreationServiceTest {
     }
 
     @Test
+    @DisplayName("createShareBookingAndInviteIfNotExists should return null when email is null")
+    void createShareBookingAndInviteIfNotExistsReturnsNullWhenEmailIsNull() {
+        BookingDTO booking = createTestBooking();
+
+        PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            null,
+            "Test",
+            "User"
+        );
+
+        assertThat(result).isNull();
+        verify(loggingService).logWarning(
+            eq("Cannot create share booking: email is null or blank for user %s %s"),
+            eq("Test"),
+            eq("User")
+        );
+        verify(cacheService, never()).getHashValue(anyString(), anyString(), any());
+        verify(cacheService, never()).getShareBooking(anyString());
+    }
+
+    @Test
+    @DisplayName("createShareBookingAndInviteIfNotExists should return null when email is blank")
+    void createShareBookingAndInviteIfNotExistsReturnsNullWhenEmailIsBlank() {
+        BookingDTO booking = createTestBooking();
+
+        PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "   ",
+            "Test",
+            "User"
+        );
+
+        assertThat(result).isNull();
+        verify(loggingService).logWarning(
+            eq("Cannot create share booking: email is null or blank for user %s %s"),
+            eq("Test"),
+            eq("User")
+        );
+        verify(cacheService, never()).getHashValue(anyString(), anyString(), any());
+        verify(cacheService, never()).getShareBooking(anyString());
+    }
+
+    @Test
+    @DisplayName("createShareBookingAndInviteIfNotExists should return null when email is empty")
+    void createShareBookingAndInviteIfNotExistsReturnsNullWhenEmailIsEmpty() {
+        BookingDTO booking = createTestBooking();
+
+        PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "",
+            "Test",
+            "User"
+        );
+
+        assertThat(result).isNull();
+        verify(loggingService).logWarning(
+            eq("Cannot create share booking: email is null or blank for user %s %s"),
+            eq("Test"),
+            eq("User")
+        );
+        verify(cacheService, never()).getHashValue(anyString(), anyString(), any());
+        verify(cacheService, never()).getShareBooking(anyString());
+    }
+
+    @Test
     @DisplayName("isOrigRecordingPersisted should identify persisted originals")
     void isOrigRecordingPersistedReturnsTrueWhenOrigHasRecordingId() throws Exception {
         MigrationRecord copy = new MigrationRecord();
