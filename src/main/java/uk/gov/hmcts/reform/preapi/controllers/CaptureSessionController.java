@@ -34,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.ProcessingService;
+import uk.gov.hmcts.reform.preapi.services.RegistrationService;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -47,14 +48,14 @@ import static java.lang.String.format;
 public class CaptureSessionController extends PreApiController {
 
     private final CaptureSessionService captureSessionService;
-    private final ProcessingService processingService;
+    private final RegistrationService registrationService;
 
     @Autowired
     public CaptureSessionController(CaptureSessionService captureSessionService,
-                                    ProcessingService processingService) {
+                                    RegistrationService registrationService) {
         super();
         this.captureSessionService = captureSessionService;
-        this.processingService = processingService;
+        this.registrationService = registrationService;
     }
 
     @GetMapping("/{captureSessionId}")
@@ -187,7 +188,7 @@ public class CaptureSessionController extends PreApiController {
                 ));
         }
 
-        return getUpsertResponse(processingService.register(captureSessionId), captureSessionId);
+        return getUpsertResponse(registrationService.register(captureSessionId), captureSessionId);
     }
 
     @PostMapping("/{captureSessionId}/undelete")

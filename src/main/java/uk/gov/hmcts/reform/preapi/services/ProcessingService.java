@@ -6,9 +6,6 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
-import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -17,17 +14,23 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.UUID;
 
-import static java.lang.String.format;
 
+/**
+ * {@summary This belongs to the unused cron job solution for stuck-in-processing capture sessions.}
+ *
+ * @deprecated This belongs to the cron job solution for the problem where capture sessions get stuck in processing.
+ *     See <a href="https://tools.hmcts.net/jira/issues/?jql=labels%20%3D%20capture-session-interrupted-processing">Jira label</a>.
+ *     We have decided not to proceed with this solution, and we are investigating other architectural solutions.
+ *     See <a href="https://justiceuk.sharepoint.com/:w:/r/sites/PreRecordedEvidenceBAUTeam/Shared%20Documents/General/Spikes/Recording%20Process%20-%20Event%20Based%20Workflow%20Spike.docx?d=wc920d7600b8446c889fd197324e7927c&csf=1&web=1&e=EuSHgB">spike</a>.
+ */
+@Deprecated
 @Slf4j
 @Service
 public class ProcessingService {
 
     public static final Timestamp PROCESSING_TIMEOUT = Timestamp.from(Instant.now()
-                                                                   .minus(2, ChronoUnit.HOURS));
+                                                                          .minus(2, ChronoUnit.HOURS));
 
     private static final Integer EXPECTED_MAX_NUMBER_OF_JOBS_PER_CS = 2;
 
@@ -46,15 +49,6 @@ public class ProcessingService {
         this.mediaService = mediaServiceBroker.getEnabledMediaService();
     }
 
-
-    /**
-     * @deprecated
-     * This belongs to the cron job solution for the problem where capture sessions get stuck in processing.
-     * See <a href="https://tools.hmcts.net/jira/issues/?jql=labels%20%3D%20capture-session-interrupted-processing">Jira label</a>.
-     * We have decided not to proceed with this solution and we are investigating other architectural solutions.
-     * See <a href="https://justiceuk.sharepoint.com/:w:/r/sites/PreRecordedEvidenceBAUTeam/Shared%20Documents/General/Spikes/Recording%20Process%20-%20Event%20Based%20Workflow%20Spike.docx?d=wc920d7600b8446c889fd197324e7927c&csf=1&web=1&e=EuSHgB">spike</a>.
-     */
-    @Deprecated
     public void processAllCaptureSessions() {
         encodeJobService.findAllProcessing().forEach(job -> checkJob(job, mediaService));
 
@@ -70,69 +64,6 @@ public class ProcessingService {
                 encodeJobService.delete(job.getId());
                 captureSessionService.stopCaptureSession(job.getCaptureSessionId(), RecordingStatus.FAILURE, null);
             });
-    }
-
-    public UpsertResult register(UUID captureSessionId) {
-        List<EncodeJobDTO> listOfEncodingJobs = encodeJobService.findAllProcessing()
-            .stream()
-            .filter(job -> job.getCaptureSessionId().equals(captureSessionId))
-            .toList();
-
-        if (listOfEncodingJobs.isEmpty()) {
-            throw new NotFoundException("Did not find any encoding jobs for capture session: " + captureSessionId);
-        }
-
-        if (listOfEncodingJobs.size() > EXPECTED_MAX_NUMBER_OF_JOBS_PER_CS) {
-            throw new ResourceInWrongStateException(format(
-                "Expected 1 or 2 encoding jobs for capture session: %s. "
-                    + "Actually there are %d encoding jobs", captureSessionId,
-                listOfEncodingJobs.size()
-            ));
-        }
-
-        listOfEncodingJobs.stream().spliterator().forEachRemaining(job -> {
-            RecordingStatus jobCompletionStatus = mediaService.hasJobCompleted(
-                getTransformName(job.getTransform()),
-                job.getJobName()
-            );
-
-            if (jobCompletionStatus != RecordingStatus.RECORDING_AVAILABLE) {
-                throw new ResourceInWrongStateException(format(
-                    "Capture session %s cannot be registered: processing job %s "
-                        + "status is %s", captureSessionId, job.getTransform().toString(), jobCompletionStatus
-                ));
-            }
-        });
-
-        EncodeJobDTO finalEncodingJob = listOfEncodingJobs.stream()
-            .filter(job -> job.getTransform().equals(EncodeTransform.ENCODE_FROM_MP4))
-            .findFirst()
-            .orElseThrow(() -> new NotFoundException(format(
-                "Did not find a final encoding job for Capture Session %s",
-                captureSessionId
-            )));
-
-        RecordingStatus recordingStatusOfFinalAsset =
-            mediaService.verifyFinalAssetExists(finalEncodingJob.getRecordingId());
-        if (recordingStatusOfFinalAsset != RecordingStatus.RECORDING_AVAILABLE) {
-            throw new ResourceInWrongStateException(format(
-                "Capture session %s cannot be registered: recording is "
-                    + "not available in storage", captureSessionId
-            ));
-        }
-
-        log.info("Found a recording for capture session {}", finalEncodingJob.getCaptureSessionId());
-
-        CaptureSessionDTO captureSession = captureSessionService.stopCaptureSession(
-            finalEncodingJob.getCaptureSessionId(),
-            RecordingStatus.RECORDING_AVAILABLE,
-            finalEncodingJob.getRecordingId()
-        );
-
-        azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
-        azureIngestStorageService.markContainerAsSafeToDelete(finalEncodingJob.getRecordingId().toString());
-
-        return UpsertResult.UPDATED;
     }
 
     private void checkJob(EncodeJobDTO job, IMediaService mediaService) {

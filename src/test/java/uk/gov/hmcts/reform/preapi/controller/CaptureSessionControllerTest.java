@@ -22,7 +22,7 @@ import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
-import uk.gov.hmcts.reform.preapi.services.ProcessingService;
+import uk.gov.hmcts.reform.preapi.services.RegistrationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
@@ -62,7 +62,7 @@ public class CaptureSessionControllerTest {
     private CaptureSessionService captureSessionService;
 
     @MockitoBean
-    private ProcessingService processingService;
+    private RegistrationService registrationService;
 
     @MockitoBean
     private UserAuthenticationService userAuthenticationService;
@@ -493,12 +493,12 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
 
-        Instant exceedingTimeout = ProcessingService.PROCESSING_TIMEOUT.toInstant().minus(1, ChronoUnit.HOURS);
+        Instant exceedingTimeout = RegistrationService.PROCESSING_TIMEOUT.toInstant().minus(1, ChronoUnit.HOURS);
         captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
 
-        when(processingService.register(id)).thenReturn(UpsertResult.UPDATED);
+        when(registrationService.register(id)).thenReturn(UpsertResult.UPDATED);
 
         when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.UPDATED);
 
@@ -531,7 +531,7 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.FAILURE);
 
-        Instant exceedingTimeout = ProcessingService.PROCESSING_TIMEOUT.toInstant().minus(1, ChronoUnit.HOURS);
+        Instant exceedingTimeout = RegistrationService.PROCESSING_TIMEOUT.toInstant().minus(1, ChronoUnit.HOURS);
         captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);

@@ -36,6 +36,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
 
 @SpringBootTest(classes = ProcessingService.class)
 public class ProcessingServiceTest {
@@ -228,139 +229,6 @@ public class ProcessingServiceTest {
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(dto.getCaptureSessionId()), eq(RecordingStatus.FAILURE), isNull());
         verifyNoInteractions(azureIngestStorageService);
-    }
-
-    @Test
-    @DisplayName("Should throw exception when registering capture session with no processing jobs")
-    public void testExceptionWhenNoJobsFoundForRegistration() {
-        var dto = createEncodeJobDTO(EncodeTransform.ENCODE_FROM_MP4);
-        dto.setId(UUID.fromString("ab45b666-dddc-481b-b5eb-081fd65b40a5"));
-        when(encodeJobService.findAllProcessing()).thenReturn(List.of(dto));
-
-        assertThrows(
-            NotFoundException.class,
-            () -> underTest.register(UUID.fromString("f1f57736-6e7e-4401-bf1c-bf6cec6daf52"))
-        );
-
-        verify(encodeJobService, times(1)).findAllProcessing();
-    }
-
-
-    @Test
-    @DisplayName("Should throw exception when registering capture session with too many processing jobs")
-    public void testExceptionWhenTooManyJobsFoundForRegistration() {
-        var dto1 = createEncodeJobDTO(EncodeTransform.ENCODE_FROM_MP4);
-        var dto2 = createEncodeJobDTO(EncodeTransform.ENCODE_FROM_MP4);
-        var dto3 = createEncodeJobDTO(EncodeTransform.ENCODE_FROM_MP4);
-
-        dto2.setCaptureSessionId(dto1.getCaptureSessionId());
-        dto3.setCaptureSessionId(dto2.getCaptureSessionId());
-
-        when(encodeJobService.findAllProcessing()).thenReturn(List.of(dto1, dto2, dto3));
-
-        assertThrows(
-            ResourceInWrongStateException.class,
-            () -> underTest.register(dto1.getCaptureSessionId())
-        );
-
-        verify(encodeJobService, times(1)).findAllProcessing();
-    }
-
-    @Test
-    @DisplayName("Should throw exception when registering capture session if processing job is not completed")
-    public void testExceptionWhenJobIncompleteForRegistration() {
-        var dto = createEncodeJobDTO(EncodeTransform.ENCODE_FROM_MP4);
-
-        when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, dto.getJobName()))
-            .thenReturn(RecordingStatus.PROCESSING);
-
-        when(encodeJobService.findAllProcessing()).thenReturn(List.of(dto));
-
-        assertThrows(
-            ResourceInWrongStateException.class,
-            () -> underTest.register(dto.getCaptureSessionId())
-        );
-
-        verify(encodeJobService, times(1)).findAllProcessing();
-    }
-
-    @Test
-    @DisplayName("Should throw exception when registering capture session if final processing job not found")
-    public void testRegistrationExceptionWhenNoFinalProcessingJob() {
-        var dto = createEncodeJobDTO(EncodeTransform.ENCODE_FROM_INGEST);
-
-        when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, dto.getJobName()))
-            .thenReturn(RecordingStatus.PROCESSING);
-
-        when(encodeJobService.findAllProcessing()).thenReturn(List.of(dto));
-
-        assertThrows(
-            ResourceInWrongStateException.class,
-            () -> underTest.register(dto.getCaptureSessionId())
-        );
-
-
-        verify(encodeJobService, times(1)).findAllProcessing();
-        verify(mediaService, times(1))
-            .hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, dto.getJobName());
-        verify(mediaService, times(0)).verifyFinalAssetExists(dto.getRecordingId());
-    }
-
-    @Test
-    @DisplayName("Should throw exception when registering capture session if recording not found")
-    public void testRegistrationExceptionWhenNoRecordingFound() {
-        var dto1 = createEncodeJobDTO(EncodeTransform.ENCODE_FROM_MP4);
-
-        when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, dto1.getJobName()))
-            .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.verifyFinalAssetExists(dto1.getRecordingId())).thenReturn(RecordingStatus.NO_RECORDING);
-
-        when(encodeJobService.findAllProcessing()).thenReturn(List.of(dto1));
-
-        assertThrows(
-            ResourceInWrongStateException.class,
-            () -> underTest.register(dto1.getCaptureSessionId())
-        );
-
-        verify(encodeJobService, times(1)).findAllProcessing();
-        verify(mediaService, times(1))
-            .hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, dto1.getJobName());
-        verify(mediaService, times(1)).verifyFinalAssetExists(dto1.getRecordingId());
-    }
-
-    @Test
-    @DisplayName("Should successfully register capture session if jobs completed and recording found")
-    public void testRegistrationWhenEncodingIsCompleted() {
-        var dto1 = createEncodeJobDTO(EncodeTransform.ENCODE_FROM_MP4);
-
-        when(mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, dto1.getJobName()))
-            .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.verifyFinalAssetExists(dto1.getRecordingId()))
-            .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-
-        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
-        captureSessionDTO.setBookingId(UUID.randomUUID());
-        when(captureSessionService.stopCaptureSession(any(), any(), any())).thenReturn(captureSessionDTO);
-
-
-        when(encodeJobService.findAllProcessing()).thenReturn(List.of(dto1));
-
-
-        UpsertResult register = underTest.register(dto1.getCaptureSessionId());
-
-        assertThat(register).isEqualTo(UpsertResult.UPDATED);
-
-        verify(encodeJobService, times(1)).findAllProcessing();
-        verify(mediaService, times(1))
-            .hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, dto1.getJobName());
-        verify(mediaService, times(1)).verifyFinalAssetExists(dto1.getRecordingId());
-        verify(captureSessionService, times(1))
-            .stopCaptureSession(dto1.getCaptureSessionId(), RecordingStatus.RECORDING_AVAILABLE, dto1.getRecordingId());
-
-        verify(azureIngestStorageService, times(1))
-            .markContainerAsSafeToDelete(captureSessionDTO.getBookingId().toString());
-        verify(azureIngestStorageService, times(1))
-            .markContainerAsSafeToDelete(dto1.getRecordingId().toString());
     }
 
     private EncodeJobDTO createEncodeJobDTO(EncodeTransform transform) {

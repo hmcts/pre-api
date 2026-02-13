@@ -412,6 +412,15 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public List<JobOutputAsset> getJobOutputAssets(String transformName, String jobName) {
+        MkJob job = mediaKindClient.getJob(transformName, jobName);
+        if (hasJobCompleted(job) && job.getProperties().getState() == JobState.FINISHED) {
+            return job.getProperties().getOutputs();
+        }
+        return List.of();
+    }
+
+    @Override
     public RecordingStatus hasJobCompleted(String transformName, String jobName) {
         MkJob job = mediaKindClient.getJob(transformName, jobName);
         return hasJobCompleted(job) && job.getProperties().getState() == JobState.FINISHED
