@@ -107,6 +107,11 @@ public interface MediaKindClient {
     @GetMapping("/transforms/{transformName}/jobs/{jobName}")
     MkJob getJob(@PathVariable String transformName, @PathVariable String jobName);
 
+    @GetMapping("/transforms/{transformName}/jobs")MkGetListResponse<MkJob> getJobs(
+        @PathVariable String transformName,
+        @RequestParam(name = "$filter", required = false) String filter,
+        @RequestParam(name = "$orderby", required = false) String orderBy);
+
     @PostMapping("/streamingEndpoints/{endpointName}/stop")
     void stopStreamingEndpoint(@PathVariable String endpointName);
 

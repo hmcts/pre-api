@@ -72,6 +72,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -418,6 +419,36 @@ public class MediaKind implements IMediaService {
             return job.getProperties().getOutputs();
         }
         return List.of();
+    }
+
+    @Override
+    public MkJob getJobFromPartialName(
+        String transformName,
+        String partialJobName
+    ) {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        String fromIso = today.minusDays(5) + "T00:00:00Z";
+        String toIso   = today + "T23:59:59Z";
+
+        String filter =
+            "contains(name,'" + partialJobName + "')" +
+                " and properties/created ge " + fromIso +
+                " and properties/created le " + toIso +
+                " and properties/state eq 'Finished'";
+
+        String orderBy = "properties/created desc";
+
+        MkJob job = mediaKindClient.getJobs(transformName, filter, orderBy)
+            .getValue()
+            .stream()
+            .findFirst()
+            .orElseThrow(() ->
+                             new NotFoundException(
+                                 "No finished job with partial name '" + partialJobName +
+                                     "' found in the last 5 days under transform '" + transformName + "'.")
+            );
+
+        return job;
     }
 
     @Override

@@ -1,17 +1,20 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
+import com.azure.resourcemanager.mediaservices.models.JobState;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
-import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
 import java.sql.Timestamp;
@@ -21,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static java.lang.String.format;
+import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_INGEST_TRANSFORM;
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
 
 @Slf4j
@@ -62,34 +66,15 @@ public class RegistrationService {
             // this was expected. I really don't like doing this. Is there a better way?
         }
 
-        String ingestJobName = format("%s_temp", liveEventId);
-        RecordingStatus ingestJobStatus = mediaService.hasJobCompleted(
-            MediaKind.ENCODE_FROM_INGEST_TRANSFORM,
-            ingestJobName
-        );
-        // Should be null if live event has finished
-        if (ingestJobStatus != RecordingStatus.RECORDING_AVAILABLE) {
-            String errorMessage = format(
-                "Capture session %s cannot be deleted: ingest job status is %s",
-                captureSessionId, ingestJobStatus
-            );
-            throw new ResourceInWrongStateException(errorMessage);
-        }
-
-        List<JobOutputAsset> jobOutputAsset = mediaService.getJobOutputAssets(
-            MediaKind.ENCODE_FROM_INGEST_TRANSFORM,
-            ingestJobName
+        MkJob encodeFromIngestJob = mediaService.getJobFromPartialName(
+            ENCODE_FROM_INGEST_TRANSFORM,
+            liveEventId
         );
 
-        if (jobOutputAsset.isEmpty()) {
-            String errorMessage = format(
-                "Capture session %s cannot be deleted: found no output assets from ingest job",
-                captureSessionId
-            );
-            throw new ResourceInWrongStateException(errorMessage);
-        }
+        List<JobOutputAsset> jobOutputAssets = getJobOutputAssets(captureSessionId, encodeFromIngestJob);
+        AssetDTO asset = mediaService.getAsset(jobOutputAssets.getFirst().assetName());
 
-        UUID recordingId = UUID.fromString(jobOutputAsset.getFirst().assetName());
+        UUID recordingId = UUID.fromString(asset.getContainer());
         RecordingStatus recordingStatusOfFinalAsset =
             mediaService.verifyFinalAssetExists(recordingId);
 
@@ -109,5 +94,20 @@ public class RegistrationService {
         azureIngestStorageService.markContainerAsSafeToDelete(recordingId.toString());
 
         return UpsertResult.UPDATED;
+    }
+
+    private static @NotNull List<JobOutputAsset> getJobOutputAssets(UUID captureSessionId, MkJob encodeFromIngestJob) {
+        List<JobOutputAsset> jobOutputAssets = (encodeFromIngestJob.getProperties().getState() == JobState.FINISHED)
+            ? encodeFromIngestJob.getProperties().getOutputs()
+            : List.of();
+
+        if (jobOutputAssets.isEmpty()) {
+            String errorMessage = format(
+                "Capture session %s cannot be deleted: found no output assets from ingest job",
+                captureSessionId
+            );
+            throw new ResourceInWrongStateException(errorMessage);
+        }
+        return jobOutputAssets;
     }
 }

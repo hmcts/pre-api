@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 
 import java.util.List;
 import java.util.UUID;
@@ -53,6 +54,8 @@ public interface IMediaService {
     RecordingStatus hasJobCompleted(String transformName, String jobName);
 
     List<JobOutputAsset> getJobOutputAssets(String transformName, String jobName);
+
+    MkJob getJobFromPartialName(String transformName, String jobNamePartial);
 
     boolean checkLiveFeedAvailable(UUID captureSessionId);
 }
