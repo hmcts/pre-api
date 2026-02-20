@@ -431,10 +431,10 @@ public class MediaKind implements IMediaService {
         String toIso   = today + "T23:59:59Z";
 
         String filter =
-            "contains(name,'" + partialJobName + "')" +
-                " and properties/created ge " + fromIso +
-                " and properties/created le " + toIso +
-                " and properties/state eq 'Finished'";
+            "contains(name,'" + partialJobName + "')"
+                + " and properties/created ge " + fromIso
+                + " and properties/created le " + toIso
+                + " and properties/state eq 'Finished'";
 
         String orderBy = "properties/created desc";
 
@@ -444,8 +444,8 @@ public class MediaKind implements IMediaService {
             .findFirst()
             .orElseThrow(() ->
                              new NotFoundException(
-                                 "No finished job with partial name '" + partialJobName +
-                                     "' found in the last 5 days under transform '" + transformName + "'.")
+                                 "No finished job with partial name '" + partialJobName
+                                     + "' found in the last 5 days under transform '" + transformName + "'.")
             );
 
         return job;
