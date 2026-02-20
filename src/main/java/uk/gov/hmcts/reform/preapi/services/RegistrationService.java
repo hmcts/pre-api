@@ -71,6 +71,13 @@ public class RegistrationService {
             liveEventId
         );
 
+        if (encodeFromIngestJob.getProperties().getState() != JobState.FINISHED) {
+            throw new ResourceInWrongStateException(format(
+                "Capture session %s cannot be deleted: ingest job is not finished",
+                captureSessionId
+            ));
+        }
+
         List<JobOutputAsset> jobOutputAssets = getJobOutputAssets(captureSessionId, encodeFromIngestJob);
         AssetDTO asset = mediaService.getAsset(jobOutputAssets.getFirst().assetName());
 
@@ -97,9 +104,10 @@ public class RegistrationService {
     }
 
     private static @NotNull List<JobOutputAsset> getJobOutputAssets(UUID captureSessionId, MkJob encodeFromIngestJob) {
-        List<JobOutputAsset> jobOutputAssets = (encodeFromIngestJob.getProperties().getState() == JobState.FINISHED)
-            ? encodeFromIngestJob.getProperties().getOutputs()
-            : List.of();
+        List<JobOutputAsset> jobOutputAssets =
+            encodeFromIngestJob.getProperties() != null && encodeFromIngestJob.getProperties().getOutputs() != null
+                ? encodeFromIngestJob.getProperties().getOutputs()
+                : List.of();
 
         if (jobOutputAssets.isEmpty()) {
             String errorMessage = format(
