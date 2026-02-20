@@ -438,7 +438,7 @@ public class MediaKind implements IMediaService {
 
         String orderBy = "properties/created desc";
 
-        MkJob job = mediaKindClient.getJobs(transformName, filter, orderBy)
+        return mediaKindClient.getJobs(transformName, filter, orderBy)
             .getValue()
             .stream()
             .findFirst()
@@ -447,8 +447,6 @@ public class MediaKind implements IMediaService {
                                  "No finished job with partial name '" + partialJobName
                                      + "' found in the last 5 days under transform '" + transformName + "'.")
             );
-
-        return job;
     }
 
     @Override

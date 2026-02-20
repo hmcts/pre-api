@@ -48,13 +48,30 @@ public class RegistrationService {
         this.mediaService = mediaServiceBroker.getEnabledMediaService();
     }
 
+    /**
+     * Deals with capture sessions that have finished processing and have a recording in storage but the database does
+     * not reflect that yet.
+     * <ul>
+     *  <li>Checks that the live event for the session is finished (NotFound from Media Kind)</li>
+     *  <li>Gets the EncodeFromIngest job and checks it is finished</li>
+     *  <li>Checks the recording is available in storage and updates capture session and recording databases</li>
+     * </ul>
+     * Assumptions:
+     * <ul>
+     *  <li>Assumes the EncodeFromIngest job asset container
+     *  has the same UUID name as the EncodeFromMp4 asset container.</li>
+     * </ul>
+     * @param captureSessionId - the capture session that is still in processing state and needs to be registered</li>
+     * @return UpsertResult.UPDATED if the capture session was successfully registered
+     */
     public UpsertResult register(UUID captureSessionId) {
+        log.info("Begin registering recording for capture session {}", captureSessionId);
+
         String liveEventId = getSanitisedLiveEventId(captureSessionId);
 
         LiveEventDTO liveEvent;
         try {
             liveEvent = mediaService.getLiveEvent(liveEventId);
-            // Should be null if live event has finished
             if (liveEvent != null) {
                 String errorMessage = format(
                     "Capture session %s cannot be deleted: live event still exists and is in state %s",
@@ -63,7 +80,8 @@ public class RegistrationService {
                 throw new ResourceInWrongStateException(errorMessage);
             }
         } catch (NotFoundException e) {
-            // this was expected. I really don't like doing this. Is there a better way?
+            log.info("Live event not found for capture session {}:"
+                    + " expected if live event is finished", captureSessionId);
         }
 
         MkJob encodeFromIngestJob = mediaService.getJobFromPartialName(
