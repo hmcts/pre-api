@@ -314,8 +314,12 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
         entityManager.flush();
 
         //Create containers and add non-section file blobs
-        createBlob(captureSession1.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
-        createBlob(captureSession2.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        BlobContainerClient testContainer =
+            createBlob(captureSession1.getBooking().getId(),
+                       "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        BlobContainerClient testContainer2 =
+            createBlob(captureSession2.getBooking().getId(),
+                       "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
 
         //Run correction task
         captureSessionStatusCorrectionTask.run();
@@ -326,6 +330,10 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
 
         assertThat(updatedSession1.getStatus()).isEqualTo(RecordingStatus.FAILURE);
         assertThat(updatedSession2.getStatus()).isEqualTo(RecordingStatus.FAILURE);
+
+        //Clean up
+        deleteContainer(testContainer);
+        deleteContainer(testContainer2);
     }
 
     @Test
@@ -362,8 +370,10 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
 
         entityManager.flush();
 
-        createBlob(captureSession1.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
-        createBlob(captureSession2.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        BlobContainerClient testContainer = createBlob(captureSession1.getBooking().getId(),
+                                                       "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        BlobContainerClient testContainer2 = createBlob(captureSession2.getBooking().getId(),
+                                                        "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
 
         //Run correction task
         captureSessionStatusCorrectionTask.run();
@@ -374,6 +384,10 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
 
         assertThat(updatedSession1.getStatus()).isEqualTo(RecordingStatus.FAILURE);
         assertThat(updatedSession2.getStatus()).isEqualTo(RecordingStatus.FAILURE);
+
+        //Clean up
+        deleteContainer(testContainer);
+        deleteContainer(testContainer2);
     }
 
     @Test
@@ -425,14 +439,18 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
         entityManager.flush();
 
         //Create containers and add non-section file blobs
-        createBlob(captureSession1.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
-        createBlob(captureSession2.getBooking().getId(), "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
-        createBlob(
+        BlobContainerClient testContainer =
+            createBlob(captureSession1.getBooking().getId(),
+                       "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        BlobContainerClient testContainer2
+            = createBlob(captureSession2.getBooking().getId(),
+                         "I_AM_NOT_A_SECTION_FILE", "I_AM_NOT_A_SECTION_FILE");
+        BlobContainerClient testContainer3 = createBlob(
             captureSessionFromDeletedBooking.getBooking().getId(),
             "I_AM_NOT_A_SECTION_FILE",
             "I_AM_NOT_A_SECTION_FILE"
         );
-        createBlob(
+        BlobContainerClient testContainer4 = createBlob(
             captureSessionFromDeletedBooking2.getBooking().getId(),
             "I_AM_NOT_A_SECTION_FILE",
             "I_AM_NOT_A_SECTION_FILE"
@@ -464,6 +482,12 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
         assertThat(captureSessionFromDeletedBooking2)
             .extracting("id", "status")
             .containsExactlyInAnyOrder(captureSessionFromDeletedBooking2.getId(), RecordingStatus.NO_RECORDING);
+
+        //Clean up
+        deleteContainer(testContainer);
+        deleteContainer(testContainer2);
+        deleteContainer(testContainer3);
+        deleteContainer(testContainer4);
     }
 
     @Test
@@ -490,7 +514,7 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
         entityManager.flush();
 
         // Create blob container and add non-section file blob
-        createBlob(
+        BlobContainerClient testContainer = createBlob(
             captureSessionFromDeletedUser.getBooking().getId(),
             "I_AM_NOT_A_SECTION_FILE",
             "I_AM_NOT_A_SECTION_FILE"
@@ -507,6 +531,9 @@ public class CaptureSessionStatusCorrectionTaskIT extends IntegrationTestBase {
         assertThat(captureSessionFromDeletedUser)
             .extracting("id", "status")
             .containsExactlyInAnyOrder(captureSessionFromDeletedUser.getId(), RecordingStatus.NO_RECORDING);
+
+        //Clean up
+        deleteContainer(testContainer);
     }
 
     private Booking persistBooking(Case aCase, Timestamp scheduledFor, Timestamp deletedAt) {
