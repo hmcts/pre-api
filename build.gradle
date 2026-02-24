@@ -349,8 +349,8 @@ dependencies {
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.10:all'
-  testImplementation 'org.springframework.security:spring-security-test:6.5.5'
-  testRuntimeOnly('org.springframework.security:spring-security-web:6.5.5')
+  testImplementation 'org.springframework.security:spring-security-test:6.5.8'
+  testRuntimeOnly('org.springframework.security:spring-security-web:6.5.8')
   testImplementation libraries.junit5
 
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
