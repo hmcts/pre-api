@@ -29,3 +29,5 @@ Thumbs.db
 bearer_token.txt
 .env
 *.env
+
+unregistered-capture-sessions/output
