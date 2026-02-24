@@ -37,7 +37,9 @@ import uk.gov.hmcts.reform.preapi.services.ProcessingService;
 import uk.gov.hmcts.reform.preapi.services.RegistrationService;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -180,7 +182,8 @@ public class CaptureSessionController extends PreApiController {
                        captureSessionId, inDatabase.getStatus()));
         }
 
-        if (inDatabase.getFinishedAt().after(ProcessingService.PROCESSING_TIMEOUT)) {
+        if (!inDatabase.getFinishedAt().before(Timestamp.from(Instant.now()
+                                                                .minus(2, ChronoUnit.HOURS)))) {
             throw new ResourceInWrongStateException(
                 format("Capture session with ID %s started processing at %s. "
                            + "This is within the agreed timeout window (since %s).",

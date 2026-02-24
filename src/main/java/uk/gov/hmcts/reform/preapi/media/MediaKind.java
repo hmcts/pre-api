@@ -421,6 +421,15 @@ public class MediaKind implements IMediaService {
         return List.of();
     }
 
+    /**
+     * Finds a Media Kind job with a name containing the given partial name,
+     * that was created in the last 5 days, and is in finished state. i.e. it can be used to find a job called
+     * a15d6833de1e45afa34f49dc8cf044cd-1765272455 by passing in a partial name of a15d6833de1e45afa34f49dc8cf044cd.
+     * Media Kind follows OData syntax for filtering and sorting, so the filter string is constructed accordingly.
+     * @param transformName String - EncodeFromMp4 or EncodeFromIngest
+     * @param partialJobName String - Capture session ID without hyphens, as this is included in the job name
+     * @return MkJob - the most recently created job matching the criteria
+     */
     @Override
     public MkJob getJobFromPartialName(
         String transformName,
@@ -442,9 +451,9 @@ public class MediaKind implements IMediaService {
             .getValue()
             .stream()
             .findFirst()
-            .orElseThrow(() ->
+            .orElseThrow(() -> //MediaKind would return 404 not an empty list if no jobs found but just in case
                              new NotFoundException(
-                                 "No finished job with partial name '" + partialJobName
+                                 "No finished job with name containing '" + partialJobName
                                      + "' found in the last 5 days under transform '" + transformName + "'.")
             );
     }
