@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -30,7 +29,6 @@ public class ScheduledTaskRunner {
         }
     }
 
-    @Nullable
     public Runnable getTask(String beanName) {
         try {
             return (Runnable) context.getBean(beanName);
