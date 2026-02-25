@@ -817,7 +817,7 @@ public class MigrationTrackerServiceTest {
             ReportCsvWriter.writeToCsv(any(), any(), anyString(), anyString(), anyBoolean())
         ).thenReturn(mockPath);
 
-        migrationTrackerService.writeShareBookingsToCsv("Share_bookings", tempDir.toString());
+        migrationTrackerService.writeShareBookingsToCsvFile("Share_bookings", tempDir.toString());
 
         reportCsvWriter.verify(() ->
             ReportCsvWriter.writeToCsv(
@@ -929,7 +929,7 @@ public class MigrationTrackerServiceTest {
             ReportCsvWriter.writeToCsv(any(), any(), anyString(), anyString(), anyBoolean())
         ).thenThrow(new IOException("boom"));
 
-        migrationTrackerService.writeShareBookingsToCsv("Share_bookings", tempDir.toString());
+        migrationTrackerService.writeShareBookingsToCsvFile("Share_bookings", tempDir.toString());
 
         verify(loggingService, times(1))
             .logError(eq("Failed to write share bookings CSV: %s"), anyString());
@@ -1009,5 +1009,118 @@ public class MigrationTrackerServiceTest {
         assertThat(str).isEqualTo(id.toString());
     }
 
-        
+    @Test
+    void writeAndUploadPostMigrationReports_allFilesExist_uploadsAllFiles() throws IOException {
+        Files.createFile(tempDir.resolve("Invited_users.csv"));
+        Files.createFile(tempDir.resolve("Share_bookings.csv"));
+        Files.createFile(tempDir.resolve("Share_invite_failures.csv"));
+        Files.createFile(tempDir.resolve("Case_closure.csv"));
+
+        migrationTrackerService.addInvitedUser(mock(CreateInviteDTO.class));
+        migrationTrackerService.addShareBooking(new CreateShareBookingDTO());
+        migrationTrackerService.addShareInviteFailure(new MigrationTrackerService.ShareInviteFailureEntry(
+            "User", "123", "test@example.com", "Invite", "Failed", "2024-01-01"
+        ));
+        migrationTrackerService.addCaseClosureEntry(new MigrationTrackerService.CaseClosureReportEntry(
+            "case-id", "case-ref", "Closed", "Reason"
+        ));
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), eq("Invited_users"), anyString(), anyBoolean()
+        )).thenReturn(tempDir.resolve("Invited_users.csv"));
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), eq("Share_bookings"), anyString(), anyBoolean()
+        )).thenReturn(tempDir.resolve("Share_bookings.csv"));
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), eq("Share_invite_failures"), anyString(), anyBoolean()
+        )).thenReturn(tempDir.resolve("Share_invite_failures.csv"));
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), eq("Case_closure"), anyString(), anyBoolean()
+        )).thenReturn(tempDir.resolve("Case_closure.csv"));
+
+        migrationTrackerService.writeAndUploadPostMigrationReports();
+
+        verify(azureVodafoneStorageService, times(4)).uploadCsvFile(
+            eq("test-container"),
+            anyString(),
+            any(File.class)
+        );
+    }
+
+    @Test
+    void writeAndUploadPostMigrationReports_nullFiles_skipsUpload() {
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), anyString(), anyString(), anyBoolean()
+        )).thenReturn(null);
+
+        migrationTrackerService.writeAndUploadPostMigrationReports();
+
+        verify(azureVodafoneStorageService, never()).uploadCsvFile(
+            anyString(),
+            anyString(),
+            any(File.class)
+        );
+    }
+
+    @Test
+    void writeAndUploadPostMigrationReports_nonExistentFiles_skipsUpload() throws IOException {
+        Path nonExistentPath = tempDir.resolve("non_existent.csv");
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), anyString(), anyString(), anyBoolean()
+        )).thenReturn(nonExistentPath);
+
+        migrationTrackerService.writeAndUploadPostMigrationReports();
+
+        verify(azureVodafoneStorageService, never()).uploadCsvFile(
+            anyString(),
+            anyString(),
+            any(File.class)
+        );
+    }
+
+    @Test
+    void writeAndUploadPostMigrationReports_partialSuccess_uploadsOnlyExistingFiles() throws IOException {
+        Files.createFile(tempDir.resolve("Invited_users.csv"));
+        Files.createFile(tempDir.resolve("Share_bookings.csv"));
+
+        migrationTrackerService.addInvitedUser(mock(CreateInviteDTO.class));
+        migrationTrackerService.addShareBooking(new CreateShareBookingDTO());
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), eq("Invited_users"), anyString(), anyBoolean()
+        )).thenReturn(tempDir.resolve("Invited_users.csv"));
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), eq("Share_bookings"), anyString(), anyBoolean()
+        )).thenReturn(tempDir.resolve("Share_bookings.csv"));
+
+        migrationTrackerService.writeAndUploadPostMigrationReports();
+
+        verify(azureVodafoneStorageService, times(2)).uploadCsvFile(
+            eq("test-container"),
+            anyString(),
+            any(File.class)
+        );
+    }
+
+    @Test
+    void writeAndUploadPostMigrationReports_usesCorrectContainerAndPaths() throws IOException {
+        final File invitedUsersFile = Files.createFile(tempDir.resolve("Invited_users.csv")).toFile();
+        migrationTrackerService.addInvitedUser(mock(CreateInviteDTO.class));
+
+        reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(
+            anyList(), anyList(), eq("Invited_users"), anyString(), anyBoolean()
+        )).thenReturn(tempDir.resolve("Invited_users.csv"));
+
+        migrationTrackerService.writeAndUploadPostMigrationReports();
+
+        verify(azureVodafoneStorageService).uploadCsvFile(
+            eq("test-container"),
+            anyString(),
+            eq(invitedUsersFile)
+        );
+    }
 }
