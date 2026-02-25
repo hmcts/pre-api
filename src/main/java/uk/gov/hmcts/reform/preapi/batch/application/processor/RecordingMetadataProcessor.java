@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
@@ -17,6 +19,7 @@ import java.util.Optional;
 /**
  * Processes recording metadata from vf_migration_records with status PENDING.
  */
+@Slf4j
 @Component
 public class RecordingMetadataProcessor {
     private final DataExtractionService extractionService;
@@ -70,10 +73,11 @@ public class RecordingMetadataProcessor {
                 extractedData.getExhibitReference(),
                 extractedData.getWitnessFirstName(),
                 extractedData.getDefendantLastName(),
-                extractedData.getDatePattern()
+                extractedData.getDatePattern(),
+                extractedData.getCreateTime()
             );
 
-            if ("COPY".equalsIgnoreCase(extractedData.getRecordingVersion())) {
+            if (VfMigrationRecordingVersion.COPY.toString().equalsIgnoreCase(extractedData.getRecordingVersion())) {
                 migrationRecordService.updateParentTempIdIfCopy(
                     archiveItem.getArchiveId(),
                     groupKey,
@@ -82,6 +86,13 @@ public class RecordingMetadataProcessor {
             }
 
         } catch (Exception e) {
+            log.error(
+                "Error processing recording metadata for archiveId={}, archiveName={}: {}",
+                archiveItem.getArchiveId(),
+                archiveItem.getArchiveName(),
+                e.getMessage(),
+                e
+            );
             ServiceResultUtil.failure(e.getMessage(), "Error processing recording metadata");
         }
     }

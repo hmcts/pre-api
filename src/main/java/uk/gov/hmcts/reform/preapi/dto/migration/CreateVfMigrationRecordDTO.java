@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,7 +24,6 @@ public class CreateVfMigrationRecordDTO {
     @Schema(description = "CreateMigrationRecordId")
     private UUID id;
 
-    @NotNull
     @Schema(description = "CreateMigrationRecordCourtId")
     private UUID courtId;
 
@@ -35,21 +33,18 @@ public class CreateVfMigrationRecordDTO {
     private String urn;
 
     @AlphanumericConstraint
-    @Length(min = 7, max = 11)
+    @Length(min = 0, max = 11)
     @Schema(description = "CreateMigrationRecordExhibitReference")
     private String exhibitReference;
 
-    @NotEmpty
     @Length(max = 25)
     @Schema(description = "CreateMigrationRecordDefendantName")
     private String defendantName;
 
-    @NotEmpty
     @Length(max = 25)
     @Schema(description = "CreateMigrationRecordWitnessName")
     private String witnessName;
 
-    @NotNull
     @Schema(description = "CreateMigrationRecordRecordingVersion")
     private VfMigrationRecordingVersion recordingVersion;
 

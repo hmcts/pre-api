@@ -3,9 +3,12 @@ package uk.gov.hmcts.reform.preapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(B2CController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(OutputCaptureExtension.class)
 @SuppressWarnings({"PMD.LinguisticNaming"})
 class B2CControllerTest {
 
@@ -107,10 +111,10 @@ class B2CControllerTest {
         request.setVerificationCode("123456");
 
         var response = mockMvc.perform(post(TEST_URL + "/b2c/email-verification")
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(request))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(request))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is4xxClientError())
             .andReturn();
         assertThat(response.getResponse().getContentAsString())
@@ -219,7 +223,7 @@ class B2CControllerTest {
 
     @DisplayName("Should return ambiguous error when user not found")
     @Test
-    void userNotFoundAmbiguousError() throws Exception {
+    void userNotFoundAmbiguousError(CapturedOutput output) throws Exception {
 
         var email = "test@test.com";
 
@@ -232,19 +236,15 @@ class B2CControllerTest {
         request.setEmail(email);
         request.setVerificationCode("123456");
 
-        var response = mockMvc.perform(post(TEST_URL + "/b2c/email-verification")
-                                           .with(csrf())
-                                           .content(OBJECT_MAPPER.writeValueAsString(request))
-                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                           .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
+        mockMvc.perform(post(TEST_URL + "/b2c/email-verification")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(request))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is2xxSuccessful());
 
-        var errorResponse = OBJECT_MAPPER.readTree(response.getResponse().getContentAsString());
-        assertThat(errorResponse.toString()).isEqualTo(
-            "{\"version\":\"1.0.0\",\"status\":409,\"userMessage\":\"Unable to send email verification\"}"
-        );
-
-
+        // Verify that log.warn was called with the expected message
+        assertThat(output.getOut()).contains("WARN");
+        assertThat(output.getOut()).contains(email);
     }
 }

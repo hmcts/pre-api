@@ -18,6 +18,7 @@ public class SearchMigrationRecords {
     private String witnessName;
     private String defendantName;
     private UUID courtId;
+    private String courtReference;
     private VfMigrationStatus status;
     private List<VfFailureReason> reasonIn;
     private List<VfFailureReason> reasonNotIn;

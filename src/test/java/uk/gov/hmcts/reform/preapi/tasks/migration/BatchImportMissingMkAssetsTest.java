@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
@@ -466,4 +467,34 @@ public class BatchImportMissingMkAssetsTest {
         assertThat(output.getOut()).contains("Unknown job processing state: " + jobName);
     }
 
+    @Test
+    @DisplayName("Should return Vodafone recordings with null duration")
+    void findAllVodafoneRecordings_ShouldReturnVodafoneRecordingsWithNullDuration() {
+        RecordingDTO recording1 = new RecordingDTO();
+        recording1.setId(UUID.randomUUID());
+        recording1.setDuration(null);
+        recording1.setDeletedAt(null);
+        
+        CaptureSessionDTO captureSession1 = new CaptureSessionDTO();
+        captureSession1.setOrigin(RecordingOrigin.VODAFONE);
+        recording1.setCaptureSession(captureSession1);
+        
+        RecordingDTO recording2 = new RecordingDTO();
+        recording2.setId(UUID.randomUUID());
+        recording2.setDuration(Duration.ofMinutes(5)); 
+        recording2.setDeletedAt(null);
+        
+        CaptureSessionDTO captureSession2 = new CaptureSessionDTO();
+        captureSession2.setOrigin(RecordingOrigin.VODAFONE);
+        recording2.setCaptureSession(captureSession2);
+        
+        when(recordingService.findAllVodafoneRecordings())
+            .thenReturn(List.of(recording1));
+        
+        List<RecordingDTO> result = recordingService.findAllVodafoneRecordings();
+        
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(recording1.getId());
+        verify(recordingService, times(1)).findAllVodafoneRecordings();
+    }
 }

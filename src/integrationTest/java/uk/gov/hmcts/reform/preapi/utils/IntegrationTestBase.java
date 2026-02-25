@@ -17,6 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = Application.class)
+@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class IntegrationTestBase {
 
     @MockitoBean
@@ -57,3 +58,4 @@ public abstract class IntegrationTestBase {
         }
     }
 }
+

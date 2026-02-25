@@ -22,6 +22,7 @@ import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_H
 
 @RestController
 @RequestMapping("/audit")
+@SuppressWarnings("PMD.LooseCoupling") //We need HttpHeaders as it is case-insensitive
 public class AuditController {
 
     private final AuditService auditService;
@@ -41,7 +42,7 @@ public class AuditController {
             throw new PathPayloadMismatchException("id", "createAuditDTO.id");
         }
 
-        var userId = headers.getValuesAsList(X_USER_ID_HEADER).isEmpty()
+        UUID userId = headers.getValuesAsList(X_USER_ID_HEADER).isEmpty()
             ? null
             : UUID.fromString(headers.getValuesAsList(X_USER_ID_HEADER).getFirst());
         this.auditService.upsert(createAuditDTO, userId);

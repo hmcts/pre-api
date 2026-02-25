@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -46,9 +47,21 @@ public class EditRequest extends CreatedModifiedAtEntity {
     @JoinColumn(name = "created_by", referencedColumnName = "id", nullable = false)
     private User createdBy;
 
+    @Column(name = "jointly_agreed")
+    private Boolean jointlyAgreed;
+
+    @Column(name = "rejection_reason", length = 512)
+    private String rejectionReason;
+
+    @Column(name = "approved_at")
+    private Timestamp approvedAt;
+
+    @Column(name = "approved_by", length = 100)
+    private String approvedBy;
+
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("id", getId());
         details.put("sourceRecordingId", sourceRecording.getId());
         details.put("status", status);
@@ -56,6 +69,10 @@ public class EditRequest extends CreatedModifiedAtEntity {
         details.put("startedAt", startedAt);
         details.put("finishedAt", finishedAt);
         details.put("createdBy", createdBy.getId());
+        details.put("jointlyAgreed", jointlyAgreed);
+        details.put("rejectionReason", rejectionReason);
+        details.put("approvedAt", approvedAt);
+        details.put("approvedBy", approvedBy);
         return details;
     }
 }

@@ -21,7 +21,9 @@ public class MkStreamingEndpointProperties {
     private long scaleUnits;
     private MkStreamingEndpointSku sku;
     private String hostName;
+    private String advancedSettingsName;
 
+    @SuppressWarnings("PMD.UnusedPrivateField")
     public enum CdnProviderEnum {
         EMPTY(""),
         StandardAkamai("StandardAkamai");

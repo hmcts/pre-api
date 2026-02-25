@@ -14,10 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -38,6 +41,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -45,6 +49,7 @@ import java.util.stream.Stream;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class CaseService {
 
     private final CaseRepository caseRepository;
@@ -64,10 +69,10 @@ public class CaseService {
                        final ParticipantRepository participantRepository,
                        final BookingService bookingService,
                        final ShareBookingService shareBookingService,
-                       final @Lazy BookingRepository bookingRepository,
+                       @Lazy final BookingRepository bookingRepository,
                        final EmailServiceFactory emailServiceFactory,
                        final EditRequestRepository editRequestRepository,
-                       final @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
+                       @Value("${migration.enableMigratedData:false}") final boolean enableMigratedData) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
@@ -91,15 +96,15 @@ public class CaseService {
     @Transactional(readOnly = true)
     @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
     public List<CaseDTO> getCasesByOrigin(RecordingOrigin origin) {
-        var cases = caseRepository.findAllByOrigin(origin);
+        List<Case> cases = caseRepository.findAllByOrigin(origin);
         return cases.stream().map(CaseDTO::new).toList();
     }
 
     @Transactional
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     public Page<CaseDTO> searchBy(String reference, UUID courtId, boolean includeDeleted, Pageable pageable) {
-        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        UUID authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
 
         return caseRepository
             .searchCasesBy(
@@ -115,13 +120,14 @@ public class CaseService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createCaseDTO)")
+    @SuppressWarnings({ "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity", "PMD.NPathComplexity", "PMD.NcssCount" })
     public UpsertResult upsert(CreateCaseDTO createCaseDTO) {
-        var foundCase = caseRepository.findById(createCaseDTO.getId());
-        var isUpdate = foundCase.isPresent();
+        Optional<Case> foundCase = caseRepository.findById(createCaseDTO.getId());
+        boolean isUpdate = foundCase.isPresent();
 
-        var isCaseClosure = false;
-        var isCaseClosureCancellation = false;
-        var isCasePendingClosure = false;
+        boolean isCaseClosure = false;
+        boolean isCaseClosureCancellation = false;
+        boolean isCasePendingClosure = false;
 
         if (isUpdate) {
             if (foundCase.get().isDeleted()) {
@@ -145,13 +151,9 @@ public class CaseService {
                 && createCaseDTO.getState() == CaseState.PENDING_CLOSURE;
 
             if (isCasePendingClosure || isCaseClosure) {
-                if (bookingRepository.findAllByCaseIdAndDeletedAtIsNull(foundCase.get()).stream()
-                    .anyMatch(b -> b.getCaptureSessions().isEmpty() || b.getCaptureSessions().stream()
-                        .map(CaptureSession::getStatus)
-                        .anyMatch(s -> s != RecordingStatus.FAILURE
-                            && s != RecordingStatus.NO_RECORDING
-                            && s != RecordingStatus.RECORDING_AVAILABLE))) {
-
+                List<Booking> activeBookingsForCaseId = bookingRepository
+                    .findAllByCaseIdAndDeletedAtIsNull(foundCase.get());
+                if (activeBookingsForCaseId.stream().anyMatch(CaseService::bookingContainsOpenCaptureSessions)) {
                     throw new ResourceInWrongStateException(
                         "Resource Case("
                             + createCaseDTO.getId()
@@ -173,13 +175,13 @@ public class CaseService {
             throw new ConflictException("Case reference is already in use for this court");
         }
 
-        var court = courtRepository.findById(createCaseDTO.getCourtId()).orElse(null);
+        Court court = courtRepository.findById(createCaseDTO.getCourtId()).orElse(null);
 
         if (!isUpdate && court == null) {
             throw new NotFoundException("Court: " + createCaseDTO.getCourtId());
         }
 
-        var newCase = foundCase.orElse(new Case());
+        Case newCase = foundCase.orElse(new Case());
         newCase.setId(createCaseDTO.getId());
         newCase.setCourt(court);
         if (createCaseDTO.getReference() != null) {
@@ -216,10 +218,10 @@ public class CaseService {
             ? new HashSet<>()
             : new HashSet<>(Set.copyOf(newCase.getParticipants()));
 
-        var newParticipants = Stream
+        Set<Participant> newParticipants = Stream
             .ofNullable(createCaseDTO.getParticipants())
             .flatMap(participants -> participants.stream().map(model -> {
-                var entity = participantRepository.findById(model.getId()).orElse(new Participant());
+                Participant entity = participantRepository.findById(model.getId()).orElse(new Participant());
 
                 if (entity.getDeletedAt() != null) {
                     throw new ResourceInDeletedStateException("Participant", entity.getId().toString());
@@ -235,7 +237,7 @@ public class CaseService {
             }))
             .collect(Collectors.toSet());
 
-        var ids = newParticipants.stream().map(Participant::getId).toList();
+        List<UUID> ids = newParticipants.stream().map(Participant::getId).toList();
         oldParticipants
             .stream()
             .filter(p -> !ids.contains(p.getId()))
@@ -248,10 +250,18 @@ public class CaseService {
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
+    private static boolean bookingContainsOpenCaptureSessions(Booking booking) {
+        return booking.getCaptureSessions().isEmpty()
+            || booking.getCaptureSessions().stream().map(CaptureSession::getStatus)
+            .anyMatch(s -> s != RecordingStatus.FAILURE
+                && s != RecordingStatus.NO_RECORDING
+                && s != RecordingStatus.RECORDING_AVAILABLE);
+    }
+
     @Transactional
     @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
     public void deleteById(UUID id) {
-        var caseEntity = caseRepository
+        Case caseEntity = caseRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("CaseDTO: " + id));
         caseEntity.setDeleteOperation(true);
@@ -262,7 +272,7 @@ public class CaseService {
 
     @Transactional
     public void undelete(UUID id) {
-        var entity = caseRepository.findById(id).orElseThrow(() -> new NotFoundException("Case: " + id));
+        Case entity = caseRepository.findById(id).orElseThrow(() -> new NotFoundException("Case: " + id));
         if (!entity.isDeleted()) {
             return;
         }
@@ -271,7 +281,7 @@ public class CaseService {
     }
 
     private boolean isCaseReferenceValid(boolean isUpdate, CreateCaseDTO createCaseDTO) {
-        var foundCases = caseRepository
+        List<Case> foundCases = caseRepository
             .findAllByReferenceAndCourt_Id(createCaseDTO.getReference(), createCaseDTO.getCourtId());
 
         return isUpdate
@@ -284,7 +294,7 @@ public class CaseService {
 
     @Transactional
     public void closePendingCases() {
-        var timestamp = Timestamp.from(Instant.now());
+        Timestamp timestamp = Timestamp.from(Instant.now());
         caseRepository.findAllByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, timestamp).forEach(c -> {
             c.setState(CaseState.CLOSED);
             caseRepository.save(c);
@@ -294,21 +304,21 @@ public class CaseService {
 
     @Transactional(propagation = Propagation.REQUIRED, noRollbackFor = CaptureSessionNotDeletedException.class,
         rollbackFor = Exception.class)
-    public void onCaseClosed(Case c) {
-        log.info("onCaseClosed: Case({})", c.getId());
-        var shares = shareBookingService.deleteCascade(c);
+    public void onCaseClosed(Case aCase) {
+        log.info("onCaseClosed: Case({})", aCase.getId());
+        Set<ShareBooking> shares = shareBookingService.deleteCascade(aCase);
 
         if (!shares.isEmpty()) {
             try {
-                var emailService = emailServiceFactory.getEnabledEmailService();
-                shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
+                IEmailService emailService = emailServiceFactory.getEnabledEmailService();
+                shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), aCase));
             } catch (Exception e) {
-                log.error("Failed to notify users of case closure: {}", c.getId());
+                log.error("Failed to notify users of case closure: {}", aCase.getId());
             }
         }
 
         List<Booking> bookingsWithCaptureSessions = bookingRepository
-            .findAllByCaseIdAndDeletedAtIsNull(c)
+            .findAllByCaseIdAndDeletedAtIsNull(aCase)
             .stream()
             .filter(b -> !b.getCaptureSessions().isEmpty())
             .toList();
@@ -327,36 +337,36 @@ public class CaseService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void onCaseClosureCancellation(Case c) {
-        log.info("onCaseClosureCancellation: Case({})", c.getId());
-        var shares = shareBookingService.getSharesForCase(c);
+    public void onCaseClosureCancellation(Case aCase) {
+        log.info("onCaseClosureCancellation: Case({})", aCase.getId());
+        Set<ShareBooking> shares = shareBookingService.getSharesForCase(aCase);
 
         if (shares.isEmpty()) {
             return;
         }
 
         try {
-            var emailService = emailServiceFactory.getEnabledEmailService();
-            shares.forEach(share -> emailService.caseClosureCancelled(share.getSharedWith(), c));
+            IEmailService emailService = emailServiceFactory.getEnabledEmailService();
+            shares.forEach(share -> emailService.caseClosureCancelled(share.getSharedWith(), aCase));
         } catch (Exception e) {
-            log.error("Failed to notify users of case closure cancellation: {}", c.getId());
+            log.error("Failed to notify users of case closure cancellation: {}", aCase.getId());
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void onCasePendingClosure(Case c) {
-        log.info("onCasePendingClosure: Case({})", c.getId());
-        var shares = shareBookingService.getSharesForCase(c);
+    public void onCasePendingClosure(Case aCase) {
+        log.info("onCasePendingClosure: Case({})", aCase.getId());
+        Set<ShareBooking> shares = shareBookingService.getSharesForCase(aCase);
 
         if (shares.isEmpty()) {
             return;
         }
 
         try {
-            var emailService = emailServiceFactory.getEnabledEmailService();
-            shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c, c.getClosedAt()));
+            IEmailService emailService = emailServiceFactory.getEnabledEmailService();
+            shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), aCase, aCase.getClosedAt()));
         } catch (Exception e) {
-            log.error("Failed to notify users of case pending closure: {}", c.getId());
+            log.error("Failed to notify users of case pending closure: {}", aCase.getId());
         }
     }
 }

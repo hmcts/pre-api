@@ -30,7 +30,7 @@ public class FetchData extends BaseTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    public void run() {
         startJob(fetchDataJob, "Fetch Data", "sourceType", sourceType);
     }
 }

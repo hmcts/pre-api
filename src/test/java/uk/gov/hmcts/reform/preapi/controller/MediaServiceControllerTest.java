@@ -888,7 +888,7 @@ public class MediaServiceControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 200 with updated capture session when gc_state exists")
+    @DisplayName("Should return 200 with updated capture session when streaming path exists")
     void checkStreamCaptureSessionGcStateExists() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -900,9 +900,10 @@ public class MediaServiceControllerTest {
         dto2.setId(dto.getId());
         dto2.setStatus(RecordingStatus.RECORDING);
 
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.checkLiveFeedAvailable(dto.getId())).thenReturn(true);
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
         when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
-        when(azureIngestStorageService.doesBlobExist(dto.getBookingId().toString(), "gc_state")).thenReturn(true);
         when(captureSessionService.setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING)).thenReturn(dto2);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
@@ -917,7 +918,7 @@ public class MediaServiceControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 200 with updated capture session when .ism file does not exist")
+    @DisplayName("Should return 404 with updated capture session when .ism file does not exist")
     void checkStreamCaptureSessionIsmFileNotExists() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
@@ -925,9 +926,10 @@ public class MediaServiceControllerTest {
         dto.setStartedAt(Timestamp.from(Instant.now()));
         dto.setBookingId(UUID.randomUUID());
 
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.checkLiveFeedAvailable(dto.getId())).thenReturn(false);
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
         when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
-        when(azureIngestStorageService.doesBlobExist(dto.getBookingId().toString(), "gc_state")).thenReturn(false);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
             .andExpect(status().isNotFound())
@@ -940,7 +942,7 @@ public class MediaServiceControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 404 when .ism file/gc_state does not exist (recording has not started)")
+    @DisplayName("Should return 404 when .ism file does not exist (recording has not started)")
     void createLiveEventStreamingLocatorIsmNotFound() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var captureSession = new CaptureSessionDTO();
@@ -948,10 +950,10 @@ public class MediaServiceControllerTest {
         captureSession.setStatus(RecordingStatus.STANDBY);
         captureSession.setBookingId(UUID.randomUUID());
 
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.checkLiveFeedAvailable(captureSessionId)).thenReturn(false);
         when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
         when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
-            .thenReturn(false);
-        when(azureIngestStorageService.doesBlobExist(captureSession.getBookingId().toString(), "gc_state"))
             .thenReturn(false);
 
         mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
@@ -962,7 +964,6 @@ public class MediaServiceControllerTest {
 
         verify(azureIngestStorageService, times(1))
             .doesIsmFileExist(captureSession.getBookingId().toString());
-        verify(azureIngestStorageService, times(1)).doesBlobExist(captureSession.getBookingId().toString(), "gc_state");
         verify(mediaService, never()).playLiveEvent(any());
     }
 

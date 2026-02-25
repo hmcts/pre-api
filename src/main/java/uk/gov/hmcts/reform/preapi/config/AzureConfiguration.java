@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.config;
 
 import com.azure.core.http.policy.HttpLogDetailLevel;
 import com.azure.core.http.policy.HttpLogOptions;
+import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
@@ -42,6 +43,9 @@ public class AzureConfiguration {
     @Value("${azure.managedIdentityClientId}")
     private String managedIdentityClientId;
 
+    @Value("${azure.blob.endpointFormat:https://%s.blob.core.windows.net}")
+    private String blobEndpointFormat;
+
     @Bean
     public BlobServiceClient ingestStorageClient() {
         return storageClient(ingestStorageAccountName, ingestConnectionString);
@@ -71,15 +75,15 @@ public class AzureConfiguration {
     private BlobServiceClient getBlobServiceClientUsingConnectionString(String connectionString,
                                                                         String storageAccountName) {
         try {
-            var accountKey = Arrays.stream(connectionString.split(";"))
+            String accountKey = Arrays.stream(connectionString.split(";"))
                 .filter(s -> s.startsWith("AccountKey="))
                 .findFirst()
                 .orElse("")
                 .replace("AccountKey=", "");
-            var credential = new StorageSharedKeyCredential(storageAccountName, accountKey);
+            StorageSharedKeyCredential credential = new StorageSharedKeyCredential(storageAccountName, accountKey);
             return new BlobServiceClientBuilder()
                 .credential(credential)
-                .endpoint(String.format("https://%s.blob.core.windows.net", storageAccountName))
+                .endpoint(String.format(blobEndpointFormat, storageAccountName))
                 .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .buildClient();
         } catch (Exception e) {
@@ -90,13 +94,13 @@ public class AzureConfiguration {
     @Nullable
     private BlobServiceClient getBlobServiceClientUsingManagedIdentity(String storageAccountName) {
         try {
-            var credential = new DefaultAzureCredentialBuilder()
+            DefaultAzureCredential credential = new DefaultAzureCredentialBuilder()
                 .tenantId(tenantId)
                 .managedIdentityClientId(managedIdentityClientId)
                 .build();
             return new BlobServiceClientBuilder()
                 .credential(credential)
-                .endpoint(String.format("https://%s.blob.core.windows.net", storageAccountName))
+                .endpoint(String.format(blobEndpointFormat, storageAccountName))
                 .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .buildClient();
         } catch (Exception e) {

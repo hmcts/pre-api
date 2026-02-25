@@ -5,9 +5,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -29,10 +31,15 @@ public class ExtractedMetadata implements IArchiveData {
     private int duration;
     private String fileName;
     private String fileSize;
-    private String archiveId; 
+    private String archiveId;
     private String archiveName;
     private String sanitizedArchiveName = "";
+    private Timestamp createdAt;
 
+    private static final int MIN_LEN_EXCLUSIVE = 9;
+    private static final int MAX_LEN_EXCLUSIVE = 20;
+
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     public ExtractedMetadata(String courtReference,
                              UUID courtId,
                              String datePattern,
@@ -48,7 +55,8 @@ public class ExtractedMetadata implements IArchiveData {
                              String fileName,
                              String fileSize,
                              String archiveId,
-                             String archiveName) {
+                             String archiveName,
+                             Timestamp createdAt) {
         this.courtReference = courtReference;
         this.courtId = courtId;
         this.datePattern = datePattern;
@@ -65,6 +73,7 @@ public class ExtractedMetadata implements IArchiveData {
         this.fileSize = fileSize;
         this.archiveId = archiveId;
         this.archiveName = archiveName;
+        this.createdAt = createdAt;
     }
 
     private String formatName(String name) {
@@ -77,7 +86,7 @@ public class ExtractedMetadata implements IArchiveData {
                 if (part.matches("[-'\\s]")) {
                     return part;
                 } else {
-                    return StringUtils.capitalize(part.toLowerCase());
+                    return StringUtils.capitalize(part.toLowerCase(Locale.UK));
                 }
             })
             .collect(Collectors.joining(""));
@@ -104,7 +113,7 @@ public class ExtractedMetadata implements IArchiveData {
         } else if (exhibitValid) {
             return exhibitTrimmed;
         }
-    
+
         return "";
     }
 

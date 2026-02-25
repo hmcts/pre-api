@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
@@ -18,21 +19,23 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class DataTransformationService {
-    private static final String UNKNOWN_COURT = "Unknown Court";
-
     private final InMemoryCacheService cacheService;
     private final MigrationRecordService migrationRecordService;
     private final CourtRepository courtRepository;
     private final LoggingService loggingService;
+
+    private static final String UNKNOWN_COURT = "Unknown Court";
 
     @Autowired
     public DataTransformationService(final InMemoryCacheService cacheService,
@@ -67,6 +70,7 @@ public class DataTransformationService {
         }
     }
 
+    @SuppressWarnings("PMD.CognitiveComplexity")
     protected ProcessedRecording buildProcessedRecording(ExtractedMetadata extracted,
                                                          Map<String, String> sitesDataMap) {
 
@@ -82,13 +86,14 @@ public class DataTransformationService {
         String origVersionStr = "1";
         String copyVersionStr = null;
 
-        if ("COPY".equals(versionType)) {
+        if (VfMigrationRecordingVersion.COPY.toString().equals(versionType)) {
             String baseGroupKey = MigrationRecordService.generateRecordingGroupKey(
                 extracted.getUrn(),
                 extracted.getExhibitReference(),
                 extracted.getWitnessFirstName(),
                 extracted.getDefendantLastName(),
-                extracted.getDatePattern()
+                extracted.getDatePattern(),
+                extracted.getCreateTime()
             );
 
             String versionPrefix = versionNumber.contains(".")
@@ -115,7 +120,8 @@ public class DataTransformationService {
         }
 
         boolean isPreferred = true;
-        if (!extracted.getArchiveName().toLowerCase().endsWith(".mp4") && !"COPY".equalsIgnoreCase(versionType)) {
+        if (!extracted.getArchiveName().toLowerCase(Locale.UK).endsWith(".mp4")
+            && !"COPY".equalsIgnoreCase(versionType)) {
             boolean updated = migrationRecordService.markNonMp4AsNotPreferred(extracted.getArchiveId());
             if (updated) {
                 loggingService.logInfo("Skipping non-preferred archive: %s", extracted.getArchiveName());
@@ -140,7 +146,8 @@ public class DataTransformationService {
             extracted.getExhibitReference(),
             extracted.getWitnessFirstName(),
             extracted.getDefendantLastName(),
-            extracted.getDatePattern()
+            extracted.getDatePattern(),
+            extracted.getCreateTime()
         );
 
         boolean isMostRecent = migrationRecordService.findMostRecentVersionNumberInGroup(groupKey)
@@ -164,7 +171,10 @@ public class DataTransformationService {
             RecordingUtils.getStandardizedVersionNumberFromType(versionType),
             isMostRecent
         );
-        // Build final recording
+
+        // use date from archive name first, fallback to created_at
+        LocalDateTime recordingTimestamp = resolveRecordingTimestamp(extracted);
+
         return ProcessedRecording.builder()
             .archiveId(extracted.getArchiveId())
             .archiveName(extracted.getArchiveName())
@@ -174,7 +184,7 @@ public class DataTransformationService {
 
             .state(determineState(shareBookingContacts))
 
-            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTimeAsLocalDateTime()))
+            .recordingTimestamp(Timestamp.valueOf(recordingTimestamp))
             .duration(Duration.ofSeconds(extracted.getDuration()))
 
             .urn(extracted.getUrn())
@@ -197,6 +207,20 @@ public class DataTransformationService {
             .shareBookingContacts(shareBookingContacts)
 
             .build();
+    }
+
+    /**
+     * Resolves the recording timestamp for scheduling (scheduled_for).
+     * Uses date extracted from archive name first; falls back to created_at if unparseable.
+     *
+     * @param extracted the extracted metadata
+     * @return LocalDateTime for the recording timestamp
+     */
+    protected LocalDateTime resolveRecordingTimestamp(ExtractedMetadata extracted) {
+        return RecordingUtils.parseDatePatternToLocalDateTime(extracted.getDatePattern())
+            .or(() -> Optional.ofNullable(extracted.getCreatedAt())
+                .map(Timestamp::toLocalDateTime))
+            .orElseGet(extracted::getCreateTimeAsLocalDateTime);
     }
 
     /**
@@ -235,11 +259,9 @@ public class DataTransformationService {
 
         for (String[] userInfo : usersAndEmails) {
             String[] nameParts = userInfo[0].split("\\.");
-            Map<String, String> contact = new HashMap<>();
-            contact.put("firstName", nameParts.length > 0 ? nameParts[0] : "");
-            contact.put("lastName", nameParts.length > 1 ? nameParts[1] : "");
-            contact.put("email", userInfo[1]);
-            contactsList.add(contact);
+            contactsList.add(createContact(nameParts.length > 0 ? nameParts[0] : "",
+                                           nameParts.length > 1 ? nameParts[1] : "",
+                                           userInfo[1]));
         }
 
         loggingService.logDebug(
@@ -248,6 +270,16 @@ public class DataTransformationService {
             archiveName
         );
         return contactsList;
+    }
+
+    private static Map<String, String> createContact(final String firstName,
+                                                     final String lastName,
+                                                     final String email) {
+        Map<String, String> contact = new HashMap<>();
+        contact.put("firstName", firstName);
+        contact.put("lastName", lastName);
+        contact.put("email", email);
+        return contact;
     }
 
     /**

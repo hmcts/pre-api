@@ -6,12 +6,14 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -27,9 +29,12 @@ import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
+import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.UUID;
@@ -128,7 +133,7 @@ public class UserController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
     ) {
-        var resultPage = userService.findAllBy(
+        Page<UserDTO> resultPage = userService.findAllBy(
             params.getName(),
             params.getEmail(),
             params.getOrganisation(),
@@ -161,6 +166,22 @@ public class UserController extends PreApiController {
             .anyMatch(id -> !id.equals(userId))
         ) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.appAccess[].userId");
+        }
+
+        // Prevent ROLE_LEVEL_1 users from uplifting to ROLE_SUPER_USER
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.hasRole("ROLE_LEVEL_1") && !auth.hasRole("ROLE_SUPER_USER")) {
+            boolean hasSuperUserRole = createUserDTO.getAppAccess()
+                .stream()
+                .map(CreateAppAccessDTO::getRoleId)
+                .anyMatch(roleId -> {
+                    Role role = userService.getRoleById(roleId);
+                    return "Super User".equals(role.getName());
+                });
+
+            if (hasSuperUserRole) {
+                throw new ForbiddenException("ROLE_LEVEL_1 users cannot assign ROLE_SUPER_USER");
+            }
         }
 
         return getUpsertResponse(userService.upsert(createUserDTO), userId);

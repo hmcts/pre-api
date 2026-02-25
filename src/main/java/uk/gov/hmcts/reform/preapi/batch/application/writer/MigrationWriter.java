@@ -5,6 +5,7 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfFailureReason;
 import uk.gov.hmcts.reform.preapi.batch.application.services.MigrationRecordService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
 
     private final LoggingService loggingService;
@@ -49,7 +51,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         for (MigratedItemGroup item : migratedItems) {
             try {
                 loggingService.logDebug("Processing case: %s", item.getCase().getReference());
-                boolean ok = executor.processOneItem(item); 
+                boolean ok = executor.processOneItem(item);
                 if (ok) {
                     successCount.incrementAndGet();
                     migrationRecordService.updateToSuccess(item.getPassItem().cleansedData().getArchiveId());
@@ -60,6 +62,12 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 }
             } catch (Exception e) {
                 failureCount.incrementAndGet();
+
+                migrationRecordService.updateToFailed(
+                    item.getPassItem().cleansedData().getArchiveId(),
+                    VfFailureReason.GENERAL_ERROR.toString(),
+                    e.getMessage()
+                );
 
                 loggingService.logError("Failed to process migrated item: %s | %s",
                     item.getCase().getReference(), e.getMessage());

@@ -8,6 +8,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import feign.FeignException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAssetStorage;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
@@ -60,18 +62,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.hmcts.reform.preapi.media.MediaKind.DEFAULT_LIVE_STREAMING_ENDPOINT;
 import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_INGEST_TRANSFORM;
 import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFORM;
 
 @SpringBootTest(classes = MediaKind.class)
 @TestPropertySource(properties = {
     "azure.ingestStorage=testIngestStorageAccount",
-    "platform-env=Staging",
-    "mediakind.subscription=pre-mediakind-stg",
-    "mediakind.issuer=testIssuer",
-    "mediakind.symmetricKey=testSymmetricKey",
-    "mediakind.streaming-locator-on-start=true",
 })
 public class MediaKindTest {
     @MockitoBean
@@ -83,11 +79,13 @@ public class MediaKindTest {
     @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
 
-    @Autowired
-    private MediaKind mediaKind;
+    @MockitoBean
+    private MediaKindConfiguration mediaKindConfiguration;
 
     @Autowired
     private MediaKindClient mediaKindClient;
+
+    private MediaKind mediaKind;
 
     private CaptureSessionDTO captureSession;
 
@@ -96,6 +94,22 @@ public class MediaKindTest {
         captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBookingId(UUID.randomUUID());
+
+        mediaKindConfiguration = new MediaKindConfiguration(
+            "Staging",
+            "pre-mediakind-stg",
+            "testIssuer",
+            "testSymmetricKey",
+            10,
+            10,
+            "default",
+            "default-live",
+            "uksouth",
+            ""
+        );
+
+        mediaKind = new MediaKind(mediaKindConfiguration, mediaKindClient,
+                                  azureIngestStorageService, azureFinalStorageService);
     }
 
     private MkStreamingLocator createStreamingLocator(String userId, int daysOffset) {
@@ -880,7 +894,7 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+        when(mockClient.getStreamingEndpointByName("default-live"))
             .thenThrow(new NotFoundException("not found"));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
@@ -889,7 +903,7 @@ public class MediaKindTest {
                                      .resourceState(LiveEventResourceState.RUNNING.toString())
                                      .build()
             );
-        when(mockClient.createStreamingEndpoint(eq(DEFAULT_LIVE_STREAMING_ENDPOINT), any()))
+        when(mockClient.createStreamingEndpoint(eq("default-live"), any()))
             .thenThrow(new ConflictException("Conflict"));
 
         assertThrows(
@@ -904,7 +918,7 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+        when(mockClient.getStreamingEndpointByName("default-live"))
             .thenReturn(MkStreamingEndpoint.builder()
                             .properties(MkStreamingEndpointProperties.builder()
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
@@ -921,14 +935,11 @@ public class MediaKindTest {
         when(mockClient.getStreamingLocator(any()))
             .thenThrow(mock(NotFoundException.class));
 
-        when(mockClient.listStreamingLocatorPaths(liveEventName))
-            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
-
         var result = mediaKind.playLiveEvent(captureSession.getId());
 
         assertThat(result).isEqualTo(
             "https://ep-"
-            + DEFAULT_LIVE_STREAMING_ENDPOINT
+            + "default-live"
             + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
             + liveEventName
             + "/index.qfm/manifest(format=m3u8-cmaf)");
@@ -940,7 +951,7 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+        when(mockClient.getStreamingEndpointByName("default-live"))
             .thenReturn(MkStreamingEndpoint.builder()
                             .properties(MkStreamingEndpointProperties.builder()
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
@@ -957,14 +968,11 @@ public class MediaKindTest {
         when(mockClient.getStreamingLocator(any()))
             .thenReturn(MkStreamingLocator.builder().build());
 
-        when(mockClient.listStreamingLocatorPaths(liveEventName))
-            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
-
         var result = mediaKind.playLiveEvent(captureSession.getId());
 
         assertThat(result).isEqualTo(
             "https://ep-"
-                + DEFAULT_LIVE_STREAMING_ENDPOINT
+                + "default-live"
                 + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
                 + liveEventName
                 + "/index.qfm/manifest(format=m3u8-cmaf)");
@@ -978,7 +986,7 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+        when(mockClient.getStreamingEndpointByName("default-live"))
             .thenReturn(MkStreamingEndpoint.builder()
                             .properties(MkStreamingEndpointProperties.builder()
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
@@ -994,9 +1002,6 @@ public class MediaKindTest {
 
         when(mockClient.getStreamingLocator(any()))
             .thenThrow(mock(ConflictException.class));
-
-        when(mockClient.listStreamingLocatorPaths(liveEventName))
-            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
 
         assertThrows(
             ConflictException.class,
@@ -1365,8 +1370,82 @@ public class MediaKindTest {
         verify(mockClient, times(1))
             .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class));
+        ArgumentCaptor<MkStreamingEndpoint> endpointCaptor = ArgumentCaptor.forClass(MkStreamingEndpoint.class);
+        verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), endpointCaptor.capture());
+        assertThat(endpointCaptor.getValue().getProperties().getAdvancedSettingsName()).isNull();
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
+    }
+
+    @DisplayName("Should not pass advanced settings name for VOD playback when creating streaming endpoint")
+    @Test
+    void playAssetStreamingEndpointNotFoundDoesNotUseAdvancedSettingsName() throws InterruptedException {
+        mediaKindConfiguration = new MediaKindConfiguration(
+            "Staging",
+            "pre-mediakind-stg",
+            "testIssuer",
+            "testSymmetricKey",
+            10,
+            10,
+            "default",
+            "default-live",
+            "uksouth",
+            "ap-jitp-hmcts-disable-edge-buffer"
+        );
+        mediaKind = new MediaKind(mediaKindConfiguration, mediaKindClient,
+                                  azureIngestStorageService, azureFinalStorageService);
+
+        var assetName = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
+        var asset = createMkAsset(assetName);
+        var streamingEndpoint = MkStreamingEndpoint.builder()
+            .name("default")
+            .properties(
+                MkStreamingEndpointProperties.builder()
+                    .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                    .hostName("example.com/")
+                    .build()
+            )
+            .build();
+
+        var streamingPaths = MkStreamingLocatorUrlPaths.builder()
+            .streamingPaths(List.of(
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol.Hls)
+                    .build(),
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths
+                                           .MkStreamingLocatorStreamingPath
+                                           .StreamingProtocol.Dash)
+                    .build()
+            ))
+            .drm(new MkStreamingLocatorUrlPaths
+                .MkStreamingLocatorDrm(new MkStreamingLocatorUrlPaths
+                .MkDrmClearKey("license url")))
+            .build();
+
+        when(mockClient.getAsset(assetName)).thenReturn(asset);
+        when(mockClient.getStreamingEndpointByName("default"))
+            .thenThrow(NotFoundException.class)
+            .thenReturn(streamingEndpoint);
+        when(mockClient.createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class)))
+            .thenReturn(streamingEndpoint);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
+
+        mediaKind.playAsset(assetName, userId);
+
+        ArgumentCaptor<MkStreamingEndpoint> endpointCaptor = ArgumentCaptor.forClass(MkStreamingEndpoint.class);
+        verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), endpointCaptor.capture());
+        assertThat(endpointCaptor.getValue().getProperties().getAdvancedSettingsName())
+            .isNull();
     }
 
     @DisplayName("Should throw not found error when both dash and hls are null")
@@ -1614,5 +1693,82 @@ public class MediaKindTest {
             .isEqualTo(recording.getId().toString().replace("-", "") + "_output");
         assertThat(mkAssetCaptor.getValue().getProperties().getContainer())
             .isEqualTo(recording.getId().toString());
+    }
+
+    @Test
+    @DisplayName("Should not detect live feed when no subperiods are present in the asset tracks")
+    void playLiveEventNoPeriodsSuccess() throws JsonProcessingException, InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getStreamingEndpointByName("default-live"))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        var mockAssetStorage = mock(MkAssetStorage.class);
+        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
+        when(mockAssetStorage.getSpec())
+            .thenReturn(
+                MkAssetStorage.MkAssetStorageSpec.builder()
+                    .periods(null)
+                    .build()
+            );
+
+        when(mockClient.getStreamingLocator(any()))
+            .thenReturn(MkStreamingLocator.builder().build());
+
+        var result = mediaKind.checkLiveFeedAvailable(captureSession.getId());
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should detect live feed when subperiods are present in the asset tracks")
+    void playLiveEventWithPeriodsSuccess() throws JsonProcessingException, InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getStreamingEndpointByName("default-live"))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        var mockAssetStorage = mock(MkAssetStorage.class);
+        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
+
+        var examplePeriods = JsonNodeFactory.instance.objectNode();
+        examplePeriods.set("0/index/edge", JsonNodeFactory.instance.objectNode());
+        when(mockAssetStorage.getSpec())
+            .thenReturn(
+                MkAssetStorage.MkAssetStorageSpec.builder()
+                    .periods(examplePeriods)
+                    .build()
+            );
+
+        when(mockClient.getStreamingLocator(any()))
+            .thenReturn(MkStreamingLocator.builder().build());
+
+        var result = mediaKind.checkLiveFeedAvailable(captureSession.getId());
+
+        assertThat(result).isTrue();
     }
 }

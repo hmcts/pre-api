@@ -133,21 +133,21 @@ public class MigrationItemExecutor {
  
     private void processBookingDataOrThrow(CreateBookingDTO bookingData) {
         if (bookingData == null) {
-            return;
+            throw new IllegalStateException("Recording creation failed - no booking data found");
         }
         bookingService.upsert(bookingData);
     }
 
     private void processCaptureSessionDataOrThrow(CreateCaptureSessionDTO captureSessionData) {
         if (captureSessionData == null) {
-            return;
+            throw new IllegalStateException("Recording creation failed - no capture session data found");
         }
         captureSessionService.upsert(captureSessionData); 
     }
 
     private void processRecordingDataOrThrow(CreateRecordingDTO recordingData) {
         if (recordingData == null) {
-            return;
+            throw new IllegalStateException("Recording creation failed - no recording data found");
         }
         recordingService.upsert(recordingData);
     }
@@ -157,7 +157,7 @@ public class MigrationItemExecutor {
     // ------------------------
     private void remapBookingParticipantsToPersisted(CreateBookingDTO booking, CaseDTO persistedCase) {
         if (booking == null || booking.getParticipants() == null) {
-            return;
+            throw new IllegalStateException("Recording creation failed - no recording data found");
         }
 
         Map<String, ParticipantDTO> persistedMap = new HashMap<>();

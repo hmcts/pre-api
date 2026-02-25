@@ -68,8 +68,6 @@ class AuditControllerTest {
         var xUserId = UUID.randomUUID();
         when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
 
-        System.out.println(OBJECT_MAPPER.writeValueAsString(audit));
-
         MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())
                                                  .header(X_USER_ID_HEADER, xUserId)
@@ -93,8 +91,6 @@ class AuditControllerTest {
 
         var xUserId = UUID.randomUUID();
         when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
-
-        System.out.println(OBJECT_MAPPER.writeValueAsString(audit));
 
         MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())

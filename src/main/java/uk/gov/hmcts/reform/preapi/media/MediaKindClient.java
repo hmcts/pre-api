@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAssetStorage;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
@@ -38,6 +39,9 @@ public interface MediaKindClient {
 
     @PostMapping("/assets/{assetName}/listStreamingLocators")
     MkStreamingLocatorList getAssetStreamingLocators(@PathVariable String assetName);
+
+    @GetMapping("/assets/{assetName}/storage")
+    MkAssetStorage getAssetTracks(@PathVariable String assetName);
 
     @GetMapping("/streamingEndpoints/{endpointName}")
     MkStreamingEndpoint getStreamingEndpointByName(@PathVariable String endpointName);

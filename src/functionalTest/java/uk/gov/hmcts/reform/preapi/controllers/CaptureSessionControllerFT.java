@@ -25,7 +25,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CaptureSessionControllerFT extends FunctionalTestBase {
+class CaptureSessionControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: Delete capture session with recordings")
     void shouldNotDeleteCaptureSessionWithRecordings() {

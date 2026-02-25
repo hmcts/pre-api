@@ -64,6 +64,8 @@ public class ConcurrentCaptureSessionReportDTOV2 extends BaseReportDTO {
             .flatMap(Set::stream)
             .filter(r -> r.getVersion() == 1 && !r.isDeleted())
             .findFirst()
-            .ifPresent(r -> duration = r.getDuration());
+            .ifPresent(r -> {
+                duration = r.getDuration();
+            });
     }
 }

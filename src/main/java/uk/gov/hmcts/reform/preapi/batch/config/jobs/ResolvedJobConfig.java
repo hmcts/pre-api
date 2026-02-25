@@ -43,7 +43,7 @@ public class ResolvedJobConfig {
     @StepScope
     public ListItemReader<MigrationRecord> resolvedMigrationRecordReader(MigrationRecordRepository repository,
                                                                          LoggingService loggingService) {
-        List<MigrationRecord> resolved = repository.findAllByStatus(VfMigrationStatus.SUBMITTED);
+        List<MigrationRecord> resolved = repository.findAllByStatusOrderedByVersion(VfMigrationStatus.SUBMITTED);
         if (resolved.isEmpty()) {
             loggingService.logInfo("No resolved migration records found.");
         } else {
@@ -62,7 +62,7 @@ public class ResolvedJobConfig {
             .<MigrationRecord, MigratedItemGroup>chunk(BatchConfiguration.CHUNK_SIZE, transactionManager)
             .reader(resolvedMigrationRecordReader)
             .processor(processor)
-            .writer(coreSteps.getDryRunFlag() ? coreSteps.noOpWriter() : writer)
+            .writer(coreSteps.isDryRun() ? coreSteps.noOpWriter() : writer)
             .faultTolerant()
             .skipLimit(BatchConfiguration.SKIP_LIMIT)
             .skip(Exception.class)

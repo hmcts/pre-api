@@ -41,6 +41,9 @@ public class CreateCourtDTO {
     @Pattern(regexp = "^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$", message = "invalid postcode")
     private String postcode;
 
+    @Schema(description = "CreateCourtGroupEmail")
+    private String groupEmail;
+
     @Schema(description = "CreateCourtRegionIds")
     @Size(min = 1, message = "must contain at least 1")
     @NotNull(message = "regions is required and must contain at least 1")
