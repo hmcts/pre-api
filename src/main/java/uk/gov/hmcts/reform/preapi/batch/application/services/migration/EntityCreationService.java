@@ -390,6 +390,7 @@ public class EntityCreationService {
         PostMigratedItemGroup result = new PostMigratedItemGroup();
         result.setInvites(invites);
         result.setShareBookings(shareBookings);
+        result.setSharedWithEmail(lowerEmail);
         return result;
     }
 
