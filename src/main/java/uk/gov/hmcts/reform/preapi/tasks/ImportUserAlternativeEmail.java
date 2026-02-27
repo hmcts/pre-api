@@ -310,14 +310,18 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
                     "Added alternative email {} as identity to B2C user {}",
                     row.getAlternativeEmail(), row.getEmail()
                 );
-            } else {
-                log.info(
-                    "Alternative email {} already exists as identity for B2C user {}",
-                    row.getAlternativeEmail(), row.getEmail()
-                );
             }
 
-            return null;
+            String message = alternativeEmailExists
+                ? "Alternative email already exists as identity in B2C"
+                : "Alternative email added as identity in B2C";
+
+            return new ImportResult(
+                row.getEmail(),
+                row.getAlternativeEmail(),
+                "SUCCESS",
+                message
+            );
         } catch (Exception e) {
             log.error("Failed to update B2C identity for user {}: {}", row.getEmail(), e.getMessage(), e);
             return new ImportResult(

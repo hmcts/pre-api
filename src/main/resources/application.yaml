@@ -74,7 +74,7 @@ azure:
   vodafoneStorage:
     accountName: ${AZURE_VF_SA:}
     connectionString: ${AZURE_VF_SA_CONNECTION_STRING:}
-    container: ${AZURE_VF_CONTAINER:prod-migration-1}
+    container: ${AZURE_VF_CONTAINER:prod-migration-2}
     csvContainer: ${AZURE_VF_CSV_CONTAINER:csv-data}
   managedIdentityClientId: ${AZURE_CLIENT_ID:}
   tenantId: ${AZURE_TENANT_ID:}
