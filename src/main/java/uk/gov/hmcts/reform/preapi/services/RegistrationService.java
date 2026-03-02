@@ -33,8 +33,6 @@ public class RegistrationService {
     public static final Timestamp PROCESSING_TIMEOUT = Timestamp.from(Instant.now()
                                                                           .minus(2, ChronoUnit.HOURS));
 
-    private static final Integer EXPECTED_MAX_NUMBER_OF_JOBS_PER_CS = 2;
-
     private final CaptureSessionService captureSessionService;
     private final AzureIngestStorageService azureIngestStorageService;
     private final IMediaService mediaService;

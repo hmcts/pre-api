@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -33,7 +34,6 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
-import uk.gov.hmcts.reform.preapi.services.ProcessingService;
 import uk.gov.hmcts.reform.preapi.services.RegistrationService;
 
 import java.sql.Timestamp;
@@ -51,6 +51,8 @@ public class CaptureSessionController extends PreApiController {
 
     private final CaptureSessionService captureSessionService;
     private final RegistrationService registrationService;
+    @Value("${capture-session-registration.processing-timeout}")
+    private int processingTimeout;
 
     @Autowired
     public CaptureSessionController(CaptureSessionService captureSessionService,
@@ -187,7 +189,7 @@ public class CaptureSessionController extends PreApiController {
             throw new ResourceInWrongStateException(
                 format("Capture session with ID %s started processing at %s. "
                            + "This is within the agreed timeout window (since %s).",
-                       captureSessionId, inDatabase.getFinishedAt(), ProcessingService.PROCESSING_TIMEOUT
+                       captureSessionId, inDatabase.getFinishedAt(), processingTimeout
                 ));
         }
 

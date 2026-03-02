@@ -157,6 +157,9 @@ tasks:
     max-sleep-time: ${TASK_BATCH_IMPORT_MISSING_ASSETS_MAX_SLEEP_TIME:1800000}
     mp4-source-container: prod-migration-2
 
+capture-session-registration:
+  processing-timeout: ${PROCESSING_TIMEOUT:2} # In hours
+
 
 #logging:
 #  level:
