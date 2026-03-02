@@ -5,6 +5,9 @@ import com.azure.resourcemanager.mediaservices.models.JobState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
@@ -166,5 +169,22 @@ public class RegistrationServiceTest {
         );
 
         verify(mediaService, times(1)).verifyFinalAssetExists(any());
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @EmptySource
+    @DisplayName("Should throw exception if job found but it has no output assets")
+    public void testRegistrationExceptionWhenIngestJobHasNoOutputAssets(List<JobOutputAsset> jobOutputAssets) {
+        when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, liveEventId))
+                .thenReturn(ingestJob);
+        MkJob.MkJobProperties properties = mock(MkJob.MkJobProperties.class);
+        when(ingestJob.getProperties()).thenReturn(properties);
+        when(properties.getState()).thenReturn(JobState.FINISHED);
+        when(properties.getOutputs()).thenReturn(jobOutputAssets);
+        assertThrows(
+                ResourceInWrongStateException.class,
+                () -> underTest.register(CAPTURE_SESSION_ID)
+        );
     }
 }

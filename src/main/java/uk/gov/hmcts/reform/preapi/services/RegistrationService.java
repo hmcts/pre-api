@@ -90,8 +90,14 @@ public class RegistrationService {
             throw new ResourceInWrongStateException(errorMessage);
         }
 
-        UUID recordingId =
-                UUID.fromString(mediaService.getAsset(ingestJobOutputAssets.getFirst().assetName()).getContainer());
+        JobOutputAsset firstOutputAsset = ingestJobOutputAssets.getFirst();
+        if (firstOutputAsset == null) {
+            throw new ResourceInWrongStateException(
+                    format("Capture session %s cannot be registered: no output asset found for job %s",
+                            captureSessionId, encodeFromIngestJob.getName())
+            );
+        }
+        UUID recordingId = UUID.fromString(mediaService.getAsset(firstOutputAsset.assetName()).getContainer());
         verifyFinalAssetIsAvailable(recordingId, captureSessionId);
 
         log.info("Found a recording for capture session {}", captureSessionId);
