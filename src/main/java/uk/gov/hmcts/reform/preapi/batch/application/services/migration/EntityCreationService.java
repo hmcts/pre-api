@@ -20,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
@@ -282,11 +283,27 @@ public class EntityCreationService {
                                                                   String firstName,
                                                                   String lastName) {
         loggingService.logDebug("Preparing data for share booking and user: %s %s %s", email, firstName, lastName);
-        String lowerEmail = email.toLowerCase();
+        String lowerEmail = email.toLowerCase(Locale.UK);
 
         List<CreateInviteDTO> invites = new ArrayList<>();
 
         String existingUserId = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, String.class);
+
+        if (existingUserId == null) {
+            Optional<User> existingUser = userService.findByOriginalEmail(lowerEmail)
+                .or(() -> userService.findByAlternativeEmail(lowerEmail));
+
+            if (existingUser.isPresent()) {
+                UUID userId = existingUser.get().getId();
+                existingUserId = userId.toString();
+                cacheService.saveUser(lowerEmail, userId);
+                loggingService.logDebug(
+                    "Found existing user in DB for email (including alternative): %s (%s)",
+                    lowerEmail, existingUserId
+                );
+            }
+        }
+
         CreateUserDTO sharedWith;
         if (existingUserId != null) {
             UUID userId = UUID.fromString(existingUserId);
@@ -373,6 +390,7 @@ public class EntityCreationService {
         PostMigratedItemGroup result = new PostMigratedItemGroup();
         result.setInvites(invites);
         result.setShareBookings(shareBookings);
+        result.setSharedWithEmail(lowerEmail);
         return result;
     }
 
