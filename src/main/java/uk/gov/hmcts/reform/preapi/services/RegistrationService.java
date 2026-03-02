@@ -52,7 +52,7 @@ public class RegistrationService {
      * <ul>
      *   <li>Check live event has finished (MediaKind returns NotFound).</li>
      *   <li>Verify EncodeFromIngest job has completed.</li>
-     *   <li>Check that the recording is available in storage and update the relevant
+     *   <li>Check that the recording is available in final storage and update the relevant
      *       capture session and recording database items.</li>
      * </ul>
      * Assumes the EncodeFromIngest and EncodeFromMp4 asset containers share a UUID.

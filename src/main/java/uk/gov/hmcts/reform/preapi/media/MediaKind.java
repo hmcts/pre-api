@@ -423,7 +423,7 @@ public class MediaKind implements IMediaService {
 
     /**
      * Finds a Media Kind job with a name containing the given partial name,
-     * that was created in the last 5 days, and is in finished state. i.e. it can be used to find a job called
+     * and that finished processing in the last five days. i.e. it can be used to find a job called
      * a15d6833de1e45afa34f49dc8cf044cd-1765272455 by passing in a partial name of a15d6833de1e45afa34f49dc8cf044cd.
      * Media Kind follows OData syntax for filtering and sorting, so the filter string is constructed accordingly.
      * @param transformName String - EncodeFromMp4 or EncodeFromIngest
