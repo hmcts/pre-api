@@ -55,7 +55,7 @@ public class ProcessingService {
         encodeJobService.findAllProcessing()
             .stream()
             .filter(job -> job.getCreatedAt().before(Timestamp.from(Instant.now()
-                                                                       .minus(processingTimeout, ChronoUnit.HOURS)))) // 2hrs
+                                                                       .minus(processingTimeout, ChronoUnit.HOURS))))
             .forEach(job -> {
                 log.error(
                     "Processing job {} for capture session {} has timed out",
