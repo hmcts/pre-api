@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
@@ -29,15 +30,14 @@ import java.time.temporal.ChronoUnit;
 @Service
 public class ProcessingService {
 
-    public static final Timestamp PROCESSING_TIMEOUT = Timestamp.from(Instant.now()
-                                                                          .minus(2, ChronoUnit.HOURS));
-
     private static final Integer EXPECTED_MAX_NUMBER_OF_JOBS_PER_CS = 2;
 
     private final CaptureSessionService captureSessionService;
     private final EncodeJobService encodeJobService;
     private final AzureIngestStorageService azureIngestStorageService;
     private final IMediaService mediaService;
+    @Value("${capture-session-registration.processing-timeout}")
+    private int processingTimeout;
 
     protected ProcessingService(final CaptureSessionService captureSessionService,
                                 final MediaServiceBroker mediaServiceBroker,
@@ -54,7 +54,8 @@ public class ProcessingService {
 
         encodeJobService.findAllProcessing()
             .stream()
-            .filter(job -> job.getCreatedAt().before(PROCESSING_TIMEOUT)) // 2hrs
+            .filter(job -> job.getCreatedAt().before(Timestamp.from(Instant.now()
+                                                                       .minus(processingTimeout, ChronoUnit.HOURS)))) // 2hrs
             .forEach(job -> {
                 log.error(
                     "Processing job {} for capture session {} has timed out",
