@@ -122,44 +122,52 @@ public class EditRequestServiceTest {
     @MockitoBean
     private CaptureSession mockCaptureSession;
 
+    @MockitoBean
+    private EditRequest mockEditRequest;
+
+    @MockitoBean
+    private CaptureSession captureSession;
+
     @Autowired
     private EditRequestService underTest;
 
-    private User shareWith1;
-    private User shareWith2;
     private User courtClerkUser;
-    private Case testCase;
-    private Court court;
     private Booking booking;
-    private ShareBooking shareBooking1;
-    private ShareBooking shareBooking2;
 
-    private static UUID mockRecordingId = UUID.randomUUID();
-    private static UUID mockParentRecId = UUID.randomUUID();
-    private static UUID mockCaptureSessionId = UUID.randomUUID();
+    private static final UUID mockRecordingId = UUID.randomUUID();
+    private static final UUID mockParentRecId = UUID.randomUUID();
+    private static final UUID mockCaptureSessionId = UUID.randomUUID();
 
     @BeforeEach
     void setup() {
-        shareWith1 = HelperFactory.createUser("First", "User", "example1@example.com",
-                                              new Timestamp(System.currentTimeMillis()), null, null);
+        User shareWith1 = HelperFactory.createUser(
+            "First", "User", "example1@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
-        shareWith2 = HelperFactory.createUser("Second", "User", "example2@example.com",
-                                              new Timestamp(System.currentTimeMillis()), null, null);
+        User shareWith2 = HelperFactory.createUser(
+            "Second", "User", "example2@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
         courtClerkUser = HelperFactory.createUser("Court", "Clerk", "court.clerk@example.com",
                                                   new Timestamp(System.currentTimeMillis()), null, null);
 
-        court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC");
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC");
 
-        testCase = HelperFactory.createCase(court, "Test Case", false, null);
+        Case testCase = HelperFactory.createCase(court, "Test Case", false, null);
 
         booking = HelperFactory.createBooking(testCase, new Timestamp(System.currentTimeMillis()), null);
 
-        shareBooking1 = HelperFactory.createShareBooking(shareWith1, courtClerkUser, booking,
-                                                         new Timestamp(System.currentTimeMillis()));
+        ShareBooking shareBooking1 = HelperFactory.createShareBooking(
+            shareWith1, courtClerkUser, booking,
+            new Timestamp(System.currentTimeMillis())
+        );
 
-        shareBooking2 = HelperFactory.createShareBooking(shareWith2, courtClerkUser, booking,
-                                                         new Timestamp(System.currentTimeMillis()));
+        ShareBooking shareBooking2 = HelperFactory.createShareBooking(
+            shareWith2, courtClerkUser, booking,
+            new Timestamp(System.currentTimeMillis())
+        );
 
         booking.setShares(Set.of(shareBooking1, shareBooking2));
 
@@ -176,11 +184,17 @@ public class EditRequestServiceTest {
         when(mockRecording.getCaptureSession()).thenReturn(mockCaptureSession);
         when(mockRecording.getParentRecording()).thenReturn(mockParentRecording);
         when(mockRecording.getDuration()).thenReturn(Duration.ofMinutes(3));
+        when(mockRecording.getFilename()).thenReturn("filename");
 
         when(mockParentRecording.getId()).thenReturn(mockParentRecId);
         when(mockParentRecording.getCaptureSession()).thenReturn(mockCaptureSession);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+
+        when(azureFinalStorageService.getRecordingDuration(mockRecordingId)).thenReturn(Duration.ofMinutes(3));
+        when(azureFinalStorageService.getMp4FileName(mockRecordingId.toString())).thenReturn("filename");
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId)).thenReturn(Optional.of(mockRecording));
+        when(mockEditRequest.getId()).thenReturn(UUID.randomUUID());
     }
 
     @Test
@@ -239,8 +253,7 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should perform edit request and return created recording")
     void performEditSuccess() throws InterruptedException {
-
-        var editRequest = new EditRequest();
+        EditRequest editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
         editRequest.setStartedAt(Timestamp.from(Instant.now()));
@@ -509,6 +522,74 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should delete edit request when upserting with empty instructions")
+    void deleteEmptyInstructions() {
+        UUID sourceRecordingId = UUID.randomUUID();
+        Recording sourceRecording = new Recording();
+        sourceRecording.setId(sourceRecordingId);
+        sourceRecording.setDuration(Duration.ofSeconds(30));
+
+        CreateEditRequestDTO request = new CreateEditRequestDTO();
+        request.setId(UUID.randomUUID());
+        request.setSourceRecordingId(sourceRecordingId);
+        request.setEditInstructions(new ArrayList<>());
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecordingId))
+            .thenReturn(Optional.of(sourceRecording));
+        when(editRequestRepository.findById(request.getId())).thenReturn(Optional.of(new EditRequest()));
+
+        UpsertResult result = underTest.upsert(request);
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+    }
+
+    @Test
+    @DisplayName("Should ignore attempt to delete non-existent edit request")
+    void deleteNonExistentEditRequestSuccess() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId()))
+            .thenReturn(Optional.of(mockRecording));
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        underTest.delete(dto);
+
+        verify(editRequestRepository, times(0)).delete(any(EditRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should throw bad request when trying to create new edit request with empty instructions")
+    void badRequestEmptyInstructions() {
+
+        UUID sourceRecordingId = UUID.randomUUID();
+        var sourceRecording = new Recording();
+        sourceRecording.setId(sourceRecordingId);
+        sourceRecording.setDuration(Duration.ofSeconds(30));
+
+        CreateEditRequestDTO originalRequest = new CreateEditRequestDTO();
+        originalRequest.setId(UUID.randomUUID());
+        originalRequest.setSourceRecordingId(sourceRecordingId);
+        originalRequest.setEditInstructions(new ArrayList<>());
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecordingId))
+            .thenReturn(Optional.of(sourceRecording));
+
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> underTest.upsert(originalRequest)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+    }
+
+    @Test
     @DisplayName("Should throw bad request when instruction has same value for start and end")
     void invertInstructionsBadRequestStartEndEqual() {
         List<EditCutInstructionDTO> instructions = new ArrayList<>();
@@ -686,7 +767,6 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should return new create recording dto for the edit request")
     void createRecordingSuccess() {
-
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.COMPLETE);
@@ -705,6 +785,7 @@ public class EditRequestServiceTest {
         assertThat(dto.getEditInstructions())
             .isEqualTo(format("{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,"
                                   + "\"ffmpegInstructions\":null}}", editRequest.getId()));
+
         assertThat(dto.getCaptureSessionId()).isEqualTo(mockCaptureSessionId);
         assertThat(dto.getFilename()).isEqualTo("index.mp4");
 
@@ -1024,6 +1105,44 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when editInstructions is null for *new* edit request")
+    void validateEditInstructionsIsEmptyForNewEditRequest() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(mockRecordingId);
+        dto.setStatus(EditRequestStatus.DRAFT);
+        dto.setEditInstructions(new ArrayList<>());
+
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> underTest.upsert(dto)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+    }
+
+    @Test
+    @DisplayName("Should delete edit instruction when editInstructions is empty for *existing* edit request")
+    void validateEditInstructionsIsEmpty() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(mockRecordingId);
+        dto.setEditInstructions(List.of());
+        dto.setStatus(EditRequestStatus.DRAFT);
+        dto.setEditInstructions(new ArrayList<>());
+
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(mockEditRequest));
+
+        UpsertResult upsertResult = underTest.upsert(dto);
+
+        assertThat(upsertResult).isEqualTo(UpsertResult.UPDATED);
+
+        verify(editRequestRepository, times(1)).delete(mockEditRequest);
+    }
+
     @DisplayName("Should be able to upsert edit instructions with CSV file")
     void upsertEditInstructionsWithCSVFile() {
 
@@ -1104,7 +1223,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         );
 
         assertThrows(
-            NotFoundException.class,
+            BadRequestException.class,
             () -> underTest.upsert(mockRecordingId, file)
         );
     }
@@ -1112,8 +1231,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
     @DisplayName("Should throw an exception if updating edit instructions with empty file")
     @Test
     void upsertEditInstructionsWithEmptyFile() {
-        final String fileContents = """
-            """;
+        final String fileContents = "";
 
         MockMultipartFile file = new MockMultipartFile(
             "file", "edits.csv",
@@ -1121,11 +1239,10 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         );
 
         assertThrows(
-            NotFoundException.class,
+            BadRequestException.class,
             () -> underTest.upsert(mockRecordingId, file)
         );
     }
-
 
     @Test
     @DisplayName("Should upsert when isOriginalRecordingEdit is false and isInstructionCombination true")
