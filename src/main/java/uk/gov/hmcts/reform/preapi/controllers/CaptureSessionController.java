@@ -185,10 +185,10 @@ public class CaptureSessionController extends PreApiController {
         }
 
         if (!inDatabase.getFinishedAt().before(Timestamp.from(Instant.now()
-                                                                .minus(2, ChronoUnit.HOURS)))) {
+                                                                .minus(processingTimeout, ChronoUnit.HOURS)))) {
             throw new ResourceInWrongStateException(
-                format("Capture session with ID %s started processing at %s. "
-                           + "This is within the agreed timeout window (since %s).",
+                format("Capture session with ID %s finished processing at %s. "
+                           + "This is within the agreed timeout window of %s hours).",
                        captureSessionId, inDatabase.getFinishedAt(), processingTimeout
                 ));
         }

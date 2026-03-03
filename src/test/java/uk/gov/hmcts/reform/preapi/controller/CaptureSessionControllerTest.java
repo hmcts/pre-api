@@ -565,7 +565,7 @@ public class CaptureSessionControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .contains(format("{\"message\":\"Capture session with ID %s started processing at ", id));
+            .contains(format("{\"message\":\"Capture session with ID %s finished processing at ", id));
     }
 
 }
