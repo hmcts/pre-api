@@ -16,9 +16,6 @@ import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,9 +26,6 @@ import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitised
 @Slf4j
 @Service
 public class RegistrationService {
-
-    public static final Timestamp PROCESSING_TIMEOUT = Timestamp.from(Instant.now()
-                                                                          .minus(2, ChronoUnit.HOURS));
 
     private final CaptureSessionService captureSessionService;
     private final AzureIngestStorageService azureIngestStorageService;

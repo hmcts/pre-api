@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
@@ -77,6 +78,9 @@ public class CaptureSessionControllerTest {
     private static final String CAPTURE_SESSION_ID_PATH = "/capture-sessions/{id}";
 
     private static final String CAPTURE_SESSION_REGISTRATION_PATH = "/capture-sessions/trigger-registration/{id}";
+
+    @Value("${capture-session-registration.processing-timeout}")
+    private int processingTimeout;
 
     @BeforeAll
     static void setUp() {
@@ -493,7 +497,7 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
 
-        Instant exceedingTimeout = RegistrationService.PROCESSING_TIMEOUT.toInstant().minus(1, ChronoUnit.HOURS);
+        Instant exceedingTimeout = Instant.now().minus(processingTimeout + 1, ChronoUnit.HOURS);
         captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
@@ -531,7 +535,7 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.FAILURE);
 
-        Instant exceedingTimeout = RegistrationService.PROCESSING_TIMEOUT.toInstant().minus(1, ChronoUnit.HOURS);
+        Instant exceedingTimeout = Instant.now().minus(processingTimeout + 1, ChronoUnit.HOURS);
         captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
