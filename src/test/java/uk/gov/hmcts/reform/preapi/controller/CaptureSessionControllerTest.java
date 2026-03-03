@@ -79,8 +79,8 @@ public class CaptureSessionControllerTest {
 
     private static final String CAPTURE_SESSION_REGISTRATION_PATH = "/capture-sessions/trigger-registration/{id}";
 
-    @Value("${capture-session-registration.processing-timeout}")
-    private int processingTimeout;
+    @Value("${capture-session-registration.processing-timeout-hours}")
+    private int processingTimeoutHours;
 
     @BeforeAll
     static void setUp() {
@@ -497,7 +497,7 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
 
-        Instant exceedingTimeout = Instant.now().minus(processingTimeout + 1, ChronoUnit.HOURS);
+        Instant exceedingTimeout = Instant.now().minus(processingTimeoutHours + 1, ChronoUnit.HOURS);
         captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
@@ -535,7 +535,7 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.FAILURE);
 
-        Instant exceedingTimeout = Instant.now().minus(processingTimeout + 1, ChronoUnit.HOURS);
+        Instant exceedingTimeout = Instant.now().minus(processingTimeoutHours + 1, ChronoUnit.HOURS);
         captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);

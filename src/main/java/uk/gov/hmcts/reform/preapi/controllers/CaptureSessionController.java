@@ -51,8 +51,8 @@ public class CaptureSessionController extends PreApiController {
 
     private final CaptureSessionService captureSessionService;
     private final RegistrationService registrationService;
-    @Value("${capture-session-registration.processing-timeout}")
-    private int processingTimeout;
+    @Value("${capture-session-registration.processing-timeout-hours}")
+    private int processingTimeoutHours;
 
     @Autowired
     public CaptureSessionController(CaptureSessionService captureSessionService,
@@ -185,11 +185,11 @@ public class CaptureSessionController extends PreApiController {
         }
 
         if (!inDatabase.getFinishedAt().before(Timestamp.from(Instant.now()
-                                                                .minus(processingTimeout, ChronoUnit.HOURS)))) {
+                                                                .minus(processingTimeoutHours, ChronoUnit.HOURS)))) {
             throw new ResourceInWrongStateException(
                 format("Capture session with ID %s finished processing at %s. "
                            + "This is within the agreed timeout window of %s hours).",
-                       captureSessionId, inDatabase.getFinishedAt(), processingTimeout
+                       captureSessionId, inDatabase.getFinishedAt(), processingTimeoutHours
                 ));
         }
 

@@ -158,7 +158,7 @@ tasks:
     mp4-source-container: prod-migration-2
 
 capture-session-registration:
-  processing-timeout: ${PROCESSING_TIMEOUT_HOURS:2}
+  processing-timeout-hours: ${PROCESSING_TIMEOUT_HOURS:2}
 
 
 #logging:
