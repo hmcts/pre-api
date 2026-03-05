@@ -1,5 +1,5 @@
 {
-  "id": "b817685b-0155-4946-b09e-6bd369ef0381",
+  "id": "b817685b-0155-4946-b09e-6bd369ef0383",
   "parent_recording_id": "e0912d46-cded-4757-9367-2d8b3f81693f",
   "version": 3,
   "total_version_count": 4,
@@ -7,6 +7,8 @@
   "edit_request": {
     "edit_request_id": "f264f9cb-0203-4fa6-9234-b6efec06819e",
     "edit_request_status": "COMPLETE",
+    "source_recording_id": "e0912d46-cded-4757-9367-2d8b3f81693f",
+    "output_recording_id": "b817685b-0155-4946-b09e-6bd369ef0383",
     "edit_instructions": [
       {
         "ffmpeg_instructions": [

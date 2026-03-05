@@ -84,23 +84,32 @@
           "type": "string",
           "format": "uuid"
         },
+        "source_recording_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "output_recording_id": {
+          "type": "string",
+          "format": "uuid"
+        },
         "edit_request_status": {
           "type": "string"
         },
         "edit_instructions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/EditInstruction"
+            "$ref": "#/definitions/EditInstructions"
           }
         }
       },
       "required": [
         "edit_instructions",
+        "source_recording_id",
         "edit_request_id",
         "edit_request_status"
       ]
     },
-    "EditInstruction": {
+    "EditInstructions": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -121,7 +130,7 @@
         "ffmpeg_instructions",
         "requested_instructions"
       ],
-      "title": "EditInstruction"
+      "title": "EditInstructions"
     },
     "FfmpegInstruction": {
       "type": "object",
