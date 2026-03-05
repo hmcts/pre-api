@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.dto;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 
 import static org.assertj.core.api.Assertions.assertThat;

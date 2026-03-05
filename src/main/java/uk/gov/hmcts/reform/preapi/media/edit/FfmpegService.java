@@ -5,7 +5,7 @@ import org.apache.commons.exec.CommandLine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.component.CommandExecutor;
-import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.entities.EditInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;

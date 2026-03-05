@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
 import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.BaseTemplate;
@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.StringJoiner;
 
 import static java.lang.String.format;
-import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
+import static uk.gov.hmcts.reform.preapi.entities.EditInstructions.fromJson;
 
 @Slf4j
 @Service

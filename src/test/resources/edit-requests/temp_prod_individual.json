@@ -1,0 +1,101 @@
+{
+  "id": "853be1f7-be5a-4b9e-92c9-577d0e628765",
+  "source_recording": {
+    "id": "e6c23592-d4e9-4c0b-9f59-4b8e438affff",
+    "version": 1,
+    "total_version_count": 3,
+    "edit_requests": [
+      {
+        "id": "853be1f7-be5a-4b9e-92c9-577d0e628765",
+        "edit_instruction": {
+          "requestedInstructions": [
+            {
+              "start_of_cut": "00:05:00",
+              "end_of_cut": "00:08:00",
+              "reason": "Removing 3 minutes",
+              "start": 300,
+              "end": 480
+            }
+          ],
+          "ffmpegInstructions": [
+            {
+              "start": 0,
+              "end": 300
+            },
+            {
+              "start": 480,
+              "end": 907
+            }
+          ]
+        },
+        "status": "COMPLETE",
+        "started_at": "2025-09-25T19:25:33.262Z",
+        "finished_at": "2025-09-25T19:27:17.019Z",
+        "created_by_id": "9ba91a1a-95af-436c-a61d-3d7acbb1b2cc",
+        "created_by": "Komal Dabhi (DEV)",
+        "created_at": "2025-09-25T19:22:55.318Z",
+        "modified_at": "2025-09-25T19:27:17.041Z"
+      },
+      {
+        "id": "fa363887-3201-498e-9a13-81f5b1353b5f",
+        "edit_instruction": {
+          "requestedInstructions": [
+            {
+              "start_of_cut": "00:03:00",
+              "end_of_cut": "00:04:00",
+              "reason": "Removing 1 minutes",
+              "start": 180,
+              "end": 240
+            }
+          ],
+          "ffmpegInstructions": [
+            {
+              "start": 0,
+              "end": 180
+            },
+            {
+              "start": 240,
+              "end": 907
+            }
+          ]
+        },
+        "status": "COMPLETE",
+        "started_at": "2025-09-25T18:50:30.996Z",
+        "finished_at": "2025-09-25T18:52:25.368Z",
+        "created_by_id": "9ba91a1a-95af-436c-a61d-3d7acbb1b2cc",
+        "created_by": "Komal Dabhi (DEV)",
+        "created_at": "2025-09-25T18:47:58.146Z",
+        "modified_at": "2025-09-25T18:52:25.388Z"
+      }
+    ],
+    "edit_status": "COMPLETE"
+  },
+  "edit_instruction": {
+    "requestedInstructions": [
+      {
+        "start_of_cut": "00:05:00",
+        "end_of_cut": "00:08:00",
+        "reason": "Removing 3 minutes",
+        "start": 300,
+        "end": 480
+      }
+    ],
+    "ffmpegInstructions": [
+      {
+        "start": 0,
+        "end": 300
+      },
+      {
+        "start": 480,
+        "end": 907
+      }
+    ]
+  },
+  "status": "COMPLETE",
+  "started_at": "2025-09-25T19:25:33.262Z",
+  "finished_at": "2025-09-25T19:27:17.019Z",
+  "created_by_id": "9ba91a1a-95af-436c-a61d-3d7acbb1b2cc",
+  "created_by": "Komal Dabhi (DEV)",
+  "created_at": "2025-09-25T19:22:55.318Z",
+  "modified_at": "2025-09-25T19:27:17.041Z"
+}

@@ -10,7 +10,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -857,7 +856,7 @@ public class AuthorisationServiceTest {
     @Test
     @DisplayName("Should grant upsert access when the user has access to recording for edit requests")
     void hasUpsertAccessEditRequest() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setSourceRecordingId(UUID.randomUUID());
 
         when(authenticationUser.isAdmin()).thenReturn(true);

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -146,7 +146,7 @@ public class AuthorisationService {
         }
         try {
             EditRequest request = editRequestRepository.findByIdNotLocked(id).orElse(null);
-            return request == null || hasRecordingAccess(authentication, request.getSourceRecording().getId());
+            return request == null || hasRecordingAccess(authentication, request.getSourceRecordingId());
         } catch (Exception e) {
             return false;
         }
@@ -188,7 +188,7 @@ public class AuthorisationService {
             && canUpdateCaseState(authentication, dto);
     }
 
-    public boolean hasUpsertAccess(UserAuthentication authentication, CreateEditRequestDTO dto) {
+    public boolean hasUpsertAccess(UserAuthentication authentication, EditRequestDTO dto) {
         return hasRecordingAccess(authentication, dto.getSourceRecordingId());
     }
 

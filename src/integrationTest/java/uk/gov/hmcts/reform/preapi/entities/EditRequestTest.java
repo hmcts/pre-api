@@ -55,7 +55,7 @@ public class EditRequestTest extends IntegrationTestBase {
         var editRequest = HelperFactory.createEditRequest(
             UUID.randomUUID(),
             recording,
-            "{}",
+            null,
             EditRequestStatus.PENDING,
             user,
             null,
@@ -72,7 +72,7 @@ public class EditRequestTest extends IntegrationTestBase {
 
         assertThat(retrievedEditRequest).isNotNull();
         assertThat(retrievedEditRequest.getId()).isEqualTo(editRequest.getId());
-        assertThat(retrievedEditRequest.getSourceRecording().getId()).isEqualTo(recording.getId());
+        assertThat(retrievedEditRequest.getSourceRecordingId()).isEqualTo(recording.getId());
         assertThat(retrievedEditRequest.getStatus()).isEqualTo(EditRequestStatus.PENDING);
         assertThat(retrievedEditRequest.getCreatedBy().getId()).isEqualTo(user.getId());
     }

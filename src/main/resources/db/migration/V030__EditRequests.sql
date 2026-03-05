@@ -8,7 +8,7 @@ CREATE TYPE public.EDIT_REQUEST_STATUS AS ENUM (
 CREATE TABLE edit_requests (
   id UUID PRIMARY KEY,
   source_recording_id UUID REFERENCES recordings(id) NOT NULL,
-  edit_instruction JSON,
+  edit_instruction JSON, -- deprecated, use edit_cut_instructions
   status public.EDIT_REQUEST_STATUS NOT NULL,
   started_at TIMESTAMPTZ,
   finished_at TIMESTAMPTZ,

@@ -17,11 +17,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
@@ -35,7 +33,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
-import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
+import uk.gov.hmcts.reform.preapi.entities.EditInstructions;
 import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
@@ -55,8 +53,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
-import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
+import static uk.gov.hmcts.reform.preapi.entities.EditInstructions.fromJson;
 
 @Slf4j
 @Service
@@ -226,7 +223,7 @@ public class EditRequestService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
-    public void delete(CreateEditRequestDTO dto) {
+    public void delete(EditRequestDTO dto) {
         Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
 
         if (req.isEmpty()) {
@@ -239,7 +236,7 @@ public class EditRequestService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
-    public UpsertResult upsert(CreateEditRequestDTO dto) {
+    public UpsertResult upsert(EditRequestDTO dto) {
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
 
         Recording sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
@@ -295,7 +292,7 @@ public class EditRequestService {
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
         UUID id = UUID.randomUUID();
-        CreateEditRequestDTO dto = new CreateEditRequestDTO();
+        EditRequestDTO dto = new EditRequestDTO();
         dto.setId(id);
         dto.setSourceRecordingId(sourceRecordingId);
         dto.setEditInstructions(parseCsv(file));
@@ -308,7 +305,7 @@ public class EditRequestService {
             .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
     }
 
-    private @NotNull EditRequest getEditRequestToCreateOrUpdate(CreateEditRequestDTO dto, Recording sourceRecording,
+    private @NotNull EditRequest getEditRequestToCreateOrUpdate(EditRequestDTO dto, Recording sourceRecording,
                                                                 EditRequest request) {
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 

@@ -17,14 +17,14 @@ import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import uk.gov.hmcts.reform.preapi.controllers.EditController;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
+import uk.gov.hmcts.reform.preapi.entities.EditInstructions;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
@@ -250,7 +250,7 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 201 when successfully created edit request")
     void upsertEditRequestCreated() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -259,7 +259,7 @@ public class EditControllerTest {
                                             .build()));
         dto.setStatus(EditRequestStatus.DRAFT);
 
-        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
+        when(editRequestService.upsert(any(EditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
 
         mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
                             .with(csrf())
@@ -269,13 +269,13 @@ public class EditControllerTest {
             .andExpect(status().isCreated())
             .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
 
-        verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
+        verify(editRequestService, times(1)).upsert(any(EditRequestDTO.class));
     }
 
     @Test
     @DisplayName("Should return 200 when successfully deleted edit request")
     void upsertEditRequestDeleted() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -284,7 +284,7 @@ public class EditControllerTest {
                                             .build()));
         dto.setStatus(EditRequestStatus.DRAFT);
 
-        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
+        when(editRequestService.upsert(any(EditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
 
         mockMvc.perform(delete(TEST_URL + "/edits/" + dto.getId())
                             .with(csrf())
@@ -293,13 +293,13 @@ public class EditControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk());
 
-        verify(editRequestService, times(1)).delete(any(CreateEditRequestDTO.class));
+        verify(editRequestService, times(1)).delete(any(EditRequestDTO.class));
     }
 
     @Test
     @DisplayName("Delete should return 400 when path and payload IDs do not match")
     void deleteEditRequestPathPayloadMismatch() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -323,7 +323,7 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 204 when successfully updated edit request")
     void upsertEditRequestUpdated() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -332,7 +332,7 @@ public class EditControllerTest {
                                             .build()));
         dto.setStatus(EditRequestStatus.DRAFT);
 
-        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.UPDATED);
+        when(editRequestService.upsert(any(EditRequestDTO.class))).thenReturn(UpsertResult.UPDATED);
 
         mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
                             .with(csrf())
@@ -342,13 +342,13 @@ public class EditControllerTest {
             .andExpect(status().isNoContent())
             .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
 
-        verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
+        verify(editRequestService, times(1)).upsert(any(EditRequestDTO.class));
     }
 
     @Test
     @DisplayName("Should return 400 when path and payload IDs do not match")
     void upsertEditRequestPathPayloadMismatch() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -365,7 +365,7 @@ public class EditControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
-                           .value("Path editRequestId does not match payload property createEditRequestDTO.id"));
+                           .value("Path editRequestId does not match payload property editRequestDTO.id"));
     }
 
     @Test
@@ -401,7 +401,7 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 400 when sourceRecordingId is null")
     void validateSourceRecordingIdIsNull() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
                                             .startOfCut("00:00:00")
@@ -421,7 +421,7 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 400 when status is null")
     void validateStatusIsNull() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -441,7 +441,7 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 400 when status is REJECTED and rejectionReason is null")
     void validateRejectedStatusWithoutRejectionReason() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -462,7 +462,7 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 400 when status is SUBMITTED and jointlyAgreed is null")
     void validateSubmittedStatusWithoutJointlyAgreed() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -483,7 +483,7 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 400 when status is APPROVED and approvedAt is null")
     void validateApprovedStatusWithoutApprovedAt() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -505,7 +505,7 @@ public class EditControllerTest {
     @Test
     @DisplayName("Should return 400 when status is APPROVED and approvedBy is null")
     void validateApprovedStatusWithoutApprovedBy() throws Exception {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()

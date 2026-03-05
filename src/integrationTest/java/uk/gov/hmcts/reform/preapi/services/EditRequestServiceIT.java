@@ -7,8 +7,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.EditInstructions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -78,7 +80,7 @@ public class EditRequestServiceIT extends IntegrationTestBase {
         var editRequest = HelperFactory.createEditRequest(
             UUID.randomUUID(),
             recording,
-            "{}",
+            null,
             EditRequestStatus.PENDING,
             user,
             null,
@@ -113,11 +115,13 @@ public class EditRequestServiceIT extends IntegrationTestBase {
 
         entityManager.persist(recording);
 
+        EditInstructions editInstructions = EditInstructions.fromJson("{\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]}");
+
         UUID editRequestId = UUID.randomUUID();
         var editRequest = HelperFactory.createEditRequest(
             editRequestId,
             recording,
-            "{\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]}",
+            editInstructions,
             EditRequestStatus.PENDING,
             user,
             null,
@@ -135,10 +139,10 @@ public class EditRequestServiceIT extends IntegrationTestBase {
         assertThat(requests1).hasSize(1);
         assertThat(requests1.getFirst().getId()).isEqualTo(editRequest.getId());
 
-        CreateEditRequestDTO deleteRequest = new CreateEditRequestDTO();
+        EditRequestDTO deleteRequest = new EditRequestDTO();
         deleteRequest.setSourceRecordingId(recording.getId());
         deleteRequest.setId(editRequestId);
-        deleteRequest.setEditInstructions(new ArrayList<>());
+        deleteRequest.setEditInstructions(new EditCutInstructionsDTO(editRequest.getEditInstructions()));
 
         editRequestService.delete(deleteRequest);
 
@@ -159,7 +163,7 @@ public class EditRequestServiceIT extends IntegrationTestBase {
         var editRequest = HelperFactory.createEditRequest(
             editRequestId,
             recording,
-            "{\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]}",
+            EditInstructions.tryFromJson("{\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]}"),
             EditRequestStatus.PENDING,
             user,
             null,
@@ -177,10 +181,10 @@ public class EditRequestServiceIT extends IntegrationTestBase {
         assertThat(requests1).hasSize(1);
         assertThat(requests1.getFirst().getId()).isEqualTo(editRequest.getId());
 
-        CreateEditRequestDTO upsertRequest = new CreateEditRequestDTO();
+        EditRequestDTO upsertRequest = new EditRequestDTO();
         upsertRequest.setSourceRecordingId(recording.getId());
         upsertRequest.setId(editRequestId);
-        upsertRequest.setEditInstructions(new ArrayList<>()); // Intentionally empty
+        upsertRequest.setEditInstructions(null); // Intentionally empty
 
         UpsertResult upsertResult = editRequestService.upsert(upsertRequest);
         assertThat(upsertResult).isEqualTo(UpsertResult.UPDATED);

@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
@@ -230,7 +231,7 @@ public class HelperFactory {
 
     public static EditRequest createEditRequest(UUID id,
                                                 Recording sourceRecording,
-                                                String editInstructions,
+                                                EditInstructions editInstructions,
                                                 EditRequestStatus status,
                                                 User createdBy,
                                                 @Nullable Timestamp startedAt,
@@ -241,8 +242,8 @@ public class HelperFactory {
                                                 @Nullable String approvedBy) {
         var editRequest = new EditRequest();
         editRequest.setId(id);
-        editRequest.setSourceRecording(sourceRecording);
-        editRequest.setEditInstruction(editInstructions);
+        editRequest.setSourceRecordingId(sourceRecording);
+        editRequest.setEditInstructions(editInstructions);
         editRequest.setStatus(status);
         editRequest.setCreatedBy(createdBy);
         editRequest.setStartedAt(startedAt);
