@@ -11,7 +11,6 @@ import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -169,7 +168,7 @@ class InviteControllerFT extends FunctionalTestBase {
         assertResponseCode(deleteResponse, 404);
     }
 
-    private CreateInviteDTO createInvite(@Nullable UUID userId) {
+    private CreateInviteDTO createInvite(UUID userId) {
         var dto = new CreateInviteDTO();
         dto.setUserId(userId != null ? userId : UUID.randomUUID());
         dto.setFirstName("Example");
