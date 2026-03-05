@@ -98,87 +98,65 @@
         "edit_instructions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/EditInstructions"
+            "$ref": "#/definitions/EditCutInstructions"
           }
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "finished_at": {
+          "type": "string"
+        },
+        "approved_at": {
+          "type": "string"
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "approved_by": {
+          "type": "string"
+        },
+        "jointly_agreed": {
+          "type": "string"
+        },
+        "rejection_reason": {
+          "type": "string"
         }
       },
       "required": [
         "edit_instructions",
         "source_recording_id",
         "edit_request_id",
-        "edit_request_status"
+        "edit_request_status",
+        "started_at",
+        "finished_at",
+        "approved_at",
+        "created_by",
+        "approved_by",
+        "jointly_agreed",
+        "rejection_reason"
       ]
     },
-    "EditInstructions": {
+    "EditCutInstructions": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "ffmpeg_instructions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/FfmpegInstruction"
-          }
-        },
-        "requested_instructions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/RequestedInstruction"
-          }
-        }
-      },
-      "required": [
-        "ffmpeg_instructions",
-        "requested_instructions"
-      ],
-      "title": "EditInstructions"
-    },
-    "FfmpegInstruction": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "end": {
-          "type": "integer"
-        },
-        "start": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "end",
-        "start"
-      ],
-      "title": "FfmpegInstruction"
-    },
-    "RequestedInstruction": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "end": {
-          "type": "integer"
-        },
-        "start": {
-          "type": "integer"
-        },
-        "reason": {
+        "start_of_cut": {
           "type": "string"
         },
         "end_of_cut": {
-          "type": "string",
-          "format": "time"
+          "type": "string"
         },
-        "start_of_cut": {
-          "type": "string",
-          "format": "time"
+        "reason": {
+          "type": "string"
         }
       },
       "required": [
-        "end",
+        "start_of_cut",
         "end_of_cut",
-        "reason",
-        "start",
-        "start_of_cut"
+        "reason"
       ],
-      "title": "RequestedInstruction"
+      "title": "EditCutInstruction"
     },
     "CaptureSession": {
       "type": "object",

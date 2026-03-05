@@ -11,25 +11,19 @@
     "output_recording_id": "b817685b-0155-4946-b09e-6bd369ef0384",
     "edit_instructions": [
       {
-        "ffmpeg_instructions": [
-          {
-            "end": 180,
-            "start": 0
-          },
-          {
-            "end": 733,
-            "start": 300
-          }
-        ],
-        "requested_instructions": [
-          {
-            "end": 300,
-            "start": 180,
-            "reason": "Draft final edit",
-            "end_of_cut": "00:05:00",
-            "start_of_cut": "00:03:00"
-          }
-        ]
+        "reason": "First edit",
+        "start_of_cut": "00:01:00",
+        "end_of_cut": "00:02:00"
+      },
+      {
+        "reason": "Second edit",
+        "start_of_cut": "00:03:00",
+        "end_of_cut": "00:05:00"
+      },
+      {
+        "reason": "Third edit",
+        "start_of_cut": "00:01:30",
+        "end_of_cut": "00:01:45"
       }
     ]
   },
