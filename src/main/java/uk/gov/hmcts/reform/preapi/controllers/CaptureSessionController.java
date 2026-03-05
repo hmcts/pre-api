@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -28,25 +29,37 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.RegistrationService;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
+
+import static java.lang.String.format;
 
 @RestController
 @RequestMapping("/capture-sessions")
 public class CaptureSessionController extends PreApiController {
 
     private final CaptureSessionService captureSessionService;
+    private final RegistrationService registrationService;
+    @Value("${capture-session-registration.processing-timeout-hours}")
+    private int processingTimeoutHours;
 
     @Autowired
-    public CaptureSessionController(CaptureSessionService captureSessionService) {
+    public CaptureSessionController(CaptureSessionService captureSessionService,
+                                    RegistrationService registrationService) {
         super();
         this.captureSessionService = captureSessionService;
+        this.registrationService = registrationService;
     }
 
     @GetMapping("/{captureSessionId}")
@@ -150,6 +163,37 @@ public class CaptureSessionController extends PreApiController {
             captureSessionService.upsert(createCaptureSessionDTO),
             createCaptureSessionDTO.getId()
         );
+    }
+
+    @PutMapping("/trigger-registration/{captureSessionId}")
+    @Operation(operationId = "triggerRegistrationForCaptureSession",
+        summary = "Register a Capture Session that got stuck in PROCESSING state")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> registerCaptureSession(@PathVariable UUID captureSessionId) {
+
+        CaptureSessionDTO inDatabase = captureSessionService.findById(captureSessionId);
+
+        if (inDatabase == null) {
+            throw new NotFoundException(format("Capture Session with id %s not on the PRE system at all. Typo?",
+                                               captureSessionId));
+        }
+
+        if (inDatabase.getStatus() != RecordingStatus.PROCESSING) {
+            throw new ResourceInWrongStateException(
+                format("Capture session with ID %s is in an incorrect state for registration: %s",
+                       captureSessionId, inDatabase.getStatus()));
+        }
+
+        if (!inDatabase.getFinishedAt().before(Timestamp.from(Instant.now()
+                                                                .minus(processingTimeoutHours, ChronoUnit.HOURS)))) {
+            throw new ResourceInWrongStateException(
+                format("Capture session with ID %s finished processing at %s. "
+                           + "This is within the agreed timeout window of %s hours).",
+                       captureSessionId, inDatabase.getFinishedAt(), processingTimeoutHours
+                ));
+        }
+
+        return getUpsertResponse(registrationService.register(captureSessionId), captureSessionId);
     }
 
     @PostMapping("/{captureSessionId}/undelete")
