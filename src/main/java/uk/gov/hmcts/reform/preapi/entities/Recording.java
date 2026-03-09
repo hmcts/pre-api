@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
@@ -64,8 +65,9 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @JdbcTypeCode(SqlTypes.JSON)
     private String editInstruction;
 
-    @OneToMany(mappedBy = "sourceRecording")
-    private Set<EditRequest> editRequests;
+    @OneToOne
+    @JoinColumn(name = "parent_recording_id")
+    private EditRequest editRequest;
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
@@ -80,6 +82,17 @@ public class Recording extends BaseEntity implements ISoftDeletable {
         return deletedAt != null;
     }
 
+    public String getEditInstruction() {
+        if (editRequest == null) {
+            // Backwards compatible: we used to store edit instructions as plain JSON
+            if (editInstruction != null) {
+                return editInstruction;
+            }
+            return null;
+        }
+        return editRequest.getEditCutInstructionsAsJson();
+    }
+
     @Override
     public Map<String, Object> getDetailsForAudit() {
         Map<String, Object> details = new HashMap<>();
@@ -89,7 +102,7 @@ public class Recording extends BaseEntity implements ISoftDeletable {
         if (duration != null) {
             details.put("recordingDuration", duration.toString());
         }
-        details.put("recordingEditInstruction", editInstruction);
+        details.put("recordingEditInstruction", getEditInstruction());
         details.put("deleted", isDeleted());
         return details;
     }

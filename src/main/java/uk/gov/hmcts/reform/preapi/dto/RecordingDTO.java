@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
@@ -52,8 +53,8 @@ public class RecordingDTO extends BaseRecordingDTO {
     @Schema(description = "RecordingTotalVersionCount")
     private int totalVersionCount;
 
-    @Schema(description = "RecordingEditRequests")
-    private List<EditRequestDTO> editRequests;
+    @Schema(description = "RecordingEditRequest")
+    private EditRequestDTO editRequest;
 
     @Schema(description = "RecordingEditStatus")
     private EditRequestStatus editStatus;
@@ -72,7 +73,6 @@ public class RecordingDTO extends BaseRecordingDTO {
         version = recording.getVersion();
         filename = recording.getFilename();
         duration = recording.getDuration();
-        editInstructions = recording.getEditInstruction();
         deletedAt = recording.getDeletedAt();
         createdAt = recording.getCreatedAt();
         Case caseEntity = recording.getCaptureSession().getBooking().getCaseId();
@@ -87,16 +87,10 @@ public class RecordingDTO extends BaseRecordingDTO {
                              .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
-        editRequests = Stream.ofNullable(recording.getEditRequests())
-            .flatMap(request ->
-                         request
-                             .stream()
-                             .sorted(Comparator.comparing(EditRequest::getModifiedAt).reversed())
-                             .map(e -> new EditRequestDTO(e, false)))
-            .collect(Collectors.toList());
-
-        if (recording.getVersion() == 1 && !editRequests.isEmpty()) {
-            editStatus = editRequests.getFirst().getStatus();
+        editInstructions = recording.getEditRequest().getEditCutInstructionsAsJson();
+        editRequest = new EditRequestDTO(recording.getEditRequest());
+        if (recording.getVersion() == 1) {
+            editStatus = EditRequestStatus.ORIGINAL;
         }
     }
 }

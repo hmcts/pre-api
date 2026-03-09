@@ -8,5 +8,7 @@ public enum EditRequestStatus {
     PENDING,
     PROCESSING,
     COMPLETE,
-    ERROR
+    ERROR,
+    ORIGINAL,
+    OUTDATED
 }

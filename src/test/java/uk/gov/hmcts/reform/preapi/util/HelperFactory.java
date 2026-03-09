@@ -4,13 +4,12 @@ import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
@@ -30,11 +29,12 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 
+import javax.annotation.Nullable;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import javax.annotation.Nullable;
 
 @UtilityClass
 @SuppressWarnings({"checkstyle:HideUtilityClassConstructor", "PMD.CouplingBetweenObjects"})
@@ -229,8 +229,8 @@ public class HelperFactory {
     }
 
     public static EditRequest createEditRequest(UUID id,
-                                                Recording sourceRecording,
-                                                String editInstructions,
+                                                UUID sourceRecordingId,
+                                                List<EditCutInstructions> editInstructions,
                                                 EditRequestStatus status,
                                                 User createdBy,
                                                 @Nullable Timestamp startedAt,
@@ -241,8 +241,8 @@ public class HelperFactory {
                                                 @Nullable String approvedBy) {
         var editRequest = new EditRequest();
         editRequest.setId(id);
-        editRequest.setSourceRecording(sourceRecording);
-        editRequest.setEditInstruction(editInstructions);
+        editRequest.setSourceRecordingId(sourceRecordingId);
+        editRequest.setEditCutInstructions(editInstructions);
         editRequest.setStatus(status);
         editRequest.setCreatedBy(createdBy);
         editRequest.setStartedAt(startedAt);
@@ -299,25 +299,25 @@ public class HelperFactory {
         return user;
     }
 
-    public static AssetDTO createAsset(String name, String description, String container, String storageAccountName) {
-        var dto = new AssetDTO();
-        dto.setName(name);
-        dto.setContainer(container);
-        dto.setDescription(description);
-        dto.setStorageAccountName(storageAccountName);
-        return dto;
-    }
-
-    public static LiveEventDTO createLiveEvent(String name,
-                                               String description,
-                                               String resourceState,
-                                               String inputRtmp) {
-        var dto = new LiveEventDTO();
-        dto.setId(UUID.randomUUID().toString());
-        dto.setName(name);
-        dto.setDescription(description);
-        dto.setResourceState(resourceState);
-        dto.setInputRtmp(inputRtmp);
-        return dto;
-    }
+//    public static AssetDTO createAsset(String name, String description, String container, String storageAccountName) {
+//        var dto = new AssetDTO();
+//        dto.setName(name);
+//        dto.setContainer(container);
+//        dto.setDescription(description);
+//        dto.setStorageAccountName(storageAccountName);
+//        return dto;
+//    }
+//
+//    public static LiveEventDTO createLiveEvent(String name,
+//                                               String description,
+//                                               String resourceState,
+//                                               String inputRtmp) {
+//        var dto = new LiveEventDTO();
+//        dto.setId(UUID.randomUUID().toString());
+//        dto.setName(name);
+//        dto.setDescription(description);
+//        dto.setResourceState(resourceState);
+//        dto.setInputRtmp(inputRtmp);
+//        return dto;
+//    }
 }

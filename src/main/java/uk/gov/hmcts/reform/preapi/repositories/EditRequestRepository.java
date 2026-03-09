@@ -54,8 +54,8 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
 
     @Query("""
         SELECT (COUNT(e) > 0) from EditRequest e
-        WHERE e.sourceRecording.captureSession.booking.caseId.id = :caseId
+        WHERE e.sourceRecordingId = :sourceRecordingId
         AND (e.status != 'COMPLETE')
         """)
-    boolean existsByCaseIdAndIsIncomplete(@Param("caseId") UUID caseId);
+    boolean existsBySourceRecordingIdAndIsIncomplete(@Param("sourceRecordingId") UUID sourceRecordingId);
 }

@@ -1,0 +1,31 @@
+{
+  "editRequestId": "f264f9cb-0203-4fa6-9234-b6efec06819e",
+  "editInstructions": {
+    "ffmpegInstructions": [
+      {
+        "end": 180,
+        "start": 0
+      },
+      {
+        "end": 733,
+        "start": 300
+      }
+    ],
+    "requestedInstructions": [
+      {
+        "end": 300,
+        "start": 180,
+        "reason": "Removing 2 minutes",
+        "end_of_cut": "00:05:00",
+        "start_of_cut": "00:03:00"
+      },
+      {
+        "end": 490,
+        "start": 480,
+        "reason": "Removing 10 seconds",
+        "end_of_cut": "00:08:10",
+        "start_of_cut": "00:08:00"
+      }
+    ]
+  }
+}

@@ -1,19 +1,20 @@
-package uk.gov.hmcts.reform.preapi.media.edit;
+package uk.gov.hmcts.reform.preapi.entities;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
-import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import lombok.Setter;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
-import java.util.List;
-
+@Deprecated
 @Getter
+@Setter
 @AllArgsConstructor
-public class EditInstructions {
-    private final List<EditCutInstructionDTO> requestedInstructions;
-    private final List<FfmpegEditInstructionDTO> ffmpegInstructions;
+public class EditInstructions extends BaseEntity {
 
     public static EditInstructions fromJson(String editInstructions) {
         try {
