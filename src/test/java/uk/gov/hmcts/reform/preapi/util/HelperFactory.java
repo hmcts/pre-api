@@ -36,7 +36,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @UtilityClass
-@SuppressWarnings({ "checkstyle:HideUtilityClassConstructor", "PMD.CouplingBetweenObjects" })
+@SuppressWarnings({"checkstyle:HideUtilityClassConstructor", "PMD.CouplingBetweenObjects"})
 public class HelperFactory {
     public static User createDefaultTestUser() {
         return createUser("Test", "User", "example@example.com", new Timestamp(System.currentTimeMillis()), null, null);
@@ -227,7 +227,8 @@ public class HelperFactory {
         return termsAccepted;
     }
 
-    public static EditRequest createEditRequest(Recording sourceRecording,
+    public static EditRequest createEditRequest(UUID id,
+                                                Recording sourceRecording,
                                                 String editInstructions,
                                                 EditRequestStatus status,
                                                 User createdBy,
@@ -238,7 +239,7 @@ public class HelperFactory {
                                                 Timestamp approvedAt,
                                                 String approvedBy) {
         var editRequest = new EditRequest();
-        editRequest.setId(UUID.randomUUID());
+        editRequest.setId(id);
         editRequest.setSourceRecording(sourceRecording);
         editRequest.setEditInstruction(editInstructions);
         editRequest.setStatus(status);

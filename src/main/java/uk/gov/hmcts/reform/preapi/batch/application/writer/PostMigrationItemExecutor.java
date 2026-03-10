@@ -139,8 +139,10 @@ public class PostMigrationItemExecutor {
     }
 
     private void handleShare(PostMigratedItemGroup item, CreateShareBookingDTO share) {
-        String email = resolveEmailForShare(item, share);
-        
+        String email = (item.getSharedWithEmail() != null && !item.getSharedWithEmail().isBlank())
+            ? item.getSharedWithEmail()
+            : resolveEmailForShare(item, share);
+
         if (share.getSharedWithUser() != null) {
             if (email.isEmpty()) {
                 email = getUserEmailById(share.getSharedWithUser());
