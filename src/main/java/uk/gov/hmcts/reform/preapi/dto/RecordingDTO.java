@@ -86,12 +86,15 @@ public class RecordingDTO extends BaseRecordingDTO {
                              .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
-        editInstructions = recording.getEditRequest().getEditCutInstructionsAsJson();
-        editRequest = new EditRequestDTO(recording.getEditRequest());
+
+        if (recording.getEditRequest() != null) {
+            editInstructions = recording.getEditRequest().getEditCutInstructionsAsJson();
+            editRequest = new EditRequestDTO(recording.getEditRequest());
+            editStatus = editRequest.getStatus();
+        }
+
         if (recording.getVersion() == 1) {
             editStatus = EditRequestStatus.ORIGINAL;
-        } else {
-            editStatus = editRequest.getStatus();
         }
     }
 }
