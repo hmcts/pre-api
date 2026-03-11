@@ -16,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 
 @Data
 @NoArgsConstructor
@@ -50,7 +49,7 @@ public class UserRecordingPlaybackReportDTOV2 extends BaseReportDTO {
     @Schema(description = "PlaybackReportUserOrganisation")
     protected String userOrganisation;
 
-    public UserRecordingPlaybackReportDTOV2(Audit audit, User user, @Nullable Recording recording) {
+    public UserRecordingPlaybackReportDTOV2(Audit audit, User user, Recording recording) {
         super(recording != null ? recording.getCaptureSession().getBooking().getCaseId() : null);
 
         playbackDate = DateTimeUtils.formatDate(audit.getCreatedAt());

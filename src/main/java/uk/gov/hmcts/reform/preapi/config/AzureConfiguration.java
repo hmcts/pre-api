@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
-import javax.annotation.Nullable;
 
 @Configuration
 @Slf4j
@@ -71,7 +70,6 @@ public class AzureConfiguration {
         return getBlobServiceClientUsingConnectionString(connectionString, storageAccountName);
     }
 
-    @Nullable
     private BlobServiceClient getBlobServiceClientUsingConnectionString(String connectionString,
                                                                         String storageAccountName) {
         try {
@@ -91,7 +89,6 @@ public class AzureConfiguration {
         }
     }
 
-    @Nullable
     private BlobServiceClient getBlobServiceClientUsingManagedIdentity(String storageAccountName) {
         try {
             DefaultAzureCredential credential = new DefaultAzureCredentialBuilder()
