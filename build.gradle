@@ -263,7 +263,8 @@ def versions = [
   junit           : '5.14.2',
   junitPlatform   : '1.14.2',
   restAssured     : '5.5.7',
-  springBoot      : springBoot.class.package.implementationVersion
+  springBoot      : springBoot.class.package.implementationVersion,
+  testcontainers  : '1.21.4'
 ]
 
 ext.libraries = [
@@ -279,6 +280,12 @@ ext.libraries = [
 
 
 ext['snakeyaml.version'] = '2.0'
+
+dependencyManagement {
+  imports {
+    mavenBom "org.testcontainers:testcontainers-bom:${versions.testcontainers}"
+  }
+}
 
 dependencies {
   implementation 'com.microsoft.azure:applicationinsights-core:3.7.7'
@@ -320,7 +327,7 @@ dependencies {
   implementation group: 'com.azure', name: 'azure-core-serializer-json-jackson', version: '1.6.3'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0'
 
-  implementation group: 'org.testcontainers', name: 'postgresql', version: '1.21.3'
+  implementation group: 'org.testcontainers', name: 'postgresql', version: versions.testcontainers
 
   implementation group: 'com.auth0', name: 'java-jwt', version: '4.5.0'
 
@@ -345,12 +352,12 @@ dependencies {
 
   integrationTestImplementation sourceSets.main.runtimeClasspath
   integrationTestImplementation sourceSets.test.runtimeClasspath
-  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.3'
+  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: versions.testcontainers
 
   functionalTestImplementation sourceSets.main.runtimeClasspath
   functionalTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: versions.springBoot
   functionalTestImplementation group: 'io.rest-assured', name: 'rest-assured', version: versions.restAssured
-  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.3'
+  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: versions.testcontainers
 
   smokeTestImplementation sourceSets.main.runtimeClasspath
   smokeTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: versions.springBoot
