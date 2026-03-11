@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 
 import java.time.LocalTime;
+import java.util.UUID;
 
 import static java.lang.String.format;
 
@@ -21,6 +22,8 @@ public class EditCutInstructionsDTO {
     // CSV also contains these columns:
     // - Edit Number
     // - Total time removed
+
+    private UUID editRequestId;
 
     @NotNull
     @CsvBindByName(column = "Start time of cut")
@@ -90,28 +93,9 @@ public class EditCutInstructionsDTO {
         return LocalTime.parse(timeString);
     }
 
-    public EditCutInstructionsDTO(Integer start, Integer end, String reason) {
-        this.start = start;
-        this.end = end;
-        this.reason = reason;
-
-        this.startOfCut = formatTimeAsLocalTime(start);
-        this.endOfCut = formatTimeAsLocalTime(end);
-    }
-
-    public EditCutInstructionsDTO(LocalTime startTime, LocalTime endTime, String reason) {
-        this.startOfCut = startTime;
-        this.endOfCut = endTime;
-
-        this.start = formatTimeAsInteger(startTime);
-        this.end = formatTimeAsInteger(endTime);
-
-        this.reason = reason;
-    }
-
-
-    public EditCutInstructionsDTO(String startTime, String endTime, String reason) {
+    public EditCutInstructionsDTO(UUID editRequestId, String startTime, String endTime, String reason) {
         try {
+            this.editRequestId = editRequestId;
             this.startOfCut = LocalTime.parse(startTime);
             this.endOfCut = LocalTime.parse(endTime);
             this.reason = reason;
@@ -124,6 +108,8 @@ public class EditCutInstructionsDTO {
     }
 
     public EditCutInstructionsDTO(EditCutInstructions editCutInstructions) {
+        this.editRequestId = editCutInstructions.getEditRequestId();
+
         this.startOfCut = formatTimeAsLocalTime(editCutInstructions.getStart());
         this.endOfCut = formatTimeAsLocalTime(editCutInstructions.getEnd());
 

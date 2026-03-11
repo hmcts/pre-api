@@ -1,11 +1,9 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -33,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -88,7 +85,7 @@ public class EditRequest extends CreatedModifiedAtEntity {
         details.put("id", getId());
         details.put("sourceRecordingId", sourceRecordingId);
         details.put("status", status);
-        details.put("editInstructions", editCutInstructions);
+        details.put("editInstructions", getEditCutInstructionsAsJson());
         details.put("startedAt", startedAt);
         details.put("finishedAt", finishedAt);
         details.put("createdBy", createdBy.getId());
@@ -113,7 +110,6 @@ public class EditRequest extends CreatedModifiedAtEntity {
     }
 
     public void setEditCutInstructionsFromJson(@NotNull String editCutInstructionsAsJson) {
-        // Need to pick out requested instructions as that's the important bit
 
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -132,6 +128,7 @@ public class EditRequest extends CreatedModifiedAtEntity {
                 throw new BadRequestException("Invalid edit request UUID: " + editRequestIdAsString);
             }
 
+            // Need to pick out requested instructions as that's the important bit
             JsonNode requestedInstructionsNode = jsonNode.path("editInstructions")
                 .path("requestedInstructions");
 

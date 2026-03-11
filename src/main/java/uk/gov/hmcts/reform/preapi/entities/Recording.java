@@ -85,6 +85,7 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     public String getEditInstruction() {
         if (editRequest == null) {
             // Backwards compatible: we used to store edit instructions as plain JSON
+            // But prefer to build JSON string from edit cut instructions if present
             if (editInstruction != null) {
                 return editInstruction;
             }
