@@ -1,0 +1,299 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$ref": "#/definitions/Recording",
+  "definitions": {
+    "Recording": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "total_version_count": {
+          "type": "integer"
+        },
+        "edit_status": {
+          "type": "string"
+        },
+        "edit_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EditRequest"
+          }
+        },
+        "capture_session": {
+          "$ref": "#/definitions/CaptureSession"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "case_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "case_reference": {
+          "type": "string"
+        },
+        "is_test_case": {
+          "type": "boolean"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Participant"
+          }
+        }
+      },
+      "required": [
+        "capture_session",
+        "case_id",
+        "case_reference",
+        "created_at",
+        "duration",
+        "edit_requests",
+        "edit_status",
+        "filename",
+        "id",
+        "is_test_case",
+        "participants",
+        "total_version_count",
+        "version"
+      ],
+      "title": "Recording"
+    },
+    "EditRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "edit_instruction": {
+          "$ref": "#/definitions/EditInstruction"
+        },
+        "status": {
+          "type": "string"
+        },
+        "created_by_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "created_at",
+        "created_by",
+        "created_by_id",
+        "edit_instruction",
+        "id",
+        "modified_at",
+        "status"
+      ],
+      "title": "EditRequest"
+    },
+    "EditInstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ffmpegInstructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FfmpegInstruction"
+          }
+        },
+        "requestedInstructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RequestedInstruction"
+          }
+        }
+      },
+      "required": [
+        "ffmpegInstructions",
+        "requestedInstructions"
+      ],
+      "title": "EditInstruction"
+    },
+    "FfmpegInstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "integer"
+        },
+        "end": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "end",
+        "start"
+      ],
+      "title": "FfmpegInstruction"
+    },
+    "RequestedInstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "start_of_cut": {
+          "type": "string",
+          "format": "time"
+        },
+        "end_of_cut": {
+          "type": "string",
+          "format": "time"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "end": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "end",
+        "end_of_cut",
+        "reason",
+        "start",
+        "start_of_cut"
+      ],
+      "title": "RequestedInstruction"
+    },
+    "CaptureSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "booking_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "origin": {
+          "type": "string"
+        },
+        "ingest_address": {
+          "type": "string"
+        },
+        "live_output_url": {
+          "type": "string",
+          "format": "uri",
+          "qt-uri-protocols": [
+            "https"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "started_by_user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_by_user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string"
+        },
+        "court_name": {
+          "type": "string"
+        },
+        "case_state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "booking_id",
+        "case_state",
+        "court_name",
+        "finished_at",
+        "finished_by_user_id",
+        "id",
+        "ingest_address",
+        "live_output_url",
+        "origin",
+        "started_at",
+        "started_by_user_id",
+        "status"
+      ],
+      "title": "CaptureSession"
+    },
+    "Participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "participant_type": {
+          "type": "string"
+        },
+        "first_name": {
+          "type": "string"
+        },
+        "last_name": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "created_at",
+        "first_name",
+        "id",
+        "last_name",
+        "modified_at",
+        "participant_type"
+      ],
+      "title": "Participant"
+    }
+  }
+}

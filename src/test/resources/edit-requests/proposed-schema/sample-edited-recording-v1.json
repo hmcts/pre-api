@@ -1,0 +1,46 @@
+{
+  "id": "b817685b-0155-4946-b09e-6bd369ef0381",
+  "parent_recording_id": "e0912d46-cded-4757-9367-2d8b3f81693f",
+  "version": 1,
+  "total_version_count": 4,
+  "edit_request_status": "ORIGINAL",
+  "edit_request": null,
+  "filename": "b817685b-0155-4946-b09e-6bd369ef_1280x720_4500k.mp4",
+  "duration": "PT10M15.2S",
+  "capture_session": {
+    "id": "2a6d504d-2c72-4f18-aad4-d08505caa304",
+    "booking_id": "9e823ccb-cb20-43ba-a430-56dbc6190b7c",
+    "origin": "PRE",
+    "ingest_address": "rtmps://in-2c40ef17-caa6-4caf-8268-775ab8c49e3d.uksouth.streaming.mediakind.com:2935/1ccdd12f-7114-4315-9b1e-243bd721cba2",
+    "live_output_url": "https://ep-default-live-pre-mediakind-stg.uksouth.streaming.mediakind.com/2a6d504d2c724f18aad4d08505caa304/index.qfm/manifest(format=m3u8-cmaf)",
+    "started_at": "2025-06-26T10:01:37.688Z",
+    "started_by_user_id": "8da77965-acec-4256-b695-509924a11f06",
+    "finished_at": "2025-06-26T10:20:34.489Z",
+    "finished_by_user_id": "8da77965-acec-4256-b695-509924a11f06",
+    "status": "RECORDING_AVAILABLE",
+    "court_name": "102 Petty France",
+    "case_state": "OPEN"
+  },
+  "created_at": "2026-02-24T10:42:40.059Z",
+  "case_id": "368bc646-32eb-4e3a-9af3-aeac32f86630",
+  "case_reference": "TEST-NO-2",
+  "is_test_case": false,
+  "participants": [
+    {
+      "id": "d863d7b5-63e4-4fad-b80c-6fe1848191c4",
+      "participant_type": "DEFENDANT",
+      "first_name": "Komal",
+      "last_name": "Dabhi",
+      "created_at": "2025-06-26T10:00:17.576Z",
+      "modified_at": "2025-06-26T10:00:17.556Z"
+    },
+    {
+      "id": "eb518f93-9db5-40eb-a538-ac95df9a5b9a",
+      "participant_type": "WITNESS",
+      "first_name": "Simon",
+      "last_name": "",
+      "created_at": "2025-06-26T10:00:17.567Z",
+      "modified_at": "2025-06-26T10:00:17.549Z"
+    }
+  ]
+}

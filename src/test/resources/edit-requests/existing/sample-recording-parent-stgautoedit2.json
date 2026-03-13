@@ -1,0 +1,230 @@
+{
+  "id": "8c73cf3e-efc5-485b-91b0-7ba62f3985b5",
+  "version": 1,
+  "total_version_count": 7,
+  "edit_requests": [
+    {
+      "id": "31de179a-f35e-41a9-a5c1-b406f824f13b",
+      "edit_instruction": {
+        "requestedInstructions": [
+          {
+            "start_of_cut": "00:00:00",
+            "end_of_cut": "00:40:00",
+            "reason": "Remove first 40 minutes",
+            "start": 0,
+            "end": 2400
+          }
+        ],
+        "ffmpegInstructions": [
+          {
+            "start": 2400,
+            "end": 3955
+          }
+        ]
+      },
+      "status": "COMPLETE",
+      "started_at": "2025-05-29T17:29:56.611Z",
+      "finished_at": "2025-05-29T17:37:12.680Z",
+      "created_by_id": "7a36422a-6c2e-418d-87de-d914b9accf2a",
+      "created_by": "Cristiane Marsilio",
+      "created_at": "2025-05-29T17:01:35.039Z",
+      "modified_at": "2025-05-29T17:37:12.700Z"
+    },
+    {
+      "id": "a8a92cdf-11d8-4eee-8ab8-e4b604db6200",
+      "edit_instruction": {
+        "requestedInstructions": [
+          {
+            "start_of_cut": "00:15:00",
+            "end_of_cut": "00:20:00",
+            "reason": "Remove alarm test-version5",
+            "start": 900,
+            "end": 1200
+          }
+        ],
+        "ffmpegInstructions": [
+          {
+            "start": 0,
+            "end": 900
+          },
+          {
+            "start": 1200,
+            "end": 3955
+          }
+        ]
+      },
+      "status": "COMPLETE",
+      "started_at": "2025-05-28T11:36:31.362Z",
+      "finished_at": "2025-05-28T11:50:29.397Z",
+      "created_by_id": "7a36422a-6c2e-418d-87de-d914b9accf2a",
+      "created_by": "Cristiane Marsilio",
+      "created_at": "2025-05-28T11:24:13.277Z",
+      "modified_at": "2025-05-28T11:50:29.424Z"
+    },
+    {
+      "id": "f30d9e9d-787d-4878-aca8-9ca0ed7149a3",
+      "edit_instruction": {
+        "requestedInstructions": [
+          {
+            "start_of_cut": "00:15:00",
+            "end_of_cut": "00:20:00",
+            "reason": "Remove alarm test-version4",
+            "start": 900,
+            "end": 1200
+          },
+          {
+            "start_of_cut": "00:40:00",
+            "end_of_cut": "01:00:00",
+            "reason": "Also removing this-version4",
+            "start": 2400,
+            "end": 3600
+          }
+        ],
+        "ffmpegInstructions": [
+          {
+            "start": 0,
+            "end": 900
+          },
+          {
+            "start": 1200,
+            "end": 2400
+          },
+          {
+            "start": 3600,
+            "end": 3955
+          }
+        ]
+      },
+      "status": "COMPLETE",
+      "started_at": "2025-05-28T11:25:37.250Z",
+      "finished_at": "2025-05-28T11:35:49.990Z",
+      "created_by_id": "7a36422a-6c2e-418d-87de-d914b9accf2a",
+      "created_by": "Cristiane Marsilio",
+      "created_at": "2025-05-28T11:21:44.131Z",
+      "modified_at": "2025-05-28T11:35:50.018Z"
+    },
+    {
+      "id": "606cbba7-483d-4cac-9112-5f9fba4eaacf",
+      "edit_instruction": {
+        "requestedInstructions": [
+          {
+            "start_of_cut": "00:15:00",
+            "end_of_cut": "00:20:00",
+            "reason": "Remove alarm test-version3",
+            "start": 900,
+            "end": 1200
+          },
+          {
+            "start_of_cut": "00:40:00",
+            "end_of_cut": "00:50:00",
+            "reason": "Also removing this-version3",
+            "start": 2400,
+            "end": 3000
+          }
+        ],
+        "ffmpegInstructions": [
+          {
+            "start": 0,
+            "end": 900
+          },
+          {
+            "start": 1200,
+            "end": 2400
+          },
+          {
+            "start": 3000,
+            "end": 3955
+          }
+        ]
+      },
+      "status": "COMPLETE",
+      "started_at": "2025-05-27T16:55:38.158Z",
+      "finished_at": "2025-05-27T17:07:57.423Z",
+      "created_by_id": "7a36422a-6c2e-418d-87de-d914b9accf2a",
+      "created_by": "Cristiane Marsilio",
+      "created_at": "2025-05-27T16:52:54.984Z",
+      "modified_at": "2025-05-27T17:07:57.446Z"
+    },
+    {
+      "id": "02801650-d08a-41a5-88f8-da9586f6b28d",
+      "edit_instruction": {
+        "requestedInstructions": [
+          {
+            "start_of_cut": "00:02:00",
+            "end_of_cut": "00:12:00",
+            "reason": "Remove alarm test",
+            "start": 120,
+            "end": 720
+          },
+          {
+            "start_of_cut": "00:30:00",
+            "end_of_cut": "00:50:00",
+            "reason": "Also removing this",
+            "start": 1800,
+            "end": 3000
+          }
+        ],
+        "ffmpegInstructions": [
+          {
+            "start": 0,
+            "end": 120
+          },
+          {
+            "start": 720,
+            "end": 1800
+          },
+          {
+            "start": 3000,
+            "end": 3955
+          }
+        ]
+      },
+      "status": "COMPLETE",
+      "started_at": "2025-05-27T14:30:39.858Z",
+      "finished_at": "2025-05-27T14:39:55.425Z",
+      "created_by_id": "7a36422a-6c2e-418d-87de-d914b9accf2a",
+      "created_by": "Cristiane Marsilio",
+      "created_at": "2025-05-27T14:27:39.208Z",
+      "modified_at": "2025-05-27T14:39:55.456Z"
+    }
+  ],
+  "edit_status": "COMPLETE",
+  "capture_session": {
+    "id": "bb5ec935-5bb6-43ba-8ec5-241aba1d1b52",
+    "booking_id": "15cfbbed-53bd-41b5-ab57-0962ab919f18",
+    "origin": "PRE",
+    "ingest_address": "rtmps://in-890f8537-c5d4-4b81-bb69-31fa36e21e26.uksouth.streaming.mediakind.com:2935/eca9b219-03c4-4e70-b768-c513122b859a",
+    "live_output_url": "https://ep-default-live-pre-mediakind-stg.uksouth.streaming.mediakind.com/bb5ec9355bb643ba8ec5241aba1d1b52/index.qfm/manifest(format=m3u8-cmaf)",
+    "started_at": "2025-05-27T08:55:58.931Z",
+    "started_by_user_id": "f8750aa0-ecf3-ec11-bb3c-0022481b1f95",
+    "finished_at": "2025-05-27T10:54:16.279Z",
+    "finished_by_user_id": "f8750aa0-ecf3-ec11-bb3c-0022481b1f95",
+    "status": "RECORDING_AVAILABLE",
+    "court_name": "Leeds Youth",
+    "case_state": "OPEN"
+  },
+  "filename": "bb5ec9355bb643ba8ec5241aba1d1b52_1280x720_4500k.mp4",
+  "duration": "PT1H5M55.9S",
+  "created_at": "2025-05-27T10:59:41.027Z",
+  "case_id": "eb0d9ede-6c96-4819-8d70-cdfc630e7c1f",
+  "case_reference": "STG-AUTOEDIT2",
+  "is_test_case": false,
+  "participants": [
+    {
+      "id": "c5f269be-0d57-408d-9fde-51e0f221138e",
+      "participant_type": "DEFENDANT",
+      "first_name": "Test",
+      "last_name": "Test2",
+      "created_at": "2025-05-27T08:53:32.855Z",
+      "modified_at": "2025-05-27T08:53:32.831Z"
+    },
+    {
+      "id": "f442ca19-da72-4d23-a239-a27d6bb9b4c8",
+      "participant_type": "WITNESS",
+      "first_name": "Test2",
+      "last_name": "",
+      "created_at": "2025-05-27T08:53:32.851Z",
+      "modified_at": "2025-05-27T08:53:32.825Z"
+    }
+  ]
+}
