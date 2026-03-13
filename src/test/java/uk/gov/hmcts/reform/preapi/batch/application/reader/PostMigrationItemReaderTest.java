@@ -543,6 +543,130 @@ class PostMigrationItemReaderTest {
         return record;
     }
 
+    @Test
+    void createReaderSkipsUserWithNullEmail() throws Exception {
+        MigrationRecord record = migrationRecord("archive-null-email-user", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", null}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of());
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isNull();
+
+        verify(loggingService).logWarning(
+            eq("Skipping channel user with missing email for record %s, groupKey=%s, user=%s"),
+            eq("archive-null-email-user"),
+            eq("case|segment"),
+            eq("user.name")
+        );
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(
+            any(), anyString(), anyString(), anyString()
+        );
+    }
+
+    @Test
+    void createReaderSkipsUserWithBlankEmail() throws Exception {
+        MigrationRecord record = migrationRecord("archive-blank-email-user", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "   "}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of());
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isNull();
+
+        verify(loggingService).logWarning(
+            eq("Skipping channel user with missing email for record %s, groupKey=%s, user=%s"),
+            eq("archive-blank-email-user"),
+            eq("case|segment"),
+            eq("user.name")
+        );
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(
+            any(), anyString(), anyString(), anyString()
+        );
+    }
+
+    @Test
+    void createReaderSkipsUserWithEmptyEmail() throws Exception {
+        MigrationRecord record = migrationRecord("archive-empty-email-user", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", ""}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of());
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isNull();
+
+        verify(loggingService).logWarning(
+            eq("Skipping channel user with missing email for record %s, groupKey=%s, user=%s"),
+            eq("archive-empty-email-user"),
+            eq("case|segment"),
+            eq("user.name")
+        );
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(
+            any(), anyString(), anyString(), anyString()
+        );
+    }
+
+    @Test
+    void createReaderProcessesValidUserWhenAnotherHasNullEmail() throws Exception {
+        MigrationRecord record = migrationRecord("archive-mixed-emails", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+
+        channelMap.put("case|segment", Arrays.asList(
+            new String[] {"invalid.user", null},  
+            new String[] {"valid.user", "valid@example.com"} 
+        ));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of());
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "valid@example.com", "valid", "user"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+
+        verify(loggingService).logWarning(
+            eq("Skipping channel user with missing email for record %s, groupKey=%s, user=%s"),
+            eq("archive-mixed-emails"),
+            eq("case|segment"),
+            eq("invalid.user")
+        );
+        verify(entityCreationService).createShareBookingAndInviteIfNotExists(
+            booking, "valid@example.com", "valid", "user"
+        );
+    }
+
     private BookingDTO buildBookingWithShares(String alreadySharedEmail) {
         ShareBookingDTO share = new ShareBookingDTO();
         share.setId(UUID.randomUUID());
