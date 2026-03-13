@@ -1,3 +1,14 @@
 {
-  "enabled": false
+  "enabled": false,
+  "extends": [
+    "local>hmcts/.github:renovate-config",
+    "local>hmcts/.github//renovate/automerge-minor"
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  },
+  "rebaseWhen": "behind-base-branch",
+  "ignoreDeps": [
+    "org.springframework.boot:*"
+  ]
 }
