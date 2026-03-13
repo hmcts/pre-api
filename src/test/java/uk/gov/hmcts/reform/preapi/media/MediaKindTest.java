@@ -218,7 +218,7 @@ public class MediaKindTest {
     @DisplayName("Should get asset by asset name")
     @Test
     void getAssetByAssetNameSuccess() {
-        var assetName = UUID.randomUUID().toString();
+        final String assetName = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
 
         when(mockClient.getAsset(eq(assetName))).thenReturn(asset);
@@ -255,7 +255,7 @@ public class MediaKindTest {
     @DisplayName("Should get live event by name")
     @Test
     void getLiveEventByNameSuccess() {
-        var liveEventName = UUID.randomUUID().toString();
+        final String liveEventName = UUID.randomUUID().toString();
         var liveEvent = createLiveEvent(liveEventName);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(liveEvent);
@@ -287,8 +287,8 @@ public class MediaKindTest {
     @DisplayName("Should return a list of all live events")
     @Test
     void getLiveEventListSuccess() {
-        var liveEventName1 = UUID.randomUUID().toString();
-        var liveEventName2 = UUID.randomUUID().toString();
+        final String liveEventName1 = UUID.randomUUID().toString();
+        final String liveEventName2 = UUID.randomUUID().toString();
         var liveEvents = List.of(
             createLiveEvent(liveEventName1),
             createLiveEvent(liveEventName2)
@@ -338,10 +338,45 @@ public class MediaKindTest {
             .build();
     }
 
+    private MkAssetStorage createAssetStorage() {
+        var examplePeriods = JsonNodeFactory.instance.objectNode();
+        examplePeriods.set("0/index/edge", JsonNodeFactory.instance.objectNode());
+
+        return MkAssetStorage.builder()
+            .spec(MkAssetStorage.MkAssetStorageSpec.builder()
+                      .periods(examplePeriods)
+                      .build())
+            .build();
+    }
+
+    private void mockFinishedRecording(String liveEventName) {
+        var mockLiveEvent = mock(MkLiveEvent.class);
+        var mockAssetStorage = createAssetStorage();
+
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
+    }
+
+    private void mockProcessingJob(String processingJobName, String jobName) {
+        var mockJob1 = mock(MkJob.class);
+        var mockProperties1 = mock(MkJob.MkJobProperties.class);
+        when(mockJob1.getProperties()).thenReturn(mockProperties1);
+        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
+        when(mockClient.getJob(eq(processingJobName), startsWith(jobName))).thenReturn(mockJob1);
+    }
+
+
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
     void startLiveEventSuccess() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
@@ -362,7 +397,7 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should return the capture session when successfully started the live event")
     void startLiveEventLiveEventConflictSuccess() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.putLiveEvent(any(), any()))
@@ -385,7 +420,7 @@ public class MediaKindTest {
     @DisplayName("Should throw not found error when live event cannot be found after creation")
     @Test
     void startLiveEventNotFoundAfterCreate() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
 
         when(mockClient.getLiveEvent(liveEventName)).thenThrow(mock(NotFoundException.class));
 
@@ -404,7 +439,7 @@ public class MediaKindTest {
     @DisplayName("Should throw 409 error when asset already exists")
     @Test
     void startLiveEventAssetConflict() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
@@ -427,10 +462,23 @@ public class MediaKindTest {
     @DisplayName("Should throw 409 error when live output already exists")
     @Test
     void startLiveEventLiveOutputConflict() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
+        when(mockClient.getStreamingEndpointByName("default-live"))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
         when(mockClient.putLiveOutput(eq(liveEventName), eq(liveEventName), any()))
             .thenThrow(mock(ConflictException.class));
 
@@ -450,7 +498,7 @@ public class MediaKindTest {
     @DisplayName("Should throw 404 error when creating a live output but cannot find live event")
     @Test
     void startLiveEventLiveOutputLiveEventNotFound() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
@@ -473,7 +521,7 @@ public class MediaKindTest {
     @DisplayName("Should throw 404 error when attempting to start live event that cannot be found (after setup)")
     @Test
     void startLiveEventStartNotFound() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
@@ -496,11 +544,34 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should successfully stop live event when there is not a recording found")
     void stopLiveEventAndProcessNoRecording() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var recordingId = UUID.randomUUID();
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+        final UUID recordingId = UUID.randomUUID();
+        var mockLiveEvent = mock(MkLiveEvent.class);
+        var mockAssetStorage = mock(MkAssetStorage.class);
 
-        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
-            .thenReturn(false);
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
+        when(mockAssetStorage.getSpec())
+            .thenReturn(
+                MkAssetStorage.MkAssetStorageSpec.builder()
+                    .periods(null)
+                    .build()
+            );
 
         var res = mediaKind.stopLiveEventAndProcess(captureSession, recordingId);
         assertThat(res).isEqualTo(RecordingStatus.NO_RECORDING);
@@ -509,7 +580,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
-        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
         verify(azureIngestStorageService, times(1))
             .markContainerAsSafeToDelete(captureSession.getBookingId().toString());
         verify(mockClient, never()).putAsset(any(), any());
@@ -518,23 +588,14 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should successfully stop live event when there is a recording found")
     void stopLiveEventAndProcessRecordingAvailable() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var recordingId = UUID.randomUUID();
-        var tempName = recordingId.toString().replace("-", "");
-        var mockJob1 = mock(MkJob.class);
-        var mockProperties1 = mock(MkJob.MkJobProperties.class);
-        var mockJob2 = mock(MkJob.class);
-        var mockProperties2 = mock(MkJob.MkJobProperties.class);
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+        final UUID recordingId = UUID.randomUUID();
+        final String tempName = recordingId.toString().replace("-", "");
 
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
-        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), startsWith(tempName))).thenReturn(mockJob2);
-        when(mockJob1.getProperties()).thenReturn(mockProperties1);
-        when(mockJob2.getProperties()).thenReturn(mockProperties2);
-        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
-        when(mockProperties2.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
+        mockProcessingJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName);
+        mockProcessingJob(ENCODE_FROM_MP4_TRANSFORM, tempName);
+        mockFinishedRecording(liveEventName);
 
-        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
-            .thenReturn(true);
         when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
@@ -545,7 +606,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
-        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
         verify(mockClient, times(2)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
         verify(mockClient, times(1)).getTransform(ENCODE_FROM_MP4_TRANSFORM);
@@ -572,29 +632,22 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should throw error for stop live event when file cannot be found after first encode job")
     void stopLiveEventAndProcessRecordingEncodingJobNoFileNameFound() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var recordingId = UUID.randomUUID();
-        var mockJob1 = mock(MkJob.class);
-        var mockProperties1 = mock(MkJob.MkJobProperties.class);
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+        final UUID recordingId = UUID.randomUUID();
 
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
+        mockFinishedRecording(liveEventName);
+        mockProcessingJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName);
 
-        when(mockJob1.getProperties()).thenReturn(mockProperties1);
-        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
-
-        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
-            .thenReturn(true);
         when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn(null);
-
         assertThat(mediaKind.stopLiveEventAndProcess(captureSession, recordingId)).isEqualTo(RecordingStatus.FAILURE);
 
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
-        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
         verify(mockClient, times(2)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
+        verify(mockClient, times(1)).getAssetTracks(liveEventName);
         verify(mockClient, never()).putTransform(any(), any());
         verify(azureIngestStorageService, never()).doesIsmFileExist(recordingId.toString());
     }
@@ -602,10 +655,10 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should throw error when error occurs creating asset")
     void stopLiveEventAndProcessAssetCreateError() {
-        var recordingId = UUID.randomUUID();
+        final UUID recordingId = UUID.randomUUID();
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
 
-        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
-            .thenReturn(true);
+        mockFinishedRecording(liveEventName);
 
         when(mockClient.putAsset(any(), any())).thenThrow(FeignException.class);
         assertThrows(
@@ -620,25 +673,16 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should create the EncodeFromIngest transform if it doesn't exist")
     void stopLiveEventAndProcessRecordingFoundRunEncodeTransform() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var recordingId = UUID.randomUUID();
-        var tempName = recordingId.toString().replace("-", "");
-        var mockJob1 = mock(MkJob.class);
-        var mockProperties1 = mock(MkJob.MkJobProperties.class);
-        var mockJob2 = mock(MkJob.class);
-        var mockProperties2 = mock(MkJob.MkJobProperties.class);
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+        final UUID recordingId = UUID.randomUUID();
+        final String tempName = recordingId.toString().replace("-", "");
+
+        mockProcessingJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName);
+        mockProcessingJob(ENCODE_FROM_MP4_TRANSFORM, tempName);
+        mockFinishedRecording(liveEventName);
 
         when(mockClient.getTransform(ENCODE_FROM_INGEST_TRANSFORM)).thenThrow(NotFoundException.class);
 
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
-        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), startsWith(tempName))).thenReturn(mockJob2);
-        when(mockJob1.getProperties()).thenReturn(mockProperties1);
-        when(mockJob2.getProperties()).thenReturn(mockProperties2);
-        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
-        when(mockProperties2.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
-
-        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
-            .thenReturn(true);
         when(azureIngestStorageService.tryGetMp4FileName(any())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
@@ -658,31 +702,23 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+        verify(mockClient, times(1)).getAssetTracks(liveEventName);
     }
 
     @Test
     @DisplayName("Should create the EncodeFromMp4 transform if it doesn't exist")
     void stopLiveEventAndProcessRecordingFoundRunEncodeTransform2() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var recordingId = UUID.randomUUID();
-        var tempName = recordingId.toString().replace("-", "");
-        var mockJob1 = mock(MkJob.class);
-        var mockProperties1 = mock(MkJob.MkJobProperties.class);
-        var mockJob2 = mock(MkJob.class);
-        var mockProperties2 = mock(MkJob.MkJobProperties.class);
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+        final UUID recordingId = UUID.randomUUID();
+        final String tempName = recordingId.toString().replace("-", "");
+
+        mockFinishedRecording(liveEventName);
+        mockProcessingJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName);
+        mockProcessingJob(ENCODE_FROM_MP4_TRANSFORM, tempName);
 
         when(mockClient.getTransform(ENCODE_FROM_INGEST_TRANSFORM)).thenThrow(NotFoundException.class);
         when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
 
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
-        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), startsWith(tempName))).thenReturn(mockJob2);
-        when(mockJob1.getProperties()).thenReturn(mockProperties1);
-        when(mockJob2.getProperties()).thenReturn(mockProperties2);
-        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
-        when(mockProperties2.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
-
-        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
-            .thenReturn(true);
         when(azureIngestStorageService.tryGetMp4FileName(any())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
@@ -704,13 +740,14 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+        verify(mockClient, times(1)).getAssetTracks(liveEventName);
     }
 
     @Test
     @DisplayName("Should throw not found when live event cannot be found to stop")
     void stopLiveEventAndProcessLiveEventNotFound() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var recordingId = UUID.randomUUID();
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+        final UUID recordingId = UUID.randomUUID();
 
         doThrow(NotFoundException.class).when(mockClient).stopLiveEvent(any());
 
@@ -728,11 +765,33 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should successfully stop live event when there is not a streaming endpoint to stop/delete")
     void stopLiveEventAndProcessEndpointNotFound() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var recordingId = UUID.randomUUID();
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+        final UUID recordingId = UUID.randomUUID();
+        var mockLiveEvent = mock(MkLiveEvent.class);
+        var mockAssetStorage = mock(MkAssetStorage.class);
 
-        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
-            .thenReturn(false);
+        when(mockClient.getStreamingEndpointByName("default-live"))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
+        when(mockAssetStorage.getSpec())
+            .thenReturn(
+                MkAssetStorage.MkAssetStorageSpec.builder()
+                    .periods(null)
+                    .build()
+            );
+
         doThrow(NotFoundException.class).when(mockClient).stopStreamingEndpoint(any());
 
         var res = mediaKind.stopLiveEventAndProcess(captureSession, recordingId);
@@ -742,15 +801,14 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
-        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
+        verify(mockClient, times(1)).getAssetTracks(liveEventName);
         verify(mockClient, never()).putAsset(any(), any());
     }
 
     @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
     @Test
     void importAssetSuccess() throws InterruptedException {
-
-        var newRecordingId = UUID.randomUUID();
+        final UUID newRecordingId = UUID.randomUUID();
 
         var generateAssetDTO  = new GenerateAssetDTO(newRecordingId + "-input",
                                                      newRecordingId,
@@ -762,10 +820,11 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
         when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
-        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer())).thenReturn("video.mp4");
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.FINISHED);
         when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
+
+        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer())).thenReturn("video.mp4");
 
         var result = mediaKind.importAsset(generateAssetDTO, true);
 
@@ -870,7 +929,7 @@ public class MediaKindTest {
     @DisplayName("Should fail to play a live event because the live event is not running")
     @Test
     void playLiveEventFailureLiveEventNotRunning() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
@@ -891,7 +950,7 @@ public class MediaKindTest {
     @DisplayName("Should fail to play a live event because the streaming endpoint won't start")
     @Test
     void playLiveEventFailureToStartStreamingEndpoint() {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getStreamingEndpointByName("default-live"))
@@ -915,7 +974,7 @@ public class MediaKindTest {
     @DisplayName("Should play a live event successfully")
     @Test
     void playLiveEventSuccess() throws JsonProcessingException, InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getStreamingEndpointByName("default-live"))
@@ -948,7 +1007,7 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should play a live event successfully when streaming locator already exists")
     void playLiveEventStreamingLocatorAlreadyExistsSuccess() throws JsonProcessingException, InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getStreamingEndpointByName("default-live"))
@@ -983,7 +1042,7 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should throw error when failing to get streaming locator (not 404)")
     void playLiveEventStreamingLocatorFailed() throws JsonProcessingException, InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getStreamingEndpointByName("default-live"))
@@ -1043,8 +1102,8 @@ public class MediaKindTest {
     @DisplayName("Should return the playback urls for the asset")
     @Test
     void playAssetSuccess() throws InterruptedException {
-        var assetName = UUID.randomUUID().toString();
-        var userId = UUID.randomUUID().toString();
+        final String assetName = UUID.randomUUID().toString();
+        final String userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
         var streamingEndpoint = MkStreamingEndpoint.builder()
             .properties(
@@ -1106,8 +1165,8 @@ public class MediaKindTest {
     @DisplayName("Should return the playback urls for the asset when content key policy didn't exist")
     @Test
     void playAssetContentKeyNotFoundSuccess() throws InterruptedException, JsonProcessingException {
-        var assetName = UUID.randomUUID().toString();
-        var userId = UUID.randomUUID().toString();
+        final String assetName = UUID.randomUUID().toString();
+        final String userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
         var streamingEndpoint = MkStreamingEndpoint.builder()
             .properties(
@@ -1174,8 +1233,8 @@ public class MediaKindTest {
     @DisplayName("Should return the playback urls for the asset when streaming policy not found")
     @Test
     void playAssetStreamingPolicyNotFoundSuccess() throws InterruptedException {
-        var assetName = UUID.randomUUID().toString();
-        var userId = UUID.randomUUID().toString();
+        final String assetName = UUID.randomUUID().toString();
+        final String userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
         var streamingEndpoint = MkStreamingEndpoint.builder()
             .properties(
@@ -1239,8 +1298,8 @@ public class MediaKindTest {
     @DisplayName("Should return the playback urls for the asset when default endpoint not running")
     @Test
     void playAssetStreamingEndpointNotRunningSuccess() throws InterruptedException {
-        var assetName = UUID.randomUUID().toString();
-        var userId = UUID.randomUUID().toString();
+        final String assetName = UUID.randomUUID().toString();
+        final String userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
         var mockProperties = mock(MkStreamingEndpointProperties.class);
 
@@ -1308,8 +1367,8 @@ public class MediaKindTest {
     @DisplayName("Should return the playback urls for the asset when default endpoint not created")
     @Test
     void playAssetStreamingEndpointNotFoundSuccess() throws InterruptedException {
-        var assetName = UUID.randomUUID().toString();
-        var userId = UUID.randomUUID().toString();
+        final String assetName = UUID.randomUUID().toString();
+        final String userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
         var streamingEndpoint = MkStreamingEndpoint.builder()
             .name("default")
@@ -1451,8 +1510,8 @@ public class MediaKindTest {
     @DisplayName("Should throw not found error when both dash and hls are null")
     @Test
     void playAssetNotFound() throws InterruptedException {
-        var assetName = UUID.randomUUID().toString();
-        var userId = UUID.randomUUID().toString();
+        final String assetName = UUID.randomUUID().toString();
+        final String userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
         var streamingEndpoint = MkStreamingEndpoint.builder()
             .properties(
@@ -1496,7 +1555,6 @@ public class MediaKindTest {
     @DisplayName("Should Delete all streaming locators and Content Key Policies")
     @Test
     void testDeleteAllStreamingLocatorsAndContentKeyPolicies() {
-
         var locators = List.of(
             MkStreamingLocator.builder().name("locator1").build(),
             MkStreamingLocator.builder().name("locator2").build(),
@@ -1538,7 +1596,7 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should not error when stopping live event when live output has not been deleted")
     void cleanupStoppedLiveEventLiveOutputNotDeletedSuccess() {
-        var liveEventId = UUID.randomUUID().toString().replace("-", "");
+        final String liveEventId = UUID.randomUUID().toString().replace("-", "");
 
         doThrow(FeignException.BadRequest.class).when(mockClient).stopLiveEvent(liveEventId);
 
@@ -1552,7 +1610,7 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should stop live event by id")
     void stopLiveEvent() {
-        var liveEventName = "liveEventName";
+        final String liveEventName = "liveEventName";
 
         mediaKind.stopLiveEvent(liveEventName);
 
@@ -1563,7 +1621,7 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should stop live event by id, or do nothing if id doesn't exist")
     void stopLiveEventOnError() {
-        var liveEventName = "liveEventName";
+        final String liveEventName = "liveEventName";
         doThrow(NotFoundException.class).when(mockClient).stopLiveEvent(liveEventName);
 
         mediaKind.stopLiveEvent(liveEventName);
@@ -1698,8 +1756,9 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should not detect live feed when no subperiods are present in the asset tracks")
     void playLiveEventNoPeriodsSuccess() throws JsonProcessingException, InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
+        var mockAssetStorage = mock(MkAssetStorage.class);
 
         when(mockClient.getStreamingEndpointByName("default-live"))
             .thenReturn(MkStreamingEndpoint.builder()
@@ -1715,7 +1774,6 @@ public class MediaKindTest {
                     .build()
             );
 
-        var mockAssetStorage = mock(MkAssetStorage.class);
         when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
         when(mockAssetStorage.getSpec())
             .thenReturn(
@@ -1735,8 +1793,8 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should detect live feed when subperiods are present in the asset tracks")
     void playLiveEventWithPeriodsSuccess() throws JsonProcessingException, InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var mockLiveEvent = mock(MkLiveEvent.class);
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+        mockFinishedRecording(liveEventName);
 
         when(mockClient.getStreamingEndpointByName("default-live"))
             .thenReturn(MkStreamingEndpoint.builder()
@@ -1744,25 +1802,7 @@ public class MediaKindTest {
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
                                             .build())
                             .build());
-        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
-        when(mockLiveEvent.getProperties())
-            .thenReturn(
-                MkLiveEventProperties.builder()
-                    .resourceState(LiveEventResourceState.RUNNING.toString())
-                    .build()
-            );
 
-        var mockAssetStorage = mock(MkAssetStorage.class);
-        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
-
-        var examplePeriods = JsonNodeFactory.instance.objectNode();
-        examplePeriods.set("0/index/edge", JsonNodeFactory.instance.objectNode());
-        when(mockAssetStorage.getSpec())
-            .thenReturn(
-                MkAssetStorage.MkAssetStorageSpec.builder()
-                    .periods(examplePeriods)
-                    .build()
-            );
 
         when(mockClient.getStreamingLocator(any()))
             .thenReturn(MkStreamingLocator.builder().build());
