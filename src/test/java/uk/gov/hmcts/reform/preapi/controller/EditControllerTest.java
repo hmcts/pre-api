@@ -18,7 +18,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import uk.gov.hmcts.reform.preapi.controllers.EditController;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -253,7 +253,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -278,7 +278,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -302,7 +302,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -326,7 +326,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -351,7 +351,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -403,7 +403,7 @@ public class EditControllerTest {
     void validateSourceRecordingIdIsNull() throws Exception {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -424,7 +424,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -444,7 +444,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -465,7 +465,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -486,7 +486,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -508,7 +508,7 @@ public class EditControllerTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));

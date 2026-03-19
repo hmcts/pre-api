@@ -51,7 +51,6 @@ public class RecordingListener {
         }
 
         try {
-
             List<ShareBooking> shares = recording.getCaptureSession().getBooking().getShares()
                           .stream()
                           .filter(s -> !s.isDeleted())
@@ -73,7 +72,7 @@ public class RecordingListener {
                 }
             );
         } catch (Exception e) {
-            log.error("Failed to notify users of recording ready for recording: " + recording.getId());
+            log.error("Failed to notify users of recording ready for recording: {}", recording.getId());
         }
     }
 }

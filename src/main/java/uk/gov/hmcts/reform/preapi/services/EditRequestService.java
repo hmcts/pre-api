@@ -17,10 +17,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
@@ -55,7 +54,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
+import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionsDTO.formatTime;
 import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 
 @Slf4j
@@ -226,7 +225,7 @@ public class EditRequestService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
-    public void delete(CreateEditRequestDTO dto) {
+    public void delete(EditRequestDTO dto) {
         Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
 
         if (req.isEmpty()) {
@@ -239,7 +238,7 @@ public class EditRequestService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
-    public UpsertResult upsert(CreateEditRequestDTO dto) {
+    public UpsertResult upsert(EditRequestDTO dto) {
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
 
         Recording sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
@@ -295,7 +294,7 @@ public class EditRequestService {
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
         UUID id = UUID.randomUUID();
-        CreateEditRequestDTO dto = new CreateEditRequestDTO();
+        EditRequestDTO dto = new EditRequestDTO();
         dto.setId(id);
         dto.setSourceRecordingId(sourceRecordingId);
         dto.setEditInstructions(parseCsv(file));
@@ -308,7 +307,7 @@ public class EditRequestService {
             .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
     }
 
-    private @NotNull EditRequest getEditRequestToCreateOrUpdate(CreateEditRequestDTO dto, Recording sourceRecording,
+    private @NotNull EditRequest getEditRequestToCreateOrUpdate(EditRequestDTO dto, Recording sourceRecording,
                                                                 EditRequest request) {
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
@@ -338,7 +337,7 @@ public class EditRequestService {
         request.setApprovedBy(dto.getApprovedBy());
         request.setRejectionReason(dto.getRejectionReason());
 
-        List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
+        List<EditCutInstructionsDTO> requestedEdits = isInstructionCombination
             ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
             : dto.getEditInstructions();
 
@@ -351,14 +350,14 @@ public class EditRequestService {
         return request;
     }
 
-    private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
+    private List<EditCutInstructionsDTO> parseCsv(MultipartFile file) {
         try {
             @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(
                 file.getInputStream(),
                 StandardCharsets.UTF_8
             ));
-            return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
-                .withType(EditCutInstructionDTO.class)
+            return new CsvToBeanBuilder<EditCutInstructionsDTO>(reader)
+                .withType(EditCutInstructionsDTO.class)
                 .build()
                 .parse();
         } catch (Exception e) {
@@ -368,11 +367,11 @@ public class EditRequestService {
     }
 
     @SuppressWarnings({"PMD.CognitiveComplexity", "PMD.AvoidLiteralsInIfCondition"})
-    public List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
+    public List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionsDTO> instructions,
                                                              final Recording recording) {
         long recordingDuration = recording.getDuration().toSeconds();
         if (instructions.size() == 1) {
-            EditCutInstructionDTO firstInstruction = instructions.getFirst();
+            EditCutInstructionsDTO firstInstruction = instructions.getFirst();
             if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
                 throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
                                                   + formatTime(firstInstruction.getStart())
@@ -384,12 +383,12 @@ public class EditRequestService {
             }
         }
 
-        instructions.sort(Comparator.comparing(EditCutInstructionDTO::getStart)
-                              .thenComparing(EditCutInstructionDTO::getEnd));
+        instructions.sort(Comparator.comparing(EditCutInstructionsDTO::getStart)
+                              .thenComparing(EditCutInstructionsDTO::getEnd));
 
         for (int i = 1; i < instructions.size(); i++) {
-            EditCutInstructionDTO prev = instructions.get(i - 1);
-            EditCutInstructionDTO curr = instructions.get(i);
+            EditCutInstructionsDTO prev = instructions.get(i - 1);
+            EditCutInstructionsDTO curr = instructions.get(i);
             if (curr.getStart() < prev.getEnd()) {
                 throw new BadRequestException("Overlapping instructions: Previous End("
                                                   + formatTime(prev.getEnd())
@@ -403,7 +402,7 @@ public class EditRequestService {
         List<FfmpegEditInstructionDTO> invertedInstructions = new ArrayList<>();
 
         // invert
-        for (EditCutInstructionDTO instruction : instructions) {
+        for (EditCutInstructionsDTO instruction : instructions) {
             if (instruction.getStart() == instruction.getEnd()) {
                 throw new BadRequestException(
                     "Invalid instruction: Instruction with 0 second duration invalid: Start("
@@ -441,9 +440,9 @@ public class EditRequestService {
         return invertedInstructions;
     }
 
-    protected List<EditCutInstructionDTO> combineCutsOnOriginalTimeline(
+    protected List<EditCutInstructionsDTO> combineCutsOnOriginalTimeline(
         final EditInstructions original,
-        final List<EditCutInstructionDTO> newInstructions
+        final List<EditCutInstructionsDTO> newInstructions
     ) {
         final List<FfmpegEditInstructionDTO> keptSegments = original.getFfmpegInstructions();
 
@@ -455,8 +454,8 @@ public class EditRequestService {
             cursor += duration;
         }
 
-        final List<EditCutInstructionDTO> mappedCuts = new ArrayList<>();
-        for (EditCutInstructionDTO newCut : newInstructions) {
+        final List<EditCutInstructionsDTO> mappedCuts = new ArrayList<>();
+        for (EditCutInstructionsDTO newCut : newInstructions) {
             for (int i = 0; i < keptSegments.size(); i++) {
                 final FfmpegEditInstructionDTO originalSegment = keptSegments.get(i);
                 final FfmpegEditInstructionDTO editedSegment = editedTimelineMapping.get(i);
@@ -477,7 +476,7 @@ public class EditRequestService {
                 long originalMappedStart = originalSegment.getStart() + offsetInSegment;
                 long originalMappedEnd = originalMappedStart + cutLength;
 
-                mappedCuts.add(new EditCutInstructionDTO(
+                mappedCuts.add(new EditCutInstructionsDTO(
                     originalMappedStart,
                     originalMappedEnd,
                     newCut.getReason()
@@ -486,20 +485,20 @@ public class EditRequestService {
         }
 
         mappedCuts.addAll(original.getRequestedInstructions());
-        mappedCuts.sort(Comparator.comparing(EditCutInstructionDTO::getStart));
+        mappedCuts.sort(Comparator.comparing(EditCutInstructionsDTO::getStart));
 
         return mergeOverlappingCuts(mappedCuts)
             .stream()
-            .map(cut -> new EditCutInstructionDTO(cut.getStart(), cut.getEnd(), cut.getReason()))
+            .map(cut -> new EditCutInstructionsDTO(cut.getStart(), cut.getEnd(), cut.getReason()))
             .collect(Collectors.toList());
     }
 
-    protected List<EditCutInstructionDTO> mergeOverlappingCuts(final List<EditCutInstructionDTO> cuts) {
-        final List<EditCutInstructionDTO> merged = new ArrayList<>();
-        EditCutInstructionDTO current = cuts.getFirst();
+    protected List<EditCutInstructionsDTO> mergeOverlappingCuts(final List<EditCutInstructionsDTO> cuts) {
+        final List<EditCutInstructionsDTO> merged = new ArrayList<>();
+        EditCutInstructionsDTO current = cuts.getFirst();
 
         for (int i = 1; i < cuts.size(); i++) {
-            final EditCutInstructionDTO next = cuts.get(i);
+            final EditCutInstructionsDTO next = cuts.get(i);
             if (next.getStart() <= current.getEnd()) {
                 current.setEnd(Math.max(current.getEnd(), next.getEnd()));
             } else {

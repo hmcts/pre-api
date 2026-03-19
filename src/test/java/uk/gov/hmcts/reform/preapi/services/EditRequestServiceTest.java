@@ -20,7 +20,7 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
@@ -372,8 +372,8 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should create a new edit request")
     void createEditRequestSuccess() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(120L)
                              .build());
@@ -401,8 +401,8 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should update an edit request")
     void updateEditRequestSuccess() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(120L)
                              .build());
@@ -439,8 +439,8 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should throw not found when source recording does not exist")
     void createEditRequestSourceRecordingNotFound() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(120L)
                              .build());
@@ -472,8 +472,8 @@ public class EditRequestServiceTest {
     void createEditRequestDurationIsNullError() {
         when(mockRecording.getDuration()).thenReturn(null);
 
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(120L)
                              .build());
@@ -504,8 +504,8 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should throw bad request when instruction cuts entire recording")
     void invertInstructionsBadRequestCutToZeroDuration() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(0L)
                              .end(180L)
                              .build());
@@ -548,7 +548,7 @@ public class EditRequestServiceTest {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(UUID.randomUUID());
-        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+        dto.setEditInstructions(List.of(EditCutInstructionsDTO.builder()
                                             .startOfCut("00:00:00")
                                             .endOfCut("00:00:01")
                                             .build()));
@@ -592,8 +592,8 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should throw bad request when instruction has same value for start and end")
     void invertInstructionsBadRequestStartEndEqual() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(60L)
                              .build());
@@ -611,8 +611,8 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should throw bad request when instruction end time is less than start time")
     void invertInstructionsBadRequestEndLTStart() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(50L)
                              .build());
@@ -630,8 +630,8 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should throw bad request when instruction end time exceeds duration")
     void invertInstructionsBadRequestEndTimeExceedsDuration() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(200L) // duration is 180
                              .build());
@@ -650,12 +650,12 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should throw bad request when instructions overlap")
     void invertInstructionsOverlap() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(10L)
                              .end(30L)
                              .build());
-        instructions.add(EditCutInstructionDTO.builder()
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(20L)
                              .end(40L)
                              .build());
@@ -672,12 +672,12 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should return inverted instructions (ordered correctly)")
     void invertInstructionsSuccess() {
-        List<EditCutInstructionDTO> instructions1 = new ArrayList<>();
-        instructions1.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions1 = new ArrayList<>();
+        instructions1.add(EditCutInstructionsDTO.builder()
                               .start(60L)
                               .end(120L)
                               .build());
-        instructions1.add(EditCutInstructionDTO.builder()
+        instructions1.add(EditCutInstructionsDTO.builder()
                               .start(150L)
                               .end(180L)
                               .build());
@@ -700,12 +700,12 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should return inverted instructions (ordered correctly) when not cutting the end")
     void invertInstructionsNotCuttingEndSuccess() {
-        List<EditCutInstructionDTO> instructions1 = new ArrayList<>();
-        instructions1.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions1 = new ArrayList<>();
+        instructions1.add(EditCutInstructionsDTO.builder()
                               .start(60L)
                               .end(120L)
                               .build());
-        instructions1.add(EditCutInstructionDTO.builder()
+        instructions1.add(EditCutInstructionsDTO.builder()
                               .start(150L)
                               .end(160L)
                               .build());
@@ -1301,8 +1301,8 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
     @Test
     @DisplayName("Should trigger request submission jointly agreed email on submission")
     void upsertOnSubmittedJointlyAgreed() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(120L)
                              .build());
@@ -1335,8 +1335,8 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
     @Test
     @DisplayName("Should trigger request submission not jointly agreed email on submission")
     void upsertOnSubmittedNotJointlyAgreed() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(120L)
                              .build());
@@ -1369,8 +1369,8 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
     @Test
     @DisplayName("Should trigger request rejection email on edit request rejection")
     void upsertOnRejected() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
+        List<EditCutInstructionsDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionsDTO.builder()
                              .start(60L)
                              .end(120L)
                              .build());
@@ -1415,7 +1415,7 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         return new FfmpegEditInstructionDTO(start, end);
     }
 
-    private static EditCutInstructionDTO createCut(long start, long end, String reason) {
-        return new EditCutInstructionDTO(start, end, reason);
+    private static EditCutInstructionsDTO createCut(long start, long end, String reason) {
+        return new EditCutInstructionsDTO(start, end, reason);
     }
 }

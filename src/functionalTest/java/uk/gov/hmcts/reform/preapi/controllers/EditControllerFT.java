@@ -8,8 +8,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -47,13 +47,13 @@ public class EditControllerFT extends FunctionalTestBase {
         ).as(EditRequestDTO.class);
 
         assertThat(postResponse.getId()).isNotNull();
-        assertThat(postResponse.getSourceRecording().getId()).isEqualTo(recordingDetails.recordingId());
+        assertThat(postResponse.getSourceRecordingId()).isEqualTo(recordingDetails.recordingId());
         assertThat(postResponse.getStatus()).isEqualTo(EditRequestStatus.PENDING);
 
-        var instructions = postResponse.getEditInstruction();
-        assertThat(postResponse.getEditInstruction()).isNotNull();
+        List<EditCutInstructionsDTO> instructions = postResponse.getEditInstructions();
+        assertThat(postResponse.getEditInstructions()).isNotNull();
 
-        List<EditCutInstructionDTO> requestedInstructions = instructions.getRequestedInstructions();
+        List<EditCutInstructionsDTO> requestedInstructions = instructions.getRequestedInstructions();
         assertThat(requestedInstructions).isNotEmpty();
         assertThat(requestedInstructions.size()).isEqualTo(2);
 

@@ -30,8 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -116,7 +115,7 @@ public class EditController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_3')")
     public ResponseEntity<Void> upsertEditRequest(
         @PathVariable("id") UUID id,
-        @Valid @RequestBody CreateEditRequestDTO createEditRequestDTO
+        @Valid @RequestBody EditRequestDTO createEditRequestDTO
     ) {
         if (!id.equals(createEditRequestDTO.getId())) {
             throw new PathPayloadMismatchException("editRequestId", "createEditRequestDTO.id");
@@ -129,7 +128,7 @@ public class EditController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_3')")
     public ResponseEntity<Void> delete(
         @PathVariable("id") UUID id,
-        @Valid @RequestBody CreateEditRequestDTO deleteEditRequestDTO
+        @Valid @RequestBody EditRequestDTO deleteEditRequestDTO
     ) {
         if (!id.equals(deleteEditRequestDTO.getId())) {
             throw new PathPayloadMismatchException("editRequestId", "deleteEditRequestDTO.id");
