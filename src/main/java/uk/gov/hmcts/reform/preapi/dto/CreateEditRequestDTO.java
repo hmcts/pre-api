@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.validators.CreateEditRequestStatusConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
@@ -41,6 +42,7 @@ public class CreateEditRequestDTO {
     private Boolean jointlyAgreed;
 
     @Size(max = 512)
+    @SanitizedStringConstraint(message = "rejectionReason contains potentially malicious content")
     @Schema(description = "CreateEditRequestRejectionReason")
     private String rejectionReason;
 
@@ -48,6 +50,7 @@ public class CreateEditRequestDTO {
     private Timestamp approvedAt;
 
     @Size(max = 100)
+    @SanitizedStringConstraint(message = "approvedBy contains potentially malicious content")
     @Schema(description = "CreateEditRequestApprovedBy")
     private String approvedBy;
 }

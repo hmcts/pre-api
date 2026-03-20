@@ -5,14 +5,50 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Safelist;
 
+/**
+ * Utility class for sanitizing user input to prevent XSS and other injection attacks.
+ * Uses JSoup library to parse and clean HTML content.
+ */
 @UtilityClass
 public class InputSanitizer {
 
+    // Reuse Cleaner instances for better performance
+    private static final Cleaner STRICT_CLEANER = new Cleaner(Safelist.none());
+    private static final Cleaner BASIC_CLEANER = new Cleaner(Safelist.basic());
+
+    /**
+     * Sanitizes input by removing all HTML tags and returning plain text.
+     * This is the strictest sanitization mode.
+     *
+     * @param input The string to sanitize
+     * @return Sanitized plain text, or null if input is null
+     */
     public static String sanitize(String input) {
+        return sanitize(input, false);
+    }
 
-        Cleaner cleaner = new Cleaner(Safelist.none());
-        String text = cleaner.clean(Jsoup.parse(input)).text();
+    /**
+     * Sanitizes input with optional support for basic text formatting.
+     *
+     * @param input The string to sanitize
+     * @param allowBasicFormatting If true, allows safe HTML tags like <b>, <i>, <p>, <br>
+     * @return Sanitized text, or null if input is null
+     */
+    public static String sanitize(String input, boolean allowBasicFormatting) {
+        if (input == null) {
+            return null;
+        }
 
-        return text;
+        Cleaner cleaner = allowBasicFormatting ? BASIC_CLEANER : STRICT_CLEANER;
+
+        // Parse the input as HTML and clean it
+        String cleaned = cleaner.clean(Jsoup.parse(input)).body().html();
+
+        // If strict mode (no formatting), return just the text content
+        if (!allowBasicFormatting) {
+            return Jsoup.parse(cleaned).text();
+        }
+
+        return cleaned;
     }
 }

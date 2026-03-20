@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
@@ -21,9 +22,11 @@ public class CreateParticipantDTO {
     @Schema(description = "CreateParticipantType")
     private ParticipantType participantType;
 
+    @SanitizedStringConstraint
     @Schema(description = "CreateParticipantFirstName")
     private String firstName;
 
+    @SanitizedStringConstraint
     @Schema(description = "CreateParticipantLastName")
     private String lastName;
 
