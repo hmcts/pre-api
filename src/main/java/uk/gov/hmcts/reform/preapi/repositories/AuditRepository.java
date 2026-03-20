@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
+import feign.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -7,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,4 +32,21 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
 
     @Query("SELECT a FROM Audit a ORDER BY a.createdAt DESC")
     Page<Audit> findLatest(Pageable pageable);
+
+    @Query(
+        """
+        SELECT DISTINCT ON (a.table_record_id) a
+        FROM Audit a
+        WHERE (
+            a.table_record_id IN :tableRecordIds
+            AND a.category = 'CaptureSession'
+            AND a.activity = 'UPDATE'
+            AND a.audit_details->>'captureSessionStatus' = :status
+        )
+        ORDER BY a.table_record_id, a.created_at DESC
+        """
+    )
+    List<Audit> findRecordsForCaptureSessionsUpdatedByTableRecordIdsAndStatus(
+        @Param("tableRecordIds") List<UUID> tableRecordIds,
+        @Param("status") RecordingStatus status);
 }

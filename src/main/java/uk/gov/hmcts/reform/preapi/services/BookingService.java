@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -23,12 +25,14 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +40,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,6 +52,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ParticipantRepository participantRepository;
     private final CaseRepository caseRepository;
+    private final AuditRepository auditRepository;
     private final CaptureSessionService captureSessionService;
     private final ShareBookingService shareBookingService;
     private final CaseService caseService;
@@ -57,6 +63,7 @@ public class BookingService {
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
+                          final AuditRepository auditRepository,
                           final CaptureSessionService captureSessionService,
                           final ShareBookingService shareBookingService,
                           @Lazy CaseService caseService,
@@ -64,6 +71,7 @@ public class BookingService {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
+        this.auditRepository = auditRepository;
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
         this.caseService = caseService;
@@ -262,6 +270,60 @@ public class BookingService {
             null,
             null,
             null,
+            null,
+            Pageable.unpaged()
+        )
+            .toList();
+    }
+
+    @Transactional
+    public List<BookingDTO> findAllBookingsWithCaptureSessionsStuckInProcessing() {
+        // Get the bookings with capture sessions in PROCESSING status
+        // TODO need to check - what if a booking has multiple capture sessions, one of which is in PROCESSING, the other one isn't
+        List<BookingDTO> bookings = getBookingsWithCaptureSessionsInStatus(RecordingStatus.PROCESSING);
+
+        // For their capture sessions, get their audit records where they transitioned to PROCESSING status
+
+        List<UUID> captureSessionIds = bookings.stream()
+            .flatMap(booking -> booking.getCaptureSessions().stream())
+            .map(CreateCaptureSessionDTO::getId)
+            .toList();
+
+        List<Audit> audits = auditRepository.findRecordsForCaptureSessionsUpdatedByTableRecordIdsAndStatus(captureSessionIds, RecordingStatus.PROCESSING);
+
+        // Filter the audit records to only show those who transitioned to the PROCESSING status more than or equal to x minutes ago
+        Duration timeThresholdForBeingStuckInProcessing = Duration.ofMinutes(120);
+        Timestamp dateTimeCutoffForTransition = Timestamp.from(Instant.now().minus(timeThresholdForBeingStuckInProcessing));
+
+        List<Audit> filteredAudits = audits.stream()
+            .filter(audit -> audit.getCreatedAt().before(dateTimeCutoffForTransition))
+            .toList();
+
+        // Filter the bookings to only show those with these audit records
+
+        Set<UUID> auditCaptureSessionIds = filteredAudits.stream()
+            .map(Audit::getTableRecordId)
+            .collect(Collectors.toSet());
+
+        List<BookingDTO> filteredBookings = bookings.stream()
+            .filter(booking -> booking.getCaptureSessions().stream()
+                .anyMatch(cs -> auditCaptureSessionIds.contains(cs.getId())))
+            .toList();
+
+        return filteredBookings;
+    }
+
+    private List<BookingDTO> getBookingsWithCaptureSessionsInStatus(RecordingStatus status) {
+        List<RecordingStatus> recordingStatuses = List.of(status);
+
+        return searchBy(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            recordingStatuses,
             null,
             Pageable.unpaged()
         )

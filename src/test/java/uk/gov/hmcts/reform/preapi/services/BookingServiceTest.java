@@ -716,6 +716,38 @@ class BookingServiceTest {
                 any());
     }
 
+    @Test
+    @DisplayName("Should find all bookings with capture sessions stuck in processing")
+    void findAllBookingsWithCaptureSessionsStuckInProcessing() {
+        LocalDate currentDate = LocalDate.now();
+
+        var court = createCourt();
+        var booking1 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(10, 0))));
+        var booking2 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(15, 0))));
+        createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(16, 0))));
+        var bookingsWithCaptureSessionsStuckInProcessing = List.of(booking1, booking2);
+        setAuthentication();
+
+        when(bookingRepository.searchBookingsBy(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyBoolean(),
+            any())).thenReturn(new PageImpl<>(List.of(booking1, booking2)));
+
+        var bookings = bookingService.findAllBookingsWithCaptureSessionsStuckInProcessing();
+
+        assertThat(bookings).hasSize(bookingsWithCaptureSessionsStuckInProcessing.size());
+    }
+
     private Court createCourt() {
         var court = new Court();
         court.setId(UUID.randomUUID());
