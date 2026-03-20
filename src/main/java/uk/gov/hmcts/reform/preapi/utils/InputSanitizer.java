@@ -5,46 +5,50 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Safelist;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
+/**
+ * Utility class for sanitizing user input to prevent XSS and other injection attacks.
+ * Uses JSoup library to parse and clean HTML content.
+ */
 @UtilityClass
 public class InputSanitizer {
 
+    // Reuse Cleaner instances for better performance
+    private static final Cleaner STRICT_CLEANER = new Cleaner(Safelist.none());
+    private static final Cleaner BASIC_CLEANER = new Cleaner(Safelist.basic());
+
+    /**
+     * Sanitizes input by removing all HTML tags and returning plain text.
+     * This is the strictest sanitization mode.
+     *
+     * @param input The string to sanitize
+     * @return Sanitized plain text, or null if input is null
+     */
     public static String sanitize(String input) {
-
-        Cleaner cleaner = new Cleaner(Safelist.none());
-        String text = cleaner.clean(Jsoup.parse(input)).text();
-
-        return text;
+        return sanitize(input, false);
     }
 
-    public static Object sanitizeObject(Object dto) throws IllegalAccessException {
-        if (dto == null) {
+    /**
+     * Sanitizes input with optional support for basic text formatting.
+     *
+     * @param input The string to sanitize
+     * @param allowBasicFormatting If true, allows safe HTML tags like <b>, <i>, <p>, <br>
+     * @return Sanitized text, or null if input is null
+     */
+    public static String sanitize(String input, boolean allowBasicFormatting) {
+        if (input == null) {
             return null;
         }
-        Field[] fields = getAllFields(dto.getClass());
-        for (Field field : fields) {
-            if (field.getType() == String.class && !(field.get(dto) == null)) {
-                field.setAccessible(true);
-                field.set(dto, sanitize((String) field.get(dto)));
-            }
+
+        Cleaner cleaner = allowBasicFormatting ? BASIC_CLEANER : STRICT_CLEANER;
+
+        // Parse the input as HTML and clean it
+        String cleaned = cleaner.clean(Jsoup.parse(input)).body().html();
+
+        // If strict mode (no formatting), return just the text content
+        if (!allowBasicFormatting) {
+            return Jsoup.parse(cleaned).text();
         }
 
-        return dto;
+        return cleaned;
     }
-
-
-    public static Field[] getAllFields(Class<?> type) {
-        List<Field> fields = new ArrayList<>();
-
-        for (Class<?> c = type; c != null; c = c.getSuperclass()) {
-            fields.addAll(Arrays.asList(c.getDeclaredFields()));
-        }
-
-        return fields.toArray(new Field[0]);
-    }
-
 }
