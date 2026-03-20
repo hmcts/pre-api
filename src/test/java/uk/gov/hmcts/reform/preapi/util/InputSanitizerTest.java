@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.util;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.utils.InputSanitizer;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -10,7 +11,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 public class InputSanitizerTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {"<a>TEST</a>", "<b>TEST</b>", "<i>TEST</i>"})
+    @ValueSource(strings = {"<a>TEST</a>", "<b>TEST</b>", "<i>TEST</i>", "<img src='x' onerror='alert(1)'>TEST</img>",
+        "<svg>TEST</svg>"})
     public void shouldSanitizeHtml(String input) {
         String expectedOutput = "TEST";
         String actualOutput = InputSanitizer.sanitize(input);
@@ -31,12 +33,14 @@ public class InputSanitizerTest {
     }
 
     @Test
-    public void shouldSanitizeLink() {
-        String input = "<a>http://example.com</a>";
-        String expectedOutput = "";
+    public void shouldSanitizeObject() throws IllegalAccessException {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setFirstName("Test");
+        userDTO.setLastName("<b>Test</b>");
 
-        String actualOutput = InputSanitizer.sanitize(input);
+        UserDTO sanitizedUserDTO = (UserDTO) InputSanitizer.sanitizeObject(userDTO);
 
-        assertThat(actualOutput).isEqualTo(expectedOutput);
+        assertThat(sanitizedUserDTO.getFirstName()).isEqualTo("Test");
+        assertThat(sanitizedUserDTO.getLastName()).isEqualTo("Test");
     }
 }
