@@ -32,6 +32,24 @@ class AuditControllerFT extends FunctionalTestBase {
             .isEqualTo("Data is immutable and cannot be changed. Id: " + audit.getId());
     }
 
+    @DisplayName("Should not put an audit with un-sanitised data")
+    @Test
+    void updateAuditFailureWithUnsafeData() throws JsonProcessingException {
+        CreateAuditDTO audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
+        audit.setSource(AuditLogSource.AUTO);
+        audit.setActivity("<script>alert(1)</script>");
+        audit.setFunctionalArea("<img src='x' onerror='alert(1)'>");
+
+        var error = putAudit(audit);
+        assertResponseCode(error, 400);
+        assertThat(error.body().jsonPath().getString("activity"))
+            .contains("potentially malicious content");
+        assertThat(error.body().jsonPath().getString("functionalArea"))
+            .contains("potentially malicious content");
+    }
+
     private Response putAudit(CreateAuditDTO dto) throws JsonProcessingException {
         return doPutRequest(
             AUDIT_ENDPOINT + dto.getId(),
