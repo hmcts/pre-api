@@ -42,7 +42,7 @@ public class CreateEditRequestDTO {
     private Boolean jointlyAgreed;
 
     @Size(max = 512)
-    @SanitizedStringConstraint(message = "rejectionReason contains potentially malicious content")
+    @SanitizedStringConstraint
     @Schema(description = "CreateEditRequestRejectionReason")
     private String rejectionReason;
 
@@ -50,7 +50,7 @@ public class CreateEditRequestDTO {
     private Timestamp approvedAt;
 
     @Size(max = 100)
-    @SanitizedStringConstraint(message = "approvedBy contains potentially malicious content")
+    @SanitizedStringConstraint
     @Schema(description = "CreateEditRequestApprovedBy")
     private String approvedBy;
 }

@@ -48,8 +48,7 @@ public class CreateAuditDTO {
 
     @Schema(description = "AuditDetailsJSONString")
     @JsonRawValue
-    @SanitizedStringConstraint
-    private JsonNode auditDetails; //TODO: How to validate this as annotation cannot work for it
+    private JsonNode auditDetails; //TODO: Needs own validator checking contents is valid JSON and not malicious content
 
     public CreateAuditDTO(Audit auditEntity) {
         this.id = auditEntity.getId();

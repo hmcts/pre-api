@@ -41,6 +41,7 @@ public class CreateInviteDTO {
     protected String organisation;
 
     @Schema(description = "InvitePhone")
+    @SanitizedStringConstraint
     protected String phone; //TODO: add validation for phone number? Safe to add Sanitised here
 }
 
