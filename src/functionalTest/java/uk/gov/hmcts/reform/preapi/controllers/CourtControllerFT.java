@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CourtEmailDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -73,4 +74,21 @@ class CourtControllerFT extends FunctionalTestBase {
         assertThat(updatedCourt.getGroupEmail()).isEqualTo("PRE.Edits.Example@justice.gov.uk");
     }
 
+    @Test
+    @DisplayName("Should not save court that has unsanitised fields")
+    void createCourtWithUnsanitizedFields() throws JsonProcessingException {
+        CreateCourtDTO dto = createCourt();
+        dto.setName("<script>alert('XSS')</script>Rejected");
+        dto.setLocationCode("<img src=x onerror='alert(1)'>");
+        dto.setCounty("<b>Admin User</b>");
+
+         Response response = putCourt(dto);
+         assertResponseCode(response, 400);
+         assertThat(response.body().jsonPath().getString("name"))
+             .contains("potentially malicious content");
+         assertThat(response.body().jsonPath().getString("locationCode"))
+            .contains("potentially malicious content");
+         assertThat(response.body().jsonPath().getString("county"))
+            .contains("potentially malicious content");
+    }
 }

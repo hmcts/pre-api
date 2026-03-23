@@ -118,13 +118,23 @@ class SanitizedStringValidatorTest {
     }
 
     @Test
-    @DisplayName("Should return false for whitespace - JSoup normalizes it to empty string")
+    @DisplayName("Should return true, Jsoup should not consider whitespace as malicious content")
     void validateWhitespace() {
         when(constraint.allowBasicFormatting()).thenReturn(false);
         validator.initialize(constraint);
 
         // JSoup's text() method normalizes whitespace, so "   " becomes ""
-        assertFalse(validator.isValid("   ", context));
+        assertTrue(validator.isValid("   ", context));
+    }
+
+    @Test
+    @DisplayName("Should return true, Jsoup should not consider whitespace as malicious content")
+    void validateWhitespaceInText() {
+        when(constraint.allowBasicFormatting()).thenReturn(false);
+        validator.initialize(constraint);
+
+        // JSoup's text() method normalizes whitespace, so "   " becomes ""
+        assertTrue(validator.isValid(" My  Organisation  is  great ", context));
     }
 }
 
