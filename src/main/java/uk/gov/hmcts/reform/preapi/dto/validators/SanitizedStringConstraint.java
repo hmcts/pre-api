@@ -24,7 +24,7 @@ public @interface SanitizedStringConstraint {
     Class<? extends Payload>[] payload() default {};
 
     /**
-     * Whether to allow basic text formatting (bold, italic, etc.)
+     * Whether to allow basic text formatting (bold, italic, etc.).
      * Default is false (strips all HTML)
      */
     boolean allowBasicFormatting() default false;

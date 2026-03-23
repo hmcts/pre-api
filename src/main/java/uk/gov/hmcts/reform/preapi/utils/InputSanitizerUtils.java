@@ -10,7 +10,8 @@ import org.jsoup.safety.Safelist;
  * Uses JSoup library to parse and clean HTML content.
  */
 @UtilityClass
-public class InputSanitizer {
+@SuppressWarnings({"checkstyle:HideUtilityClassConstructor", "checkstyle:JavadocParagraph"})
+public class InputSanitizerUtils {
 
     // Reuse Cleaner instances for better performance
     private static final Cleaner STRICT_CLEANER = new Cleaner(Safelist.none());
@@ -31,7 +32,7 @@ public class InputSanitizer {
      * Sanitizes input with optional support for basic text formatting.
      *
      * @param input The string to sanitize
-     * @param allowBasicFormatting If true, allows safe HTML tags like <b>, <i>, <p>, <br>
+     * @param allowBasicFormatting If true, allows safe HTML tags like the ones for bold, emphasis, paragraphs etc.
      * @return Sanitized text, or null if input is null
      */
     public static String sanitize(String input, boolean allowBasicFormatting) {

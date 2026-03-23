@@ -2,7 +2,7 @@ package uk.gov.hmcts.reform.preapi.dto.validators;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import uk.gov.hmcts.reform.preapi.utils.InputSanitizer;
+import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 /**
  * Validator that checks if a string contains potentially malicious content.
@@ -25,7 +25,7 @@ public class SanitizedStringValidator implements ConstraintValidator<SanitizedSt
 
         // Check if sanitization would change the string
         // If it changes, it means there was potentially malicious content
-        String sanitized = InputSanitizer.sanitize(value, allowBasicFormatting);
+        String sanitized = InputSanitizerUtils.sanitize(value, allowBasicFormatting);
 
         return value.equals(sanitized);
     }

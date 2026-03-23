@@ -14,7 +14,6 @@ import java.util.UUID;
 /**
  * EXAMPLE DTO showing how to use the @SanitizedStringConstraint annotation
  * to protect against XSS attacks on user-provided string fields.
- *
  * This is a sample/reference implementation - not meant to be used directly.
  */
 @Data
