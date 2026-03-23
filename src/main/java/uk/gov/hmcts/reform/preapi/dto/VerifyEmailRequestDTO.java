@@ -24,6 +24,5 @@ public class VerifyEmailRequestDTO {
     @Schema(description = "VerificationCode")
     @NotBlank
     @Pattern(regexp = "^[0-9]{6}$", message = "invalid verification code")
-    @SanitizedStringConstraint
     private String verificationCode;
 }

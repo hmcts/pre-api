@@ -41,9 +41,11 @@ public class CreateAuditDTO {
     private String category;
 
     @Schema(description = "AuditActivity", examples = {"Create", "Update", "Delete", "Check", "Play", "Locked"})
+    @SanitizedStringConstraint
     private String activity;
 
     @Schema(description = "AuditFunctionalArea", examples = {"Registration", "Login", "Video Player", "API", "Admin"})
+    @SanitizedStringConstraint
     private String functionalArea;
 
     @Schema(description = "AuditDetailsJSONString")
