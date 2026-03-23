@@ -31,10 +31,10 @@ public class CreateCaptureSessionDTO {
     private RecordingOrigin origin;
 
     @Schema(description = "CreateCaptureSessionIngestAddress")
-    private String ingestAddress;
+    private String ingestAddress; //TODO: will sanitise constraint affect?
 
     @Schema(description = "CreateCaptureSessionLiveOutputURL")
-    private String liveOutputUrl;
+    private String liveOutputUrl; //TODO: will sanitise constraint affect?
 
     @Schema(description = "CreateCaptureSessionStartedAt")
     private Timestamp startedAt;

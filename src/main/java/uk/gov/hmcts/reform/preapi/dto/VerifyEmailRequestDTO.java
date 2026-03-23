@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 
 @Data
 @NoArgsConstructor
@@ -23,5 +24,6 @@ public class VerifyEmailRequestDTO {
     @Schema(description = "VerificationCode")
     @NotBlank
     @Pattern(regexp = "^[0-9]{6}$", message = "invalid verification code")
+    @SanitizedStringConstraint
     private String verificationCode;
 }
