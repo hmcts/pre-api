@@ -22,7 +22,7 @@ public class CaptureSessionDTO extends CreateCaptureSessionDTO {
     private Timestamp deletedAt;
 
     @Schema(description = "RecordingParticipants") // todo change this (might be breaking)
-    private String courtName; //TODO: what
+    private String courtName;
 
     @Schema(description = "CaptureSessionCaseState")
     private CaseState caseState;

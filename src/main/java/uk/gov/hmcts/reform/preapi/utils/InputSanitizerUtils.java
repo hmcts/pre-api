@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.utils;
 
 import lombok.experimental.UtilityClass;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Safelist;
 
@@ -30,7 +31,8 @@ public class InputSanitizerUtils {
 
     /**
      * Sanitizes input with optional support for basic text formatting.
-     *
+     * If allowBasicFormatting is true, it allows safe HTML tags
+     * If allowBasicFormatting is false it will strip HTML/Script tags fron input.
      * @param input The string to sanitize
      * @param allowBasicFormatting If true, allows safe HTML tags like the ones for bold, emphasis, paragraphs etc.
      * @return Sanitized text, or null if input is null
@@ -42,14 +44,12 @@ public class InputSanitizerUtils {
 
         Cleaner cleaner = allowBasicFormatting ? BASIC_CLEANER : STRICT_CLEANER;
 
-        // Parse the input as HTML and clean it
-        String cleaned = cleaner.clean(Jsoup.parse(input)).body().html();
-
         // If strict mode (no formatting), return just the text content
         if (!allowBasicFormatting) {
-            return Jsoup.parse(cleaned).text();
+            return Jsoup.clean(input, "", Safelist.none(), new Document.OutputSettings().prettyPrint(false));
         }
 
-        return cleaned;
+        // Parse the input as HTML and clean it
+        return cleaner.clean(Jsoup.parse(input)).body().html();
     }
 }

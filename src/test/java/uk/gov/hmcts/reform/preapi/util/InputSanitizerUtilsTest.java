@@ -9,6 +9,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class InputSanitizerUtilsTest {
 
+    //TODO: Add more unit tests if needed
+
     @ParameterizedTest
     @ValueSource(strings = {"<a>TEST</a>", "<b>TEST</b>", "<i>TEST</i>", "<img src='x' onerror='alert(1)'>TEST</img>",
         "<svg>TEST</svg>"})
