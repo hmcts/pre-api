@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
  * Validates JsonNode keys and string values to prevent malicious content.
  */
 @Documented
-@Constraint(validatedBy = uk.gov.hmcts.reform.preapi.dto.validators.SanitizedJsonNodeValidator.class)
+@Constraint(validatedBy = SanitizedJsonNodeValidator.class)
 @Target({ ElementType.FIELD, ElementType.PARAMETER })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SanitizedJsonNodeConstraint {

@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.utils;
 
-import jakarta.validation.ConstraintValidatorContext;
 import lombok.experimental.UtilityClass;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;

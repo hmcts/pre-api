@@ -110,7 +110,8 @@ public class CourtService {
             Court courtInDb = courtRepository.findFirstByName(court.getName())
                 .orElseThrow(() -> new NotFoundException("Court does not exist: " + court.getName()));
             if (!InputSanitizerUtils.isValid(court.getGroupEmail(), false)) {
-                throw new BadRequestException("Court email may contain potentially malicious content: " + court.getGroupEmail());
+                throw new BadRequestException("Court email may contain potentially malicious content: "
+                                                  + court.getGroupEmail());
             }
             courtInDb.setGroupEmail(court.getGroupEmail());
 

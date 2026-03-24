@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.dto.validators;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.DisplayName;
@@ -91,6 +92,32 @@ class SanitizedJsonNodeValidatorTest {
             """);
 
         assertFalse(validator.isValid(jsonNode, context));
+    }
+
+    @Test
+    @DisplayName("Should return true when value is null")
+    void validateNullNestedValue() throws Exception {
+        var validator = new SanitizedJsonNodeValidator();
+        var context = mock(ConstraintValidatorContext.class);
+        var jsonNode = OBJECT_MAPPER.readTree("""
+            {
+              "details": [
+                {"unsafe": null}
+              ]
+            }
+            """);
+
+        assertTrue(validator.isValid(jsonNode, context));
+    }
+
+    @Test
+    @DisplayName("Should return true when JsonNode is null")
+    void validateNullJsonNodeValue() throws Exception {
+        var validator = new SanitizedJsonNodeValidator();
+        var context = mock(ConstraintValidatorContext.class);
+        JsonNode jsonNode = null;
+
+        assertTrue(validator.isValid(jsonNode, context));
     }
 }
 

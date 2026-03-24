@@ -62,7 +62,8 @@ class AuditControllerFT extends FunctionalTestBase {
         audit.setFunctionalArea("Nice Area");
         JsonNode
             unsafeNode = OBJECT_MAPPER.readTree("{\"test\": \"<script>alert(1)</script>\", "
-                                                    + "\"test2\": {\"nested\": \"<img src='x' onerror='alert(1)'>\"}}}");
+                                                    + "\"test2\": {\"nested\": "
+                                                    + "\"<img src='x' onerror='alert(1)'>\"}}}");
         audit.setAuditDetails(unsafeNode);
 
         var error = putAudit(audit);

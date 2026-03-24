@@ -22,33 +22,41 @@ public class SanitizedJsonNodeValidator implements ConstraintValidator<Sanitized
     }
 
     private boolean isNodeSanitized(JsonNode node) {
-        if (node.isObject()) {
-            for (Map.Entry<String, JsonNode> field : node.properties()) {
-                if (!isSanitized(field.getKey()) || !isNodeSanitized(field.getValue())) {
-                    return false;
-                }
-            }
+        if (node.isNull()) {
             return true;
+        }
+
+        if (node.isObject()) {
+            return isObjectSanitized(node);
         }
 
         if (node.isArray()) {
-            for (JsonNode element : node) {
-                if (!isNodeSanitized(element)) {
-                    return false;
-                }
-            }
-            return true;
+            return isArraySanitized(node);
         }
 
-        if (node.isTextual()) {
-            return isSanitized(node.textValue());
-        }
-
-        return true;
+        return node.isTextual() && isSanitized(node.textValue());
     }
 
     private boolean isSanitized(String value) {
         return value.equals(InputSanitizerUtils.sanitize(value));
+    }
+
+    private boolean isObjectSanitized(JsonNode node) {
+        for (Map.Entry<String, JsonNode> field : node.properties()) {
+            if (!isSanitized(field.getKey()) || !isNodeSanitized(field.getValue())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isArraySanitized(JsonNode node) {
+        for (JsonNode element : node) {
+            if (!isNodeSanitized(element)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 

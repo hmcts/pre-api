@@ -20,7 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CourtControllerFT extends FunctionalTestBase {
 
     private static final String INPUT_CSV_PATH = "src/functionalTest/resources/test/courts/email_addresses.csv";
-    private static final String INPUT_CSV_PATH_UNSAFE = "src/functionalTest/resources/test/courts/email_addresses_unsafe.csv";
+    private static final String INPUT_CSV_PATH_UNSAFE =
+        "src/functionalTest/resources/test/courts/email_addresses_unsafe.csv";
 
     @DisplayName("Scenario: Create and update a court")
     @Test
@@ -117,13 +118,13 @@ class CourtControllerFT extends FunctionalTestBase {
         dto.setLocationCode("<img src=x onerror='alert(1)'>");
         dto.setCounty("<b>Admin User</b>");
 
-         Response response = putCourt(dto);
-         assertResponseCode(response, 400);
-         assertThat(response.body().jsonPath().getString("name"))
-             .contains("potentially malicious content");
-         assertThat(response.body().jsonPath().getString("locationCode"))
+        Response response = putCourt(dto);
+        assertResponseCode(response, 400);
+        assertThat(response.body().jsonPath().getString("name"))
             .contains("potentially malicious content");
-         assertThat(response.body().jsonPath().getString("county"))
+        assertThat(response.body().jsonPath().getString("locationCode"))
+            .contains("potentially malicious content");
+        assertThat(response.body().jsonPath().getString("county"))
             .contains("potentially malicious content");
     }
 }

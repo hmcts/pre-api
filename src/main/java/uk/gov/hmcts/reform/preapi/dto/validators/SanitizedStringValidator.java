@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.dto.validators;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 /**

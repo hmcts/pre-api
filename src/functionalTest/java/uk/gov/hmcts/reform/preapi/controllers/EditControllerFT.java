@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -124,12 +123,12 @@ public class EditControllerFT extends FunctionalTestBase {
         assertResponseCode(postResponse, 400);
     }
 
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     @Test
     @DisplayName("Should not create an edit request with unsafe data in fields")
     void editRequestWithUnsafeData() throws JsonProcessingException {
         UUID editRequestId = UUID.randomUUID();
         CreateRecordingResponse recordingDetails = createRecording();
-        RecordingDTO recordingDTO = assertRecordingExists(recordingDetails.recordingId(), true).as(RecordingDTO.class);
 
         CreateEditRequestDTO editRequestDTO = new CreateEditRequestDTO();
         editRequestDTO.setSourceRecordingId(recordingDetails.recordingId());
@@ -143,6 +142,7 @@ public class EditControllerFT extends FunctionalTestBase {
         editCutInstructionDTOS.add(cutInstruction1);
         editRequestDTO.setEditInstructions(editCutInstructionDTOS);
 
+        RecordingDTO recordingDTO = assertRecordingExists(recordingDetails.recordingId(), true).as(RecordingDTO.class);
         when(azureFinalStorageService.getMp4FileName(recordingDetails.recordingId().toString()))
             .thenReturn(recordingDTO.getFilename());
         when(azureFinalStorageService.getRecordingDuration(recordingDetails.recordingId()))
