@@ -26,7 +26,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-@Slf4j
 public class EditControllerFT extends FunctionalTestBase {
     private static final String VALID_EDIT_CSV = "src/functionalTest/resources/test/edit/edit_from_csv.csv";
     private static final String UNSAFE_EDIT_CSV = "src/functionalTest/resources/test/edit/edit_from_csv_unsafe.csv";
