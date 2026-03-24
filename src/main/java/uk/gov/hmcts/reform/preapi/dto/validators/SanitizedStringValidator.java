@@ -18,16 +18,8 @@ public class SanitizedStringValidator implements ConstraintValidator<SanitizedSt
         this.allowBasicFormatting = constraint.allowBasicFormatting();
     }
 
-    @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        if (value == null) {
-            return true;
-        }
-
-        // Check if sanitization would change the string
-        // If it changes, it means there was potentially malicious content
-        String sanitized = InputSanitizerUtils.sanitize(value, allowBasicFormatting);
-        return value.equals(sanitized);
+        return InputSanitizerUtils.isValid(value, allowBasicFormatting);
     }
 }
 

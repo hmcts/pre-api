@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.utils;
 
+import jakarta.validation.ConstraintValidatorContext;
 import lombok.experimental.UtilityClass;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -51,5 +52,16 @@ public class InputSanitizerUtils {
 
         // Parse the input as HTML and clean it
         return cleaner.clean(Jsoup.parse(input)).body().html();
+    }
+
+    public static boolean isValid(String value, boolean allowBasicFormatting) {
+        if (value == null) {
+            return true;
+        }
+
+        // Check if sanitization would change the string
+        // If it changes, it means there was potentially malicious content
+        String sanitized = InputSanitizerUtils.sanitize(value, allowBasicFormatting);
+        return value.equals(sanitized);
     }
 }

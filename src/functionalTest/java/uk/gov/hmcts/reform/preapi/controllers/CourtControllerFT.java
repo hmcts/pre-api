@@ -75,7 +75,7 @@ class CourtControllerFT extends FunctionalTestBase {
     }
 
     @Test
-    @DisplayName("Should not save court that has unsanitised fields")
+    @DisplayName("Should not save court that has unsafe data in fields")
     void createCourtWithUnsanitizedFields() throws JsonProcessingException {
         CreateCourtDTO dto = createCourt();
         dto.setName("<script>alert('XSS')</script>Rejected");

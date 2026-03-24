@@ -42,6 +42,7 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -300,6 +301,11 @@ public class EditRequestService {
         dto.setSourceRecordingId(sourceRecordingId);
         dto.setEditInstructions(parseCsv(file));
         dto.setStatus(EditRequestStatus.PENDING);
+        dto.getEditInstructions().forEach(editInstruction -> {
+            if(!InputSanitizerUtils.isValid(editInstruction.getReason(), false)) {
+                throw new BadRequestException("Edit instruction reason potentially contains malicious code: " + editInstruction.getReason());
+            }
+        });
 
         upsert(dto);
 
