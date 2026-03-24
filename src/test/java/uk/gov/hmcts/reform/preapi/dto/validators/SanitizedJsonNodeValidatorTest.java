@@ -102,7 +102,7 @@ class SanitizedJsonNodeValidatorTest {
         var jsonNode = OBJECT_MAPPER.readTree("""
             {
               "details": [
-                {"unsafe": null}
+                {"safe": null}
               ]
             }
             """);

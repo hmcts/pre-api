@@ -60,7 +60,7 @@ public class InputSanitizerUtils {
 
         // Check if sanitization would change the string
         // If it changes, it means there was potentially malicious content
-        String sanitized = InputSanitizerUtils.sanitize(value, allowBasicFormatting);
+        String sanitized = sanitize(value, allowBasicFormatting);
         return value.equals(sanitized);
     }
 }

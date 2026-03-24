@@ -17,6 +17,7 @@ public class SanitizedStringValidator implements ConstraintValidator<SanitizedSt
         this.allowBasicFormatting = constraint.allowBasicFormatting();
     }
 
+    @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
         return InputSanitizerUtils.isValid(value, allowBasicFormatting);
     }
