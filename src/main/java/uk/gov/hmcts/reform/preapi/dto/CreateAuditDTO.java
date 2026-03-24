@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedJsonNodeConstraint;
 import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
@@ -50,7 +51,8 @@ public class CreateAuditDTO {
 
     @Schema(description = "AuditDetailsJSONString")
     @JsonRawValue
-    private JsonNode auditDetails; //TODO: Needs own validator checking contents is valid JSON and not malicious content
+    @SanitizedJsonNodeConstraint
+    private JsonNode auditDetails;
 
     public CreateAuditDTO(Audit auditEntity) {
         this.id = auditEntity.getId();
