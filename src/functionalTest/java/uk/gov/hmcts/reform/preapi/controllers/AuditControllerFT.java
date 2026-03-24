@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,26 @@ class AuditControllerFT extends FunctionalTestBase {
         assertThat(error.body().jsonPath().getString("activity"))
             .contains("potentially malicious content");
         assertThat(error.body().jsonPath().getString("functionalArea"))
+            .contains("potentially malicious content");
+    }
+
+    @DisplayName("Should not put an audit with un-sanitised audit details JSON")
+    @Test
+    void updateAuditFailureWithUnsafeAuditDetailsData() throws JsonProcessingException {
+        CreateAuditDTO audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
+        audit.setSource(AuditLogSource.AUTO);
+        audit.setActivity("Nice Activity");
+        audit.setFunctionalArea("Nice Area");
+        JsonNode
+            unsafeNode = OBJECT_MAPPER.readTree("{\"test\": \"<script>alert(1)</script>\", "
+                                                    + "\"test2\": {\"nested\": \"<img src='x' onerror='alert(1)'>\"}}}");
+        audit.setAuditDetails(unsafeNode);
+
+        var error = putAudit(audit);
+        assertResponseCode(error, 400);
+        assertThat(error.getBody().asPrettyString())
             .contains("potentially malicious content");
     }
 

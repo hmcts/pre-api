@@ -76,5 +76,21 @@ class SanitizedJsonNodeValidatorTest {
 
         assertFalse(validator.isValid(jsonNode, context));
     }
+
+    @Test
+    @DisplayName("Should return false when nested value contains malicious content")
+    void validateUnsafeDoubleNestedValue() throws Exception {
+        var validator = new SanitizedJsonNodeValidator();
+        var context = mock(ConstraintValidatorContext.class);
+        var jsonNode = OBJECT_MAPPER.readTree("""
+            {
+              "details": [
+                {"unsafe": {"ok": {"yes": "<img src=x onerror='alert(1)'>"}}}
+              ]
+            }
+            """);
+
+        assertFalse(validator.isValid(jsonNode, context));
+    }
 }
 

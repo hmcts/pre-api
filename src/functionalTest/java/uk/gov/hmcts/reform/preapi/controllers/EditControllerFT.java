@@ -156,7 +156,7 @@ public class EditControllerFT extends FunctionalTestBase {
         );
 
         assertResponseCode(postResponse, 400);
-//        assertThat(postResponse.getBody().)
-//            .contains("potentially malicious content");
+        assertThat(postResponse.getBody().asPrettyString())
+            .contains("potentially malicious content");
     }
 }

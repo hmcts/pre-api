@@ -17,10 +17,12 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
+import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -107,6 +109,9 @@ public class CourtService {
             }
             Court courtInDb = courtRepository.findFirstByName(court.getName())
                 .orElseThrow(() -> new NotFoundException("Court does not exist: " + court.getName()));
+            if (!InputSanitizerUtils.isValid(court.getGroupEmail(), false)) {
+                throw new BadRequestException("Court email may contain potentially malicious content: " + court.getGroupEmail());
+            }
             courtInDb.setGroupEmail(court.getGroupEmail());
 
             courtRepository.save(courtInDb);

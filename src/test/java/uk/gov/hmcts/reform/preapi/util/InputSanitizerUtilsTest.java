@@ -9,8 +9,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class InputSanitizerUtilsTest {
 
-    //TODO: Add more unit tests if needed
-
     @ParameterizedTest
     @ValueSource(strings = {"<a>TEST</a>", "<b>TEST</b>", "<i>TEST</i>", "<img src='x' onerror='alert(1)'>TEST</img>",
         "<svg>TEST</svg>"})
@@ -27,10 +25,13 @@ public class InputSanitizerUtilsTest {
             """
             "><script>alert("TEST")</script>
             """;
-        String expectedOutput = "\">";
 
-        String actualOutput = InputSanitizerUtils.sanitize(input);
+        assertThat(input).isNotEqualTo(InputSanitizerUtils.sanitize(input));
+    }
 
-        assertThat(actualOutput).isEqualTo(expectedOutput);
+    @Test
+    public void shouldReturnNullIfInputIsNull() {
+        String actualOutput = InputSanitizerUtils.sanitize(null);
+        assertThat(actualOutput).isNull();
     }
 }

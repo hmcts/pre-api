@@ -38,7 +38,7 @@ public class InputSanitizerUtils {
      * @param allowBasicFormatting If true, allows safe HTML tags like the ones for bold, emphasis, paragraphs etc.
      * @return Sanitized text, or null if input is null
      */
-    public static String sanitize(String input, boolean allowBasicFormatting) {
+    private static String sanitize(String input, boolean allowBasicFormatting) {
         if (input == null) {
             return null;
         }

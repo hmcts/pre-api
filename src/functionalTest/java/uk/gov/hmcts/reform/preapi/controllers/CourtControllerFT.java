@@ -7,10 +7,12 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CourtEmailDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.List;
+import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CourtControllerFT extends FunctionalTestBase {
 
     private static final String INPUT_CSV_PATH = "src/functionalTest/resources/test/courts/email_addresses.csv";
+    private static final String INPUT_CSV_PATH_UNSAFE = "src/functionalTest/resources/test/courts/email_addresses_unsafe.csv";
 
     @DisplayName("Scenario: Create and update a court")
     @Test
@@ -72,6 +75,38 @@ class CourtControllerFT extends FunctionalTestBase {
                              )));
 
         assertThat(updatedCourt.getGroupEmail()).isEqualTo("PRE.Edits.Example@justice.gov.uk");
+    }
+
+    @Test
+    @DisplayName("Should not update court email addresses from a csv file if unsafe data")
+    void updateCourtEmailAddressesFromCsvUnsafeData() throws JsonProcessingException {
+
+        // create courts
+        var regionId = doPostRequest("/testing-support/create-region", null)
+            .body().jsonPath().getUUID("regionId");
+
+        var dto = new CreateCourtDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setName("Examples Court");
+        dto.setCourtType(CourtType.CROWN);
+        dto.setRegions(List.of(regionId));
+        dto.setLocationCode("113456789");
+
+        var createResponse = putCourt(dto);
+        assertResponseCode(createResponse, 201);
+        var courtResponse1 = assertCourtExists(dto.getId(), true);
+        assertThat(courtResponse1.body().jsonPath().getString("name")).isEqualTo(dto.getName());
+
+        Response postResponse = doPostRequestWithMultipart(
+            COURTS_ENDPOINT + "/email",
+            MULTIPART_HEADERS,
+            INPUT_CSV_PATH_UNSAFE,
+            TestingSupportRoles.SUPER_USER
+        );
+
+        assertResponseCode(postResponse, 400);
+        assertThat(postResponse.getBody().asPrettyString())
+            .contains("potentially malicious content");
     }
 
     @Test
