@@ -1,28 +1,10 @@
 package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 
-import java.util.Map;
-
 public class EditingJointlyAgreed extends BaseTemplate {
-
-    public EditingJointlyAgreed(String to,
-                                String caseReference,
-                                int editCount,
-                                String courtName,
-                                String witnessName,
-                                String defendantNames,
-                                String editSummary,
-                                String portalUrl) {
+    public EditingJointlyAgreed(EmailParameters emailParameters) {
         super(
-            to,
-            Map.of(
-                "case_reference", caseReference,
-                "edit_count", editCount,
-                "court_name", courtName,
-                "witness_name", witnessName,
-                "defendant_names", defendantNames,
-                "edit_summary", editSummary,
-                "portal_link", portalUrl
-            )
+            emailParameters.getToEmailAddress(),
+            emailParameters.getEmailParameterMap()
         );
     }
 

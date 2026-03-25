@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailParameters;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
@@ -162,56 +163,29 @@ public class EditRequestProcessingService {
     }
 
     @Transactional
-    public void updateEditRequestStatus(UUID id, EditRequestStatus updatedStatus) {
-        EditRequest existing = editRequestRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+    public void updateEditRequestStatus(UUID editRequestId, EditRequestStatus updatedStatus) {
+        EditRequest editRequest = editRequestRepository.findById(editRequestId)
+            .orElseThrow(() -> new NotFoundException("Edit Request: " + editRequestId));
 
-        if (existing.getStatus() == EditRequestStatus.DRAFT && updatedStatus == EditRequestStatus.SUBMITTED) {
-            if (existing.getEditCutInstructions().isEmpty()) {
+        if (editRequest.getStatus() == EditRequestStatus.DRAFT && updatedStatus == EditRequestStatus.SUBMITTED) {
+            if (editRequest.getEditCutInstructions().isEmpty()) {
                 throw new BadRequestException("Cannot submit edit request with empty instructions");
             }
         }
+        editRequest.setStatus(updatedStatus);
 
-        RecordingDTO sourceRecording = recordingService.findById(existing.getSourceRecordingId());
-        if (sourceRecording == null) {
-            throw new NotFoundException("Unable to send email: could not find source recording "
-                                            + existing.getSourceRecordingId());
+        if (updatedStatus == EditRequestStatus.PROCESSING) {
+            editRequest.setStartedAt(Timestamp.from(Instant.now()));
         }
 
-        String courtEmailAddress = findCourtEmailAddress(sourceRecording);
-
-        existing.setStatus(updatedStatus);
-        switch (updatedStatus) {
-            case SUBMITTED -> {
-                editNotificationService.onEditRequestSubmitted(courtEmailAddress, sourceRecording);
-            }
-            case REJECTED -> editNotificationService.onEditRequestRejected(courtEmailAddress, sourceRecording);
-            case PROCESSING -> existing.setStartedAt(Timestamp.from(Instant.now()));
-            case ERROR, COMPLETE -> existing.setFinishedAt(Timestamp.from(Instant.now()));
-            default -> {
-            }
+        if (updatedStatus == EditRequestStatus.COMPLETE || updatedStatus == EditRequestStatus.ERROR) {
+            editRequest.setFinishedAt(Timestamp.from(Instant.now()));
         }
-        editRequestRepository.save(existing);
+        editRequestRepository.save(editRequest);
+
+        editNotificationService.editRequestStatusWasUpdated(editRequest);
     }
 
-    private String findCourtEmailAddress(RecordingDTO outputRecording) {
-        UUID bookingId = outputRecording.getCaptureSession().getBookingId();
-        BookingDTO booking = bookingService.findById(bookingId);
-
-        if (booking == null) {
-            throw new NotFoundException("No booking with id " + bookingId);
-        }
-
-        String courtEmailAddress = booking.getCaseDTO().getCourt().getGroupEmail();
-
-        if (courtEmailAddress.isBlank()) {
-            log.error("Court {} does not have a group email for sending edit request submission email for request: {}",
-                      booking.getCaseDTO().getCourt().getId(), outputRecording.getEditRequest().getId());
-            return "";
-        }
-
-        return courtEmailAddress;
-    }
 
     private void validateEditInstructions(final RecordingDTO recordingDTO) {
         if (recordingDTO == null) {
