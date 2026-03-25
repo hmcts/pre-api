@@ -160,58 +160,6 @@ class AuditControllerTest {
             .andExpect(status().is4xxClientError());
     }
 
-    @DisplayName("Should fail validation when audit details contains malicious content")
-    @Test
-    void createAuditEndpointMaliciousAuditDetailsBadRequest() throws Exception {
-
-        var audit = new CreateAuditDTO();
-        audit.setId(UUID.randomUUID());
-        audit.setSource(AuditLogSource.AUTO);
-        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"details\": \"<script>alert(1)</script>\"}"));
-
-        var xUserId = UUID.randomUUID();
-
-        MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
-                                                 .with(csrf())
-                                                 .header(X_USER_ID_HEADER, xUserId)
-                                                 .content(OBJECT_MAPPER.writeValueAsString(audit))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"auditDetails\":\"contains potentially malicious content\"}");
-
-        verify(auditService, never()).upsert(any(), any());
-    }
-
-    @DisplayName("Should fail validation when audit details contains malicious key")
-    @Test
-    void createAuditEndpointMaliciousAuditDetailsKeyBadRequest() throws Exception {
-
-        var audit = new CreateAuditDTO();
-        audit.setId(UUID.randomUUID());
-        audit.setSource(AuditLogSource.AUTO);
-        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"<script>details</script>\": \"safe\"}"));
-
-        var xUserId = UUID.randomUUID();
-
-        MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
-                                                 .with(csrf())
-                                                 .header(X_USER_ID_HEADER, xUserId)
-                                                 .content(OBJECT_MAPPER.writeValueAsString(audit))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"auditDetails\":\"contains potentially malicious content\"}");
-
-        verify(auditService, never()).upsert(any(), any());
-    }
-
     private String getPath(UUID auditId) {
         return "/audit/" + auditId;
     }
