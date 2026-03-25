@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,7 +13,6 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -140,7 +138,6 @@ public class InviteController extends PreApiController {
     }
 
     @PostMapping("/redeem")
-    @Validated
     @Operation(operationId = "redeemInvite", summary = "Redeem an invite")
     @Parameter(
         name = "email",
@@ -148,7 +145,7 @@ public class InviteController extends PreApiController {
         example = "example@example.com",
         schema = @Schema(implementation = String.class)
     )
-    public ResponseEntity<Void> redeemInvite(@RequestParam @Email String email) {
+    public ResponseEntity<Void> redeemInvite(@RequestParam String email) {
         return getUpsertResponse(inviteService.redeemInvite(email), null);
     }
 }
