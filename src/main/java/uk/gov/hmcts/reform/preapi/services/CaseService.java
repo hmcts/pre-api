@@ -161,7 +161,8 @@ public class CaseService {
                             + createCaseDTO.getState());
                 }
 
-                if (editRequestRepository.existsByCaseIdAndIsIncomplete(createCaseDTO.getId())) {
+                List<UUID> casesWithIncompleteEdits = editRequestRepository.getCaseIdsWithIncompleteEdits();
+                if (!casesWithIncompleteEdits.isEmpty() && casesWithIncompleteEdits.contains(createCaseDTO.getId())) {
                     throw new ResourceInWrongStateException(
                         "Resource Case("
                             + createCaseDTO.getId()
