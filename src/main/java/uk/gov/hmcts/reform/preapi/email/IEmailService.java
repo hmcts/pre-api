@@ -1,6 +1,6 @@
 package uk.gov.hmcts.reform.preapi.email;
 
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailParameters;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
@@ -21,9 +21,5 @@ public interface IEmailService {
 
     EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode);
 
-    EmailResponse editingJointlyAgreed(EmailParameters emailParameters);
-
-    EmailResponse editingNotJointlyAgreed(EmailParameters emailParameters);
-
-    EmailResponse editingRejected(EmailParameters emailParameters);
+    EmailResponse sendEmailAboutEditingRequest(EditEmailParameters editEmailParameters);
 }

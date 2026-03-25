@@ -8,8 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
-import uk.gov.hmcts.reform.preapi.email.IEmailService;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailParameters;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
@@ -48,47 +47,22 @@ public class EditNotificationService {
             .orElseThrow(() -> new NotFoundException("Unable to send email: could not find source recording "
                                                          + editRequest.getSourceRecordingId()));
 
-
         if (sourceRecording.getEditRequest() == null) {
             throw new ResourceInWrongStateException(format(
                 "Unable to send email: source recording %s did not have an active edit request",
                 sourceRecording.getId()));
         }
 
-        switch (sourceRecording.getEditRequest().getStatus()) {
-            case SUBMITTED -> {
-                onEditRequestSubmitted(sourceRecording);
-            }
-            case REJECTED -> onEditRequestRejected(sourceRecording);
-        }
-    }
-
-    private void onEditRequestSubmitted(Recording outputRecording) {
-        EmailParameters emailParameters = getEmailParameters(outputRecording);
+        EditEmailParameters editEmailParameters = getEmailParameters(sourceRecording);
 
         try {
-            IEmailService enabledEmailService = emailServiceFactory.getEnabledEmailService();
-
-            if (Boolean.TRUE.equals(emailParameters.getJointlyAgreed())) {
-                enabledEmailService.editingJointlyAgreed(emailParameters);
-            } else {
-                enabledEmailService.editingNotJointlyAgreed(emailParameters);
-            }
+            emailServiceFactory.getEnabledEmailService().sendEmailAboutEditingRequest(editEmailParameters);
         } catch (Exception e) {
             log.error("Error sending email on edit request submission: {}", e.getMessage());
         }
     }
 
-    private void onEditRequestRejected(Recording outputRecording) {
-        EmailParameters emailParameters = getEmailParameters(outputRecording);
-        try {
-            emailServiceFactory.getEnabledEmailService().editingRejected(emailParameters);
-        } catch (Exception e) {
-            log.error("Error sending email on edit request rejection: {}", e.getMessage());
-        }
-    }
-
-    private @NotNull EmailParameters getEmailParameters(Recording outputRecording) {
+    private @NotNull EditEmailParameters getEmailParameters(Recording outputRecording) {
         EditRequest editRequest = outputRecording.getEditRequest();
         if (editRequest == null) {
             throw new NotFoundException("No edit request found when trying to send notification");
@@ -110,7 +84,7 @@ public class EditNotificationService {
 
         String editSummary = generateEditSummary(EditRequestDTO.toDTO(editRequest.getEditCutInstructions()));
 
-        return EmailParameters.builder()
+        return EditEmailParameters.builder()
             .toEmailAddress(courtEmailAddress)
             .caseReference(booking.getCaseId().getReference())
             .witnessName(booking.getWitnessName())

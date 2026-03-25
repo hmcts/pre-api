@@ -10,7 +10,7 @@ import java.util.Map;
 @Getter
 @Setter
 @Builder(toBuilder = true)
-public class EmailParameters {
+public class EditEmailParameters {
     private EditRequestStatus editRequestStatus;
     private String toEmailAddress; // court group email
     private String witnessName;

@@ -10,10 +10,8 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.templates.BaseTemplate;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditingJointlyAgreed;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditingNotJointlyAgreed;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditingRejection;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailParameters;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditRequestStatusChanged;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailVerification;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
@@ -155,43 +153,15 @@ public class GovNotify implements IEmailService {
     }
 
     @Override
-    public EmailResponse editingJointlyAgreed(EmailParameters emailParameters) {
-        EditingJointlyAgreed template = new EditingJointlyAgreed(emailParameters);
+    public EmailResponse sendEmailAboutEditingRequest(EditEmailParameters editEmailParameters) {
+        EditRequestStatusChanged template = new EditRequestStatusChanged(editEmailParameters);
 
-        String to = emailParameters.getToEmailAddress();
+        String to = editEmailParameters.getToEmailAddress();
         try {
-            log.info("Edit request jointly agreed email sent to {}", to);
+            log.info("Edit request {} email sent to {}", template.getEditingEmailType(), to);
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
         } catch (NotificationClientException e) {
-            log.error("Failed to send edit request jointly agreed email to {}", to, e);
-            throw new EmailFailedToSendException(to, e);
-        }
-    }
-
-    @Override
-    public EmailResponse editingNotJointlyAgreed(EmailParameters emailParameters) {
-        EditingNotJointlyAgreed template = new EditingNotJointlyAgreed(emailParameters);
-
-        String to = emailParameters.getToEmailAddress();
-        try {
-            log.info("Edit request not jointly agreed email sent to {}", to);
-            return EmailResponse.fromGovNotifyResponse(sendEmail(template));
-        } catch (NotificationClientException e) {
-            log.error("Failed to send edit request not jointly agreed email to {}", to, e);
-            throw new EmailFailedToSendException(to, e);
-        }
-    }
-
-    @Override
-    public EmailResponse editingRejected(EmailParameters emailParameters) {
-        EditingRejection template = new EditingRejection(emailParameters);
-
-        String to = emailParameters.getToEmailAddress();
-        try {
-            log.info("Edit request rejection email sent to {}", to);
-            return EmailResponse.fromGovNotifyResponse(sendEmail(template));
-        } catch (NotificationClientException e) {
-            log.error("Failed to send edit request rejection email to {}", to, e);
+            log.error("Failed to send edit request {} email to {}", template.getEditingEmailType(), to, e);
             throw new EmailFailedToSendException(to, e);
         }
     }
