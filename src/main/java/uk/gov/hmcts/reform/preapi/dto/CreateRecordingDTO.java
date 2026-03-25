@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.util.UUID;
@@ -35,6 +36,11 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
         filename = recording.getFilename();
         duration = recording.getDuration();
         editInstructions = recording.getEditInstruction();
+
+        if (recording.getEditRequest() != null) {
+            editRequest = new EditRequestDTO(recording.getEditRequest());
+            editStatus = recording.getEditRequest().getStatus();
+        }
     }
 
     public CreateRecordingDTO(RecordingDTO recordingDTO) {
@@ -45,6 +51,8 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
         version = recordingDTO.getVersion();
         filename = recordingDTO.getFilename();
         duration = recordingDTO.getDuration();
+        editRequest = recordingDTO.getEditRequest();
+        editStatus = recordingDTO.getEditStatus();
         editInstructions = recordingDTO.getEditInstructions();
     }
 }

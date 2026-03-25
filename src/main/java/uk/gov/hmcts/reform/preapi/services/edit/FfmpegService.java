@@ -1,11 +1,13 @@
-package uk.gov.hmcts.reform.preapi.media.edit;
+package uk.gov.hmcts.reform.preapi.services.edit;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.component.CommandExecutor;
-import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -47,64 +49,68 @@ public class FfmpegService implements IEditingService {
         this.commandExecutor = commandExecutor;
     }
 
+    // Change this to accept a recording with embedded edit request
     @Override
-    public void performEdit(UUID newRecordingId, EditRequest request) {
-        String inputFileName = request.getSourceRecording().getFilename();
+    public void performEdit(UUID newRecordingId, RecordingDTO recording) {
+        String inputFileName = recording.getFilename();
         if (inputFileName == null) {
             throw new NotFoundException("No file name provided");
         }
 
         String outputFileName = newRecordingId + ".mp4";
-        performCommandsForEdit(request, newRecordingId, inputFileName, outputFileName);
-    }
 
-    @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
-    private void performCommandsForEdit(final EditRequest request,
-                                        final UUID newRecordingId,
-                                        final String inputFileName,
-                                        final String outputFileName) {
         final List<String> filesToDelete = new ArrayList<>();
         filesToDelete.add(inputFileName);
         filesToDelete.add(outputFileName);
-        final Map<String, CommandLine> commands = generateMultiEditCommands(request, inputFileName, outputFileName);
 
-        downloadInputFile(request, inputFileName);
+        final Map<String, CommandLine> commands = generateMultiEditCommands(newRecordingId, outputFileName, recording);
+
+        downloadInputFile(recording.getEditRequest(), inputFileName);
         try {
-            // single command
-            if (commands.size() == 1) {
-                runFfmpegCommand(
-                    request.getId(),
-                    commands.get(outputFileName),
-                    inputFileName,
-                    outputFileName,
-                    filesToDelete
-                );
-                uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
-                cleanup(filesToDelete);
-                return;
-            }
-
-            final long ffmpegStart = System.currentTimeMillis();
-
-            // multi-command
-            commands.forEach((segmentFileName, command) -> {
-                filesToDelete.add(segmentFileName);
-                runFfmpegCommand(request.getId(), command, inputFileName, segmentFileName, filesToDelete);
-            });
-
-            // concat segments
-            generateConcatListFile(commands.keySet(), CONCAT_FILENAME);
-            filesToDelete.add(CONCAT_FILENAME);
-            final CommandLine concatCommand = generateConcatCommand(CONCAT_FILENAME, outputFileName);
-            runFfmpegConcatCommand(request.getId(), concatCommand, outputFileName);
-
-            final long ffmpegEnd = System.currentTimeMillis();
-            log.info("All ffmpeg commands completed in {} ms", ffmpegEnd - ffmpegStart);
-
-            uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
+            runFfmpegCommandsWithFilenames(
+                recording.getEditRequest().getId(), newRecordingId, inputFileName, outputFileName,
+                commands, filesToDelete
+            );
         } finally {
             cleanup(filesToDelete);
         }
+    }
+
+    private void runFfmpegCommandsWithFilenames(UUID requestId, UUID newRecordingId, String inputFileName,
+                                                String outputFileName, Map<String, CommandLine> commands,
+                                                List<String> filesToDelete) {
+        // single command
+        if (commands.size() == 1) {
+            runFfmpegCommand(
+                requestId,
+                commands.get(outputFileName),
+                inputFileName,
+                outputFileName,
+                filesToDelete
+            );
+            uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
+            cleanup(filesToDelete);
+            return;
+        }
+
+        final long ffmpegStart = System.currentTimeMillis();
+
+        // multi-command
+        commands.forEach((segmentFileName, command) -> {
+            filesToDelete.add(segmentFileName);
+            runFfmpegCommand(requestId, command, inputFileName, segmentFileName, filesToDelete);
+        });
+
+        // concat segments
+        generateConcatListFile(commands.keySet());
+        filesToDelete.add(CONCAT_FILENAME);
+        final CommandLine concatCommand = generateConcatCommand(CONCAT_FILENAME, outputFileName);
+        runFfmpegConcatCommand(requestId, concatCommand, outputFileName);
+
+        final long ffmpegEnd = System.currentTimeMillis();
+        log.info("All ffmpeg commands completed in {} ms", ffmpegEnd - ffmpegStart);
+
+        uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
     }
 
     private void runFfmpegCommand(final UUID requestId,
@@ -181,13 +187,35 @@ public class FfmpegService implements IEditingService {
         }
     }
 
-    protected CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
-                                                    final String inputFileName,
-                                                    final String outputFileName) {
+    private record FfmpegEditInstruction(long start, long end) {
+    }
+
+    private List<FfmpegEditInstruction> invertInstructions(final List<EditCutInstructionsDTO> instructions,
+                                                           final long recordingDuration) {
+        long currentTime = 0L;
+        List<FfmpegEditInstruction> invertedInstructions = new ArrayList<>();
+
+        for (EditCutInstructionsDTO instruction : instructions) {
+            if (currentTime < instruction.getStart()) {
+                invertedInstructions.add(new FfmpegEditInstruction(currentTime, instruction.getStart()));
+            }
+            currentTime = Math.max(currentTime, instruction.getEnd());
+        }
+
+        if (currentTime != recordingDuration) {
+            invertedInstructions.add(new FfmpegEditInstruction(currentTime, recordingDuration));
+        }
+
+        return invertedInstructions;
+    }
+
+    private CommandLine generateSingleEditCommand(final FfmpegEditInstruction instruction,
+                                                  final String inputFileName,
+                                                  final String outputFileName) {
         return new CommandLine("ffmpeg")
             .addArgument("-y")
-            .addArgument("-ss").addArgument(String.valueOf(instruction.getStart()))
-            .addArgument("-to").addArgument(String.valueOf(instruction.getEnd()))
+            .addArgument("-ss").addArgument(String.valueOf(instruction.start()))
+            .addArgument("-to").addArgument(String.valueOf(instruction.end()))
             .addArgument("-i").addArgument(inputFileName)
             .addArgument("-c").addArgument("copy")
             .addArgument("-avoid_negative_ts").addArgument("1")
@@ -207,42 +235,45 @@ public class FfmpegService implements IEditingService {
             .addArgument(outputFileName);
     }
 
-    @SuppressWarnings({"PMD.AvoidLiteralsInIfCondition", "PMD.LooseCoupling"})
-    protected LinkedHashMap<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
-                                                                           final String inputFileName,
-                                                                           final String outputFileName) {
-        EditInstructions instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
+    private LinkedHashMap<String, CommandLine> generateMultiEditCommands(final UUID newRecordingId,
+                                                                         final String outputFileName,
+                                                                         final RecordingDTO recording) {
+        List<EditCutInstructionsDTO> rawEditInstructions = recording.getEditRequest().getEditInstructions();
 
-        if (instructions.getFfmpegInstructions() == null
-            || instructions.getFfmpegInstructions().isEmpty()) {
-            throw new UnknownServerException("Malformed edit instructions");
-        }
+        long recordingDuration = recording.getDuration().toSeconds();
+        List<FfmpegEditInstruction> ffmpegEditInstructions = invertInstructions(rawEditInstructions, recordingDuration);
 
-        if (instructions.getFfmpegInstructions().size() == 1) {
-            FfmpegEditInstructionDTO instruction = instructions.getFfmpegInstructions().getFirst();
+        if (ffmpegEditInstructions.size() == 1) {
+            FfmpegEditInstruction instruction = ffmpegEditInstructions.getFirst();
             return new LinkedHashMap<>(Map.of(
                 outputFileName,
-                generateSingleEditCommand(instruction, inputFileName, outputFileName)));
+                generateSingleEditCommand(instruction, recording.getFilename(), outputFileName)
+            ));
         }
 
-        return IntStream.range(0, instructions.getFfmpegInstructions().size())
+        return IntStream.range(0, ffmpegEditInstructions.size())
             .mapToObj(i -> {
-                FfmpegEditInstructionDTO instruction = instructions.getFfmpegInstructions().get(i);
                 String segmentFileName = String.format("%d_segment.mp4", i);
-                return Map.entry(segmentFileName,
-                                 generateSingleEditCommand(instruction, inputFileName, segmentFileName));
+                return Map.entry(
+                    segmentFileName,
+                    generateSingleEditCommand(ffmpegEditInstructions.get(i), recording.getFilename(), segmentFileName)
+                );
             })
-            .collect(Collectors.toMap(Map.Entry::getKey,
-                                      Map.Entry::getValue,
-                                      (e1, e2) -> e1,
-                                      LinkedHashMap::new));
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (e1, e2) -> e1,
+                LinkedHashMap::new
+            ));
     }
 
-    protected void generateConcatListFile(final Set<String> segmentFiles, final String outputPath) {
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputPath),
-                                                             StandardCharsets.UTF_8,
-                                                             StandardOpenOption.CREATE,
-                                                             StandardOpenOption.TRUNCATE_EXISTING)) {
+    protected void generateConcatListFile(final Set<String> segmentFiles) {
+        try (BufferedWriter writer = Files.newBufferedWriter(
+            Paths.get(FfmpegService.CONCAT_FILENAME),
+            StandardCharsets.UTF_8,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING
+        )) {
             for (String file : segmentFiles) {
                 writer.write("file '" + file + "'");
                 writer.newLine();
@@ -252,11 +283,11 @@ public class FfmpegService implements IEditingService {
         }
     }
 
-    private void downloadInputFile(final EditRequest request,
+    private void downloadInputFile(final EditRequestDTO request,
                                    final String inputFileName) {
         final long downloadStart = System.currentTimeMillis();
         if (!azureFinalStorageService
-            .downloadBlob(request.getSourceRecording().getId().toString(), inputFileName, inputFileName)) {
+            .downloadBlob(request.getSourceRecordingId().toString(), inputFileName, inputFileName)) {
             throw new UnknownServerException("Error occurred when attempting to download file: " + inputFileName);
         }
         final long downloadEnd = System.currentTimeMillis();

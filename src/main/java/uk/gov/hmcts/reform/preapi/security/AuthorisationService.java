@@ -146,7 +146,7 @@ public class AuthorisationService {
         }
         try {
             EditRequest request = editRequestRepository.findByIdNotLocked(id).orElse(null);
-            return request == null || hasRecordingAccess(authentication, request.getSourceRecording().getId());
+            return request == null || hasRecordingAccess(authentication, request.getSourceRecordingId());
         } catch (Exception e) {
             return false;
         }

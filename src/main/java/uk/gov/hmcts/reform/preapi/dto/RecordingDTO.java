@@ -52,12 +52,6 @@ public class RecordingDTO extends BaseRecordingDTO {
     @Schema(description = "RecordingTotalVersionCount")
     private int totalVersionCount;
 
-    @Schema(description = "RecordingEditRequest")
-    private EditRequestDTO editRequest;
-
-    @Schema(description = "RecordingEditStatus")
-    private EditRequestStatus editStatus;
-
     public RecordingDTO(Recording recording) {
         super();
         id = recording.getId();

@@ -58,4 +58,6 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
         AND (e.status != 'COMPLETE')
         """)
     boolean existsBySourceRecordingIdAndIsIncomplete(@Param("sourceRecordingId") UUID sourceRecordingId);
+
+    Optional<EditRequest> findFirstBySourceRecordingIdIs(UUID sourceRecordingId);
 }

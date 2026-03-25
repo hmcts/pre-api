@@ -113,7 +113,7 @@ public class EditController extends PreApiController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_3')")
-    public ResponseEntity<Void> upsertEditRequest(
+    public ResponseEntity<EditRequestDTO> upsertEditRequest(
         @PathVariable("id") UUID id,
         @Valid @RequestBody EditRequestDTO createEditRequestDTO
     ) {
@@ -121,7 +121,7 @@ public class EditController extends PreApiController {
             throw new PathPayloadMismatchException("editRequestId", "createEditRequestDTO.id");
         }
 
-        return getUpsertResponse(editRequestService.upsert(createEditRequestDTO), id);
+        return ResponseEntity.ok(editRequestService.upsert(createEditRequestDTO));
     }
 
     @DeleteMapping("/{id}")

@@ -14,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -80,7 +79,7 @@ public class EditRequestDTO {
         this.id = editRequest.getId();
         this.sourceRecordingId = editRequest.getSourceRecordingId();
         this.outputRecordingId = editRequest.getOutputRecordingId();
-        this.editInstructions = editInstructionsFromDTO(editRequest.getEditCutInstructions());
+        this.editInstructions = toDTO(editRequest.getEditCutInstructions());
         this.status = editRequest.getStatus();
         this.startedAt = editRequest.getStartedAt();
         this.finishedAt = editRequest.getFinishedAt();
@@ -94,10 +93,18 @@ public class EditRequestDTO {
         this.approvedBy = editRequest.getApprovedBy();
     }
 
-    public static List<EditCutInstructionsDTO> editInstructionsFromDTO(List<EditCutInstructions> editInstructions) {
+    public static List<EditCutInstructionsDTO> toDTO(List<EditCutInstructions> editInstructions) {
         if (editInstructions == null) {
             return null;
         }
         return editInstructions.stream().map(EditCutInstructionsDTO::new).collect(Collectors.toList());
     }
+
+    public static List<EditCutInstructions> fromDTO(List<EditCutInstructionsDTO> editInstructions) {
+        if (editInstructions == null) {
+            return null;
+        }
+        return editInstructions.stream().map(EditCutInstructions::new).collect(Collectors.toList());
+    }
+
 }

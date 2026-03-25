@@ -96,10 +96,6 @@ public class EditRequest extends CreatedModifiedAtEntity {
         return details;
     }
 
-    public void setEditCutInstructions(@NotNull List<EditCutInstructions> editCutInstructions) {
-        this.editCutInstructions = editCutInstructions;
-    }
-
     public String getEditCutInstructionsAsJson() {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
