@@ -9,8 +9,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.util.UUID;
 
@@ -24,24 +22,6 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
     @Schema(description = "RecordingCaptureSessionId")
     @NotNull(message = "capture_session_id is required")
     protected UUID captureSessionId;
-
-    public CreateRecordingDTO(Recording recording) {
-        super();
-        id = recording.getId();
-        captureSessionId = recording.getCaptureSession().getId();
-        if (recording.getParentRecording() != null) {
-            parentRecordingId = recording.getParentRecording().getId();
-        }
-        version = recording.getVersion();
-        filename = recording.getFilename();
-        duration = recording.getDuration();
-        editInstructions = recording.getEditInstruction();
-
-        if (recording.getEditRequest() != null) {
-            editRequest = new EditRequestDTO(recording.getEditRequest());
-            editStatus = recording.getEditRequest().getStatus();
-        }
-    }
 
     public CreateRecordingDTO(RecordingDTO recordingDTO) {
         super();

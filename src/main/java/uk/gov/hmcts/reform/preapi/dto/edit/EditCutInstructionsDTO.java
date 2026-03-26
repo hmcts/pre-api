@@ -6,6 +6,7 @@ import com.opencsv.bean.CsvBindByName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.Builder;
 import lombok.Data;
 import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 import static java.lang.String.format;
 
+@Builder(toBuilder = true)
 @Data
 @Schema(description = "EditCutInstructionsDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)

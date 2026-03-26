@@ -46,6 +46,10 @@ public class EditRequestService {
     }
 
     public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
+        params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
+
         return editRequestCrudService.findAll(params, pageable);
     }
 

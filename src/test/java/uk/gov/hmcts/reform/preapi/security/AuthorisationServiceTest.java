@@ -10,7 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -857,7 +857,7 @@ public class AuthorisationServiceTest {
     @Test
     @DisplayName("Should grant upsert access when the user has access to recording for edit requests")
     void hasUpsertAccessEditRequest() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setSourceRecordingId(UUID.randomUUID());
 
         when(authenticationUser.isAdmin()).thenReturn(true);
@@ -893,9 +893,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should grant access edit request access when has access to source recording")
     void hasEditRequestAccessHasRecordingAccess() {
         var id = UUID.randomUUID();
-        var recording = new Recording();
         var editRequest = new EditRequest();
-        editRequest.setSourceRecording(recording);
 
         when(authenticationUser.isAdmin()).thenReturn(false);
         when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.of(editRequest));

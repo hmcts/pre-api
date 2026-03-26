@@ -5,8 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
@@ -22,7 +20,6 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.EditCutInstructionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.ArrayList;
@@ -63,10 +60,6 @@ public class EditRequestCrudService {
 
     @Transactional
     public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
-        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
-        params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
-
         return editRequestRepository
             .searchAllBy(params, pageable)
             .map(EditRequestDTO::new);
@@ -99,7 +92,7 @@ public class EditRequestCrudService {
         if (mostRecentEditRequest.isEmpty()) {
             // Deliberately allow new (draft) edit request with empty instructions
             // However, edit requests cannot be *submitted* with empty instructions
-            return createEditRequest(user, originalRecording, new ArrayList<>());
+            return createEditRequest(user, originalRecording, EditRequestDTO.fromDTO(dto.getEditInstructions()));
         }
 
         // A non-draft edit request exists; create a new one with previous instructions attached
@@ -108,6 +101,9 @@ public class EditRequestCrudService {
             return createEditRequest(user, originalRecording, mostRecentEditRequest.get().getEditCutInstructions());
         }
 
+        // Draft edit request exists: delete all current instructions and replace with updated instructions
+        // In practice these might be identical
+        // We might prefer to do an actual upsert on these to preserve edit instruction creation time and createdBy info?
         editCutInstructionsRepository.deleteAll(mostRecentEditRequest.get().getEditCutInstructions());
         editCutInstructionsRepository.saveAll(fromDTO(dto.getEditInstructions()));
 

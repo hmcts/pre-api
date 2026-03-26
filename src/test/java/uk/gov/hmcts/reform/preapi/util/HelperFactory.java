@@ -228,6 +228,20 @@ public class HelperFactory {
         return termsAccepted;
     }
 
+    public static EditRequest createSimpleEditRequest(UUID id,
+                                                UUID sourceRecordingId,
+                                                List<EditCutInstructions> editInstructions,
+                                                EditRequestStatus status,
+                                                User createdBy){
+        EditRequest editRequest = new EditRequest();
+        editRequest.setId(id);
+        editRequest.setSourceRecordingId(sourceRecordingId);
+        editRequest.setEditCutInstructions(editInstructions);
+        editRequest.setStatus(status);
+        editRequest.setCreatedBy(createdBy);
+        return editRequest;
+    }
+
     public static EditRequest createEditRequest(UUID id,
                                                 UUID sourceRecordingId,
                                                 List<EditCutInstructions> editInstructions,
@@ -239,12 +253,7 @@ public class HelperFactory {
                                                 @Nullable String rejectionReason,
                                                 @Nullable Timestamp approvedAt,
                                                 @Nullable String approvedBy) {
-        var editRequest = new EditRequest();
-        editRequest.setId(id);
-        editRequest.setSourceRecordingId(sourceRecordingId);
-        editRequest.setEditCutInstructions(editInstructions);
-        editRequest.setStatus(status);
-        editRequest.setCreatedBy(createdBy);
+        EditRequest editRequest = createSimpleEditRequest(id, sourceRecordingId, editInstructions, status, createdBy);
         editRequest.setStartedAt(startedAt);
         editRequest.setFinishedAt(finishedAt);
         editRequest.setJointlyAgreed(jointlyAgreed);

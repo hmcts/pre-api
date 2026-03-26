@@ -46,7 +46,6 @@ public class EditRequestProcessingService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
     private final EditNotificationService editNotificationService;
-    private final BookingService bookingService;
 
     @Autowired
     public EditRequestProcessingService(final EditRequestRepository editRequestRepository,
@@ -55,8 +54,7 @@ public class EditRequestProcessingService {
                                         final AzureIngestStorageService azureIngestStorageService,
                                         final AzureFinalStorageService azureFinalStorageService,
                                         final MediaServiceBroker mediaServiceBroker,
-                                        final EditNotificationService editNotificationService,
-                                        final BookingService bookingService) {
+                                        final EditNotificationService editNotificationService) {
         this.editRequestRepository = editRequestRepository;
         this.editingService = editingService;
         this.recordingService = recordingService;
@@ -64,7 +62,6 @@ public class EditRequestProcessingService {
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
         this.editNotificationService = editNotificationService;
-        this.bookingService = bookingService;
     }
 
     @Transactional(noRollbackFor = Exception.class)
@@ -183,7 +180,6 @@ public class EditRequestProcessingService {
 
         editNotificationService.editRequestStatusWasUpdated(editRequest);
     }
-
 
     private void validateEditInstructions(final RecordingDTO recordingDTO) {
         if (recordingDTO == null) {

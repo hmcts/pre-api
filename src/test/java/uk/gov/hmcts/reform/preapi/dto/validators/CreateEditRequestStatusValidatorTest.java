@@ -3,7 +3,7 @@ package uk.gov.hmcts.reform.preapi.dto.validators;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
@@ -27,7 +27,7 @@ public class CreateEditRequestStatusValidatorTest {
 
     @Test
     public void isValidStatusNullTrue() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setStatus(null);
         var context = mock(ConstraintValidatorContext.class);
 
@@ -36,7 +36,7 @@ public class CreateEditRequestStatusValidatorTest {
 
     @Test
     public void isValidRejectedRejectionReasonNullFalse() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setStatus(EditRequestStatus.REJECTED);
         dto.setRejectionReason(null);
         var context = mock(ConstraintValidatorContext.class);
@@ -56,7 +56,7 @@ public class CreateEditRequestStatusValidatorTest {
 
     @Test
     public void isValidRejectedRejectionReasonNotNullTrue() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setStatus(EditRequestStatus.REJECTED);
         dto.setRejectionReason("Reason");
         var context = mock(ConstraintValidatorContext.class);
@@ -66,7 +66,7 @@ public class CreateEditRequestStatusValidatorTest {
 
     @Test
     public void isValidSubmittedJointlyAgreedNullFalse() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setStatus(EditRequestStatus.SUBMITTED);
         dto.setJointlyAgreed(null);
         var context = mock(ConstraintValidatorContext.class);
@@ -86,7 +86,7 @@ public class CreateEditRequestStatusValidatorTest {
 
     @Test
     public void isValidSubmittedJointlyAgreedNotNullTrue() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setStatus(EditRequestStatus.SUBMITTED);
         dto.setJointlyAgreed(true);
         var context = mock(ConstraintValidatorContext.class);
@@ -96,7 +96,7 @@ public class CreateEditRequestStatusValidatorTest {
 
     @Test
     public void isValidApprovedApprovedAtNullFalse() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setStatus(EditRequestStatus.APPROVED);
         dto.setApprovedAt(null);
         var context = mock(ConstraintValidatorContext.class);
@@ -116,7 +116,7 @@ public class CreateEditRequestStatusValidatorTest {
 
     @Test
     public void isValidApprovedApprovedByNullFalse() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setStatus(EditRequestStatus.APPROVED);
         dto.setApprovedAt(Timestamp.from(Instant.now()));
         dto.setApprovedBy(null);
@@ -137,7 +137,7 @@ public class CreateEditRequestStatusValidatorTest {
 
     @Test
     public void isValidApprovedAllFieldsNotNullTrue() {
-        var dto = new CreateEditRequestDTO();
+        var dto = new EditRequestDTO();
         dto.setStatus(EditRequestStatus.APPROVED);
         dto.setApprovedAt(Timestamp.from(Instant.now()));
         dto.setApprovedBy("Someone");

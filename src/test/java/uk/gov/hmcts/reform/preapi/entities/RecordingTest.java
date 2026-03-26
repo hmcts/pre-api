@@ -1,10 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
-import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Duration;

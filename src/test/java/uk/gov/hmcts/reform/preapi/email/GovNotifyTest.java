@@ -306,7 +306,7 @@ public class GovNotifyTest {
         request.setJointlyAgreed(true);
 
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
-        var response = govNotify.editingJointlyAgreed("group-email@example.com", request);
+        var response = govNotify.editingEmail("group-email@example.com", request);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -479,7 +479,7 @@ public class GovNotifyTest {
 
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
         var message = assertThrows(EmailFailedToSendException.class,
-                                   () -> govNotify.editingJointlyAgreed(getCase().getCourt().getGroupEmail(), request))
+                                   () -> govNotify.editingEmail(getCase().getCourt().getGroupEmail(), request))
             .getMessage();
 
         assertThat(message).isEqualTo("Failed to send email to: " + getCase().getCourt().getGroupEmail());

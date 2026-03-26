@@ -87,5 +87,29 @@ public class EditRequestDTOTest {
         assertThat(dto.getSourceRecordingId()).isEqualTo(editRequest.getSourceRecordingId());
     }
 
+    @Test
+    @DisplayName("Should convert list of instructions to and from DTO")
+    void testConvertListOfInstructionsToAndFromDTO() {
+        EditCutInstructions firstEditInstructions = new EditCutInstructions(editRequest.getId(), 300, 500, "first edit");
+        EditCutInstructions secondEditInstructions = new EditCutInstructions(editRequest.getId(), 600, 750, "second edit");
+        List<EditCutInstructions> nonDto = List.of(firstEditInstructions, secondEditInstructions);
+
+        List<EditCutInstructionsDTO> dtoList = EditRequestDTO.toDTO(nonDto);
+
+        assertThat(dtoList.size()).isEqualTo(nonDto.size());
+
+        assertThat(dtoList.getFirst().getReason()).isEqualTo(nonDto.getFirst().getReason());
+        assertThat(dtoList.getFirst().getStart()).isEqualTo(nonDto.getFirst().getStart());
+        assertThat(dtoList.getFirst().getEnd()).isEqualTo(nonDto.getFirst().getEnd());
+
+        assertThat(dtoList.get(1).getReason()).isEqualTo(nonDto.get(1).getReason());
+        assertThat(dtoList.get(1).getStart()).isEqualTo(nonDto.get(1).getStart());
+        assertThat(dtoList.get(1).getEnd()).isEqualTo(nonDto.get(1).getEnd());
+
+        List<EditCutInstructions> convertedBackFromDto = EditRequestDTO.fromDTO(dtoList);
+
+        assertThat(convertedBackFromDto).isEqualTo(nonDto);
+    }
+
 }
 
