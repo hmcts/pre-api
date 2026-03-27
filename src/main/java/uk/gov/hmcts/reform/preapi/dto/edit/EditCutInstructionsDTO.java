@@ -109,6 +109,23 @@ public class EditCutInstructionsDTO {
         }
     }
 
+    public EditCutInstructionsDTO(UUID editRequestId, LocalTime startTime, LocalTime endTime, String reason,
+                                  Integer start, Integer end) {
+        try {
+            this.editRequestId = editRequestId;
+            this.startOfCut = startTime;
+            this.endOfCut = endTime;
+            this.reason = reason;
+            this.start = start;
+            this.end = end;
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new BadRequestException(format("Invalid time format: %s. Must be in the form HH:MM:SS",
+                                                 e.getParsedString()));
+        } catch (java.lang.NullPointerException e) {
+            throw new BadRequestException("Invalid time format: null. Must be in the form HH:MM:SS");
+        }
+    }
+
     public EditCutInstructionsDTO(EditCutInstructions editCutInstructions) {
         this.editRequestId = editCutInstructions.getEditRequestId();
 

@@ -37,7 +37,7 @@ public class EditRequestFromCsv {
         EditRequestDTO dto = new EditRequestDTO();
         dto.setId(id);
         dto.setSourceRecordingId(sourceRecordingId);
-        dto.setEditInstructions(parseCsv(file));
+        dto.setEditCutInstructions(parseCsv(file));
         dto.setStatus(EditRequestStatus.PENDING);
 
         editRequestCrudService.createOrUpsertDraftEditRequestInstructions(dto, user);
