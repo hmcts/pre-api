@@ -119,7 +119,7 @@ public class EditRequestProcessingService {
         editRequestRepository.save(editRequest);
 
         // For edited recordings, notification is sent by RecordingListener instead
-        if (updatedStatus != EditRequestStatus.COMPLETE) {
+        if (updatedStatus != EditRequestStatus.DRAFT && updatedStatus != EditRequestStatus.COMPLETE) {
             editNotificationService.editRequestStatusWasUpdated(editRequest);
         }
     }

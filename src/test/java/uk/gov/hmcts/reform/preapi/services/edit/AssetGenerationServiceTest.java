@@ -142,9 +142,8 @@ public class AssetGenerationServiceTest {
         ).getMessage();
         assertThat(message)
             .isEqualTo("Unknown Server Exception: Failed to generate asset for edit request: "
-                           + originalRecordingId
-                           + ", new recording: "
-                           + newRecordingId);
+                           + "source recording: " + originalRecordingId
+                           + ", new recording: " + newRecordingId);
 
         verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
         verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);

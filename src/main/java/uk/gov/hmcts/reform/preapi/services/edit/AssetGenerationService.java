@@ -15,6 +15,8 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
 import java.util.UUID;
 
+import static java.lang.String.format;
+
 @Service
 @Slf4j
 public class AssetGenerationService {
@@ -25,8 +27,8 @@ public class AssetGenerationService {
 
     @Autowired
     public AssetGenerationService(final AzureIngestStorageService azureIngestStorageService,
-                                        final AzureFinalStorageService azureFinalStorageService,
-                                        final MediaServiceBroker mediaServiceBroker) {
+                                  final AzureFinalStorageService azureFinalStorageService,
+                                  final MediaServiceBroker mediaServiceBroker) {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
@@ -57,10 +59,11 @@ public class AssetGenerationService {
             .importAsset(generateAssetDto, false);
 
         if (!result.getJobStatus().equals(JobState.FINISHED.toString())) {
-            throw new UnknownServerException("Failed to generate asset for edit request: source recording:"
-                                                 + sourceRecordingId
-                                                 + ", new recording: "
-                                                 + newRecordingId);
+            throw new UnknownServerException(format(
+                "Failed to generate asset for edit request: " +
+                    "source recording: %s, new recording: %s",
+                sourceRecordingId, newRecordingId
+            ));
         }
         azureIngestStorageService.markContainerAsSafeToDelete(sourceContainer);
         return azureFinalStorageService.getMp4FileName(newRecordingId.toString());

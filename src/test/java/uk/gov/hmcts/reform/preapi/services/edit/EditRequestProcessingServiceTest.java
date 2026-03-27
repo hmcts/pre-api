@@ -11,6 +11,8 @@ import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
@@ -37,6 +39,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO.toDTO;
 
 @SpringBootTest(classes = EditRequestProcessingService.class)
 public class EditRequestProcessingServiceTest {
@@ -68,6 +71,9 @@ public class EditRequestProcessingServiceTest {
     @MockitoBean
     private EditRequest mockEditRequest;
 
+    @MockitoBean
+    private EditRequestDTO mockEditRequestDto;
+
     @Autowired
     private EditRequestProcessingService underTest;
 
@@ -95,6 +101,11 @@ public class EditRequestProcessingServiceTest {
         instructions.add(new EditCutInstructions(UUID.randomUUID(), 10, 20, "reason"));
         when(mockEditRequest.getEditCutInstructions()).thenReturn(instructions);
         when(editRequestRepository.findById(mockEditRequestId)).thenReturn(Optional.of(mockEditRequest));
+
+        when(mockEditRequestDto.getId()).thenReturn(mockEditRequestId);
+        when(mockEditRequestDto.getSourceRecordingId()).thenReturn(mockRecordingId);
+        when(mockEditRequestDto.getEditCutInstructions()).thenReturn(toDTO(instructions));
+        when(mockRecordingDTO.getEditRequest()).thenReturn(mockEditRequestDto);
     }
 
     @Test
@@ -299,13 +310,14 @@ public class EditRequestProcessingServiceTest {
     @DisplayName("Should not perform edit for non-existent edit instructions")
     void prepareForAndPerformEdit() {
         when(mockRecording.getEditRequest()).thenReturn(null);
+        when(mockRecording.getEditInstruction()).thenReturn(null);
 
         assertThrows(
                 BadRequestException.class,
                 () -> underTest.prepareForAndPerformEdit(mockEditRequest)
         );
 
-        verify(recordingService.findById(mockRecordingId));
+        verify(recordingService, times(1)).findById(mockRecordingId);
         verifyNoMoreInteractions(recordingService);
         verifyNoMoreInteractions(editNotificationService);
         verifyNoMoreInteractions(recordingService);
@@ -380,7 +392,6 @@ public class EditRequestProcessingServiceTest {
     void validateInstructionsBadRequestEndLTStart() {
         List<EditCutInstructions> instructions = new ArrayList<>();
         instructions.add(new EditCutInstructions(UUID.randomUUID(), 60, 50, "reason"));
-        when(mockEditRequest.getEditCutInstructions()).thenReturn(instructions);
 
         var message = assertThrows(
                 BadRequestException.class,

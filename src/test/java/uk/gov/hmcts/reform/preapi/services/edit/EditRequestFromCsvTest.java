@@ -64,7 +64,6 @@ public class EditRequestFromCsvTest {
             PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
         );
 
-
         underTest.upsert(sourceRecordingId, file, mockUser);
 
         ArgumentCaptor<EditRequestDTO> savedEditRequest = ArgumentCaptor.forClass(EditRequestDTO.class);

@@ -1,12 +1,16 @@
 package uk.gov.hmcts.reform.preapi.services.edit;
 
+import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
@@ -35,8 +39,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = EditRequestService.class)
+@SpringBootTest(classes = EditRequestCrudService.class)
 public class EditRequestCrudServiceTest {
+
     @MockitoBean
     private EditRequestRepository editRequestRepository;
 
@@ -61,34 +66,49 @@ public class EditRequestCrudServiceTest {
     @MockitoBean
     private User mockUser;
 
+    @Captor
+    private ArgumentCaptor<List<EditCutInstructions>> instructionsCaptor;
+
     @Autowired
     private EditRequestCrudService underTest;
 
     private static final UUID mockEditRequestId = UUID.randomUUID();
     private static final UUID mockRecordingId = UUID.randomUUID();
 
+    private static final EditCutInstructions editInstructions = new EditCutInstructions(
+        UUID.randomUUID(), 10, 20, "reason");
+
     @BeforeEach
     void setup() {
+        when(mockUser.getId()).thenReturn(UUID.randomUUID());
+
+        // recording
         when(mockRecording.getId()).thenReturn(mockRecordingId);
         when(mockRecording.getDuration()).thenReturn(Duration.ofMinutes(3));
         when(mockRecording.getFilename()).thenReturn("filename");
         when(mockRecording.getVersion()).thenReturn(1);
+        when(mockRecording.getEditRequest()).thenReturn(mockEditRequest);
         when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId)).thenReturn(Optional.of(mockRecording));
 
+        // edit request
         when(mockEditRequest.getId()).thenReturn(mockEditRequestId);
-        when(mockEditRequestDTO.getId()).thenReturn(mockEditRequestId);
+        when(mockEditRequest.getCreatedBy()).thenReturn(mockUser);
         when(mockEditRequest.getSourceRecordingId()).thenReturn(mockRecordingId);
         when(editRequestRepository.findById(mockEditRequestId)).thenReturn(Optional.of(mockEditRequest));
+        when(editRequestRepository.findByIdNotLocked(mockEditRequestId)).thenReturn(Optional.of(mockEditRequest));
         when(editRequestRepository.findFirstBySourceRecordingIdIs(mockRecordingId))
             .thenReturn(Optional.of(mockEditRequest));
 
-        EditCutInstructions editInstructions = new EditCutInstructions(
-            UUID.randomUUID(),
-            10, 20, "reason"
-        );
 
         when(mockEditRequest.getEditCutInstructions()).thenReturn(List.of(editInstructions));
-    }
+
+        // dto
+        when(mockEditRequestDTO.getId()).thenReturn(mockEditRequestId);
+        when(mockEditRequestDTO.getSourceRecordingId()).thenReturn(mockRecordingId);
+
+        List<EditCutInstructionsDTO> dtoList = EditRequestDTO.toDTO(List.of(editInstructions));
+        when(mockEditRequestDTO.getEditCutInstructions()).thenReturn(dtoList);
+    }/**/
 
     @Test
     @DisplayName("Should return edit request when it exists")
@@ -136,13 +156,13 @@ public class EditRequestCrudServiceTest {
     }
 
     @Test
-    @DisplayName("Should delete edit request")
+    @DisplayName("Should be able to delete edit request")
     void deleteEditRequestSuccess() {
         when(editRequestRepository.findById(mockEditRequestId)).thenReturn(Optional.of(mockEditRequest));
 
         underTest.delete(mockEditRequestDTO);
 
-        verify(editRequestRepository, times(0)).delete(mockEditRequest);
+        verify(editRequestRepository, times(1)).delete(mockEditRequest);
     }
 
     @Test
@@ -166,7 +186,7 @@ public class EditRequestCrudServiceTest {
         ).getMessage();
 
         assertThat(message)
-            .isEqualTo("Source Recording: " + mockRecordingId);
+            .isEqualTo("Not found: Source Recording: " + mockRecordingId);
     }
 
     @Test
@@ -188,13 +208,21 @@ public class EditRequestCrudServiceTest {
     void createNewEditRequestSuccess() {
         when(editRequestRepository.findFirstBySourceRecordingIdIs(mockRecordingId)).thenReturn(Optional.empty());
 
+        underTest.createOrUpsertDraftEditRequestInstructions(mockEditRequestDTO, mockUser);
+
         ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
         verify(editRequestRepository, times(1)).save(captor.capture());
 
         assertThat(captor.getValue().getCreatedBy()).isEqualTo(mockUser);
         assertThat(captor.getValue().getStatus()).isEqualTo(EditRequestStatus.DRAFT);
         assertThat(captor.getValue().getSourceRecordingId()).isEqualTo(mockRecordingId);
-        assertThat(captor.getValue().getEditCutInstructions()).isEqualTo(List.of());
+
+        EditCutInstructions firstInsertedInstruction = captor.getValue().getEditCutInstructions().getFirst();
+        EditCutInstructions firstExpectedInstruction = mockEditRequest.getEditCutInstructions().getFirst();
+        assertThat(firstInsertedInstruction.getEditRequestId()).isEqualTo(firstExpectedInstruction.getEditRequestId());
+        assertThat(firstInsertedInstruction.getReason()).isEqualTo(firstExpectedInstruction.getReason());
+        assertThat(firstInsertedInstruction.getEnd()).isEqualTo(firstExpectedInstruction.getEnd());
+        assertThat(firstInsertedInstruction.getStart()).isEqualTo(firstExpectedInstruction.getStart());
     }
 
     @Test
@@ -202,18 +230,22 @@ public class EditRequestCrudServiceTest {
     void insertNewEditRequestIfNoExistingDraftSuccess() {
         when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PENDING);
 
+        underTest.createOrUpsertDraftEditRequestInstructions(mockEditRequestDTO, mockUser);
+
         ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
         verify(editRequestRepository, times(1)).save(captor.capture());
 
         assertThat(captor.getValue().getCreatedBy()).isEqualTo(mockUser);
         assertThat(captor.getValue().getStatus()).isEqualTo(EditRequestStatus.DRAFT);
         assertThat(captor.getValue().getSourceRecordingId()).isEqualTo(mockRecordingId);
-        assertThat(captor.getValue().getEditCutInstructions()).isEqualTo(List.of());
+        assertThat(captor.getValue().getEditCutInstructions()).isEqualTo(mockEditRequest.getEditCutInstructions());
     }
 
     @Test
     @DisplayName("Upserts existing edit request if a draft exists")
     void upsertExistingDraftSuccess() {
+        underTest.createOrUpsertDraftEditRequestInstructions(mockEditRequestDTO, mockUser);
+
         ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
         verify(editRequestRepository, times(1)).save(captor.capture());
 
@@ -229,8 +261,10 @@ public class EditRequestCrudServiceTest {
         when(editRequestRepository.findFirstBySourceRecordingIdIs(mockRecordingId)).thenReturn(Optional.empty());
         when(mockRecording.getVersion()).thenReturn(3);
 
+        UUID parentId = UUID.randomUUID();
         Recording mockParentRecording = mock(Recording.class);
         when(mockRecording.getParentRecording()).thenReturn(mockParentRecording);
+        when(mockParentRecording.getId()).thenReturn(parentId);
 
         String message = assertThrows(
             BadRequestException.class,
@@ -240,26 +274,60 @@ public class EditRequestCrudServiceTest {
         assertThat(message).isEqualTo(
             "Can only perform edits on original recording (Version 1). "
                 + "Recording %s is version %d. Perhaps you need parent recording %s?",
-            mockRecordingId, 3, any(UUID.class)
-        );
+            mockRecordingId, 3, parentId);
     }
 
     @Test
     @DisplayName("Should be able to delete edit instructions for *existing* draft edit request")
     void validateEditInstructionsIsEmpty() {
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.DRAFT);
         when(mockEditRequest.getEditCutInstructions()).thenReturn(List.of());
 
-        EditRequestDTO result = underTest.createOrUpsertDraftEditRequestInstructions(
+        underTest.createOrUpsertDraftEditRequestInstructions(
             mockEditRequestDTO,
             mockUser
         );
 
-        assertThat(result).isEqualTo(mockEditRequestDTO);
+        ArgumentCaptor<UUID> captor = ArgumentCaptor.forClass(UUID.class);
+        verify(editCutInstructionsRepository, times(1))
+            .refreshInstructionsForDraftEditOnRecording(captor.capture(), instructionsCaptor.capture());
 
-        ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
-        verify(editRequestRepository, times(1)).save(captor.capture());
-        assertThat(captor.getValue().getEditCutInstructions()).isEmpty();
+        assertThat(captor.getValue()).isEqualTo(mockRecordingId);
+
+        List<EditCutInstructions> inserted = instructionsCaptor.getValue();
+        assertThat(inserted).hasSize(1);
+        assertThat(inserted.getFirst().getEditRequestId()).isEqualTo(editInstructions.getEditRequestId());
+        assertThat(inserted.getFirst().getStart()).isEqualTo(editInstructions.getStart());
+        assertThat(inserted.getFirst().getEnd()).isEqualTo(editInstructions.getEnd());
+        assertThat(inserted.getFirst().getReason()).isEqualTo(editInstructions.getReason());
+
+    }
+
+    @Test
+    @DisplayName("Should be able to update edit instructions for *existing* draft edit request")
+    void validateEditInstructionsForDraftSuccess() {
+        when(mockEditRequestDTO.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+        when(editRequestRepository.findFirstBySourceRecordingIdIs(mockRecordingId))
+            .thenReturn(Optional.of(mockEditRequest));
+
+        underTest.createOrUpsertDraftEditRequestInstructions(
+            mockEditRequestDTO,
+            mockUser
+        );
+
+        ArgumentCaptor<UUID> captor = ArgumentCaptor.forClass(UUID.class);
+        verify(editCutInstructionsRepository, times(1))
+            .refreshInstructionsForDraftEditOnRecording(captor.capture(), instructionsCaptor.capture());
+
+        assertThat(captor.getValue()).isEqualTo(mockRecordingId);
+
+        List<EditCutInstructions> inserted = instructionsCaptor.getValue();
+        assertThat(inserted).hasSize(1);
+        assertThat(inserted.getFirst().getEditRequestId()).isEqualTo(editInstructions.getEditRequestId());
+        assertThat(inserted.getFirst().getStart()).isEqualTo(editInstructions.getStart());
+        assertThat(inserted.getFirst().getEnd()).isEqualTo(editInstructions.getEnd());
+        assertThat(inserted.getFirst().getReason()).isEqualTo(editInstructions.getReason());
     }
 
 

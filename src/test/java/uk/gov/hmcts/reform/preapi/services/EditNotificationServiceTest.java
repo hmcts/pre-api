@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
@@ -36,6 +37,7 @@ import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -199,7 +201,26 @@ class EditNotificationServiceTest {
         assertThat(emailParameters.getNumberOfRequestedEditInstructions())
             .isEqualTo(mockEditRequest.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
-        assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
+        assertThat(emailParameters.getEditSummary()).isEqualTo("""
+                                                                   Edit 1:\s
+                                                                   Start time: 00:00
+                                                                   End time: 00:00:30
+                                                                   Time Removed: 00:00:30
+                                                                   Reason: first thirty seconds reason
+
+                                                                   Edit 2:\s
+                                                                   Start time: 00:00:45
+                                                                   End time: 00:00:50
+                                                                   Time Removed: 00:00:05
+                                                                   Reason: first thirty seconds reason
+
+                                                                   Edit 3:\s
+                                                                   Start time: 00:01:01
+                                                                   End time: 00:02
+                                                                   Time Removed: 00:00:59
+                                                                   Reason:\s
+
+                                                                   """);
         assertThat(emailParameters.getRejectionReason()).isEqualTo(null);
         assertThat(emailParameters.getJointlyAgreed()).isEqualTo(true);
     }
@@ -254,6 +275,7 @@ class EditNotificationServiceTest {
     @Test
     void testEditRequestRejected() {
         when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.REJECTED);
+        when(mockEditRequest.getRejectionReason()).thenReturn("rejected reason");
 
         underTest.editRequestStatusWasUpdated(mockEditRequest);
 
@@ -263,7 +285,7 @@ class EditNotificationServiceTest {
 
         EditEmailParameters emailParameters = captor.getValue();
 
-        assertThat(emailParameters.getEditRequestStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
+        assertThat(emailParameters.getEditRequestStatus()).isEqualTo(EditRequestStatus.REJECTED);
         assertThat(emailParameters.getToEmailAddress()).isEqualTo(testEmail);
         assertThat(emailParameters.getWitnessName()).isEqualTo(witnessParticipant.getFirstName());
         assertThat(emailParameters.getDefendantName())
@@ -272,18 +294,43 @@ class EditNotificationServiceTest {
         assertThat(emailParameters.getNumberOfRequestedEditInstructions())
             .isEqualTo(mockEditRequest.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
-        assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
-        assertThat(emailParameters.getRejectionReason()).isEqualTo("I didn't like it");
+        assertThat(emailParameters.getEditSummary()).isEqualTo("""
+                                                                   Edit 1:\s
+                                                                   Start time: 00:00
+                                                                   End time: 00:00:30
+                                                                   Time Removed: 00:00:30
+                                                                   Reason: first thirty seconds reason
+
+                                                                   Edit 2:\s
+                                                                   Start time: 00:00:45
+                                                                   End time: 00:00:50
+                                                                   Time Removed: 00:00:05
+                                                                   Reason: first thirty seconds reason
+
+                                                                   Edit 3:\s
+                                                                   Start time: 00:01:01
+                                                                   End time: 00:02
+                                                                   Time Removed: 00:00:59
+                                                                   Reason:\s
+
+                                                                   """);
+        assertThat(emailParameters.getRejectionReason()).isEqualTo("rejected reason");
         assertThat(emailParameters.getJointlyAgreed()).isEqualTo(false);
     }
 
-    @DisplayName("Should not attempt to email if court email address is null")
+    @DisplayName("Pass on attempt to email if court email address is null")
     @Test
     void testEditRequestNotificationsWhenNoCourtEmail() {
         court.setGroupEmail(null);
 
-        underTest.editRequestStatusWasUpdated(mockEditRequest);
-        verifyNoInteractions(emailService);
+        underTest.editRequestStatusWasUpdated(mockEditRequest); // Exception handled downstream
+
+        ArgumentCaptor<EditEmailParameters> captor = ArgumentCaptor.forClass(EditEmailParameters.class);
+        verify(emailService, times(1)).sendEmailAboutEditingRequest(captor.capture());
+        verifyNoMoreInteractions(emailService);
+        EditEmailParameters emailParameters = captor.getValue();
+
+        assertThat(emailParameters.getToEmailAddress()).isEqualTo(null);
     }
 
 }

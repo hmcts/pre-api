@@ -100,6 +100,11 @@ public class EditRequestCrudService {
             return createEditRequest(user, originalRecording, mostRecentEditRequest.get().getEditCutInstructions());
         }
 
+        editCutInstructionsRepository.refreshInstructionsForDraftEditOnRecording(
+            originalRecording.getId(),
+            fromDTO(dto.getEditCutInstructions())
+        );
+
         // Draft edit request exists: delete all current instructions and replace with updated instructions
         // In practice these might be identical
         // We might prefer to do an actual upsert on these to preserve edit instruction creation time and createdBy info?
@@ -118,7 +123,7 @@ public class EditRequestCrudService {
                     + "Recording %s is version %d. Perhaps you need parent recording %s?",
                 originalRecording.getId(),
                 originalRecording.getVersion(),
-                originalRecording.getParentRecording()
+                originalRecording.getParentRecording().getId()
             ));
         }
 
@@ -141,7 +146,7 @@ public class EditRequestCrudService {
         Recording originalRecording = recordingRepository.findByIdAndDeletedAtIsNull(sourceRecordingId)
             .orElseThrow(() -> new NotFoundException("Source Recording: " + sourceRecordingId));
 
-        if (originalRecording.getDuration() == null) {
+        if (originalRecording.getDuration() == null || originalRecording.getDuration().isZero()) {
             throw new ResourceInWrongStateException("Source Recording ("
                                                         + sourceRecordingId
                                                         + ") does not have a valid duration");

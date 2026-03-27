@@ -71,6 +71,15 @@ public class HelperFactory {
         return court;
     }
 
+    public static Court createCourt(CourtType courtType, String name, @Nullable String locationCode, String email) {
+        Court court = new Court();
+        court.setCourtType(courtType);
+        court.setName(name);
+        court.setLocationCode(locationCode);
+        court.setGroupEmail(email);
+        return court;
+    }
+
     public static Role createRole(String name) {
         Role role = new Role();
         role.setName(name);

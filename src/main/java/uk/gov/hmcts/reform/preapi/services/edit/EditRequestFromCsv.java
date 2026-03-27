@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.io.BufferedReader;
@@ -40,6 +41,10 @@ public class EditRequestFromCsv {
         dto.setEditCutInstructions(parseCsv(file));
         dto.setStatus(EditRequestStatus.PENDING);
 
+        if (dto.getEditCutInstructions() == null || dto.getEditCutInstructions().isEmpty()) {
+            throw new BadRequestException("No cut instructions found");
+        }
+
         editRequestCrudService.createOrUpsertDraftEditRequestInstructions(dto, user);
 
         try {
@@ -55,6 +60,7 @@ public class EditRequestFromCsv {
                 file.getInputStream(),
                 StandardCharsets.UTF_8
             ));
+
             return new CsvToBeanBuilder<EditCutInstructionsDTO>(reader)
                 .withType(EditCutInstructionsDTO.class)
                 .build()
