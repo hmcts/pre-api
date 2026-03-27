@@ -3,27 +3,38 @@ package uk.gov.hmcts.reform.preapi.services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.IEmailService;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
+import static java.lang.String.format;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,6 +43,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditNotificationService.class)
+@TestPropertySource(properties = {
+    "portal.url=http://localhost:8080"
+})
 class EditNotificationServiceTest {
 
     @MockitoBean
@@ -58,6 +72,11 @@ class EditNotificationServiceTest {
     @MockitoBean
     private LoggingService loggingService;
 
+    @Mock
+    private Participant witnessParticipant;
+    @Mock
+    private Participant defendantParticipant;
+
     private User shareWith1;
     private User shareWith2;
     private User sharedBy;
@@ -71,34 +90,60 @@ class EditNotificationServiceTest {
 
     @BeforeEach
     void setup() {
-        shareWith1 = HelperFactory.createUser("First", "User", "example1@example.com",
-                                                   new Timestamp(System.currentTimeMillis()), null, null);
+        shareWith1 = HelperFactory.createUser(
+            "First", "User", "example1@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
-        shareWith2 = HelperFactory.createUser("Second", "User", "example2@example.com",
-                                                   new Timestamp(System.currentTimeMillis()), null, null);
+        shareWith2 = HelperFactory.createUser(
+            "Second", "User", "example2@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
-        sharedBy = HelperFactory.createUser("Court", "Clerk", "court.clerk@example.com",
-                                                   new Timestamp(System.currentTimeMillis()), null, null);
+        sharedBy = HelperFactory.createUser(
+            "Court", "Clerk", "court.clerk@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
         court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC");
 
         testCase = HelperFactory.createCase(court, "Test Case", false, null);
 
-        booking = HelperFactory.createBooking(testCase, new Timestamp(System.currentTimeMillis()), null);
+        when(witnessParticipant.getFirstName()).thenReturn("Witness first name");
+        when(witnessParticipant.getLastName()).thenReturn("Witness last name");
+        when(defendantParticipant.getFirstName()).thenReturn("Defendant first name");
+        when(defendantParticipant.getLastName()).thenReturn("Defendant last name");
 
-        shareBooking1 = HelperFactory.createShareBooking(shareWith1, sharedBy, booking,
-                                                                       new Timestamp(System.currentTimeMillis()));
+        booking = HelperFactory.createBooking(
+            testCase, new Timestamp(System.currentTimeMillis()), null,
+            Set.of(witnessParticipant, defendantParticipant)
+        );
 
-        shareBooking2 = HelperFactory.createShareBooking(shareWith2, sharedBy, booking,
-                                                                       new Timestamp(System.currentTimeMillis()));
+        shareBooking1 = HelperFactory.createShareBooking(
+            shareWith1, sharedBy, booking,
+            new Timestamp(System.currentTimeMillis())
+        );
+
+        shareBooking2 = HelperFactory.createShareBooking(
+            shareWith2, sharedBy, booking,
+            new Timestamp(System.currentTimeMillis())
+        );
 
         booking.setShares(Set.of(shareBooking1, shareBooking2));
 
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
         when(emailService.recordingEdited(any(), any())).thenReturn(emailResponse);
-        when(mockEditRequest.getSourceRecording()).thenReturn(mockRecording);
         when(mockRecording.getCaptureSession()).thenReturn(mockCaptureSession);
         when(mockCaptureSession.getBooking()).thenReturn(booking);
+
+        final List<EditCutInstructions> editInstructions = List.of(
+            new EditCutInstructions(UUID.randomUUID(), 0, 30, "first thirty seconds reason"),
+            new EditCutInstructions(UUID.randomUUID(), 45, 50, "first thirty seconds reason"),
+            new EditCutInstructions(UUID.randomUUID(), 61, 120, "")
+        );
+
+        when(mockEditRequest.getSourceRecordingId()).thenReturn(mockRecording.getId());
+        when(mockEditRequest.getEditCutInstructions()).thenReturn(editInstructions);
     }
 
     @DisplayName("Should be able to send notifications")
@@ -115,32 +160,86 @@ class EditNotificationServiceTest {
     @Test
     void testEditRequestSubmittedJointlyAgreed() {
         when(mockEditRequest.getJointlyAgreed()).thenReturn(true);
-        court.setGroupEmail(testEmail);
-        underTest.onEditRequestSubmitted(mockEditRequest);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
 
-        verify(emailService, times(1)).editingJointlyAgreed(testEmail, mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+
+        ArgumentCaptor<EditEmailParameters> captor = ArgumentCaptor.forClass(EditEmailParameters.class);
+        verify(emailService, times(1)).sendEmailAboutEditingRequest(captor.capture());
         verifyNoMoreInteractions(emailService);
+
+        EditEmailParameters emailParameters = captor.getValue();
+
+        assertThat(emailParameters.getEditRequestStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
+        assertThat(emailParameters.getToEmailAddress()).isEqualTo(testEmail);
+        assertThat(emailParameters.getWitnessName()).isEqualTo(witnessParticipant.getFirstName());
+        assertThat(emailParameters.getDefendantName())
+            .isEqualTo(format("%s %s", defendantParticipant.getFirstName(), defendantParticipant.getLastName()));
+        assertThat(emailParameters.getCaseReference()).isEqualTo(booking.getCaseId().getReference());
+        assertThat(emailParameters.getNumberOfRequestedEditInstructions())
+            .isEqualTo(mockEditRequest.getEditCutInstructions().size());
+        assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
+        assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
+        assertThat(emailParameters.getPortalURL()).isEqualTo("http://localhost:8080");
+        assertThat(emailParameters.getRejectionReason()).isEqualTo(null);
+        assertThat(emailParameters.getJointlyAgreed()).isEqualTo(true);
     }
 
     @DisplayName("Should be able to notify appropriately when edit request is submitted not jointly agreed")
     @Test
     void testEditRequestSubmittedNotJointlyAgreed() {
-        when(mockEditRequest.getJointlyAgreed()).thenReturn(false);
-        court.setGroupEmail(testEmail);
-        underTest.onEditRequestSubmitted(mockEditRequest);
+        when(mockEditRequest.getJointlyAgreed()).thenReturn(true);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
 
-        verify(emailService, times(1)).editingNotJointlyAgreed(testEmail, mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+
+        ArgumentCaptor<EditEmailParameters> captor = ArgumentCaptor.forClass(EditEmailParameters.class);
+        verify(emailService, times(1)).sendEmailAboutEditingRequest(captor.capture());
         verifyNoMoreInteractions(emailService);
+
+        EditEmailParameters emailParameters = captor.getValue();
+        assertThat(emailParameters.getJointlyAgreed()).isEqualTo(false);
+
+        assertThat(emailParameters.getEditRequestStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
+        assertThat(emailParameters.getToEmailAddress()).isEqualTo(testEmail);
+        assertThat(emailParameters.getWitnessName()).isEqualTo(witnessParticipant.getFirstName());
+        assertThat(emailParameters.getDefendantName())
+            .isEqualTo(format("%s %s", defendantParticipant.getFirstName(), defendantParticipant.getLastName()));
+        assertThat(emailParameters.getCaseReference()).isEqualTo(booking.getCaseId().getReference());
+        assertThat(emailParameters.getNumberOfRequestedEditInstructions())
+            .isEqualTo(mockEditRequest.getEditCutInstructions().size());
+        assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
+        assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
+        assertThat(emailParameters.getPortalURL()).isEqualTo("http://localhost:8080");
+        assertThat(emailParameters.getRejectionReason()).isEqualTo(null);
     }
 
     @DisplayName("Should be able to notify appropriately when edit request is rejected")
     @Test
     void testEditRequestRejected() {
-        court.setGroupEmail(testEmail);
-        underTest.onEditRequestRejected(mockEditRequest);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.REJECTED);
 
-        verify(emailService, times(1)).editingRejected(testEmail, mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+
+        ArgumentCaptor<EditEmailParameters> captor = ArgumentCaptor.forClass(EditEmailParameters.class);
+        verify(emailService, times(1)).sendEmailAboutEditingRequest(captor.capture());
         verifyNoMoreInteractions(emailService);
+
+        EditEmailParameters emailParameters = captor.getValue();
+
+        assertThat(emailParameters.getEditRequestStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
+        assertThat(emailParameters.getToEmailAddress()).isEqualTo(testEmail);
+        assertThat(emailParameters.getWitnessName()).isEqualTo(witnessParticipant.getFirstName());
+        assertThat(emailParameters.getDefendantName())
+            .isEqualTo(format("%s %s", defendantParticipant.getFirstName(), defendantParticipant.getLastName()));
+        assertThat(emailParameters.getCaseReference()).isEqualTo(booking.getCaseId().getReference());
+        assertThat(emailParameters.getNumberOfRequestedEditInstructions())
+            .isEqualTo(mockEditRequest.getEditCutInstructions().size());
+        assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
+        assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
+        assertThat(emailParameters.getPortalURL()).isEqualTo("http://localhost:8080");
+        assertThat(emailParameters.getRejectionReason()).isEqualTo("I didn't like it");
+        assertThat(emailParameters.getJointlyAgreed()).isEqualTo(false);
     }
 
     @DisplayName("Should not attempt to email if court email address is null")
@@ -148,10 +247,7 @@ class EditNotificationServiceTest {
     void testEditRequestNotificationsWhenNoCourtEmail() {
         court.setGroupEmail(null);
 
-        underTest.onEditRequestSubmitted(mockEditRequest);
-        verifyNoInteractions(emailService);
-
-        underTest.onEditRequestRejected(mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
         verifyNoInteractions(emailService);
     }
 

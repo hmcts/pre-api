@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.services;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
@@ -27,11 +28,18 @@ import static java.lang.String.format;
 @Slf4j
 public class EditNotificationService {
     private final EmailServiceFactory emailServiceFactory;
-    private RecordingRepository recordingRepository;
+    private final RecordingRepository recordingRepository;
+
+    private final String portalUrl;
 
     @Autowired
-    public EditNotificationService(final EmailServiceFactory emailServiceFactory) {
+    public EditNotificationService(
+        @Value("${portal.url}") String portalUrl,
+        final EmailServiceFactory emailServiceFactory,
+        final RecordingRepository recordingRepository) {
+        this.portalUrl = portalUrl;
         this.emailServiceFactory = emailServiceFactory;
+        this.recordingRepository = recordingRepository;
     }
 
     @Transactional
@@ -50,7 +58,8 @@ public class EditNotificationService {
         if (sourceRecording.getEditRequest() == null) {
             throw new ResourceInWrongStateException(format(
                 "Unable to send email: source recording %s did not have an active edit request",
-                sourceRecording.getId()));
+                sourceRecording.getId()
+            ));
         }
 
         EditEmailParameters editEmailParameters = getEmailParameters(sourceRecording);
@@ -93,7 +102,7 @@ public class EditNotificationService {
             .editSummary(editSummary)
             .editRequestStatus(editRequest.getStatus())
             .numberOfRequestedEditInstructions(editRequest.getEditCutInstructions().size())
-            .portalURL("TODO")
+            .portalURL(portalUrl)
             .jointlyAgreed(editRequest.getJointlyAgreed())
             .rejectionReason(editRequest.getRejectionReason())
             .build();
@@ -119,6 +128,4 @@ public class EditNotificationService {
 
         return format("%02d:%02d:%02d", duration.toHours(), duration.toMinutesPart(), duration.toSecondsPart());
     }
-
-
 }

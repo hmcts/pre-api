@@ -38,7 +38,7 @@ public class EditRequestDTO {
 
     @NotNull
     @Schema(description = "EditRequestEditInstruction")
-    private List<EditCutInstructionsDTO> editInstructions;
+    private List<EditCutInstructionsDTO> editCutInstructions;
 
     @Schema(description = "EditRequestStatus")
     private EditRequestStatus status;
@@ -79,7 +79,7 @@ public class EditRequestDTO {
         this.id = editRequest.getId();
         this.sourceRecordingId = editRequest.getSourceRecordingId();
         this.outputRecordingId = editRequest.getOutputRecordingId();
-        this.editInstructions = toDTO(editRequest.getEditCutInstructions());
+        this.editCutInstructions = toDTO(editRequest.getEditCutInstructions());
         this.status = editRequest.getStatus();
         this.startedAt = editRequest.getStartedAt();
         this.finishedAt = editRequest.getFinishedAt();

@@ -50,8 +50,8 @@ public class EditControllerFT extends FunctionalTestBase {
         assertThat(postResponse.getSourceRecordingId()).isEqualTo(recordingDetails.recordingId());
         assertThat(postResponse.getStatus()).isEqualTo(EditRequestStatus.PENDING);
 
-        List<EditCutInstructionsDTO> instructions = postResponse.getEditInstructions();
-        assertThat(postResponse.getEditInstructions()).isNotNull();
+        List<EditCutInstructionsDTO> instructions = postResponse.getEditCutInstructions();
+        assertThat(postResponse.getEditCutInstructions()).isNotNull();
 
         List<EditCutInstructionsDTO> requestedInstructions = instructions.getRequestedInstructions();
         assertThat(requestedInstructions).isNotEmpty();

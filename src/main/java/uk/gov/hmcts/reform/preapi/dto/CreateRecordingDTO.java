@@ -35,4 +35,24 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
         editStatus = recordingDTO.getEditStatus();
         editInstructions = recordingDTO.getEditInstructions();
     }
+
+    public CreateRecordingDTO(UUID newRecordingId,
+                                                  String providedFileName,
+                                                  Integer providedVersionNumber,
+                                                  RecordingDTO recordingDTO) {
+        super();
+        id = newRecordingId;
+        parentRecordingId = recordingDTO.getParentRecordingId() == null
+            ? recordingDTO.getId()
+            : recordingDTO.getParentRecordingId();
+        version = providedVersionNumber;
+        filename = providedFileName;
+
+        captureSessionId = recordingDTO.getCaptureSession().getId();
+        filename = recordingDTO.getFilename();
+        duration = recordingDTO.getDuration();
+        editRequest = recordingDTO.getEditRequest();
+        editStatus = recordingDTO.getEditStatus();
+        editInstructions = recordingDTO.getEditInstructions();
+    }
 }

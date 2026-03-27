@@ -8,7 +8,6 @@ import uk.gov.hmcts.reform.preapi.component.CommandExecutor;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
-import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -238,7 +237,7 @@ public class FfmpegService implements IEditingService {
     private LinkedHashMap<String, CommandLine> generateMultiEditCommands(final UUID newRecordingId,
                                                                          final String outputFileName,
                                                                          final RecordingDTO recording) {
-        List<EditCutInstructionsDTO> rawEditInstructions = recording.getEditRequest().getEditInstructions();
+        List<EditCutInstructionsDTO> rawEditInstructions = recording.getEditRequest().getEditCutInstructions();
 
         long recordingDuration = recording.getDuration().toSeconds();
         List<FfmpegEditInstruction> ffmpegEditInstructions = invertInstructions(rawEditInstructions, recordingDuration);

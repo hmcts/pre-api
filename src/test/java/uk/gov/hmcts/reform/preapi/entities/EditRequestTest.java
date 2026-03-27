@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.hmcts.reform.preapi.entities.EditRequest.convertEditCutInstructionsFromJson;
 
 public class EditRequestTest {
 
@@ -29,7 +30,8 @@ public class EditRequestTest {
 
         String content = Files.readString(sampleEditRequestDeprecatedJsonPath, StandardCharsets.UTF_8);
 
-        dto.setEditCutInstructionsFromJson(content);
+        List<EditCutInstructions> editCutInstructionsList = convertEditCutInstructionsFromJson(content);
+        dto.setEditCutInstructions(editCutInstructionsList);
         assertThat(dto.getEditCutInstructions().size()).isEqualTo(2);
 
         EditCutInstructions first = dto.getEditCutInstructions().getFirst();

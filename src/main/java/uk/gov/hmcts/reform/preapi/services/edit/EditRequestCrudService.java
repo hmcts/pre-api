@@ -22,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -92,7 +91,7 @@ public class EditRequestCrudService {
         if (mostRecentEditRequest.isEmpty()) {
             // Deliberately allow new (draft) edit request with empty instructions
             // However, edit requests cannot be *submitted* with empty instructions
-            return createEditRequest(user, originalRecording, EditRequestDTO.fromDTO(dto.getEditInstructions()));
+            return createEditRequest(user, originalRecording, EditRequestDTO.fromDTO(dto.getEditCutInstructions()));
         }
 
         // A non-draft edit request exists; create a new one with previous instructions attached
@@ -105,7 +104,7 @@ public class EditRequestCrudService {
         // In practice these might be identical
         // We might prefer to do an actual upsert on these to preserve edit instruction creation time and createdBy info?
         editCutInstructionsRepository.deleteAll(mostRecentEditRequest.get().getEditCutInstructions());
-        editCutInstructionsRepository.saveAll(fromDTO(dto.getEditInstructions()));
+        editCutInstructionsRepository.saveAll(fromDTO(dto.getEditCutInstructions()));
 
         return dto;
     }

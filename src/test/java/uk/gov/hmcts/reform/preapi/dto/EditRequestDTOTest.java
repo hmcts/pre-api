@@ -46,15 +46,15 @@ public class EditRequestDTOTest {
 
         var dto = new EditRequestDTO(editRequest);
         assertThat(dto.getId()).isEqualTo(editRequest.getId());
-        assertThat(dto.getEditInstructions().size()).isEqualTo(2);
+        assertThat(dto.getEditCutInstructions().size()).isEqualTo(2);
 
-        EditCutInstructionsDTO first = dto.getEditInstructions().getFirst();
+        EditCutInstructionsDTO first = dto.getEditCutInstructions().getFirst();
         assertThat(first.getEditRequestId()).isEqualTo(editRequest.getId());
         assertThat(first.getReason()).isEqualTo(firstEditInstructions.getReason());
         assertThat(first.getStart()).isEqualTo(firstEditInstructions.getStart());
         assertThat(first.getEnd()).isEqualTo(firstEditInstructions.getEnd());
 
-        EditCutInstructionsDTO second = dto.getEditInstructions().getLast();
+        EditCutInstructionsDTO second = dto.getEditCutInstructions().getLast();
         assertThat(second.getEditRequestId()).isEqualTo(editRequest.getId());
         assertThat(second.getReason()).isEqualTo(secondEditInstructions.getReason());
         assertThat(second.getStart()).isEqualTo(secondEditInstructions.getStart());
@@ -77,7 +77,7 @@ public class EditRequestDTOTest {
         var dto = new EditRequestDTO(editRequest);
 
         assertThat(dto.getId()).isEqualTo(editRequest.getId());
-        assertThat(dto.getEditInstructions()).isEmpty();
+        assertThat(dto.getEditCutInstructions()).isEmpty();
         assertThat(dto.getStatus()).isEqualTo(editRequest.getStatus());
         assertThat(dto.getStartedAt()).isEqualTo(editRequest.getStartedAt());
         assertThat(dto.getFinishedAt()).isEqualTo(editRequest.getFinishedAt());

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
@@ -22,9 +21,7 @@ import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
-import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
-import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -246,5 +243,26 @@ public class EditRequestCrudServiceTest {
             mockRecordingId, 3, any(UUID.class)
         );
     }
+
+    @Test
+    @DisplayName("Should be able to delete edit instructions for *existing* draft edit request")
+    void validateEditInstructionsIsEmpty() {
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(mockEditRequest.getEditCutInstructions()).thenReturn(List.of());
+
+        EditRequestDTO result = underTest.createOrUpsertDraftEditRequestInstructions(
+            mockEditRequestDTO,
+            mockUser
+        );
+
+        assertThat(result).isEqualTo(mockEditRequestDTO);
+
+        ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getEditCutInstructions()).isEmpty();
+    }
+
+
+
 
 }

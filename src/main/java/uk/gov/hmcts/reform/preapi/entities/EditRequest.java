@@ -105,8 +105,7 @@ public class EditRequest extends CreatedModifiedAtEntity {
         }
     }
 
-    public void setEditCutInstructionsFromJson(@NotNull String editCutInstructionsAsJson) {
-
+    public static List<EditCutInstructions> convertEditCutInstructionsFromJson(@NotNull String editCutInstructionsAsJson) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -138,7 +137,7 @@ public class EditRequest extends CreatedModifiedAtEntity {
             }
 
             Comparator<EditCutInstructions> customComparator = Comparator.comparing(EditCutInstructions::getStart);
-            this.editCutInstructions = editCutInstructions.stream().sorted(customComparator).toList();
+            return editCutInstructions.stream().sorted(customComparator).toList();
         } catch (JsonProcessingException e) {
             throw new UnknownServerException("Unable to read edit instructions", e);
         }

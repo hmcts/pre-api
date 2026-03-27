@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
-import groovyjarjarpicocli.CommandLine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -103,7 +102,7 @@ public class RecordingDTOTest {
         assertThat(model.getEditStatus()).isEqualTo(editRequestEntity.getStatus());
 
         EditCutInstructions firstEditInstrEntity = editRequestEntity.getEditCutInstructions().getFirst();
-        EditCutInstructionsDTO firstEditInstrDto = model.getEditRequest().getEditInstructions().getFirst();
+        EditCutInstructionsDTO firstEditInstrDto = model.getEditRequest().getEditCutInstructions().getFirst();
 
         assertThat(firstEditInstrDto.getEditRequestId())
             .isEqualTo(firstEditInstrEntity.getEditRequestId());

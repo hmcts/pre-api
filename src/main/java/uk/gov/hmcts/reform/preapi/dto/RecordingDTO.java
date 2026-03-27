@@ -7,8 +7,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -90,5 +93,22 @@ public class RecordingDTO extends BaseRecordingDTO {
         if (recording.getVersion() == 1) {
             editStatus = EditRequestStatus.ORIGINAL;
         }
+    }
+
+    public List<EditCutInstructionsDTO> getEditCutInstructionsLegacyProof() {
+        // Default to new-style instructions
+        if (this.getEditRequest() != null && !this.getEditRequest().getEditCutInstructions().isEmpty()) {
+            return this.getEditRequest().getEditCutInstructions();
+        }
+
+        // For legacy edit instructions
+        if (!this.getEditInstructions().isEmpty()) {
+            List<EditCutInstructions> editCutInstructionsList =
+                EditRequest.convertEditCutInstructionsFromJson(this.getEditInstructions());
+
+            return EditRequestDTO.toDTO(editCutInstructionsList);
+        }
+
+        return List.of();
     }
 }
