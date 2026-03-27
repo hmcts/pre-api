@@ -5,18 +5,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
-import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
-import uk.gov.hmcts.reform.preapi.entities.EditRequest;
-import uk.gov.hmcts.reform.preapi.entities.Participant;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -49,32 +44,25 @@ class GovNotifyFT {
         return forCase;
     }
 
-    private Participant createParticipant(ParticipantType type) {
-        var participant = new Participant();
-        participant.setFirstName("First");
-        participant.setLastName("Last");
-        participant.setParticipantType(type);
-        return participant;
-    }
 
-    private EditRequest createEditRequest() {
-        var aCase = createCase();
-        var booking = new Booking();
-        booking.setCaseId(aCase);
-        booking.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT)));
-        var captureSession = new CaptureSession();
-        captureSession.setBooking(booking);
-        var recording = new Recording();
-        recording.setCaptureSession(captureSession);
-        var request = new EditRequest();
-        request.setSourceRecording(recording);
-        request.setEditInstruction(
-            "{\"requestedInstructions\":"
-                + "[{\"start_of_cut\":\"00:00:00\",\"end_of_cut\":\"00:00:30\",\"reason\":\"\",\"start\":0,\"end\":0}],"
-                + "\"ffmpegInstructions\":[]}");
-        return request;
+    private EditEmailParameters createEditEmailParameters() {
+        return EditEmailParameters.builder()
+            .toEmailAddress(FROM_EMAIL_ADDRESS)
+            .caseReference("123456")
+            .witnessName("First")
+            .defendantName("First Last")
+            .courtName("Court Name")
+            .editSummary("""
+                             Edit 1:\s
+                             Start time: 00:00:00
+                             End time: 00:00:30
+                             Time Removed: 00:00:00
+                             Reason:\s""")
+            .editRequestStatus(EditRequestStatus.DRAFT)
+            .numberOfRequestedEditInstructions(1)
+            .jointlyAgreed(true)
+            .rejectionReason(null)
+            .build();
     }
 
     private void compareBody(String expected, EmailResponse emailResponse) {
@@ -276,10 +264,8 @@ class GovNotifyFT {
     @DisplayName("Should send editing jointly agreed email")
     @SuppressWarnings("LineLength")
     void editingJointlyAgreed() {
-        var user = createUser();
-        var forEditRequest = createEditRequest();
+        EmailResponse response = client.sendEmailAboutEditingRequest(createEditEmailParameters());
 
-        var response = client.editingJointlyAgreed(user.getEmail(), forEditRequest);
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456",
@@ -310,10 +296,10 @@ class GovNotifyFT {
     @DisplayName("Should send editing not jointly agreed email")
     @SuppressWarnings("LineLength")
     void editingNotJointlyAgreed() {
-        var user = createUser();
-        var forEditRequest = createEditRequest();
+        EditEmailParameters editEmailParameters = createEditEmailParameters();
+        editEmailParameters.setJointlyAgreed(false);
 
-        var response = client.editingNotJointlyAgreed(user.getEmail(), forEditRequest);
+        var response = client.sendEmailAboutEditingRequest(editEmailParameters);
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456 (NOT JOINTLY AGREED)",
@@ -344,12 +330,11 @@ class GovNotifyFT {
     @DisplayName("Should send editing rejection email")
     @SuppressWarnings("LineLength")
     void editingRejectionEmail() {
-        var user = createUser();
-        var forEditRequest = createEditRequest();
-        forEditRequest.setRejectionReason("REJECTION REASON");
-        forEditRequest.setJointlyAgreed(true);
+        EditEmailParameters editEmailParameters = createEditEmailParameters();
+        editEmailParameters.setRejectionReason("REJECTION REASON");
+        editEmailParameters.setJointlyAgreed(true);
 
-        var response = client.editingRejected(user.getEmail(), forEditRequest);
+        var response = client.sendEmailAboutEditingRequest(editEmailParameters);
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request REJECTION for case reference 123456",

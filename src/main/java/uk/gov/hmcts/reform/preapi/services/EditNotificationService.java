@@ -30,14 +30,10 @@ public class EditNotificationService {
     private final EmailServiceFactory emailServiceFactory;
     private final RecordingRepository recordingRepository;
 
-    private final String portalUrl;
-
     @Autowired
     public EditNotificationService(
-        @Value("${portal.url}") String portalUrl,
         final EmailServiceFactory emailServiceFactory,
         final RecordingRepository recordingRepository) {
-        this.portalUrl = portalUrl;
         this.emailServiceFactory = emailServiceFactory;
         this.recordingRepository = recordingRepository;
     }
@@ -102,7 +98,6 @@ public class EditNotificationService {
             .editSummary(editSummary)
             .editRequestStatus(editRequest.getStatus())
             .numberOfRequestedEditInstructions(editRequest.getEditCutInstructions().size())
-            .portalURL(portalUrl)
             .jointlyAgreed(editRequest.getJointlyAgreed())
             .rejectionReason(editRequest.getRejectionReason())
             .build();

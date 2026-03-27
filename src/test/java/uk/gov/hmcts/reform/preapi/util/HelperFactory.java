@@ -4,6 +4,8 @@ import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -308,25 +310,25 @@ public class HelperFactory {
         return user;
     }
 
-//    public static AssetDTO createAsset(String name, String description, String container, String storageAccountName) {
-//        var dto = new AssetDTO();
-//        dto.setName(name);
-//        dto.setContainer(container);
-//        dto.setDescription(description);
-//        dto.setStorageAccountName(storageAccountName);
-//        return dto;
-//    }
-//
-//    public static LiveEventDTO createLiveEvent(String name,
-//                                               String description,
-//                                               String resourceState,
-//                                               String inputRtmp) {
-//        var dto = new LiveEventDTO();
-//        dto.setId(UUID.randomUUID().toString());
-//        dto.setName(name);
-//        dto.setDescription(description);
-//        dto.setResourceState(resourceState);
-//        dto.setInputRtmp(inputRtmp);
-//        return dto;
-//    }
+    public static AssetDTO createAsset(String name, String description, String container, String storageAccountName) {
+        var dto = new AssetDTO();
+        dto.setName(name);
+        dto.setContainer(container);
+        dto.setDescription(description);
+        dto.setStorageAccountName(storageAccountName);
+        return dto;
+    }
+
+    public static LiveEventDTO createLiveEvent(String name,
+                                               String description,
+                                               String resourceState,
+                                               String inputRtmp) {
+        var dto = new LiveEventDTO();
+        dto.setId(UUID.randomUUID().toString());
+        dto.setName(name);
+        dto.setDescription(description);
+        dto.setResourceState(resourceState);
+        dto.setInputRtmp(inputRtmp);
+        return dto;
+    }
 }

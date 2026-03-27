@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
@@ -164,32 +165,24 @@ public class GovNotifyTest {
         return forCase;
     }
 
-    private Participant getParticipant(ParticipantType t) {
-        var participant = new Participant();
-        participant.setFirstName("John");
-        participant.setLastName("Doe");
-        participant.setParticipantType(t);
-        return participant;
-    }
-
-    private EditRequest getEditRequest() {
-        var aCase = getCase();
-        var booking = new Booking();
-        booking.setCaseId(aCase);
-        booking.setParticipants(Set.of(
-            getParticipant(ParticipantType.WITNESS),
-            getParticipant(ParticipantType.DEFENDANT)));
-        var captureSession = new CaptureSession();
-        captureSession.setBooking(booking);
-        var recording = new Recording();
-        recording.setCaptureSession(captureSession);
-        var request = new EditRequest();
-        request.setSourceRecording(recording);
-        request.setEditInstruction(
-            "{\"requestedInstructions\":"
-                + "[{\"start_of_cut\":\"00:00:00\",\"end_of_cut\":\"00:00:30\",\"reason\":\"\",\"start\":0,\"end\":0}],"
-                + "\"ffmpegInstructions\":[]}");
-        return request;
+    private EditEmailParameters createEditEmailParameters() {
+        return EditEmailParameters.builder()
+            .toEmailAddress("email address")
+            .caseReference("123456")
+            .witnessName("First")
+            .defendantName("First Last")
+            .courtName("Court Name")
+            .editSummary("""
+                             Edit 1:\s
+                             Start time: 00:00:00
+                             End time: 00:00:30
+                             Time Removed: 00:00:00
+                             Reason:\s""")
+            .editRequestStatus(EditRequestStatus.DRAFT)
+            .numberOfRequestedEditInstructions(1)
+            .jointlyAgreed(true)
+            .rejectionReason(null)
+            .build();
     }
 
     @DisplayName(("Should send recording ready email"))
@@ -282,13 +275,14 @@ public class GovNotifyTest {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
             .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
 
-        var request = getEditRequest();
-        request.setStatus(EditRequestStatus.REJECTED);
-        request.setRejectionReason("REJECTION REASON");
-        request.setJointlyAgreed(true);
+        EditEmailParameters editEmailParameters = createEditEmailParameters();
+        editEmailParameters.setToEmailAddress("group-email@example.com");
+        editEmailParameters.setEditRequestStatus(EditRequestStatus.REJECTED);
+        editEmailParameters.setRejectionReason("REJECTION REASON");
+        editEmailParameters.setJointlyAgreed(true);
 
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
-        var response = govNotify.editingRejected("group-email@example.com", request);
+        var response = govNotify.sendEmailAboutEditingRequest(editEmailParameters);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -301,12 +295,13 @@ public class GovNotifyTest {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
             .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
 
-        var request = getEditRequest();
-        request.setStatus(EditRequestStatus.SUBMITTED);
-        request.setJointlyAgreed(true);
+        EditEmailParameters editEmailParameters = createEditEmailParameters();
+        editEmailParameters.setToEmailAddress("group-email@example.com");
+        editEmailParameters.setEditRequestStatus(EditRequestStatus.SUBMITTED);
+        editEmailParameters.setJointlyAgreed(true);
 
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
-        var response = govNotify.editingEmail("group-email@example.com", request);
+        var response = govNotify.sendEmailAboutEditingRequest(editEmailParameters);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -319,12 +314,13 @@ public class GovNotifyTest {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
             .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
 
-        var request = getEditRequest();
-        request.setStatus(EditRequestStatus.SUBMITTED);
-        request.setJointlyAgreed(false);
+        EditEmailParameters editEmailParameters = createEditEmailParameters();
+        editEmailParameters.setToEmailAddress("group-email@example.com");
+        editEmailParameters.setEditRequestStatus(EditRequestStatus.SUBMITTED);
+        editEmailParameters.setJointlyAgreed(false);
 
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
-        var response = govNotify.editingNotJointlyAgreed("group-email@example.com", request);
+        var response = govNotify.sendEmailAboutEditingRequest(editEmailParameters);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -454,55 +450,14 @@ public class GovNotifyTest {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
             .thenThrow(mock(NotificationClientException.class));
 
-        var request = getEditRequest();
-        request.setStatus(EditRequestStatus.REJECTED);
-        request.setRejectionReason("REJECTION REASON");
-        request.setJointlyAgreed(true);
+        EditEmailParameters editEmailParameters = createEditEmailParameters();
+        editEmailParameters.setToEmailAddress("group-email@example.com");
+        editEmailParameters.setEditRequestStatus(EditRequestStatus.REJECTED);
+        editEmailParameters.setRejectionReason("REJECTION REASON");
 
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
         var message = assertThrows(EmailFailedToSendException.class,
-                                   () -> govNotify.editingRejected(getCase().getCourt().getGroupEmail(), request))
-            .getMessage();
-
-        assertThat(message).isEqualTo("Failed to send email to: " + getCase().getCourt().getGroupEmail());
-    }
-
-    @Test
-    @DisplayName("Should fail to send jointly agreed email")
-    void shouldFailToSendEditingJointlyAgreedEmail() throws NotificationClientException {
-        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
-            .thenThrow(mock(NotificationClientException.class));
-
-        var request = getEditRequest();
-        request.setStatus(EditRequestStatus.SUBMITTED);
-        request.setJointlyAgreed(true);
-
-        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
-        var message = assertThrows(EmailFailedToSendException.class,
-                                   () -> govNotify.editingEmail(getCase().getCourt().getGroupEmail(), request))
-            .getMessage();
-
-        assertThat(message).isEqualTo("Failed to send email to: " + getCase().getCourt().getGroupEmail());
-    }
-
-    @Test
-    @DisplayName("Should fail to send not jointly agreed email")
-    void shouldFailToSendEditingNotJointlyAgreedEmail() throws NotificationClientException {
-        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
-            .thenThrow(mock(NotificationClientException.class));
-
-        var request = getEditRequest();
-        request.setStatus(EditRequestStatus.SUBMITTED);
-        request.setJointlyAgreed(false);
-
-        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
-        var message = assertThrows(
-            EmailFailedToSendException.class,
-            () -> govNotify.editingNotJointlyAgreed(
-                getCase().getCourt().getGroupEmail(),
-                request
-            )
-        )
+                                   () -> govNotify.sendEmailAboutEditingRequest(editEmailParameters))
             .getMessage();
 
         assertThat(message).isEqualTo("Failed to send email to: " + getCase().getCourt().getGroupEmail());

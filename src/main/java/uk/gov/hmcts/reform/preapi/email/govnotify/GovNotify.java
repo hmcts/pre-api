@@ -154,7 +154,7 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse sendEmailAboutEditingRequest(EditEmailParameters editEmailParameters) {
-        EditRequestStatusChanged template = new EditRequestStatusChanged(editEmailParameters);
+        EditRequestStatusChanged template = new EditRequestStatusChanged(editEmailParameters, portalUrl);
 
         String to = editEmailParameters.getToEmailAddress();
         try {

@@ -43,9 +43,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditNotificationService.class)
-@TestPropertySource(properties = {
-    "portal.url=http://localhost:8080"
-})
 class EditNotificationServiceTest {
 
     @MockitoBean
@@ -180,7 +177,6 @@ class EditNotificationServiceTest {
             .isEqualTo(mockEditRequest.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
         assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
-        assertThat(emailParameters.getPortalURL()).isEqualTo("http://localhost:8080");
         assertThat(emailParameters.getRejectionReason()).isEqualTo(null);
         assertThat(emailParameters.getJointlyAgreed()).isEqualTo(true);
     }
@@ -210,7 +206,6 @@ class EditNotificationServiceTest {
             .isEqualTo(mockEditRequest.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
         assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
-        assertThat(emailParameters.getPortalURL()).isEqualTo("http://localhost:8080");
         assertThat(emailParameters.getRejectionReason()).isEqualTo(null);
     }
 
@@ -237,7 +232,6 @@ class EditNotificationServiceTest {
             .isEqualTo(mockEditRequest.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
         assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
-        assertThat(emailParameters.getPortalURL()).isEqualTo("http://localhost:8080");
         assertThat(emailParameters.getRejectionReason()).isEqualTo("I didn't like it");
         assertThat(emailParameters.getJointlyAgreed()).isEqualTo(false);
     }

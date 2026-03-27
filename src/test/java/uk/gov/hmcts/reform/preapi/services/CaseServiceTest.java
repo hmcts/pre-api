@@ -604,7 +604,7 @@ class CaseServiceTest {
         caseDTOModel.setState(CaseState.PENDING_CLOSURE);
         caseDTOModel.setClosedAt(Timestamp.from(Instant.now().plusSeconds(86400))); // +1 day
 
-        when(editRequestRepository.existsByCaseIdAndIsIncomplete(caseDTOModel.getId())).thenReturn(true);
+        when(editRequestRepository.getCaseIdsWithIncompleteEdits()).thenReturn(List.of(caseDTOModel.getId()));
         when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.of(caseEntity));
         when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(caseEntity)).thenReturn(List.of());
 
@@ -617,7 +617,7 @@ class CaseServiceTest {
                            + caseDTOModel.getId()
                            + ") has incomplete edits which must be completed before updating state to PENDING_CLOSURE");
 
-        verify(editRequestRepository, times(1)).existsByCaseIdAndIsIncomplete(caseDTOModel.getId());
+        verify(editRequestRepository, times(1)).getCaseIdsWithIncompleteEdits();
         verify(caseRepository, never()).saveAndFlush(any());
     }
 

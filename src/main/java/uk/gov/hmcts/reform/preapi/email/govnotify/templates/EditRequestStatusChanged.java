@@ -8,10 +8,10 @@ public class EditRequestStatusChanged extends BaseTemplate {
     @Getter
     private final EditingEmailType editingEmailType;
 
-    public EditRequestStatusChanged(EditEmailParameters editEmailParameters) {
+    public EditRequestStatusChanged(EditEmailParameters editEmailParameters, String portalUrl) {
         super(
             editEmailParameters.getToEmailAddress(),
-            editEmailParameters.getEmailParameterMap()
+            editEmailParameters.getEmailParameterMap(portalUrl)
         );
 
         this.editingEmailType = calculateEditingEmailType(editEmailParameters);

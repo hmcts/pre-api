@@ -19,11 +19,10 @@ public class EditEmailParameters {
     private Integer numberOfRequestedEditInstructions;
     private String courtName;
     private String editSummary;
-    private String portalURL;
     private String rejectionReason;
     private Boolean jointlyAgreed;
 
-    public Map<String, Object> getEmailParameterMap() {
+    public Map<String, Object> getEmailParameterMap(String portalUrl) {
         return Map.of(
             "rejection_reason", getEditSummary(),
             "jointly_agreed", getJointlyAgreed() ? "Yes" : "No",
@@ -32,7 +31,7 @@ public class EditEmailParameters {
             "witness_name", getWitnessName(),
             "defendant_names", getDefendantName(),
             "edit_summary", getEditSummary(),
-            "portal_link", getPortalURL(),
+            "portal_link", portalUrl,
             "edit_count", getNumberOfRequestedEditInstructions()
         );
 
