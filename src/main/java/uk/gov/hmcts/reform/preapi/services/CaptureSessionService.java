@@ -242,6 +242,7 @@ public class CaptureSessionService {
         captureSession.setFinishedAt(createCaptureSessionDTO.getFinishedAt());
         captureSession.setFinishedByUser(finishedByUser);
         captureSession.setStatus(createCaptureSessionDTO.getStatus());
+        captureSession.setModifiedAt(Timestamp.from(Instant.now()));
         Map<String, String> properties = new HashMap<>();
         properties.put("captureSession_ID", captureSession.getId().toString());
         properties.put("captureSession_STATUS", captureSession.getStatus().name());

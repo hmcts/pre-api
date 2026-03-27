@@ -156,6 +156,12 @@ tasks:
     poll-interval: ${TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL:10000}
     max-sleep-time: ${TASK_BATCH_IMPORT_MISSING_ASSETS_MAX_SLEEP_TIME:1800000}
     mp4-source-container: prod-migration-2
+  vf-recording-reencode:
+    recording-ids: ${TASK_VF_RECORDING_REENCODE_RECORDING_IDS:}
+    source-container: ${TASK_VF_RECORDING_REENCODE_SOURCE_CONTAINER:${azure.vodafoneStorage.container}}
+    blob-suffix: ${TASK_VF_RECORDING_REENCODE_BLOB_SUFFIX:-pre-reencoded}
+    poll-interval: ${TASK_VF_RECORDING_REENCODE_POLL_INTERVAL:10000}
+    max-sleep-time: ${TASK_VF_RECORDING_REENCODE_MAX_SLEEP_TIME:1800000}
 
 capture-session-registration:
   processing-timeout-hours: ${PROCESSING_TIMEOUT_HOURS:2}

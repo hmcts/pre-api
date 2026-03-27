@@ -15,6 +15,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
@@ -52,6 +53,10 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "modified_at")
+    private Timestamp modifiedAt;
 
     @Type(PostgreSQLIntervalType.class)
     @Column(

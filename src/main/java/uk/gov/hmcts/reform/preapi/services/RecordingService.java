@@ -133,6 +133,7 @@ public class RecordingService {
         recordingEntity.setFilename(createRecordingDTO.getFilename());
         recordingEntity.setDuration(createRecordingDTO.getDuration());
         recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
+        recordingEntity.setModifiedAt(Timestamp.from(Instant.now()));
 
         recordingRepository.save(recordingEntity);
 

@@ -34,6 +34,8 @@ public interface MigrationRecordRepository extends JpaRepository<MigrationRecord
 
     List<MigrationRecord> findByRecordingGroupKeyStartingWith(String baseGroupKey);
 
+    Optional<MigrationRecord> findFirstByRecordingId(UUID recordingId);
+
     @Query(value = """
         select is_most_recent
         from vf_migration_records

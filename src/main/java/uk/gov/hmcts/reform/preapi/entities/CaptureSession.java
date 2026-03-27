@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
@@ -65,6 +66,10 @@ public class CaptureSession extends BaseEntity implements ISoftDeletable {
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
+
+    @UpdateTimestamp
+    @Column(name = "modified_at")
+    private Timestamp modifiedAt;
 
     @Transient
     private boolean deleted;
