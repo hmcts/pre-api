@@ -1,9 +1,11 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
@@ -18,30 +20,33 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@SpringBootTest(classes = CreateRecordingDTO.class)
 public class CreateRecordingDTOTest {
 
     @Mock
-    private static RecordingDTO recordingDTO;
+    private RecordingDTO recordingDTO;
 
-    @Mock
-    private static CaptureSessionDTO captureSessionDTO;
+    @MockitoBean
+    private CaptureSessionDTO captureSessionDTO;
 
     private static final UUID recordingId = UUID.randomUUID();
-    private static final UUID editRequestId = UUID.randomUUID();
     private static final UUID captureSessionId = UUID.randomUUID();
 
-    @BeforeAll
-    static void setUp() {
+    @BeforeEach
+    public void setUp() {
         Timestamp setUpTimestamp = Timestamp.from(Instant.now());
         when(captureSessionDTO.getId()).thenReturn(captureSessionId);
 
-        when(recordingDTO.getId()).thenReturn(UUID.randomUUID());
+        when(recordingDTO.getId()).thenReturn(recordingId);
         when(recordingDTO.getCaptureSession()).thenReturn(captureSessionDTO);
         when(recordingDTO.getVersion()).thenReturn(1);
         when(recordingDTO.getFilename()).thenReturn("original filename");
         when(recordingDTO.getCreatedAt()).thenReturn(setUpTimestamp);
         when(recordingDTO.getDuration()).thenReturn(Duration.ofMinutes(3));
         when(recordingDTO.getEditStatus()).thenReturn(EditRequestStatus.PENDING);
+
+        UUID parentId = UUID.randomUUID();
+        when(recordingDTO.getParentRecordingId()).thenReturn(parentId);
 
         EditRequestDTO editRequest = new EditRequestDTO();
         editRequest.setId(UUID.randomUUID());
@@ -92,6 +97,8 @@ public class CreateRecordingDTOTest {
     @Test
     @DisplayName("Should return new create recording dto with overridden values")
     void createRecordingSuccess() {
+        UUID parentRecordingId = recordingDTO.getParentRecordingId();
+        when(recordingDTO.getParentRecordingId()).thenReturn(parentRecordingId);
 
         UUID newRecordingId = UUID.randomUUID();
         Integer newVersionNumber = 6;
@@ -100,7 +107,7 @@ public class CreateRecordingDTOTest {
 
         assertThat(dto).isNotNull();
         assertThat(dto.getId()).isEqualTo(newRecordingId);
-        assertThat(dto.getParentRecordingId()).isEqualTo(recordingId);
+        assertThat(dto.getParentRecordingId()).isEqualTo(parentRecordingId);
         assertThat(dto.getVersion()).isEqualTo(newVersionNumber);
         assertThat(dto.getFilename()).isEqualTo(newFileName);
     }

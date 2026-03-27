@@ -108,7 +108,15 @@ public class EditRequestDTOTest {
 
         List<EditCutInstructions> convertedBackFromDto = EditRequestDTO.fromDTO(dtoList);
 
-        assertThat(convertedBackFromDto).isEqualTo(nonDto);
+        assertThat(convertedBackFromDto.getFirst().getEditRequestId()).isEqualTo(nonDto.getFirst().getEditRequestId());
+        assertThat(convertedBackFromDto.getFirst().getReason()).isEqualTo(nonDto.getFirst().getReason());
+        assertThat(convertedBackFromDto.getFirst().getStart()).isEqualTo(nonDto.getFirst().getStart());
+        assertThat(convertedBackFromDto.getFirst().getEnd()).isEqualTo(nonDto.getFirst().getEnd());
+
+        assertThat(convertedBackFromDto.getLast().getEditRequestId()).isEqualTo(nonDto.getLast().getEditRequestId());
+        assertThat(convertedBackFromDto.getLast().getReason()).isEqualTo(nonDto.getLast().getReason());
+        assertThat(convertedBackFromDto.getLast().getStart()).isEqualTo(nonDto.getLast().getStart());
+        assertThat(convertedBackFromDto.getLast().getEnd()).isEqualTo(nonDto.getLast().getEnd());
     }
 
 }

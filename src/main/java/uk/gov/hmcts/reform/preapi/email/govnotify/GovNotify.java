@@ -24,6 +24,7 @@ import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
 import java.sql.Timestamp;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -83,11 +84,13 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse portalInvite(User to) {
-        PortalInvite template = new PortalInvite(to.getEmail(), to.getFirstName(), to.getLastName(), portalUrl,
-                                        portalUrl + "/assets/files/user-guide.pdf",
-                                        portalUrl + "/assets/files/process-guide.pdf",
-                                        portalUrl + "/assets/files/faqs.pdf",
-                                        portalUrl + "/assets/files/pre-editing-request-form.xlsx");
+        PortalInvite template = new PortalInvite(
+            to.getEmail(), to.getFirstName(), to.getLastName(), portalUrl,
+            portalUrl + "/assets/files/user-guide.pdf",
+            portalUrl + "/assets/files/process-guide.pdf",
+            portalUrl + "/assets/files/faqs.pdf",
+            portalUrl + "/assets/files/pre-editing-request-form.xlsx"
+        );
         try {
             log.info("Portal invite email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -99,8 +102,10 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse casePendingClosure(User to, Case forCase, Timestamp date) {
-        CasePendingClosure template = new CasePendingClosure(to.getEmail(), to.getFirstName(), to.getLastName(),
-                                              forCase.getReference(), date);
+        CasePendingClosure template = new CasePendingClosure(
+            to.getEmail(), to.getFirstName(), to.getLastName(),
+            forCase.getReference(), date
+        );
         try {
             log.info("Case pending closure email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -129,8 +134,10 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse caseClosureCancelled(User to, Case forCase) {
-        CaseClosureCancelled template = new CaseClosureCancelled(to.getEmail(), to.getFirstName(), to.getLastName(),
-                                                forCase.getReference());
+        CaseClosureCancelled template = new CaseClosureCancelled(
+            to.getEmail(), to.getFirstName(), to.getLastName(),
+            forCase.getReference()
+        );
         try {
             log.info("Case closure cancelled email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -153,17 +160,27 @@ public class GovNotify implements IEmailService {
     }
 
     @Override
-    public EmailResponse sendEmailAboutEditingRequest(EditEmailParameters editEmailParameters) {
+    public Optional<EmailResponse> sendEmailAboutEditingRequest(EditEmailParameters editEmailParameters) {
         EditRequestStatusChanged template = new EditRequestStatusChanged(editEmailParameters, portalUrl);
 
         String to = editEmailParameters.getToEmailAddress();
+
+        if (to == null) {
+            log.error(
+                "Court {} does not have a group email for sending edit request submission email for case: {}",
+                editEmailParameters.getCourtName(), editEmailParameters.getCaseReference()
+            );
+            return Optional.empty();
+        }
+
         try {
             log.info("Edit request {} email sent to {}", template.getEditingEmailType(), to);
-            return EmailResponse.fromGovNotifyResponse(sendEmail(template));
+            return Optional.of(EmailResponse.fromGovNotifyResponse(sendEmail(template)));
         } catch (NotificationClientException e) {
             log.error("Failed to send edit request {} email to {}", template.getEditingEmailType(), to, e);
             throw new EmailFailedToSendException(to, e);
         }
+
     }
 
     private SendEmailResponse sendEmail(BaseTemplate email) throws NotificationClientException {

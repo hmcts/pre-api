@@ -24,6 +24,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static uk.gov.hmcts.reform.preapi.utils.StringTools.isBlankString;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
@@ -102,7 +104,7 @@ public class RecordingDTO extends BaseRecordingDTO {
         }
 
         // For legacy edit instructions
-        if (!this.getEditInstructions().isEmpty()) {
+        if (!isBlankString(this.getEditInstructions())) {
             List<EditCutInstructions> editCutInstructionsList =
                 EditRequest.convertEditCutInstructionsFromJson(this.getEditInstructions());
 

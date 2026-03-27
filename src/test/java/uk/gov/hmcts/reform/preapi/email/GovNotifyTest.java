@@ -284,9 +284,9 @@ public class GovNotifyTest {
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
         var response = govNotify.sendEmailAboutEditingRequest(editEmailParameters);
 
-        assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
-        assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
-        assertThat(response.getBody()).isEqualTo("MESSAGE TEXT");
+        assertThat(response.get().getFromEmail()).isEqualTo("SENDER EMAIL");
+        assertThat(response.get().getSubject()).isEqualTo("SUBJECT TEXT");
+        assertThat(response.get().getBody()).isEqualTo("MESSAGE TEXT");
     }
 
     @Test
@@ -303,9 +303,9 @@ public class GovNotifyTest {
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
         var response = govNotify.sendEmailAboutEditingRequest(editEmailParameters);
 
-        assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
-        assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
-        assertThat(response.getBody()).isEqualTo("MESSAGE TEXT");
+        assertThat(response.get().getFromEmail()).isEqualTo("SENDER EMAIL");
+        assertThat(response.get().getSubject()).isEqualTo("SUBJECT TEXT");
+        assertThat(response.get().getBody()).isEqualTo("MESSAGE TEXT");
     }
 
     @Test
@@ -322,9 +322,9 @@ public class GovNotifyTest {
         var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
         var response = govNotify.sendEmailAboutEditingRequest(editEmailParameters);
 
-        assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
-        assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
-        assertThat(response.getBody()).isEqualTo("MESSAGE TEXT");
+        assertThat(response.get().getFromEmail()).isEqualTo("SENDER EMAIL");
+        assertThat(response.get().getSubject()).isEqualTo("SUBJECT TEXT");
+        assertThat(response.get().getBody()).isEqualTo("MESSAGE TEXT");
     }
 
     @DisplayName(("Should fail to send recording ready email"))

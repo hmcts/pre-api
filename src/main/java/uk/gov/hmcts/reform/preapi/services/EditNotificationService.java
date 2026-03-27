@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.StringJoiner;
 
 import static java.lang.String.format;
+import static uk.gov.hmcts.reform.preapi.utils.StringTools.isBlankString;
 
 @Service
 @Slf4j
@@ -80,7 +81,7 @@ public class EditNotificationService {
 
         String courtEmailAddress = booking.getCaseId().getCourt().getGroupEmail();
 
-        if (courtEmailAddress.isBlank()) {
+        if (isBlankString(courtEmailAddress)) {
             log.error(
                 "Court {} does not have a group email for sending edit request submission email for request: {}",
                 booking.getCaseId().getCourt().getName(), outputRecording.getEditRequest().getId()

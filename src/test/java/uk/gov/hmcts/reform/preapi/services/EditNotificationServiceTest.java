@@ -4,10 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
@@ -26,10 +24,13 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -47,6 +48,9 @@ class EditNotificationServiceTest {
 
     @MockitoBean
     private EmailServiceFactory emailServiceFactory;
+
+    @MockitoBean
+    private RecordingRepository recordingRepository;
 
     @Autowired
     private EditNotificationService underTest;
@@ -69,9 +73,7 @@ class EditNotificationServiceTest {
     @MockitoBean
     private LoggingService loggingService;
 
-    @Mock
     private Participant witnessParticipant;
-    @Mock
     private Participant defendantParticipant;
 
     private User shareWith1;
@@ -102,18 +104,28 @@ class EditNotificationServiceTest {
             new Timestamp(System.currentTimeMillis()), null, null
         );
 
-        court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC");
+        court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC", testEmail);
 
         testCase = HelperFactory.createCase(court, "Test Case", false, null);
 
-        when(witnessParticipant.getFirstName()).thenReturn("Witness first name");
-        when(witnessParticipant.getLastName()).thenReturn("Witness last name");
-        when(defendantParticipant.getFirstName()).thenReturn("Defendant first name");
-        when(defendantParticipant.getLastName()).thenReturn("Defendant last name");
+        witnessParticipant = HelperFactory.createParticipant(
+            testCase,
+            ParticipantType.WITNESS,
+            "Witness first name",
+            "Witness last name",
+            null
+        );
+        defendantParticipant = HelperFactory.createParticipant(
+            testCase,
+            ParticipantType.DEFENDANT,
+            "Defendant first name",
+            "Defendant last name",
+            null
+        );
 
         booking = HelperFactory.createBooking(
             testCase, new Timestamp(System.currentTimeMillis()), null,
-            Set.of(witnessParticipant, defendantParticipant)
+            Set.of(this.witnessParticipant, this.defendantParticipant)
         );
 
         shareBooking1 = HelperFactory.createShareBooking(
@@ -130,17 +142,28 @@ class EditNotificationServiceTest {
 
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
         when(emailService.recordingEdited(any(), any())).thenReturn(emailResponse);
+
+        // Recording fields
+        UUID recordingId = UUID.randomUUID();
+        when(mockRecording.getId()).thenReturn(recordingId);
         when(mockRecording.getCaptureSession()).thenReturn(mockCaptureSession);
+        when(mockRecording.getEditRequest()).thenReturn(mockEditRequest);
+
+        // Capture session fields
         when(mockCaptureSession.getBooking()).thenReturn(booking);
 
+        // Edit request fields
         final List<EditCutInstructions> editInstructions = List.of(
             new EditCutInstructions(UUID.randomUUID(), 0, 30, "first thirty seconds reason"),
             new EditCutInstructions(UUID.randomUUID(), 45, 50, "first thirty seconds reason"),
             new EditCutInstructions(UUID.randomUUID(), 61, 120, "")
         );
 
-        when(mockEditRequest.getSourceRecordingId()).thenReturn(mockRecording.getId());
+        when(mockEditRequest.getSourceRecordingId()).thenReturn(recordingId);
         when(mockEditRequest.getEditCutInstructions()).thenReturn(editInstructions);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(mockRecording));
     }
 
     @DisplayName("Should be able to send notifications")
@@ -184,8 +207,7 @@ class EditNotificationServiceTest {
     @DisplayName("Should be able to notify appropriately when edit request is submitted not jointly agreed")
     @Test
     void testEditRequestSubmittedNotJointlyAgreed() {
-        when(mockEditRequest.getJointlyAgreed()).thenReturn(true);
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+        when(mockEditRequest.getJointlyAgreed()).thenReturn(false);
 
         underTest.editRequestStatusWasUpdated(mockEditRequest);
 
@@ -205,7 +227,26 @@ class EditNotificationServiceTest {
         assertThat(emailParameters.getNumberOfRequestedEditInstructions())
             .isEqualTo(mockEditRequest.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
-        assertThat(emailParameters.getEditSummary()).isEqualTo("TODO");
+        assertThat(emailParameters.getEditSummary()).isEqualTo("""
+                                                                   Edit 1:\s
+                                                                   Start time: 00:00
+                                                                   End time: 00:00:30
+                                                                   Time Removed: 00:00:30
+                                                                   Reason: first thirty seconds reason
+
+                                                                   Edit 2:\s
+                                                                   Start time: 00:00:45
+                                                                   End time: 00:00:50
+                                                                   Time Removed: 00:00:05
+                                                                   Reason: first thirty seconds reason
+
+                                                                   Edit 3:\s
+                                                                   Start time: 00:01:01
+                                                                   End time: 00:02
+                                                                   Time Removed: 00:00:59
+                                                                   Reason:\s
+
+                                                                   """);
         assertThat(emailParameters.getRejectionReason()).isEqualTo(null);
     }
 
