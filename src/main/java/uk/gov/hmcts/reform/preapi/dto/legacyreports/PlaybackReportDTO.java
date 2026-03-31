@@ -18,7 +18,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 @Data
 @NoArgsConstructor
@@ -48,7 +47,7 @@ public class PlaybackReportDTO {
     @Schema(description = "PlaybackReportRecordingId")
     private UUID recordingId;
 
-    public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
+    public PlaybackReportDTO(Audit audit, User user, Recording recording) {
         playbackAt = audit.getCreatedAt();
         if (user != null) {
             userFullName = user.getFullName();

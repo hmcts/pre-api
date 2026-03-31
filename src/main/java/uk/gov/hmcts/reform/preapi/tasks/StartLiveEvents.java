@@ -22,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.utils.Batcher;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 @Slf4j
 @Component
@@ -153,7 +152,6 @@ public class StartLiveEvents extends RobotUserTask {
             .orElse(false);
     }
 
-    @Nullable
     private String getIngestAddress(LiveEventDTO liveEvent) {
         return liveEvent != null && liveEvent.getResourceState().equals("Running") && liveEvent.getInputRtmp() != null
             ? liveEvent.getInputRtmp()
