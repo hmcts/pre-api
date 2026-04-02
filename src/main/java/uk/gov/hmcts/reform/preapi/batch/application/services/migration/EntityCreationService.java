@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -48,6 +49,7 @@ public class EntityCreationService {
     private final RecordingService recordingService;
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
+    private final BookingService bookingService;
     private final PortalAccessRepository portalAccessRepository;
 
     @Value("${vodafone-user-email}")
@@ -96,7 +98,11 @@ public class EntityCreationService {
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         bookingDTO.setId(bookingId);
         bookingDTO.setCaseId(aCase.getId());
-        bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
+        bookingDTO.setScheduledFor(
+            version != null && version.equalsIgnoreCase("COPY")
+                ? bookingService.findById(bookingId).getScheduledFor()
+                : cleansedData.getRecordingTimestamp()
+        );
         Set<CreateParticipantDTO> filteredParticipants = aCase.getParticipants().stream()
             .filter(p ->
                 (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName()))
