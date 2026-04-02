@@ -34,8 +34,9 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
-import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -81,7 +82,7 @@ public class EntityCreationServiceTest {
     private UserService userService;
 
     @MockitoBean
-    private BookingService bookingService;
+    private BookingRepository bookingRepository;
 
     @MockitoBean
     private CaptureSessionService captureSessionService;
@@ -220,9 +221,10 @@ public class EntityCreationServiceTest {
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setBookingId(existingBookingId);
 
-        BookingDTO existingBooking = new BookingDTO();
+        Booking existingBooking = new Booking();
         existingBooking.setScheduledFor(originalScheduledFor);
-        when(bookingService.findById(existingBookingId)).thenReturn(existingBooking);
+        when(bookingRepository.findByIdAndDeletedAtIsNull(existingBookingId))
+            .thenReturn(Optional.of(existingBooking));
 
         when(migrationRecordService.findByArchiveId(archiveId.toString()))
             .thenReturn(Optional.of(copyRecord));
