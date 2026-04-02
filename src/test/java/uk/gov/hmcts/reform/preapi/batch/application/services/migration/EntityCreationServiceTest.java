@@ -34,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -76,6 +77,9 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private BookingService bookingService;
 
     @MockitoBean
     private PortalAccessRepository portalAccessRepository;
@@ -203,12 +207,17 @@ public class EntityCreationServiceTest {
     public void createBookingShouldUseExistingBookingIdForCopy() {
         UUID archiveId = UUID.randomUUID();
         UUID existingBookingId = UUID.randomUUID();
+        Timestamp originalScheduledFor = Timestamp.from(Instant.now().minus(Duration.ofDays(30)));
 
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId(archiveId.toString());
 
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setBookingId(existingBookingId);
+
+        BookingDTO existingBooking = new BookingDTO();
+        existingBooking.setScheduledFor(originalScheduledFor);
+        when(bookingService.findById(existingBookingId)).thenReturn(existingBooking);
 
         when(migrationRecordService.findByArchiveId(archiveId.toString()))
             .thenReturn(Optional.of(copyRecord));
@@ -230,7 +239,7 @@ public class EntityCreationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(existingBookingId);
         assertThat(result.getCaseId()).isEqualTo(caseDTO.getId());
-        assertThat(result.getScheduledFor()).isEqualTo(recording.getRecordingTimestamp());
+        assertThat(result.getScheduledFor()).isEqualTo(originalScheduledFor);
     }
 
     @Test
