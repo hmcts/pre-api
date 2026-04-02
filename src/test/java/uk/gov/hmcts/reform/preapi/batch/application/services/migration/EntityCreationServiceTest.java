@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -35,6 +36,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -80,6 +82,9 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private BookingService bookingService;
+
+    @MockitoBean
+    private CaptureSessionService captureSessionService;
 
     @MockitoBean
     private PortalAccessRepository portalAccessRepository;
@@ -299,7 +304,7 @@ public class EntityCreationServiceTest {
     public void createCaptureSessionShouldUseExistingCaptureSessionIdForCopy() {
         UUID archiveId = UUID.randomUUID();
         UUID existingCaptureSessionId = UUID.randomUUID();
-
+        
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId(archiveId.toString());
 
@@ -311,11 +316,17 @@ public class EntityCreationServiceTest {
         when(migrationRecordService.getOrigFromCopy(copyRecord))
             .thenReturn(Optional.of(origRecord));
 
-        BaseUserDTO user = new UserDTO();
-        user.setId(UUID.randomUUID());
-        AccessDTO accessDTO = new AccessDTO();
-        accessDTO.setUser(user);
-        when(userService.findByEmail(VODAFONE_EMAIL)).thenReturn(accessDTO);
+        Timestamp originalStartedAt = Timestamp.from(Instant.now().minus(Duration.ofDays(30)));
+        Timestamp originalFinishedAt = Timestamp.from(Instant.now().minus(Duration.ofDays(29)));
+        UUID originalStartedByUserId = UUID.randomUUID();
+        UUID originalFinishedByUserId = UUID.randomUUID();
+
+        CaptureSessionDTO existingCaptureSession = new CaptureSessionDTO();
+        existingCaptureSession.setStartedAt(originalStartedAt);
+        existingCaptureSession.setStartedByUserId(originalStartedByUserId);
+        existingCaptureSession.setFinishedAt(originalFinishedAt);
+        existingCaptureSession.setFinishedByUserId(originalFinishedByUserId);
+        when(captureSessionService.findById(existingCaptureSessionId)).thenReturn(existingCaptureSession);
 
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .archiveId(archiveId.toString())
@@ -331,8 +342,10 @@ public class EntityCreationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(existingCaptureSessionId);
         assertThat(result.getBookingId()).isEqualTo(booking.getId());
-        assertThat(result.getStartedAt()).isEqualTo(processedRecording.getRecordingTimestamp());
-        assertThat(result.getStartedByUserId()).isEqualTo(user.getId());
+        assertThat(result.getStartedAt()).isEqualTo(originalStartedAt);
+        assertThat(result.getStartedByUserId()).isEqualTo(originalStartedByUserId);
+        assertThat(result.getFinishedAt()).isEqualTo(originalFinishedAt);
+        assertThat(result.getFinishedByUserId()).isEqualTo(originalFinishedByUserId);
         assertThat(result.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
     }
