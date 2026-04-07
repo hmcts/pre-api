@@ -27,8 +27,8 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
-import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -51,7 +51,7 @@ public class EntityCreationService {
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
     private final BookingRepository bookingRepository;
-    private final CaptureSessionService captureSessionService;
+    private final CaptureSessionRepository captureSessionRepository;
     private final PortalAccessRepository portalAccessRepository;
 
     @Value("${vodafone-user-email}")
@@ -146,11 +146,22 @@ public class EntityCreationService {
         UUID vodafoneUser = getUserByEmail(vodafoneUserEmail);
 
         if (isCopy) {
-            var existing = captureSessionService.findById(captureSessionId);
-            captureSessionDTO.setStartedAt(existing.getStartedAt());
-            captureSessionDTO.setStartedByUserId(existing.getStartedByUserId());
-            captureSessionDTO.setFinishedAt(existing.getFinishedAt());
-            captureSessionDTO.setFinishedByUserId(existing.getFinishedByUserId());
+            captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId).ifPresentOrElse(
+                existing -> {
+                    captureSessionDTO.setStartedAt(existing.getStartedAt());
+                    captureSessionDTO.setStartedByUserId(
+                        existing.getStartedByUser() != null ? existing.getStartedByUser().getId() : null);
+                    captureSessionDTO.setFinishedAt(existing.getFinishedAt());
+                    captureSessionDTO.setFinishedByUserId(
+                        existing.getFinishedByUser() != null ? existing.getFinishedByUser().getId() : null);
+                },
+                () -> {
+                    captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+                    captureSessionDTO.setStartedByUserId(vodafoneUser);
+                    captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
+                    captureSessionDTO.setFinishedByUserId(vodafoneUser);
+                }
+            );
         } else {
             captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
             captureSessionDTO.setStartedByUserId(vodafoneUser);

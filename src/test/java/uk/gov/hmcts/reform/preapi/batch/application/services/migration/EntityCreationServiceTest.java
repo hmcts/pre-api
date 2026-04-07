@@ -14,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -35,9 +34,11 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
-import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -85,7 +86,7 @@ public class EntityCreationServiceTest {
     private BookingRepository bookingRepository;
 
     @MockitoBean
-    private CaptureSessionService captureSessionService;
+    private CaptureSessionRepository captureSessionRepository;
 
     @MockitoBean
     private PortalAccessRepository portalAccessRepository;
@@ -323,12 +324,17 @@ public class EntityCreationServiceTest {
         UUID originalStartedByUserId = UUID.randomUUID();
         UUID originalFinishedByUserId = UUID.randomUUID();
 
-        CaptureSessionDTO existingCaptureSession = new CaptureSessionDTO();
+        CaptureSession existingCaptureSession = new CaptureSession();
         existingCaptureSession.setStartedAt(originalStartedAt);
-        existingCaptureSession.setStartedByUserId(originalStartedByUserId);
         existingCaptureSession.setFinishedAt(originalFinishedAt);
-        existingCaptureSession.setFinishedByUserId(originalFinishedByUserId);
-        when(captureSessionService.findById(existingCaptureSessionId)).thenReturn(existingCaptureSession);
+        User startedBy = new User();
+        startedBy.setId(originalStartedByUserId);
+        existingCaptureSession.setStartedByUser(startedBy);
+        User finishedBy = new User();
+        finishedBy.setId(originalFinishedByUserId);
+        existingCaptureSession.setFinishedByUser(finishedBy);
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(existingCaptureSessionId))
+            .thenReturn(Optional.of(existingCaptureSession));
 
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .archiveId(archiveId.toString())
