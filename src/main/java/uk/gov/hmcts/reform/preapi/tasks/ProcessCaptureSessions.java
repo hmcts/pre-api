@@ -19,6 +19,15 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.sql.Timestamp;
 import java.time.Instant;
 
+/**
+ * {@summary This belongs to the unused cron job solution for stuck-in-processing capture sessions.}
+ *
+ * @deprecated This belongs to the cron job solution for the problem where capture sessions get stuck in processing.
+ *     See <a href="https://tools.hmcts.net/jira/issues/?jql=labels%20%3D%20capture-session-interrupted-processing">Jira label</a>.
+ *     We have decided not to proceed with this solution, and we are investigating other architectural solutions.
+ *     See <a href="https://justiceuk.sharepoint.com/:w:/r/sites/PreRecordedEvidenceBAUTeam/Shared%20Documents/General/Spikes/Recording%20Process%20-%20Event%20Based%20Workflow%20Spike.docx?d=wc920d7600b8446c889fd197324e7927c&csf=1&web=1&e=EuSHgB">spike</a>.
+ */
+@Deprecated
 @Slf4j
 @Component
 public class ProcessCaptureSessions extends RobotUserTask {

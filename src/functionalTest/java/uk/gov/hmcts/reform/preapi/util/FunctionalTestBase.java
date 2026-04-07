@@ -159,6 +159,22 @@ public class FunctionalTestBase {
             .thenReturn();
     }
 
+    protected Response doPutRequest(final String path, final TestingSupportRoles authenticatedAs) {
+        return doPutRequestNoBody(path, authenticatedAs);
+    }
+
+    protected Response doPutRequestNoBody(
+        final String path,
+        final TestingSupportRoles authenticatedAs
+    ) {
+        return given()
+            .relaxedHTTPSValidation()
+            .headers(getRequestHeaders(null, authenticatedAs))
+            .when()
+            .put(path)
+            .thenReturn();
+    }
+
     protected Response doPostRequest(final String path, final TestingSupportRoles authenticatedAs) {
         return doPostRequest(path, null, "", authenticatedAs);
     }

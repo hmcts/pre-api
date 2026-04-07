@@ -551,4 +551,66 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
             assertThat(foundCaptureSessions).containsAll(List.of(dto1.getId(), dto2.getId()));
         }
     }
+
+    @Test
+    @DisplayName("Should return 404 when trying to register a capture session that is not in database")
+    void shouldReturn404WhenCaptureSessionNotFound() {
+        var dto = createCaptureSession();
+        dto.setStatus(RecordingStatus.NO_RECORDING);
+
+        var registerResponse = doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId(),
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(registerResponse, 404);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = RecordingStatus.class,
+        names = {"STANDBY", "INITIALISING", "RECORDING", "RECORDING_AVAILABLE", "FAILURE", "NO_RECORDING"})
+    @DisplayName("Should return 400 when trying to register a capture session that is not in PROCESSING state")
+    void shouldReturn400WhenCaptureSessionProcessing(RecordingStatus recordingStatus) throws JsonProcessingException {
+        var dto = createCaptureSession();
+        dto.setStatus(recordingStatus);
+
+        // create capture session
+        var putResponse = putCaptureSession(dto);
+        assertResponseCode(putResponse, 201);
+        assertThat(putResponse.header(LOCATION_HEADER))
+            .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
+
+        // see it is available
+        assertCaptureSessionExists(dto.getId(), true);
+
+        // attempt to register capture session that is not in PROCESSING state
+        var registerResponse = doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId(),
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(registerResponse, 400);
+    }
+
+    @Test
+    @DisplayName("Should not process registration for capture session that finished"
+        + " processing within the timeout window")
+    void shouldReturn400WhenCaptureSessionProcessingWithinTimeout() throws JsonProcessingException {
+        var dto = createCaptureSession();
+        dto.setFinishedAt(Timestamp.from(Instant.now()));
+        dto.setStatus(RecordingStatus.PROCESSING);
+
+        // create capture session
+        var putResponse = putCaptureSession(dto);
+        assertResponseCode(putResponse, 201);
+        assertThat(putResponse.header(LOCATION_HEADER))
+            .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
+
+        // see it is available
+        assertCaptureSessionExists(dto.getId(), true);
+
+        var registerResponse = doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId(),
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(registerResponse, 400);
+    }
 }

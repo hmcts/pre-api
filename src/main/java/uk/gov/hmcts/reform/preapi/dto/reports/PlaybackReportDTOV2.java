@@ -12,8 +12,6 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
-import javax.annotation.Nullable;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,7 +23,7 @@ public class PlaybackReportDTOV2 extends UserRecordingPlaybackReportDTOV2 {
     @Schema(description = "PlaybackReportTimeZone")
     private String playbackTimeZone;
 
-    public PlaybackReportDTOV2(Audit audit, User user, @Nullable Recording recording) {
+    public PlaybackReportDTOV2(Audit audit, User user, Recording recording) {
         super(audit, user, recording);
         playbackTimeZone = DateTimeUtils.getTimezoneAbbreviation(audit.getCreatedAt());
     }

@@ -49,8 +49,8 @@ public class HelperFactory {
                                   String lastName,
                                   String email,
                                   Timestamp deletedAt,
-                                  @Nullable String phone,
-                                  @Nullable String organisation) { //NOPMD - suppressed UseObjectForClearerAPI
+                                  String phone,
+                                  String organisation) { //NOPMD - suppressed UseObjectForClearerAPI
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setFirstName(firstName);
@@ -63,7 +63,7 @@ public class HelperFactory {
         return user;
     }
 
-    public static Court createCourt(CourtType courtType, String name, @Nullable String locationCode) {
+    public static Court createCourt(CourtType courtType, String name, String locationCode) {
         Court court = new Court();
         court.setCourtType(courtType);
         court.setName(name);
@@ -91,7 +91,7 @@ public class HelperFactory {
                                             Role role,
                                             boolean active,
                                             Timestamp deletedAt,
-                                            @Nullable Timestamp lastAccess, boolean isDefaultCourt) {
+                                            Timestamp lastAccess, boolean isDefaultCourt) {
         AppAccess appAccess = new AppAccess();
         appAccess.setUser(user);
         appAccess.setCourt(court);
@@ -137,7 +137,7 @@ public class HelperFactory {
     public static Booking createBooking(Case testingCase,
                                         Timestamp scheduledFor,
                                         Timestamp deletedAt,
-                                        @Nullable Set<Participant> participants) {
+                                        Set<Participant> participants) {
         Booking booking = new Booking();
         booking.setCaseId(testingCase);
         booking.setScheduledFor(scheduledFor);
@@ -149,14 +149,14 @@ public class HelperFactory {
     public static CaptureSession createCaptureSession(//NOPMD - suppressed ExcessiveParameterList
                                                       Booking booking,
                                                       RecordingOrigin origin,
-                                                      @Nullable String ingestAddress,
-                                                      @Nullable String liveOutputUrl,
-                                                      @Nullable Timestamp startedAt,
-                                                      @Nullable User startedBy,
-                                                      @Nullable Timestamp finishedAt,
-                                                      @Nullable User finishedBy,
-                                                      @Nullable RecordingStatus status,
-                                                      @Nullable Timestamp deletedAt) {
+                                                      String ingestAddress,
+                                                      String liveOutputUrl,
+                                                      Timestamp startedAt,
+                                                      User startedBy,
+                                                      Timestamp finishedAt,
+                                                      User finishedBy,
+                                                      RecordingStatus status,
+                                                      Timestamp deletedAt) {
         CaptureSession captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
@@ -195,10 +195,10 @@ public class HelperFactory {
     }
 
     public static Recording createRecording(CaptureSession captureSession,
-                                            @Nullable Recording parentRecording,
+                                            Recording parentRecording,
                                             int version,
                                             String filename,
-                                            @Nullable Timestamp deletedAt) {
+                                            Timestamp deletedAt) {
         var recording = new Recording();
         recording.setCaptureSession(captureSession);
         recording.setParentRecording(parentRecording);
@@ -258,12 +258,12 @@ public class HelperFactory {
                                                 List<EditCutInstructions> editInstructions,
                                                 EditRequestStatus status,
                                                 User createdBy,
-                                                @Nullable Timestamp startedAt,
-                                                @Nullable Timestamp finishedAt,
-                                                @Nullable Boolean jointlyAgreed,
-                                                @Nullable String rejectionReason,
-                                                @Nullable Timestamp approvedAt,
-                                                @Nullable String approvedBy) {
+                                                Timestamp startedAt,
+                                                Timestamp finishedAt,
+                                                Boolean jointlyAgreed,
+                                                String rejectionReason,
+                                                Timestamp approvedAt,
+                                                String approvedBy) {
         EditRequest editRequest = createSimpleEditRequest(id, sourceRecordingId, editInstructions, status, createdBy);
         editRequest.setStartedAt(startedAt);
         editRequest.setFinishedAt(finishedAt);
