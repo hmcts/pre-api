@@ -342,7 +342,7 @@ from HMCTS Azure Container Registry (ACR) you must login to the ACR first:
 
 ```bash
 az login # if not logged in already
-az acr login --name hmctspublic
+az acr login --name hmctsprod
 ```
 
 #### With the Command Line
