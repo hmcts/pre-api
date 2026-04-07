@@ -6,7 +6,7 @@ import org.testcontainers.utility.ImageNameSubstitutor;
 public class ContainerImageNameSubstitutor extends ImageNameSubstitutor {
 
     private final DockerImageName hmctsPostgresDockerImage = DockerImageName
-        .parse("hmctsprod.azurecr.io/imported/postgres:16-alpine")
+        .parse("hmctspublic.azurecr.io/imported/postgres:16-alpine")
         .asCompatibleSubstituteFor("postgres");
 
     @Override
