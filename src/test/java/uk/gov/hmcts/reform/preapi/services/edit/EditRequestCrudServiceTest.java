@@ -31,12 +31,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditRequestCrudService.class)
@@ -330,6 +332,28 @@ public class EditRequestCrudServiceTest {
         assertThat(inserted.getFirst().getReason()).isEqualTo(editInstructions.getReason());
     }
 
+    @Test
+    @DisplayName("Should not update edit request status to SUBMITTED if edit instructions are empty")
+    void shouldNotUpdateEditRequestProcessingIfEditInstructionsAreEmpty() {
+        when(mockEditRequest.getEditCutInstructions()).thenReturn(List.of());
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> underTest.updateEditRequestStatus(mockEditRequest.getId(), EditRequestStatus.SUBMITTED)
+        ).getMessage();
+
+        assertThat(message).isEqualTo(format(
+            "Cannot submit edit request %s: empty instructions",
+            mockEditRequestId));
+
+        verify(editRequestRepository, times(1)).findById(mockEditRequestId);
+
+        verifyNoMoreInteractions(recordingService);
+        verifyNoMoreInteractions(editCutInstructionsRepository);
+        verifyNoMoreInteractions(editRequestRepository);
+        verifyNoMoreInteractions(recordingRepository);
+    }
 
 
 

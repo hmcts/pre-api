@@ -8,7 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -17,20 +20,22 @@ import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.services.EditNotificationService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
-import java.sql.Timestamp;
-import java.time.Instant;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
 import static java.lang.String.format;
-import static uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO.formatTimeAsString;
+import static uk.gov.hmcts.reform.preapi.utils.StringTools.formatDurationAsString;
+import static uk.gov.hmcts.reform.preapi.utils.StringTools.formatTimeAsString;
+import static uk.gov.hmcts.reform.preapi.utils.StringTools.isBlankString;
 
 @Service
 @Slf4j
 public class EditRequestProcessingService {
 
     private final EditRequestRepository editRequestRepository;
+    private final EditRequestCrudService editRequestCrudService;
     private final IEditingService editingService;
     private final RecordingService recordingService;
     private final EditNotificationService editNotificationService;
@@ -38,11 +43,13 @@ public class EditRequestProcessingService {
 
     @Autowired
     public EditRequestProcessingService(final EditRequestRepository editRequestRepository,
+                                        final EditRequestCrudService editRequestCrudService,
                                         final IEditingService editingService,
                                         final RecordingService recordingService,
                                         final EditNotificationService editNotificationService,
                                         final AssetGenerationService assetGenerationService) {
         this.editRequestRepository = editRequestRepository;
+        this.editRequestCrudService = editRequestCrudService;
         this.editingService = editingService;
         this.recordingService = recordingService;
         this.editNotificationService = editNotificationService;
@@ -64,72 +71,48 @@ public class EditRequestProcessingService {
                 EditRequestStatus.PENDING.toString()
             );
         }
-        updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
+        editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
         return request;
     }
 
     @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
-    public RecordingDTO prepareForAndPerformEdit(EditRequest request) throws InterruptedException {
+    public RecordingDTO prepareForAndPerformEdit(EditRequestDTO request, User user) throws InterruptedException {
         RecordingDTO sourceRecording = recordingService.findById(request.getSourceRecordingId());
+
+        if (sourceRecording == null) {
+            throw new NotFoundException(
+                format("Recording with id %s not found", request.getSourceRecordingId()));
+        }
 
         UUID newRecordingId = UUID.randomUUID();
         String filename;
+        List<EditCutInstructionsDTO> instructionsList = getEditCutInstructionsLegacyProof(
+            request,
+            sourceRecording.getEditInstructions()
+        );
         try {
-            validateEditInstructions(sourceRecording);
-            editingService.performEdit(newRecordingId, sourceRecording);
+            validateEditInstructions(request.getSourceRecordingId(), sourceRecording.getDuration(), instructionsList);
+            editingService.performEdit(newRecordingId, sourceRecording, request);
             filename = assetGenerationService.generateAsset(newRecordingId, request.getSourceRecordingId());
             Integer versionNumber = recordingService.getNextVersionNumber(sourceRecording.getParentRecordingId());
             CreateRecordingDTO createRecordingDTO = new CreateRecordingDTO(
                 newRecordingId, filename, versionNumber, sourceRecording);
             request.setOutputRecordingId(createRecordingDTO.getId());
-            editRequestRepository.save(request);
+            request.setStatus(EditRequestStatus.COMPLETE);
+
             recordingService.upsert(createRecordingDTO);
+            editRequestCrudService.createOrUpsertDraftEditRequestInstructions(request, user);
+            editNotificationService.editRequestStatusWasUpdated(request);
         } catch (Exception e) {
-            updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
+            editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
             throw e;
         }
-
-        updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
-
         return recordingService.findById(newRecordingId);
     }
 
-    @Transactional
-    public void updateEditRequestStatus(UUID editRequestId, EditRequestStatus updatedStatus) {
-        EditRequest editRequest = editRequestRepository.findById(editRequestId)
-            .orElseThrow(() -> new NotFoundException("Edit Request: " + editRequestId));
-
-        if (editRequest.getStatus() == EditRequestStatus.DRAFT && updatedStatus == EditRequestStatus.SUBMITTED) {
-            if (editRequest.getEditCutInstructions().isEmpty()) {
-                throw new BadRequestException(format(
-                    "Cannot submit edit request %s: empty instructions",
-                    editRequest.getId()
-                ));
-            }
-        }
-        editRequest.setStatus(updatedStatus);
-
-        if (updatedStatus == EditRequestStatus.PROCESSING) {
-            editRequest.setStartedAt(Timestamp.from(Instant.now()));
-        }
-
-        if (updatedStatus == EditRequestStatus.COMPLETE || updatedStatus == EditRequestStatus.ERROR) {
-            editRequest.setFinishedAt(Timestamp.from(Instant.now()));
-        }
-        editRequestRepository.save(editRequest);
-
-        // For edited recordings, notification is sent by RecordingListener instead
-        if (updatedStatus != EditRequestStatus.DRAFT && updatedStatus != EditRequestStatus.COMPLETE) {
-            editNotificationService.editRequestStatusWasUpdated(editRequest);
-        }
-    }
-
-    private void validateEditInstructions(final RecordingDTO recordingDTO) {
-        if (recordingDTO == null) {
-            throw new BadRequestException("Cannot perform edit request: recording was null");
-        }
-
-        List<EditCutInstructionsDTO> instructionsList = recordingDTO.getEditCutInstructionsLegacyProof();
+    private void validateEditInstructions(final UUID sourceRecordingId,
+                                          final Duration recordingDuration,
+                                          final List<EditCutInstructionsDTO> instructionsList) {
         if (instructionsList.isEmpty()) {
             throw new BadRequestException("Cannot perform edit request: no instructions were provided");
         }
@@ -137,66 +120,81 @@ public class EditRequestProcessingService {
         instructionsList.sort(Comparator.comparing(EditCutInstructionsDTO::getStart)
                                   .thenComparing(EditCutInstructionsDTO::getEnd));
 
-        if (recordingDTO.getDuration() == null) {
-            throw new BadRequestException("Cannot perform edit request: duration was null");
+        if (recordingDuration == null || recordingDuration.isZero()) {
+            throw new BadRequestException(
+                format("Cannot perform edit request for recording (%s): duration was zero", sourceRecordingId));
         }
 
-        long recordingDuration = recordingDTO.getDuration().toSeconds();
-
-        if (instructionsList.getFirst().getStart() == 0 && instructionsList.getFirst().getEnd() == recordingDuration) {
-            throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
-                                              + formatTimeAsString(instructionsList.getFirst().getStart())
-                                              + "), End("
-                                              + formatTimeAsString(instructionsList.getFirst().getEnd())
-                                              + "), Recording Duration("
-                                              + recordingDuration
-                                              + " seconds)");
+        if (instructionsList.getFirst().getStart() == 0
+            && instructionsList.getFirst().getEnd() == recordingDuration.toSeconds()) {
+            throw new BadRequestException(format(
+                "Invalid Instruction: Cannot cut an entire recording: Start(%s), End(%s), Recording Duration(%s)",
+                formatTimeAsString(instructionsList.getFirst().getStart()),
+                formatTimeAsString(instructionsList.getFirst().getEnd()),
+                formatDurationAsString(recordingDuration)
+            ));
         }
 
         EditCutInstructionsDTO previous = null;
         for (EditCutInstructionsDTO current : instructionsList) {
-            // To skip the first one
-            if (previous == null) {
-                previous = current;
-                continue;
-            }
-            previous = current;
-
-            if (current.getStart() < previous.getEnd()) {
-                throw new BadRequestException(format(
-                    "Overlapping instructions: Previous End(%s), Current Start(%s)",
-                    formatTimeAsString(previous.getEnd()),
-                    formatTimeAsString(previous.getStart())
-                ));
-            }
-
             if (current.getStart().equals(current.getEnd())) {
                 throw new BadRequestException(format(
-                    "Invalid instruction: Instruction with 0 second duration invalid: "
-                        + "Start(%s), End(%s)",
+                    "Invalid instruction: Instruction with 0 second duration invalid: Start(%s), End(%s)",
                     formatTimeAsString(current.getStart()),
                     formatTimeAsString(current.getEnd())
                 ));
             }
             if (current.getEnd() < current.getStart()) {
                 throw new BadRequestException(format(
-                    "Invalid instruction: Instruction with end time before start time: "
-                        + "Start(%s), End(%s)",
+                    "Invalid instruction: Instruction with end time before start time: Start(%s), End(%s)",
                     formatTimeAsString(current.getStart()),
                     formatTimeAsString(current.getEnd())
                 ));
             }
-            if (current.getEnd() > recordingDuration) {
+            if (current.getEnd() > recordingDuration.toSeconds()) {
                 throw new BadRequestException(format(
                     "Invalid instruction: Instruction end time exceeding duration: "
                         + "Start(%s), End(%s), Recording Duration(%s)",
                     formatTimeAsString(current.getStart()),
                     formatTimeAsString(current.getEnd()),
-                    recordingDuration
+                    formatDurationAsString(recordingDuration)
                 ));
             }
+
+            // To skip the first one
+            if (previous == null) {
+                previous = current;
+            } else {
+                if (current.getStart() < previous.getEnd()) {
+                    throw new BadRequestException(format(
+                        "Overlapping instructions: Previous End(%s), Current Start(%s)",
+                        formatTimeAsString(previous.getEnd()),
+                        formatTimeAsString(current.getStart())
+                    ));
+                }
+                previous = current;
+            }
+
         }
 
+    }
+
+    private List<EditCutInstructionsDTO> getEditCutInstructionsLegacyProof(final EditRequestDTO editRequest,
+                                                                           final String legacyEditCutInstructions) {
+        // Default to new-style instructions
+        if (editRequest != null && editRequest.getEditCutInstructions() != null
+            && !editRequest.getEditCutInstructions().isEmpty()) {
+            return editRequest.getEditCutInstructions();
+        }
+
+        if (!isBlankString(legacyEditCutInstructions)) {
+            List<EditCutInstructions> editCutInstructionsList =
+                EditRequest.convertEditCutInstructionsFromJson(legacyEditCutInstructions);
+
+            return EditRequestDTO.toDTO(editCutInstructionsList);
+        }
+
+        return List.of();
     }
 
 }

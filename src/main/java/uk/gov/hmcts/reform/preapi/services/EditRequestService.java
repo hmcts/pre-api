@@ -83,12 +83,14 @@ public class EditRequestService {
         return editRequestProcessingService.markAsProcessing(editId);
     }
 
-    public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
-        return editRequestProcessingService.prepareForAndPerformEdit(request);
+    public RecordingDTO performEdit(EditRequestDTO request) throws InterruptedException {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
+        return editRequestProcessingService.prepareForAndPerformEdit(request, user);
     }
 
     public void updateEditRequestStatus(UUID id, EditRequestStatus updatedStatus) {
-        editRequestProcessingService.updateEditRequestStatus(id, updatedStatus);
+        editRequestCrudService.updateEditRequestStatus(id, updatedStatus);
     }
 
 }

@@ -438,7 +438,7 @@ class TestingSupportController {
                 appAccess,
                 List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
 
-        EditRequest editRequest = new EditRequest();
+        EditRequestDTO editRequest = new EditRequestDTO();
         editRequest.setId(editId);
         editRequest.setStatus(EditRequestStatus.PROCESSING);
         RecordingDTO recording = editRequestService.performEdit(editRequest);

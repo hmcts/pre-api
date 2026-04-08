@@ -104,6 +104,8 @@ public class EditRequestServiceTest {
         when(mockAuth.isAppUser()).thenReturn(false);
         when(mockAuth.isPortalUser()).thenReturn(false);
 
+        editRequestService.findAll(searchEditRequests, pageable);
+
         ArgumentCaptor<Pageable> pageableArgCaptor = ArgumentCaptor.forClass(Pageable.class);
         ArgumentCaptor<SearchEditRequests> paramsArg = ArgumentCaptor.forClass(SearchEditRequests.class);
 
@@ -115,12 +117,15 @@ public class EditRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Search edit requests as app user should set additional filters")
+    @DisplayName("Search edit requests as app user should set additional filters (court ID)")
     void findAllAsAppUserSetsCourtFilterOnly() {
         when(mockAuth.isAdmin()).thenReturn(false);
         when(mockAuth.isAppUser()).thenReturn(true);
         when(mockAuth.isPortalUser()).thenReturn(false);
-        when(mockAuth.getCourtId()).thenReturn(UUID.randomUUID());
+        UUID courtId = UUID.randomUUID();
+        when(mockAuth.getCourtId()).thenReturn(courtId);
+
+        editRequestService.findAll(searchEditRequests, pageable);
 
         ArgumentCaptor<Pageable> pageableArgCaptor = ArgumentCaptor.forClass(Pageable.class);
         ArgumentCaptor<SearchEditRequests> paramsArg = ArgumentCaptor.forClass(SearchEditRequests.class);
@@ -129,7 +134,7 @@ public class EditRequestServiceTest {
             .findAll(paramsArg.capture(), pageableArgCaptor.capture());
 
         assertThat(paramsArg.getValue().getAuthorisedBookings()).isEmpty();
-        assertThat(pageableArgCaptor.getAllValues()).isEqualTo(Pageable.unpaged());
+        assertThat(paramsArg.getValue().getAuthorisedCourt()).isEqualTo(courtId);
     }
 
     @Test
@@ -138,7 +143,10 @@ public class EditRequestServiceTest {
         when(mockAuth.isAdmin()).thenReturn(false);
         when(mockAuth.isAppUser()).thenReturn(false);
         when(mockAuth.isPortalUser()).thenReturn(true);
+        when(mockAuth.getCourtId()).thenReturn(UUID.randomUUID());
         when(mockAuth.getSharedBookings()).thenReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
+
+        editRequestService.findAll(searchEditRequests, pageable);
 
         ArgumentCaptor<Pageable> pageableArgCaptor = ArgumentCaptor.forClass(Pageable.class);
         ArgumentCaptor<SearchEditRequests> paramsArg = ArgumentCaptor.forClass(SearchEditRequests.class);
@@ -148,7 +156,6 @@ public class EditRequestServiceTest {
 
         assertThat(paramsArg.getValue().getAuthorisedBookings()).containsAll(mockAuth.getSharedBookings());
         assertThat(paramsArg.getValue().getAuthorisedCourt()).isEqualTo(null);
-        assertThat(pageableArgCaptor.getAllValues()).isEqualTo(Pageable.unpaged());
     }
 
 }

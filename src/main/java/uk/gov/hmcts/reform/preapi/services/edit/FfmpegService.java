@@ -50,7 +50,7 @@ public class FfmpegService implements IEditingService {
 
     // Change this to accept a recording with embedded edit request
     @Override
-    public void performEdit(UUID newRecordingId, RecordingDTO recording) {
+    public void performEdit(UUID newRecordingId, RecordingDTO recording, EditRequestDTO editRequestDto) {
         String inputFileName = recording.getFilename();
         if (inputFileName == null) {
             throw new NotFoundException("No file name provided");
@@ -62,7 +62,7 @@ public class FfmpegService implements IEditingService {
         filesToDelete.add(inputFileName);
         filesToDelete.add(outputFileName);
 
-        final Map<String, CommandLine> commands = generateMultiEditCommands(newRecordingId, outputFileName, recording);
+        final Map<String, CommandLine> commands = generateMultiEditCommands(outputFileName, recording, editRequestDto);
 
         downloadInputFile(recording.getEditRequest(), inputFileName);
         try {
@@ -234,19 +234,19 @@ public class FfmpegService implements IEditingService {
             .addArgument(outputFileName);
     }
 
-    private LinkedHashMap<String, CommandLine> generateMultiEditCommands(final UUID newRecordingId,
-                                                                         final String outputFileName,
-                                                                         final RecordingDTO recording) {
-        List<EditCutInstructionsDTO> rawEditInstructions = recording.getEditRequest().getEditCutInstructions();
+    private LinkedHashMap<String, CommandLine> generateMultiEditCommands(final String outputFileName,
+                                                                         final RecordingDTO sourceRecording,
+                                                                         final EditRequestDTO editRequestDTO) {
+        List<EditCutInstructionsDTO> rawEditInstructions = editRequestDTO.getEditCutInstructions();
 
-        long recordingDuration = recording.getDuration().toSeconds();
+        long recordingDuration = sourceRecording.getDuration().toSeconds();
         List<FfmpegEditInstruction> ffmpegEditInstructions = invertInstructions(rawEditInstructions, recordingDuration);
 
         if (ffmpegEditInstructions.size() == 1) {
             FfmpegEditInstruction instruction = ffmpegEditInstructions.getFirst();
             return new LinkedHashMap<>(Map.of(
                 outputFileName,
-                generateSingleEditCommand(instruction, recording.getFilename(), outputFileName)
+                generateSingleEditCommand(instruction, sourceRecording.getFilename(), outputFileName)
             ));
         }
 
@@ -255,7 +255,10 @@ public class FfmpegService implements IEditingService {
                 String segmentFileName = String.format("%d_segment.mp4", i);
                 return Map.entry(
                     segmentFileName,
-                    generateSingleEditCommand(ffmpegEditInstructions.get(i), recording.getFilename(), segmentFileName)
+                    generateSingleEditCommand(
+                        ffmpegEditInstructions.get(i),
+                        sourceRecording.getFilename(), segmentFileName
+                    )
                 );
             })
             .collect(Collectors.toMap(

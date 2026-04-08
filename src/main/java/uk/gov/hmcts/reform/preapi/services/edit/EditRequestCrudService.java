@@ -22,12 +22,14 @@ import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static java.lang.String.format;
-import static uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO.fromDTO;
+import static uk.gov.hmcts.reform.preapi.entities.EditRequest.fromDTO;
 
 @Slf4j
 @Service
@@ -91,7 +93,7 @@ public class EditRequestCrudService {
         if (mostRecentEditRequest.isEmpty()) {
             // Deliberately allow new (draft) edit request with empty instructions
             // However, edit requests cannot be *submitted* with empty instructions
-            return createEditRequest(user, originalRecording, EditRequestDTO.fromDTO(dto.getEditCutInstructions()));
+            return createEditRequest(user, originalRecording, fromDTO(dto.getEditCutInstructions()));
         }
 
         // A non-draft edit request exists; create a new one with previous instructions attached
@@ -153,4 +155,36 @@ public class EditRequestCrudService {
         }
         return originalRecording;
     }
+
+    @Transactional
+    public void updateEditRequestStatus(UUID editRequestId, EditRequestStatus updatedStatus) {
+        EditRequest editRequest = editRequestRepository.findById(editRequestId)
+            .orElseThrow(() -> new NotFoundException("Edit Request: " + editRequestId));
+
+        if (editRequest.getStatus() == EditRequestStatus.DRAFT && updatedStatus == EditRequestStatus.SUBMITTED) {
+            if (editRequest.getEditCutInstructions().isEmpty()) {
+                throw new BadRequestException(format(
+                    "Cannot submit edit request %s: empty instructions",
+                    editRequest.getId()
+                ));
+            }
+        }
+
+        if (updatedStatus == editRequest.getStatus()) {
+            log.info("Edit request {}: status is already {}. Nothing to update.", editRequestId, updatedStatus);
+            return;
+        }
+
+        editRequest.setStatus(updatedStatus);
+
+        if (updatedStatus == EditRequestStatus.PROCESSING) {
+            editRequest.setStartedAt(Timestamp.from(Instant.now()));
+        }
+
+        if (updatedStatus == EditRequestStatus.COMPLETE || updatedStatus == EditRequestStatus.ERROR) {
+            editRequest.setFinishedAt(Timestamp.from(Instant.now()));
+        }
+        editRequestRepository.save(editRequest);
+    }
+
 }

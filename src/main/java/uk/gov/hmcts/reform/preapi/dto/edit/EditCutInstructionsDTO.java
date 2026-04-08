@@ -15,6 +15,8 @@ import java.time.LocalTime;
 import java.util.UUID;
 
 import static java.lang.String.format;
+import static uk.gov.hmcts.reform.preapi.utils.StringTools.formatTimeAsInteger;
+import static uk.gov.hmcts.reform.preapi.utils.StringTools.formatTimeAsLocalTime;
 
 @Builder(toBuilder = true)
 @Data
@@ -67,32 +69,6 @@ public class EditCutInstructionsDTO {
         }
         end = formatTimeAsInteger(endOfCut);
         return end;
-    }
-
-    public static Integer formatTimeAsInteger(LocalTime localTime) {
-        if (localTime == null) {
-            return null;
-        }
-        return localTime.toSecondOfDay();
-
-    }
-
-    public static String formatTimeAsString(Integer time) {
-        if (time < 0) {
-            throw new IllegalArgumentException("Time in seconds cannot be negative: " + time);
-        }
-
-        Integer hours = time / 3600;
-        Integer minutes = time % 3600 / 60;
-        Integer seconds = time % 60;
-
-        return format("%02d:%02d:%02d", hours, minutes, seconds);
-    }
-
-    public static LocalTime formatTimeAsLocalTime(Integer time) {
-        String timeString = formatTimeAsString(time);
-
-        return LocalTime.parse(timeString);
     }
 
     public EditCutInstructionsDTO(UUID editRequestId, String startTime, String endTime, String reason) {

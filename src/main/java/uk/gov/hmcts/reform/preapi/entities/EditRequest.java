@@ -19,6 +19,8 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.jetbrains.annotations.NotNull;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
@@ -31,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -94,6 +97,13 @@ public class EditRequest extends CreatedModifiedAtEntity {
         details.put("approvedAt", approvedAt);
         details.put("approvedBy", approvedBy);
         return details;
+    }
+
+    public static List<EditCutInstructions> fromDTO(List<EditCutInstructionsDTO> editInstructions) {
+        if (editInstructions == null) {
+            return null;
+        }
+        return editInstructions.stream().map(EditCutInstructions::new).collect(Collectors.toList());
     }
 
     public String getEditCutInstructionsAsJson() {

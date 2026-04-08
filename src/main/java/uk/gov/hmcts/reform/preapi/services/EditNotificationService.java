@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.services;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
@@ -47,7 +46,14 @@ public class EditNotificationService {
             .forEach(u -> emailServiceFactory.getEnabledEmailService().recordingEdited(u, booking.getCaseId()));
     }
 
-    public void editRequestStatusWasUpdated(EditRequest editRequest) {
+    public void editRequestStatusWasUpdated(EditRequestDTO editRequest) {
+        switch (editRequest.getStatus()) {
+            // For edited recordings, notification is sent by RecordingListener instead
+            case DRAFT, PENDING, PROCESSING, COMPLETE, ERROR, ORIGINAL, OUTDATED -> {
+                return;
+            }
+        }
+
         Recording sourceRecording = recordingRepository.findById(editRequest.getSourceRecordingId())
             .orElseThrow(() -> new NotFoundException("Unable to send email: could not find source recording "
                                                          + editRequest.getSourceRecordingId()));

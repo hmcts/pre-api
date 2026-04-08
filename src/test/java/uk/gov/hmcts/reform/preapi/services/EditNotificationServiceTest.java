@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.IEmailService;
@@ -25,7 +26,6 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
-import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
@@ -37,13 +37,12 @@ import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO.toDTO;
 
 @SpringBootTest(classes = EditNotificationService.class)
 class EditNotificationServiceTest {
@@ -59,6 +58,9 @@ class EditNotificationServiceTest {
 
     @MockitoBean
     private IEmailService emailService;
+
+    @MockitoBean
+    private EditRequestDTO mockEditRequestDto;
 
     @MockitoBean
     private EditRequest mockEditRequest;
@@ -80,14 +82,11 @@ class EditNotificationServiceTest {
 
     private User shareWith1;
     private User shareWith2;
-    private User sharedBy;
     private Case testCase;
     private Court court;
     private Booking booking;
-    private ShareBooking shareBooking1;
-    private ShareBooking shareBooking2;
 
-    private static String testEmail = "test.court@example.com";
+    private static final String testEmail = "test.court@example.com";
 
     @BeforeEach
     void setup() {
@@ -101,7 +100,7 @@ class EditNotificationServiceTest {
             new Timestamp(System.currentTimeMillis()), null, null
         );
 
-        sharedBy = HelperFactory.createUser(
+        User sharedBy = HelperFactory.createUser(
             "Court", "Clerk", "court.clerk@example.com",
             new Timestamp(System.currentTimeMillis()), null, null
         );
@@ -130,12 +129,12 @@ class EditNotificationServiceTest {
             Set.of(this.witnessParticipant, this.defendantParticipant)
         );
 
-        shareBooking1 = HelperFactory.createShareBooking(
+        ShareBooking shareBooking1 = HelperFactory.createShareBooking(
             shareWith1, sharedBy, booking,
             new Timestamp(System.currentTimeMillis())
         );
 
-        shareBooking2 = HelperFactory.createShareBooking(
+        ShareBooking shareBooking2 = HelperFactory.createShareBooking(
             shareWith2, sharedBy, booking,
             new Timestamp(System.currentTimeMillis())
         );
@@ -161,6 +160,10 @@ class EditNotificationServiceTest {
             new EditCutInstructions(UUID.randomUUID(), 61, 120, "")
         );
 
+        when(mockEditRequestDto.getSourceRecordingId()).thenReturn(recordingId);
+        when(mockEditRequestDto.getEditCutInstructions()).thenReturn(toDTO(editInstructions));
+        when(mockEditRequestDto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+
         when(mockEditRequest.getSourceRecordingId()).thenReturn(recordingId);
         when(mockEditRequest.getEditCutInstructions()).thenReturn(editInstructions);
         when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
@@ -181,10 +184,10 @@ class EditNotificationServiceTest {
     @DisplayName("Should be able to notify appropriately when edit request is submitted jointly agreed")
     @Test
     void testEditRequestSubmittedJointlyAgreed() {
-        when(mockEditRequest.getJointlyAgreed()).thenReturn(true);
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+        when(mockEditRequestDto.getJointlyAgreed()).thenReturn(true);
+        when(mockEditRequestDto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
 
-        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequestDto);
 
         ArgumentCaptor<EditEmailParameters> captor = ArgumentCaptor.forClass(EditEmailParameters.class);
         verify(emailService, times(1)).sendEmailAboutEditingRequest(captor.capture());
@@ -199,7 +202,7 @@ class EditNotificationServiceTest {
             .isEqualTo(format("%s %s", defendantParticipant.getFirstName(), defendantParticipant.getLastName()));
         assertThat(emailParameters.getCaseReference()).isEqualTo(booking.getCaseId().getReference());
         assertThat(emailParameters.getNumberOfRequestedEditInstructions())
-            .isEqualTo(mockEditRequest.getEditCutInstructions().size());
+            .isEqualTo(mockEditRequestDto.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
         assertThat(emailParameters.getEditSummary()).isEqualTo("""
                                                                    Edit 1:\s
@@ -228,9 +231,9 @@ class EditNotificationServiceTest {
     @DisplayName("Should be able to notify appropriately when edit request is submitted not jointly agreed")
     @Test
     void testEditRequestSubmittedNotJointlyAgreed() {
-        when(mockEditRequest.getJointlyAgreed()).thenReturn(false);
+        when(mockEditRequestDto.getJointlyAgreed()).thenReturn(false);
 
-        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequestDto);
 
         ArgumentCaptor<EditEmailParameters> captor = ArgumentCaptor.forClass(EditEmailParameters.class);
         verify(emailService, times(1)).sendEmailAboutEditingRequest(captor.capture());
@@ -246,7 +249,7 @@ class EditNotificationServiceTest {
             .isEqualTo(format("%s %s", defendantParticipant.getFirstName(), defendantParticipant.getLastName()));
         assertThat(emailParameters.getCaseReference()).isEqualTo(booking.getCaseId().getReference());
         assertThat(emailParameters.getNumberOfRequestedEditInstructions())
-            .isEqualTo(mockEditRequest.getEditCutInstructions().size());
+            .isEqualTo(mockEditRequestDto.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
         assertThat(emailParameters.getEditSummary()).isEqualTo("""
                                                                    Edit 1:\s
@@ -274,10 +277,10 @@ class EditNotificationServiceTest {
     @DisplayName("Should be able to notify appropriately when edit request is rejected")
     @Test
     void testEditRequestRejected() {
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.REJECTED);
-        when(mockEditRequest.getRejectionReason()).thenReturn("rejected reason");
+        when(mockEditRequestDto.getStatus()).thenReturn(EditRequestStatus.REJECTED);
+        when(mockEditRequestDto.getRejectionReason()).thenReturn("rejected reason");
 
-        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequestDto);
 
         ArgumentCaptor<EditEmailParameters> captor = ArgumentCaptor.forClass(EditEmailParameters.class);
         verify(emailService, times(1)).sendEmailAboutEditingRequest(captor.capture());
@@ -292,7 +295,7 @@ class EditNotificationServiceTest {
             .isEqualTo(format("%s %s", defendantParticipant.getFirstName(), defendantParticipant.getLastName()));
         assertThat(emailParameters.getCaseReference()).isEqualTo(booking.getCaseId().getReference());
         assertThat(emailParameters.getNumberOfRequestedEditInstructions())
-            .isEqualTo(mockEditRequest.getEditCutInstructions().size());
+            .isEqualTo(mockEditRequestDto.getEditCutInstructions().size());
         assertThat(emailParameters.getCourtName()).isEqualTo(booking.getCaseId().getCourt().getName());
         assertThat(emailParameters.getEditSummary()).isEqualTo("""
                                                                    Edit 1:\s
@@ -323,7 +326,7 @@ class EditNotificationServiceTest {
     void testEditRequestNotificationsWhenNoCourtEmail() {
         court.setGroupEmail(null);
 
-        underTest.editRequestStatusWasUpdated(mockEditRequest); // Exception handled downstream
+        underTest.editRequestStatusWasUpdated(mockEditRequestDto); // Exception handled downstream
 
         ArgumentCaptor<EditEmailParameters> captor = ArgumentCaptor.forClass(EditEmailParameters.class);
         verify(emailService, times(1)).sendEmailAboutEditingRequest(captor.capture());

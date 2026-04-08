@@ -97,20 +97,5 @@ public class RecordingDTO extends BaseRecordingDTO {
         }
     }
 
-    public List<EditCutInstructionsDTO> getEditCutInstructionsLegacyProof() {
-        // Default to new-style instructions
-        if (this.getEditRequest() != null && !this.getEditRequest().getEditCutInstructions().isEmpty()) {
-            return this.getEditRequest().getEditCutInstructions();
-        }
 
-        // For legacy edit instructions
-        if (!isBlankString(this.getEditInstructions())) {
-            List<EditCutInstructions> editCutInstructionsList =
-                EditRequest.convertEditCutInstructionsFromJson(this.getEditInstructions());
-
-            return EditRequestDTO.toDTO(editCutInstructionsList);
-        }
-
-        return List.of();
-    }
 }

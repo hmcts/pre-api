@@ -100,11 +100,6 @@ public class EditRequestDTO {
         return editInstructions.stream().map(EditCutInstructionsDTO::new).collect(Collectors.toList());
     }
 
-    public static List<EditCutInstructions> fromDTO(List<EditCutInstructionsDTO> editInstructions) {
-        if (editInstructions == null) {
-            return null;
-        }
-        return editInstructions.stream().map(EditCutInstructions::new).collect(Collectors.toList());
-    }
+
 
 }
