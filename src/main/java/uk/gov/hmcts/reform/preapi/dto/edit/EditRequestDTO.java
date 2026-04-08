@@ -1,20 +1,22 @@
-package uk.gov.hmcts.reform.preapi.dto;
+package uk.gov.hmcts.reform.preapi.dto.edit;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.UUID;
-
-import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -22,14 +24,21 @@ import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class EditRequestDTO {
+
+    @NotNull
     @Schema(description = "EditRequestId")
     private UUID id;
 
+    @NotNull
     @Schema(description = "EditRequestSourceRecording")
-    private RecordingDTO sourceRecording;
+    private UUID sourceRecordingId;
 
+    @Schema(description = "EditRequestOutputRecording")
+    private UUID outputRecordingId;
+
+    @NotNull
     @Schema(description = "EditRequestEditInstruction")
-    private EditInstructions editInstruction;
+    private List<EditCutInstructionsDTO> editCutInstructions;
 
     @Schema(description = "EditRequestStatus")
     private EditRequestStatus status;
@@ -55,19 +64,22 @@ public class EditRequestDTO {
     @Schema(description = "EditRequestJointlyAgreed")
     private Boolean jointlyAgreed;
 
+    @Size(max = 512)
     @Schema(description = "EditRequestRejectionReason")
     private String rejectionReason;
 
     @Schema(description = "EditRequestApprovedAt")
     private Timestamp approvedAt;
 
+    @Size(max = 100)
     @Schema(description = "EditRequestApprovedBy")
     private String approvedBy;
 
     public EditRequestDTO(EditRequest editRequest) {
         this.id = editRequest.getId();
-        this.sourceRecording = new RecordingDTO(editRequest.getSourceRecording());
-        this.editInstruction = fromJson(editRequest.getEditInstruction());
+        this.sourceRecordingId = editRequest.getSourceRecordingId();
+        this.outputRecordingId = editRequest.getOutputRecordingId();
+        this.editCutInstructions = toDTO(editRequest.getEditCutInstructions());
         this.status = editRequest.getStatus();
         this.startedAt = editRequest.getStartedAt();
         this.finishedAt = editRequest.getFinishedAt();
@@ -81,22 +93,13 @@ public class EditRequestDTO {
         this.approvedBy = editRequest.getApprovedBy();
     }
 
-    public EditRequestDTO(EditRequest editRequest, boolean includeSourceRecording) {
-        this.id = editRequest.getId();
-        if (includeSourceRecording) {
-            this.sourceRecording = new RecordingDTO(editRequest.getSourceRecording());
+    public static List<EditCutInstructionsDTO> toDTO(List<EditCutInstructions> editInstructions) {
+        if (editInstructions == null) {
+            return null;
         }
-        this.editInstruction = fromJson(editRequest.getEditInstruction());
-        this.status = editRequest.getStatus();
-        this.startedAt = editRequest.getStartedAt();
-        this.finishedAt = editRequest.getFinishedAt();
-        this.createdById = editRequest.getCreatedBy().getId();
-        this.createdAt = editRequest.getCreatedAt();
-        this.createdBy = editRequest.getCreatedBy().getFullName();
-        this.modifiedAt = editRequest.getModifiedAt();
-        this.jointlyAgreed = editRequest.getJointlyAgreed();
-        this.rejectionReason = editRequest.getRejectionReason();
-        this.approvedAt = editRequest.getApprovedAt();
-        this.approvedBy = editRequest.getApprovedBy();
+        return editInstructions.stream().map(EditCutInstructionsDTO::new).collect(Collectors.toList());
     }
+
+
+
 }

@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -42,7 +43,8 @@ public class PerformEditRequest extends RobotUserTask {
         log.info("Attempting to perform EditRequest {}", editRequest.getId());
         try {
             EditRequest lockedRequest = editRequestService.markAsProcessing(editRequest.getId());
-            editRequestService.performEdit(lockedRequest);
+            EditRequestDTO editRequestDTO = new EditRequestDTO(lockedRequest);
+            editRequestService.performEdit(editRequestDTO);
         } catch (PessimisticLockingFailureException | ResourceInWrongStateException e) {
             // edit request is locked or has already been updated to a different state so it is skipped
             log.info("Skipping EditRequest {}, already reserved by another process", editRequest.getId());

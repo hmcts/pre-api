@@ -28,7 +28,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -438,7 +438,7 @@ class TestingSupportController {
                 appAccess,
                 List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
 
-        EditRequest editRequest = new EditRequest();
+        EditRequestDTO editRequest = new EditRequestDTO();
         editRequest.setId(editId);
         editRequest.setStatus(EditRequestStatus.PROCESSING);
         RecordingDTO recording = editRequestService.performEdit(editRequest);

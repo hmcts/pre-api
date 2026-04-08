@@ -7,7 +7,9 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.validators.JsonConstraint;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -43,7 +45,14 @@ public abstract class BaseRecordingDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     protected Duration duration;
 
+    @Deprecated
     @Schema(description = "RecordingEditInstructions")
     @JsonConstraint
     protected String editInstructions;
+
+    @Schema(description = "RecordingEditRequest")
+    protected EditRequestDTO editRequest;
+
+    @Schema(description = "RecordingEditStatus")
+    protected EditRequestStatus editStatus;
 }

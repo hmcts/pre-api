@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
@@ -30,7 +31,9 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 
+import javax.annotation.Nullable;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -65,6 +68,15 @@ public class HelperFactory {
         court.setCourtType(courtType);
         court.setName(name);
         court.setLocationCode(locationCode);
+        return court;
+    }
+
+    public static Court createCourt(CourtType courtType, String name, @Nullable String locationCode, String email) {
+        Court court = new Court();
+        court.setCourtType(courtType);
+        court.setName(name);
+        court.setLocationCode(locationCode);
+        court.setGroupEmail(email);
         return court;
     }
 
@@ -227,9 +239,23 @@ public class HelperFactory {
         return termsAccepted;
     }
 
+    public static EditRequest createSimpleEditRequest(UUID id,
+                                                UUID sourceRecordingId,
+                                                List<EditCutInstructions> editInstructions,
+                                                EditRequestStatus status,
+                                                User createdBy){
+        EditRequest editRequest = new EditRequest();
+        editRequest.setId(id);
+        editRequest.setSourceRecordingId(sourceRecordingId);
+        editRequest.setEditCutInstructions(editInstructions);
+        editRequest.setStatus(status);
+        editRequest.setCreatedBy(createdBy);
+        return editRequest;
+    }
+
     public static EditRequest createEditRequest(UUID id,
-                                                Recording sourceRecording,
-                                                String editInstructions,
+                                                UUID sourceRecordingId,
+                                                List<EditCutInstructions> editInstructions,
                                                 EditRequestStatus status,
                                                 User createdBy,
                                                 Timestamp startedAt,
@@ -238,12 +264,7 @@ public class HelperFactory {
                                                 String rejectionReason,
                                                 Timestamp approvedAt,
                                                 String approvedBy) {
-        var editRequest = new EditRequest();
-        editRequest.setId(id);
-        editRequest.setSourceRecording(sourceRecording);
-        editRequest.setEditInstruction(editInstructions);
-        editRequest.setStatus(status);
-        editRequest.setCreatedBy(createdBy);
+        EditRequest editRequest = createSimpleEditRequest(id, sourceRecordingId, editInstructions, status, createdBy);
         editRequest.setStartedAt(startedAt);
         editRequest.setFinishedAt(finishedAt);
         editRequest.setJointlyAgreed(jointlyAgreed);

@@ -3,11 +3,16 @@ package uk.gov.hmcts.reform.preapi.dto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.dto.edit.EditCutInstructionsDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditCutInstructions;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -15,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,9 +31,25 @@ public class RecordingDTOTest {
 
     private Recording recordingEntity;
     private Case caseEntity;
+    private EditRequest editRequestEntity;
+    private User user;
 
     @BeforeEach
     void setUp() {
+        user = HelperFactory.createUser(
+            "first", "second", "email",
+            null, "phone", null
+        );
+
+        editRequestEntity = new EditRequest();
+        editRequestEntity.setId(UUID.randomUUID());
+        editRequestEntity.setCreatedBy(user);
+        editRequestEntity.setStatus(EditRequestStatus.PENDING);
+        editRequestEntity.setEditCutInstructions(List.of(
+            new EditCutInstructions(editRequestEntity.getId(), 100, 200, "reason")
+        ));
+
+
         caseEntity = HelperFactory.createCase(
             HelperFactory.createCourt(CourtType.CROWN, "Foo Court", null),
             "1234567890",
@@ -50,10 +72,11 @@ public class RecordingDTOTest {
 
         recordingEntity = new Recording();
         recordingEntity.setId(UUID.randomUUID());
-        recordingEntity.setVersion(1);
+        recordingEntity.setVersion(2);
         recordingEntity.setFilename("test.mp4");
         recordingEntity.setCaptureSession(captureSession);
         recordingEntity.setRecordings(Set.of());
+        recordingEntity.setEditRequest(editRequestEntity);
     }
 
     @DisplayName("Should create a recording from entity")
@@ -73,6 +96,20 @@ public class RecordingDTOTest {
             .toList();
         assertThat(sortedList.get(0).getFirstName()).isEqualTo("Jane");
         assertThat(sortedList.get(1).getFirstName()).isEqualTo("John");
+
+        assertThat(model.getEditRequest().getId()).isEqualTo(editRequestEntity.getId());
+        assertThat(model.getEditRequest().getStatus()).isEqualTo(editRequestEntity.getStatus());
+        assertThat(model.getEditStatus()).isEqualTo(editRequestEntity.getStatus());
+
+        EditCutInstructions firstEditInstrEntity = editRequestEntity.getEditCutInstructions().getFirst();
+        EditCutInstructionsDTO firstEditInstrDto = model.getEditRequest().getEditCutInstructions().getFirst();
+
+        assertThat(firstEditInstrDto.getEditRequestId())
+            .isEqualTo(firstEditInstrEntity.getEditRequestId());
+        assertThat(firstEditInstrDto.getStart())
+            .isEqualTo(firstEditInstrEntity.getStart());
+        assertThat(firstEditInstrDto.getEnd())
+            .isEqualTo(firstEditInstrEntity.getEnd());
     }
 
     @Test
@@ -138,4 +175,14 @@ public class RecordingDTOTest {
         assertEquals("BBB", participants.get(1).getFirstName());
         assertEquals("CCC", participants.get(2).getFirstName());
     }
+
+
+    @DisplayName("Should set recording edit status to ORIGINAL for version 1")
+    @Test
+    void shouldSetRecordingEditStatusToORIGINALForVersion1() {
+        recordingEntity.setVersion(1);
+        var model = new RecordingDTO(recordingEntity);
+        assertThat(model.getEditStatus()).isEqualTo(EditRequestStatus.ORIGINAL);
+    }
+
 }

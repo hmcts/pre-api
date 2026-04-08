@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,9 +54,13 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
     Optional<EditRequest> findByIdNotLocked(@NotNull UUID id);
 
     @Query("""
-        SELECT (COUNT(e) > 0) from EditRequest e
-        WHERE e.sourceRecording.captureSession.booking.caseId.id = :caseId
-        AND (e.status != 'COMPLETE')
-        """)
-    boolean existsByCaseIdAndIsIncomplete(@Param("caseId") UUID caseId);
+        SELECT booking.caseId from Booking booking
+        WHERE booking.id in (select cs.booking from CaptureSession cs
+        where cs.id in (select r.captureSession from Recording r
+        where r.id in (select e.sourceRecordingId from EditRequest e
+        where e.status in ('DRAFT', 'SUBMITTED', 'APPROVED', 'PENDING', 'PROCESSING'))))
+    """)
+    List<UUID> getCaseIdsWithIncompleteEdits();
+
+    Optional<EditRequest> findFirstBySourceRecordingIdIs(UUID sourceRecordingId);
 }

@@ -1,10 +1,11 @@
 package uk.gov.hmcts.reform.preapi.email;
 
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
 import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
+import java.util.Optional;
 
 public interface IEmailService {
     EmailResponse recordingReady(User to, Case forCase);
@@ -21,9 +22,5 @@ public interface IEmailService {
 
     EmailResponse emailVerification(String email, String firstName, String lastName, String verificationCode);
 
-    EmailResponse editingJointlyAgreed(String to, EditRequest editRequest);
-
-    EmailResponse editingNotJointlyAgreed(String to, EditRequest editRequest);
-
-    EmailResponse editingRejected(String to, EditRequest editRequest);
+    Optional<EmailResponse> sendEmailAboutEditingRequest(EditEmailParameters editEmailParameters);
 }
