@@ -11,6 +11,6 @@ jobs:
       - name: 'Log in to ACR Azure Container Registry - ${{ env.AZURE_CONTAINER_REGISTRY_URL }}'
         uses: docker/login-action@v4
         with:
-          registry: ${{ env.AZURE_CONTAINER_REGISTRY_URL }}
+          registry: ${{ secrets.REGISTRY_LOGIN_SERVER }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
