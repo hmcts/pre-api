@@ -1,4 +1,4 @@
-name: Publish Swagger V2
+name: Log in to Azure Container Registry
 on:
   pull_request:
     branches:
