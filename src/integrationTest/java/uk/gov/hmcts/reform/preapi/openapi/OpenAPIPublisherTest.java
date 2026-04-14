@@ -25,9 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Built-in feature which saves service's swagger specs in temporary directory.
  * Each CI run on master should automatically save and upload (if updated) documentation.
  */
-@WebMvcTest(properties = {"dbMigration.runOnStartup=false"})
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"dbMigration.runOnStartup=false"})
 @AutoConfigureMockMvc(addFilters = false)
 class OpenAPIPublisherTest extends IntegrationTestBase {
 
