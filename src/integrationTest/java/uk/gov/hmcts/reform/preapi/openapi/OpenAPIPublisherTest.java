@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.openapi;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,8 +10,13 @@ import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
+import uk.gov.hmcts.reform.preapi.config.ContainerImageNameSubstitutor;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.io.OutputStream;
@@ -27,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {"dbMigration.runOnStartup=false"})
 @AutoConfigureMockMvc(addFilters = false)
-@AutoConfigureTestDatabase(connection = EmbeddedDatabaseConnection.NONE)
 class OpenAPIPublisherTest extends IntegrationTestBase {
 
     @Autowired
@@ -47,5 +53,26 @@ class OpenAPIPublisherTest extends IntegrationTestBase {
             outputStream.write(specs);
         }
 
+    }
+
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
+        ContainerImageNameSubstitutor.instance().apply(DockerImageName.parse("postgres"))
+    );
+
+    @BeforeAll
+    static void beforeAll() {
+        postgres.start();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        postgres.stop();
+    }
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
     }
 }
