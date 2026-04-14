@@ -342,7 +342,12 @@ from HMCTS Azure Container Registry (ACR) you must login to the ACR first:
 
 ```bash
 az login # if not logged in already
+
+## (Select DCD-CNP-Prod subscription)
+
 az acr login --name hmctsprod
+
+docker image pull hmctsprod.azurecr.io/imported/postgres:16-alpine
 ```
 
 #### With the Command Line
