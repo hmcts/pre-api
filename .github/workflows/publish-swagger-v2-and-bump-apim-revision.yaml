@@ -33,6 +33,9 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
+      - name: Pull Docker Postgres image
+        run: docker pull ${{ secrets.REGISTRY_LOGIN_SERVER }}/imported/postgres:16-alpine
+
       - name: Run OpenAPI Publisher
         run: ./gradlew integration --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisherTest'
 
