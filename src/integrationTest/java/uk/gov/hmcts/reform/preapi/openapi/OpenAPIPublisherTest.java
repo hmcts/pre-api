@@ -4,14 +4,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.hmcts.reform.preapi.config.FlywayConfiguration;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.io.OutputStream;
@@ -26,15 +24,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Each CI run on master should automatically save and upload (if updated) documentation.
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"dbMigration.runOnStartup=false"})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = {"dbMigration.runOnStartup=false"})
 @AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureTestDatabase(connection = EmbeddedDatabaseConnection.NONE)
 class OpenAPIPublisherTest extends IntegrationTestBase {
 
     @Autowired
     private MockMvc mvc;
-
-    @MockitoBean
-    private FlywayConfiguration flywayConfiguration;
 
     @DisplayName("Generate swagger documentation")
     @Test
