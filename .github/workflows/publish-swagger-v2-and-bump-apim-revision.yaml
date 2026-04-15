@@ -48,12 +48,12 @@ jobs:
           sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" pre-api.yaml > pre-api-stg.yaml
 
       - name: wget master main.tf
-        uses: wei/wget@v1
+        uses: wei/wget@c15e476d1463f4936cb54f882170d9d631f1aba5
         with:
           args: -O main.tf https://raw.githubusercontent.com/hmcts/pre-api/master/infrastructure/main.tf
 
       - name: wget master pre-api-stg.yaml
-        uses: wei/wget@v1
+        uses: wei/wget@c15e476d1463f4936cb54f882170d9d631f1aba5
         with:
           args: -O master.pre-api-stg.yaml https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml
 
