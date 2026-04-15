@@ -34,16 +34,18 @@ jobs:
           cache: 'gradle'
       - name: Run OpenAPI Publisher
         env:
-          API_NAME=${{ inputs.api_name }}
+          API_NAME: ${{ inputs.api_name }}
         run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
       - name: Commit to repository
+        env:
+          SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
         run: |
           mkdir openapi-staging
           cd openapi-staging
           git init
           git config user.email "github-platform-operations@HMCTS.NET"
           git config user.name "HMCTS Platform Operations"
-          git remote add upstream https://apitoken:${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}@github.com/hmcts/cnp-api-docs.git
+          git remote add upstream "https://apitoken:${SWAGGER_PUBLISHER_API_TOKEN}@github.com/hmcts/cnp-api-docs.git"
           git pull upstream master
           repo=`echo "$GITHUB_REPOSITORY" | cut -f2- -d/`
           echo "$(cat /tmp/openapi-specs.json)" > "docs/specs/${API_NAME}.json"
