@@ -30,8 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Each CI run on master should automatically save and upload (if updated) documentation.
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = {"dbMigration.runOnStartup=false"})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc(addFilters = false)
 class OpenAPIPublisherTest extends IntegrationTestBase {
 
@@ -72,8 +71,7 @@ class OpenAPIPublisherTest extends IntegrationTestBase {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-//        registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
-        registry.add("spring.datasource.url", () -> "jdbc:tc:postgresql:16://ignored:1111/" + postgresContainer.getDatabaseName());
+        registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
         registry.add("spring.datasource.username", postgresContainer::getUsername);
         registry.add("spring.datasource.password", postgresContainer::getPassword);
     }

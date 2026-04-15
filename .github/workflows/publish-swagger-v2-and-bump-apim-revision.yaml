@@ -26,20 +26,9 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-#      - name: Log in to ACR Azure Container Registry
-#        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
-#
-#      - name: Pull Docker Postgres image
-#        env:
-#          REGISTRY_NAME: ${{ secrets.REGISTRY_LOGIN_SERVER }}
-#        run: docker pull "$REGISTRY_NAME/imported/postgres:16-alpine"
-
       - name: Run OpenAPI Publisher
         env:
           RUN_DB_MIGRATION_ON_STARTUP: false
-#          REGISTRY_NAME: ${{ secrets.REGISTRY_LOGIN_SERVER }}
-#          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME}}
-#          REGISTRY_PW: ${{ secrets.REGISTRY_PASSWORD }}
         run: ./gradlew integration --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisherTest'
 
       - name: Convert OpenAPI to Swagger v2
