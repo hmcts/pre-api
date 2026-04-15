@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities.listeners;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.PrePersist;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,8 @@ import java.util.stream.Stream;
 @Component
 @Slf4j
 public class RecordingListener {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final AzureFinalStorageService azureFinalStorageService;
 
     private final EmailServiceFactory emailServiceFactory;
@@ -63,8 +67,10 @@ public class RecordingListener {
                       .flatMap(Set::stream)
                       .anyMatch(c -> c.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE))) {
                     if (recording.getVersion() > 1) {
-                        emailService.recordingEdited(
-                            share.getSharedWith(), recording.getCaptureSession().getBooking().getCaseId());
+                        if (shouldSendEditAvailableNotification(recording)) {
+                            emailService.recordingEdited(
+                                share.getSharedWith(), recording.getCaptureSession().getBooking().getCaseId());
+                        }
                     } else {
                         emailService.recordingReady(
                             share.getSharedWith(), recording.getCaptureSession().getBooking().getCaseId());
@@ -74,6 +80,25 @@ public class RecordingListener {
             );
         } catch (Exception e) {
             log.error("Failed to notify users of recording ready for recording: " + recording.getId());
+        }
+    }
+
+    private boolean shouldSendEditAvailableNotification(Recording recording) {
+        if (recording.getEditInstruction() == null || recording.getEditInstruction().isBlank()) {
+            return true;
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(recording.getEditInstruction());
+            JsonNode sendNotificationsNode = root.path("editInstructions").path("sendNotifications");
+            if (sendNotificationsNode.isMissingNode() || sendNotificationsNode.isNull()) {
+                sendNotificationsNode = root.path("sendNotifications");
+            }
+
+            return !sendNotificationsNode.isBoolean() || sendNotificationsNode.booleanValue();
+        } catch (Exception e) {
+            log.warn("Failed to parse recording edit instructions for notification preference: {}", recording.getId());
+            return true;
         }
     }
 }

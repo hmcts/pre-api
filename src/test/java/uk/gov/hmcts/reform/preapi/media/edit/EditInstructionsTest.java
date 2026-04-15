@@ -33,7 +33,8 @@ class EditInstructionsTest {
                         "end": 20
                     }
                 ],
-                "forceReencode": false
+                "forceReencode": false,
+                "sendNotifications": true
             }
             """;
 
@@ -54,6 +55,7 @@ class EditInstructionsTest {
         assertThat(ffmpegInstruction.getStart()).isEqualTo(10L);
         assertThat(ffmpegInstruction.getEnd()).isEqualTo(20L);
         assertThat(result.isForceReencode()).isFalse();
+        assertThat(result.shouldSendNotifications()).isTrue();
     }
 
     @Test
@@ -105,6 +107,7 @@ class EditInstructionsTest {
         assertNull(result.getRequestedInstructions());
         assertNull(result.getFfmpegInstructions());
         assertThat(result.isForceReencode()).isFalse();
+        assertThat(result.shouldSendNotifications()).isTrue();
     }
 
     @Test
@@ -114,7 +117,8 @@ class EditInstructionsTest {
             {
                 "requestedInstructions": [],
                 "ffmpegInstructions": [],
-                "forceReencode": true
+                "forceReencode": true,
+                "sendNotifications": false
             }
             """;
 
@@ -123,6 +127,22 @@ class EditInstructionsTest {
         assertThat(result.getRequestedInstructions()).isEmpty();
         assertThat(result.getFfmpegInstructions()).isEmpty();
         assertThat(result.isForceReencode()).isTrue();
+        assertThat(result.shouldSendNotifications()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should default send notifications to true when field is absent")
+    void fromJson_shouldDefaultSendNotificationsToTrue() {
+        String json = """
+            {
+                "requestedInstructions": [],
+                "ffmpegInstructions": []
+            }
+            """;
+
+        EditInstructions result = EditInstructions.fromJson(json);
+
+        assertThat(result.shouldSendNotifications()).isTrue();
     }
 
     @Test

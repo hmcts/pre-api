@@ -192,6 +192,44 @@ public class EditControllerFT extends FunctionalTestBase {
         assertThat(getResponse.getEditInstruction().isForceReencode()).isTrue();
         assertThat(getResponse.getEditInstruction().getRequestedInstructions()).isEmpty();
         assertThat(getResponse.getEditInstruction().getFfmpegInstructions()).isEmpty();
+        assertThat(getResponse.getEditInstruction().shouldSendNotifications()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should create an edit request with notifications disabled")
+    void editRequestWithNotificationsDisabledSuccess() throws JsonProcessingException {
+        UUID editRequestId = UUID.randomUUID();
+        CreateRecordingResponse recordingDetails = createRecording();
+
+        CreateEditRequestDTO editRequestDTO = new CreateEditRequestDTO();
+        editRequestDTO.setSourceRecordingId(recordingDetails.recordingId());
+        editRequestDTO.setStatus(EditRequestStatus.PENDING);
+        editRequestDTO.setId(editRequestId);
+        editRequestDTO.setSendNotifications(false);
+        editRequestDTO.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+            .startOfCut("00:00:00")
+            .endOfCut("00:00:01")
+            .build()));
+
+        RecordingDTO recordingDTO = assertRecordingExists(recordingDetails.recordingId(), true).as(RecordingDTO.class);
+        when(azureFinalStorageService.getMp4FileName(recordingDetails.recordingId().toString()))
+            .thenReturn(recordingDTO.getFilename());
+        when(azureFinalStorageService.getRecordingDuration(recordingDetails.recordingId()))
+            .thenReturn(recordingDTO.getDuration());
+
+        Response putResponse = doPutRequest(
+            EDIT_ENDPOINT + "/" + editRequestId,
+            OBJECT_MAPPER.writeValueAsString(editRequestDTO),
+            TestingSupportRoles.SUPER_USER
+        );
+
+        assertResponseCode(putResponse, 201);
+
+        EditRequestDTO getResponse = doGetRequest(EDIT_ENDPOINT + "/" + editRequestId, TestingSupportRoles.SUPER_USER)
+            .as(EditRequestDTO.class);
+
+        assertThat(getResponse.getId()).isEqualTo(editRequestId);
+        assertThat(getResponse.getEditInstruction().shouldSendNotifications()).isFalse();
     }
 
     @Test

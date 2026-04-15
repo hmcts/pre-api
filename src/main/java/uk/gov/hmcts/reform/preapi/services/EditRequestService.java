@@ -61,7 +61,8 @@ import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass", "PMD.CyclomaticComplexity"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass", "PMD.CyclomaticComplexity",
+    "PMD.TooManyMethods"})
 public class EditRequestService {
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
@@ -293,7 +294,8 @@ public class EditRequestService {
             request.setApprovedAt(dto.getApprovedAt());
             request.setApprovedBy(dto.getApprovedBy());
             request.setRejectionReason(dto.getRejectionReason());
-            request.setEditInstruction(toJson(new EditInstructions(List.of(), List.of(), true)));
+            request.setEditInstruction(toJson(new EditInstructions(List.of(), List.of(), true,
+                                                                   shouldSendNotifications(dto))));
             return request;
         }
 
@@ -334,7 +336,8 @@ public class EditRequestService {
             isInstructionCombination ? request.getSourceRecording() : sourceRecording
         );
 
-        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
+        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions, false,
+                                                               shouldSendNotifications(dto))));
         return request;
     }
 
@@ -401,6 +404,10 @@ public class EditRequestService {
         }
 
         editNotificationService.onEditRequestRejected(request);
+    }
+
+    private boolean shouldSendNotifications(CreateEditRequestDTO dto) {
+        return !Boolean.FALSE.equals(dto.getSendNotifications());
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
