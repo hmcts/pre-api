@@ -1,0 +1,54 @@
+name: Publish OpenAPI Spec to CNP Repo
+# Copied and slightly altered from https://github.com/hmcts/workflow-publish-openapi-spec/blob/main/.github/workflows/publish-openapi.yml
+
+on:
+  workflow_call:
+    inputs:
+      test_to_run:
+        required: true
+        type: string
+        description: The full path to the test to run, e.g. uk.gov.hmcts.reform.myapp.openapi.OpenAPIPublisherTest
+      java_version:
+        required: true
+        type: string
+      api_name:
+        required: false
+        type: string
+        description: The name of the API, used for naming the output file. Defaults to repo name.
+          | Must be unique across all APIs.
+    secrets:
+      SWAGGER_PUBLISHER_API_TOKEN:
+        required: true
+        description: GitHub API token that can publish to the cnp-api-docs repository
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up JDK ${{ inputs.java_version }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: 'temurin'
+          cache: 'gradle'
+      - name: Run OpenAPI Publisher
+        run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
+      - name: Commit to repository
+        run: |
+          mkdir openapi-staging
+          cd openapi-staging
+          git init
+          git config user.email "github-platform-operations@HMCTS.NET"
+          git config user.name "HMCTS Platform Operations"
+          git remote add upstream https://apitoken:${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}@github.com/hmcts/cnp-api-docs.git
+          git pull upstream master
+          repo=`echo "$GITHUB_REPOSITORY" | cut -f2- -d/`
+          api_name="${{ inputs.api_name }}"
+          if [ -z "$api_name" ]; then
+            api_name=$repo
+          fi
+          echo "$(cat /tmp/openapi-specs.json)" > "docs/specs/$api_name.json"
+          git add "docs/specs/$api_name.json"
+          # Only commit and push if we have changes
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update spec for $api_name#${GITHUB_SHA:7}"; git push --set-upstream upstream master)
