@@ -35,12 +35,13 @@ jobs:
 #        run: docker pull "$REGISTRY_NAME/imported/postgres:16-alpine"
 
       - name: Run OpenAPI Publisher
-#        env:
+        env:
+          RUN_DB_MIGRATION_ON_STARTUP: false
 #          REGISTRY_NAME: ${{ secrets.REGISTRY_LOGIN_SERVER }}
 #          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME}}
 #          REGISTRY_PW: ${{ secrets.REGISTRY_PASSWORD }}
-
         run: ./gradlew integration --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisherTest'
+
       - name: Convert OpenAPI to Swagger v2
         run: |
           api-spec-converter \
