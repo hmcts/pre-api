@@ -301,7 +301,9 @@ public class FfmpegServiceTest {
     @Test
     @DisplayName("Should generate a reencode command when force reencode is enabled")
     void generateReencodeCommandInMultiCommandMode() {
-        editRequest.setEditInstruction("{\"requestedInstructions\":[],\"ffmpegInstructions\":[],\"forceReencode\":true}");
+        editRequest.setEditInstruction(
+            "{\"requestedInstructions\":[],\"ffmpegInstructions\":[],\"forceReencode\":true}"
+        );
 
         LinkedHashMap<String, CommandLine> commands =
             ffmpegService.generateMultiEditCommands(editRequest, "input.mp4", "output.mp4");
@@ -452,7 +454,9 @@ public class FfmpegServiceTest {
     @Test
     @DisplayName("Should run a single reencode command and upload when force reencode is provided")
     void shouldRunSingleCommandWhenForceReencodeProvided() {
-        editRequest.setEditInstruction("{\"requestedInstructions\":[],\"ffmpegInstructions\":[],\"forceReencode\":true}");
+        editRequest.setEditInstruction(
+            "{\"requestedInstructions\":[],\"ffmpegInstructions\":[],\"forceReencode\":true}"
+        );
 
         when(azureFinalStorageService.downloadBlob(any(), any(), any())).thenReturn(true);
         when(commandExecutor.execute(any())).thenReturn(true);
