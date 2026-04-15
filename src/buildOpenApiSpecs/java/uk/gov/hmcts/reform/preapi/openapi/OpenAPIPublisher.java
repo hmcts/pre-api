@@ -56,7 +56,7 @@ class OpenAPIPublisher {
         }
 
         byte[] writtenBytes;
-        try(InputStream inputStream = Files.newInputStream(Paths.get("/tmp/openapi-specs.json"))) {
+        try (InputStream inputStream = Files.newInputStream(Paths.get("/tmp/openapi-specs.json"))) {
             writtenBytes = inputStream.readAllBytes();
         }
         Assertions.assertThat(writtenBytes).isNotEmpty();
