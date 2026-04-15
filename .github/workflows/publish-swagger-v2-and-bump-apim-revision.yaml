@@ -13,7 +13,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install -g api-spec-converter
+        run: npm install -g api-spec-converter --ignore-scripts
 
       - uses: actions/checkout@v5
         with:
