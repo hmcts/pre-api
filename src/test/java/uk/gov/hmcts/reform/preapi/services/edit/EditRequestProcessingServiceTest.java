@@ -136,7 +136,10 @@ public class EditRequestProcessingServiceTest {
         when(mockEditRequest.getCreatedBy()).thenReturn(mockUser);
         underTest.markAsProcessing(mockEditRequestId);
 
-        verify(editRequestCrudService, times(1)).updateEditRequestStatus(mockEditRequestId, EditRequestStatus.PROCESSING);
+        verify(editRequestCrudService, times(1)).updateEditRequestStatus(
+            mockEditRequestId,
+            EditRequestStatus.PROCESSING
+        );
 
         verifyNoMoreInteractions(recordingService);
         verifyNoMoreInteractions(editingService);
@@ -271,6 +274,9 @@ public class EditRequestProcessingServiceTest {
     @Test
     @DisplayName("Should prepare for and perform edit with legacy instructions")
     void prepareForAndPerformEditWithLegacyInstructions() throws InterruptedException {
+        String generatedFilename = "generated filename";
+        when(assetGenerationService.generateAsset(any(UUID.class), any(UUID.class))).thenReturn(generatedFilename);
+
         Integer nextVersionNumber = 4;
         when(recordingService.getNextVersionNumber(mockParentRecordingId)).thenReturn(nextVersionNumber);
         when(mockRecordingDTO.getDuration()).thenReturn(Duration.ofMinutes(10));
@@ -307,10 +313,25 @@ public class EditRequestProcessingServiceTest {
         }
 
         verify(recordingService, times(1)).findById(mockRecordingId);
+
+        ArgumentCaptor<EditRequestDTO> updatedEditRequestDtoCaptor =
+            ArgumentCaptor.forClass(EditRequestDTO.class);
+        ArgumentCaptor<RecordingDTO> editedRecordingCaptor = ArgumentCaptor.forClass(RecordingDTO.class);
+        ArgumentCaptor<UUID> newRecIdCaptor = ArgumentCaptor.forClass(UUID.class);
         verify(editingService, times(1))
-            .performEdit(any(UUID.class), mockRecordingDTO, mockEditRequestDto);
+            .performEdit(
+                newRecIdCaptor.capture(),
+                editedRecordingCaptor.capture(),
+                updatedEditRequestDtoCaptor.capture()
+            );
+
+        assertThat(updatedEditRequestDtoCaptor.getValue()).isEqualTo(mockEditRequestDto);
+        assertThat(editedRecordingCaptor.getValue()).isEqualTo(mockRecordingDTO);
+
+        UUID newRecId = newRecIdCaptor.getValue();
+
         verify(recordingService, times(1)).getNextVersionNumber(mockParentRecordingId);
-        verify(assetGenerationService, times(1)).generateAsset(any(UUID.class), mockRecordingId);
+        verify(assetGenerationService, times(1)).generateAsset(newRecId, mockRecordingId);
 
         ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
         verify(recordingService, times(1)).upsert(captor.capture());
@@ -318,7 +339,16 @@ public class EditRequestProcessingServiceTest {
         CreateRecordingDTO upsertedDto = captor.getValue();
         assertThat(upsertedDto.getVersion()).isEqualTo(nextVersionNumber);
         assertThat(upsertedDto.getParentRecordingId()).isEqualTo(mockParentRecordingId);
-        assertThat(upsertedDto.getFilename()).isEqualTo("TODO");
+        assertThat(upsertedDto.getFilename()).isEqualTo(generatedFilename);
+
+        verify(recordingService, times(1)).getNextVersionNumber(mockParentRecordingId);
+        verify(recordingService, times(1)).findById(newRecId);
+
+        verify(editRequestCrudService, times(1))
+            .createOrUpsertDraftEditRequestInstructions(mockEditRequestDto, mockUser);
+
+        verify(editNotificationService, times(1))
+            .editRequestStatusWasUpdated(mockEditRequestDto);
 
         verifyNoMoreInteractions(recordingService);
         verifyNoMoreInteractions(editingService);
