@@ -8,7 +8,7 @@ on:
 
 jobs:
   publish-pre-api:
-    uses: hmcts/pre-api/.github/workflows/publish-openapi-to-cnp-repo.yaml@main
+    uses: hmcts/pre-api/.github/workflows/publish-openapi-to-cnp-repo.yaml@master
     secrets:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
@@ -16,7 +16,7 @@ jobs:
       api_name: 'pre-api'
       java_version: 17
   publish-b2c-api:
-    uses: hmcts/pre-api/.github/workflows/publish-openapi-to-cnp-repo.yaml@main
+    uses: hmcts/pre-api/.github/workflows/publish-openapi-to-cnp-repo.yaml@master
     secrets:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
