@@ -256,7 +256,7 @@ public class ArchiveMetadataXmlExtractor {
             Element mp4Group = (Element) mp4FileGroups.item(j);
             NodeList mp4Files = mp4Group.getElementsByTagName("MP4File");
 
-            Element fileElement = selectPreferredMp4File(mp4Files);
+            Element fileElement = VodafonePreferredMp4Selector.selectPreferredMp4File(mp4Files);
 
             if (fileElement != null) {
                 String fileName = extractTextContent(fileElement, "Name");
@@ -280,87 +280,6 @@ public class ArchiveMetadataXmlExtractor {
             }
         }
         return fileRows;
-    }
-
-    @SuppressWarnings({"PMD.AvoidLiteralsInIfCondition", "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity"})
-    private Element selectPreferredMp4File(NodeList mp4Files) {
-        List<Element> files = new ArrayList<>();
-        for (int i = 0; i < mp4Files.getLength(); i++) {
-            Node node = mp4Files.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                files.add((Element) node);
-            }
-        }
-
-        if (files.isEmpty()) {
-            return null;
-        }
-        if (files.size() == 1) {
-            return files.get(0);
-        }
-
-        int bestIdx = 0;
-        for (int i = 1; i < files.size(); i++) {
-            Element currentBest = files.get(bestIdx);
-            Element challenger = files.get(i);
-            int cmp = compareMp4(challenger, currentBest);
-            if (cmp > 0 || cmp == 0) {
-                bestIdx = i;
-            }
-        }
-        return files.get(bestIdx);
-    }
-
-    private int compareMp4(Element a, Element b) {
-        // (1) watermark
-        int wm = Boolean.compare(getBoolean(a, "watermark"), getBoolean(b, "watermark"));
-        if (wm != 0) {
-            return wm;
-        }
-
-        String nameA = String.valueOf(getName(a)).toUpperCase();
-        String nameB = String.valueOf(getName(b)).toUpperCase();
-
-        // (2) UGC in name NOT preferred
-        int ugc = Boolean.compare(nameA.contains("UGC"), nameB.contains("UGC"));
-        if (ugc != 0) {
-            return ugc;
-        }
-
-        // (3) file size
-        long aSize = getLong(a, "Size");
-        long bSize = getLong(b, "Size");
-        int sizeCmp = Long.compare(aSize, bSize);
-        if (sizeCmp != 0) {
-            return sizeCmp;
-        }
-
-        // (4) duration validity then value
-        long aDur = getLong(a, "Duration");
-        long bDur = getLong(b, "Duration");
-        boolean aValid = aDur >= 0;
-        boolean bValid = bDur >= 0;
-
-        int validCmp = Boolean.compare(aValid, bValid);
-        if (validCmp != 0) {
-            return validCmp;
-        }
-
-        if (aValid && bValid) {
-            int durCmp = Long.compare(aDur, bDur);
-            if (durCmp != 0) {
-                return durCmp;
-            }
-        }
-
-        // (5) longer filename
-        int lenCmp = Integer.compare(nameA.length(), nameB.length());
-        if (lenCmp != 0) {
-            return lenCmp;
-        }
-
-        // Tie
-        return 0;
     }
 
     /**
@@ -423,31 +342,6 @@ public class ArchiveMetadataXmlExtractor {
         }
 
         return "";
-    }
-
-    //---------- helpers ----------
-
-    private String getName(Element el) {
-        String content = extractTextContent(el, "Name");
-        return content == null ? "" : content.trim();
-    }
-
-    private boolean getBoolean(Element el, String tag) {
-        String content = extractTextContent(el, tag);
-        if (content == null) {
-            return false;
-        }
-        content = content.trim().toLowerCase(Locale.UK);
-        return content.equals("true") || content.equals("1") || content.equals("yes");
-    }
-
-    private long getLong(Element el, String tag) {
-        try {
-            String content = extractTextContent(el, tag);
-            return content == null ? 0L : Long.parseLong(content.trim());
-        } catch (NumberFormatException e) {
-            return 0L;
-        }
     }
 
 }

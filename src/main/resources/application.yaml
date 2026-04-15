@@ -156,6 +156,17 @@ tasks:
     poll-interval: ${TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL:10000}
     max-sleep-time: ${TASK_BATCH_IMPORT_MISSING_ASSETS_MAX_SLEEP_TIME:1800000}
     mp4-source-container: prod-migration-2
+  vodafone-sync-fix:
+    container: ${TASK_VF_SYNC_FIX_CONTAINER:${tasks.batch-import-missing-mk-assets.mp4-source-container}}
+    script-path: ${TASK_VF_SYNC_FIX_SCRIPT_PATH:bin/PRE_synch_fix.sh}
+    working-directory: ${TASK_VF_SYNC_FIX_WORKING_DIRECTORY:build/reports/vf-sync-fix}
+    dry-run: ${TASK_VF_SYNC_FIX_DRY_RUN:true}
+    cleanup-downloads: ${TASK_VF_SYNC_FIX_CLEANUP_DOWNLOADS:true}
+    file-limit: ${TASK_VF_SYNC_FIX_FILE_LIMIT:0}
+  vodafone-preferred-mp4-report:
+    container: ${TASK_VF_PREFERRED_MP4_REPORT_CONTAINER:${tasks.batch-import-missing-mk-assets.mp4-source-container}}
+    working-directory: ${TASK_VF_PREFERRED_MP4_REPORT_WORKING_DIRECTORY:build/reports/vf-preferred-mp4-report}
+    file-limit: ${TASK_VF_PREFERRED_MP4_REPORT_FILE_LIMIT:0}
 
 capture-session-registration:
   processing-timeout-hours: ${PROCESSING_TIMEOUT_HOURS:2}
