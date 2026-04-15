@@ -1,13 +1,12 @@
 package uk.gov.hmcts.reform.preapi.openapi;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -41,8 +40,10 @@ class OpenAPIPublisherTest extends IntegrationTestBase {
 
     @DisplayName("Generate swagger documentation")
     @Test
-    @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
     void generateDocs() throws Exception {
+        Assertions.assertThat(mvc).isNotNull();
+        Assertions.assertThat(postgresContainer.isRunning()).isTrue();
+
         byte[] specs = mvc.perform(get("/v3/api-docs/pre-api"))
             .andExpect(status().isOk())
             .andReturn()
@@ -55,24 +56,24 @@ class OpenAPIPublisherTest extends IntegrationTestBase {
 
     }
 
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
+    static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
         ContainerImageNameSubstitutor.instance().apply(DockerImageName.parse("postgres"))
     );
 
     @BeforeAll
     static void beforeAll() {
-        postgres.start();
+        postgresContainer.start();
     }
 
     @AfterAll
     static void afterAll() {
-        postgres.stop();
+        postgresContainer.stop();
     }
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
+        registry.add("spring.datasource.username", postgresContainer::getUsername);
+        registry.add("spring.datasource.password", postgresContainer::getPassword);
     }
 }
