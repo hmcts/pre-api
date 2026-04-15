@@ -1400,6 +1400,26 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         verify(editNotificationService, times(1)).onEditRequestRejected(editRequest);
     }
 
+    @DisplayName("Should throw an exception if edit instructions have unsafe data")
+    @Test
+    void upsertEditInstructionsWithUnsafeCSVFile() {
+        final String fileContents = """
+            Edit Number,Start time of cut,End time of cut,Total time removed,Reason
+            1,00:00:00,00:00:30,00:30:00,<script></script>
+            2,00:01:01,00:02:00,00:00:59,
+            """;
+
+        final MockMultipartFile file = new MockMultipartFile(
+            "file", "edit_instructions.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        assertThrows(
+            BadRequestException.class,
+            () -> underTest.upsert(mockRecordingId, file)
+        );
+    }
+
 
     private static void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,
                                                  List<FfmpegEditInstructionDTO> actual) {
