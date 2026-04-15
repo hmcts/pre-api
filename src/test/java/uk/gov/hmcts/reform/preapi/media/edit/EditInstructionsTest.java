@@ -32,7 +32,8 @@ class EditInstructionsTest {
                         "start": 10,
                         "end": 20
                     }
-                ]
+                ],
+                "forceReencode": false
             }
             """;
 
@@ -52,6 +53,7 @@ class EditInstructionsTest {
         FfmpegEditInstructionDTO ffmpegInstruction = result.getFfmpegInstructions().getFirst();
         assertThat(ffmpegInstruction.getStart()).isEqualTo(10L);
         assertThat(ffmpegInstruction.getEnd()).isEqualTo(20L);
+        assertThat(result.isForceReencode()).isFalse();
     }
 
     @Test
@@ -102,6 +104,25 @@ class EditInstructionsTest {
 
         assertNull(result.getRequestedInstructions());
         assertNull(result.getFfmpegInstructions());
+        assertThat(result.isForceReencode()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should deserialize force reencode instructions")
+    void fromJson_shouldDeserializeForceReencode() {
+        String json = """
+            {
+                "requestedInstructions": [],
+                "ffmpegInstructions": [],
+                "forceReencode": true
+            }
+            """;
+
+        EditInstructions result = EditInstructions.fromJson(json);
+
+        assertThat(result.getRequestedInstructions()).isEmpty();
+        assertThat(result.getFfmpegInstructions()).isEmpty();
+        assertThat(result.isForceReencode()).isTrue();
     }
 
     @Test

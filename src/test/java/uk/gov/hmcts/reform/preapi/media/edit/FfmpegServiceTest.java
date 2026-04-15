@@ -299,6 +299,31 @@ public class FfmpegServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate a reencode command when force reencode is enabled")
+    void generateReencodeCommandInMultiCommandMode() {
+        editRequest.setEditInstruction("{\"requestedInstructions\":[],\"ffmpegInstructions\":[],\"forceReencode\":true}");
+
+        LinkedHashMap<String, CommandLine> commands =
+            ffmpegService.generateMultiEditCommands(editRequest, "input.mp4", "output.mp4");
+
+        assertThat(commands).hasSize(1);
+        assertThat(commands).containsKey("output.mp4");
+
+        CommandLine command = commands.get("output.mp4");
+        assertThat(command.getExecutable()).isEqualTo("ffmpeg");
+        assertThat(command.getArguments()).containsExactly(
+            "-fflags", "+genpts",
+            "-i", "input.mp4",
+            "-c:v", "copy",
+            "-af", "aresample=async=1",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-movflags", "+faststart",
+            "output.mp4"
+        );
+    }
+
+    @Test
     @DisplayName("Should generate multiple edit commands and concatenate segments")
     void generateMultipleEditCommandsAndConcatenateSegments() throws JsonProcessingException {
         setRandomEditInstructions();
@@ -420,6 +445,23 @@ public class FfmpegServiceTest {
         // Only one command executed (no concat)
         verify(commandExecutor, times(1)).execute(any());
 
+        verify(azureFinalStorageService, times(1)).downloadBlob(any(), any(), any());
+        verify(azureIngestStorageService, times(1)).uploadBlob(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Should run a single reencode command and upload when force reencode is provided")
+    void shouldRunSingleCommandWhenForceReencodeProvided() {
+        editRequest.setEditInstruction("{\"requestedInstructions\":[],\"ffmpegInstructions\":[],\"forceReencode\":true}");
+
+        when(azureFinalStorageService.downloadBlob(any(), any(), any())).thenReturn(true);
+        when(commandExecutor.execute(any())).thenReturn(true);
+        when(azureIngestStorageService.uploadBlob(any(), any(), any())).thenReturn(true);
+
+        UUID newRecordingId = UUID.randomUUID();
+        ffmpegService.performEdit(newRecordingId, editRequest);
+
+        verify(commandExecutor, times(1)).execute(any());
         verify(azureFinalStorageService, times(1)).downloadBlob(any(), any(), any());
         verify(azureIngestStorageService, times(1)).uploadBlob(any(), any(), any());
     }

@@ -38,6 +38,9 @@ public class CreateEditRequestDTO {
     @Schema(description = "CreateEditRequestInstructions")
     private List<EditCutInstructionDTO> editInstructions;
 
+    @Schema(description = "Force full-file reencode instead of cut-based editing")
+    private boolean forceReencode;
+
     @Schema(description = "CreateEditRequestJointlyAgreed")
     private Boolean jointlyAgreed;
 

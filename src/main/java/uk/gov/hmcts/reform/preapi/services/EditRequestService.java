@@ -241,6 +241,7 @@ public class EditRequestService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
+        validateEditMode(dto);
         recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
 
         Recording sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
@@ -255,7 +256,7 @@ public class EditRequestService {
         Optional<EditRequest> existingEditRequest = editRequestRepository.findById(dto.getId());
 
         boolean isUpdate = existingEditRequest.isPresent();
-        if (dto.getEditInstructions() == null || dto.getEditInstructions().isEmpty()) {
+        if (!dto.isForceReencode() && (dto.getEditInstructions() == null || dto.getEditInstructions().isEmpty())) {
             if (isUpdate) {
                 log.info(
                     "Deleting edit request {} for source recording {} as edit instructions are empty",
@@ -317,6 +318,18 @@ public class EditRequestService {
 
     private @NotNull EditRequest getEditRequestToCreateOrUpdate(CreateEditRequestDTO dto, Recording sourceRecording,
                                                                 EditRequest request) {
+        if (dto.isForceReencode()) {
+            request.setId(dto.getId());
+            request.setSourceRecording(sourceRecording);
+            request.setStatus(dto.getStatus());
+            request.setJointlyAgreed(dto.getJointlyAgreed());
+            request.setApprovedAt(dto.getApprovedAt());
+            request.setApprovedBy(dto.getApprovedBy());
+            request.setRejectionReason(dto.getRejectionReason());
+            request.setEditInstruction(toJson(new EditInstructions(List.of(), List.of(), true)));
+            return request;
+        }
+
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
         boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
@@ -356,6 +369,13 @@ public class EditRequestService {
 
         request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
         return request;
+    }
+
+    private void validateEditMode(CreateEditRequestDTO dto) {
+        if (dto.isForceReencode() && dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
+            throw new BadRequestException(
+                "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
+        }
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {

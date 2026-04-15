@@ -273,6 +273,51 @@ public class EditControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 201 when successfully created reencode edit request")
+    void upsertReencodeEditRequestCreated() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setForceReencode(true);
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
+
+        verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when cut instructions and force reencode are both provided")
+    void upsertEditRequestWithCutsAndForceReencodeBadRequest() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setForceReencode(true);
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest());
+
+        verify(editRequestService, never()).upsert(any(CreateEditRequestDTO.class));
+    }
+
+    @Test
     @DisplayName("Should return 200 when successfully deleted edit request")
     void upsertEditRequestDeleted() throws Exception {
         var dto = new CreateEditRequestDTO();
