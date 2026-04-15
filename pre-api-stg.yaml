@@ -818,6 +818,7 @@ definitions:
           $ref: '#/definitions/EditCutInstructionDTO'
         type: array
       force_reencode:
+        default: false
         description: Force full-file reencode instead of cut-based editing
         type: boolean
       id:
@@ -832,6 +833,10 @@ definitions:
         maxLength: 512
         minLength: 0
         type: string
+      send_notifications:
+        default: true
+        description: Send notifications when the edited recording becomes available
+        type: boolean
       source_recording_id:
         description: CreateEditRequestSourceRecordingId
         format: uuid
@@ -1128,6 +1133,8 @@ definitions:
         items:
           $ref: '#/definitions/EditCutInstructionDTO'
         type: array
+      sendNotifications:
+        type: boolean
     type: object
   EditReportDTO:
     description: EditReportDTO
