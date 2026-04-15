@@ -29,6 +29,7 @@ jobs:
       - name: Run OpenAPI Publisher
         env:
           RUN_DB_MIGRATION_ON_STARTUP: false
+          API_NAME: pre-api
         run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
 
       - name: Convert OpenAPI to Swagger v2

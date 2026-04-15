@@ -1,6 +1,8 @@
 name: Publish OpenAPI specs
 on:
-  push:
+# Temporarily changing this from push to pull_request to test it without pushing to master
+#  push:
+  pull_request:
     branches:
       - "master"
 
@@ -10,13 +12,14 @@ jobs:
     secrets:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
-      test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisherTest'
+      test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
+      api_name: 'pre-api'
       java_version: 17
   publish-b2c-api:
     uses: hmcts/workflow-publish-openapi-spec/.github/workflows/publish-openapi.yml@main
     secrets:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
-      test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIB2CPublisherTest'
+      test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
       java_version: 17
       api_name: 'pre-api-b2c'

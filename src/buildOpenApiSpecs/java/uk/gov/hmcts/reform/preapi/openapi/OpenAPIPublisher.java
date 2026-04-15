@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.openapi;
 
+import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Built-in feature which saves service's swagger specs in temporary directory.
  * Each CI run on master should automatically save and upload (if updated) documentation.
  */
+@Slf4j
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc(addFilters = false)
@@ -43,13 +45,14 @@ class OpenAPIPublisher {
         Assertions.assertThat(mvc).isNotNull();
         Assertions.assertThat(postgresContainer.isRunning()).isTrue();
 
-        byte[] specs = mvc.perform(get("/v3/api-docs/pre-api"))
+        byte[] specs = mvc.perform(get("/v3/api-docs/$API_NAME"))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsByteArray();
 
         Assertions.assertThat(specs).isNotEmpty();
+        log.info("Swagger documentation generated for API $API_NAME");
 
         try (OutputStream outputStream = Files.newOutputStream(Paths.get("/tmp/openapi-specs.json"))) {
             outputStream.write(specs);
