@@ -16,8 +16,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import uk.gov.hmcts.reform.preapi.config.ContainerImageNameSubstitutor;
-import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc(addFilters = false)
-class OpenAPIPublisherTest extends IntegrationTestBase {
+class OpenAPIPublisher {
 
     @Autowired
     private MockMvc mvc;
@@ -49,10 +49,18 @@ class OpenAPIPublisherTest extends IntegrationTestBase {
             .getResponse()
             .getContentAsByteArray();
 
+        Assertions.assertThat(specs).isNotEmpty();
+
         try (OutputStream outputStream = Files.newOutputStream(Paths.get("/tmp/openapi-specs.json"))) {
             outputStream.write(specs);
         }
 
+        byte[] writtenBytes;
+        try(InputStream inputStream = Files.newInputStream(Paths.get("/tmp/openapi-specs.json"))) {
+            writtenBytes = inputStream.readAllBytes();
+        }
+        Assertions.assertThat(writtenBytes).isNotEmpty();
+        Assertions.assertThat(specs).isEqualTo(writtenBytes);
     }
 
     static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
