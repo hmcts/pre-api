@@ -33,7 +33,7 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
       - name: Run OpenAPI Publisher
-        run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
+        run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher' -PAPI_NAME=${{ inputs.api_name }}
       - name: Commit to repository
         run: |
           mkdir openapi-staging

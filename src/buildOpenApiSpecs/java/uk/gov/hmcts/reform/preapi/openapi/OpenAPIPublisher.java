@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -39,20 +40,23 @@ class OpenAPIPublisher {
     @Autowired
     private MockMvc mvc;
 
+    @Value("${api.name}")
+    private String apiName;
+
     @DisplayName("Generate swagger documentation")
     @Test
     void generateDocs() throws Exception {
         Assertions.assertThat(mvc).isNotNull();
         Assertions.assertThat(postgresContainer.isRunning()).isTrue();
 
-        byte[] specs = mvc.perform(get("/v3/api-docs/$API_NAME"))
+        byte[] specs = mvc.perform(get("/v3/api-docs/" + apiName))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsByteArray();
 
         Assertions.assertThat(specs).isNotEmpty();
-        log.info("Swagger documentation generated for API $API_NAME");
+        log.info("Swagger documentation generated for API " + apiName);
 
         try (OutputStream outputStream = Files.newOutputStream(Paths.get("/tmp/openapi-specs.json"))) {
             outputStream.write(specs);
