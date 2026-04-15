@@ -817,6 +817,9 @@ definitions:
         items:
           $ref: '#/definitions/EditCutInstructionDTO'
         type: array
+      force_reencode:
+        description: Force full-file reencode instead of cut-based editing
+        type: boolean
       id:
         description: CreateEditRequestId
         format: uuid
@@ -1119,6 +1122,8 @@ definitions:
         items:
           $ref: '#/definitions/FfmpegEditInstructionDTO'
         type: array
+      forceReencode:
+        type: boolean
       requestedInstructions:
         items:
           $ref: '#/definitions/EditCutInstructionDTO'
