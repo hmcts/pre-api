@@ -4,10 +4,10 @@ name: Publish OpenAPI Spec to CNP Repo
 on:
   workflow_call:
     inputs:
-      test_to_run:
+      task_to_run:
         required: true
         type: string
-        description: The full path to the test to run, e.g. uk.gov.hmcts.reform.myapp.openapi.OpenAPIPublisherTest
+        description: The full path to the task to run, e.g. uk.gov.hmcts.reform.myapp.openapi.OpenAPIPublisher
       java_version:
         required: true
         type: string
