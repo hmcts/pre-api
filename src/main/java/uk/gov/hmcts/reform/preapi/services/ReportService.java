@@ -173,17 +173,7 @@ public class ReportService {
 
             // Collect all unique recording IDs from audits
             List<UUID> recordingIds = audits.stream()
-                .map(audit -> {
-                    var details = audit.getAuditDetails();
-                    if (details != null && !details.isNull()) {
-                        if (details.hasNonNull("recordingId")) {
-                            return UUID.fromString(details.get("recordingId").asText());
-                        } else if (details.hasNonNull("recordinguid")) {
-                            return UUID.fromString(details.get("recordinguid").asText());
-                        }
-                    }
-                    return null;
-                })
+                .map(this::getRecordingIDForAudit)
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
