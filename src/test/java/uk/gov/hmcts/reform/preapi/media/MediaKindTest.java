@@ -1811,4 +1811,98 @@ public class MediaKindTest {
 
         assertThat(result).isTrue();
     }
+
+    @Test
+    @DisplayName("Should return a job when searching by partial name")
+    void getJobFromPartialNameSuccess() {
+        var transformName = "EncodeFromIngest";
+        var partialJobName = "e4b8f8e2c9e14e7e8b2e2e8e8e8e8e8e";
+        var mkJob = MkJob.builder()
+            .name("e4b8f8e2c9e14e7e8b2e2e8e8e8e8e8e-1717691234567")
+            .build();
+
+        MkGetListResponse<MkJob> mockResponse = MkGetListResponse.<MkJob>builder()
+            .value(List.of(mkJob))
+            .build();
+        when(mockClient.getJobs(eq(transformName), anyString(), eq("properties/created desc")))
+            .thenReturn(mockResponse);
+
+        MkJob result = mediaKind.getJobFromPartialName(transformName, partialJobName);
+        assertThat(result).isEqualTo(mkJob);
+
+    }
+
+    @Test
+    @DisplayName("Should throw NotFound Exception when returned job list is empty when searching by partial name")
+    void getJobFromPartialNameEmptyListReturned() {
+        var transformName = "EncodeFromIngest";
+        var partialJobName = "e4b8f8e2c9e14e7e8b2e2e8e8e8e8e8e";
+
+        MkGetListResponse<MkJob> mockResponse = MkGetListResponse.<MkJob>builder()
+            .value(List.of())
+            .build();
+        when(mockClient.getJobs(eq(transformName), anyString(), eq("properties/created desc")))
+            .thenReturn(mockResponse);
+
+        assertThrows(NotFoundException.class, () -> mediaKind.getJobFromPartialName(transformName, partialJobName));
+    }
+
+    @Test
+    @DisplayName("Should throw NotFound Exception when client does not find any jobs when searching by partial name")
+    void getJobFromPartialNameNotFoundExceptionThrownByClient() {
+        var transformName = "EncodeFromIngest";
+        var partialJobName = "e4b8f8e2c9e14e7e8b2e2e8e8e8e8e8e";
+
+        when(mockClient.getJobs(eq(transformName), anyString(), eq("properties/created desc")))
+            .thenThrow(NotFoundException.class);
+
+        assertThrows(NotFoundException.class, () -> mediaKind.getJobFromPartialName(transformName, partialJobName));
+    }
+
+    @Test
+    @DisplayName("Should return first job when multiple jobs are returned when searching by partial name")
+    void getJobFromPartialNameMultipleJobsReturned() {
+        var transformName = "EncodeFromIngest";
+        var partialJobName = "e4b8f8e2c9e14e7e8b2e2e8e8e8e8e8e";
+        var mkJob = MkJob.builder()
+            .name("e4b8f8e2c9e14e7e8b2e2e8e8e8e8e8e-1717691234567")
+            .build();
+
+        var mkJob2 = MkJob.builder()
+            .name("e4b8f8e2c9e14e7e8b2e2e8e8e8e8e8e-1717691234568")
+            .build();
+
+        MkGetListResponse<MkJob> mockResponse = MkGetListResponse.<MkJob>builder()
+            .value(List.of(mkJob, mkJob2))
+            .build();
+        when(mockClient.getJobs(eq(transformName), anyString(), eq("properties/created desc")))
+            .thenReturn(mockResponse);
+
+        MkJob result = mediaKind.getJobFromPartialName(transformName, partialJobName);
+        assertThat(result).isEqualTo(mkJob);
+    }
+
+    @Test
+    @DisplayName("Test that the filter used when searching for jobs by partial name has partial name/to date/from date"
+        + "and status finished")
+    void testGetJobFromPartialNameFilter() {
+        var transformName = "EncodeFromIngest";
+        var partialJobName = "somePartialName";
+        MkGetListResponse<MkJob> mockResponse = MkGetListResponse.<MkJob>builder()
+            .value(List.of())
+            .build();
+
+        ArgumentCaptor<String> filterCaptor = ArgumentCaptor.forClass(String.class);
+
+        when(mockClient.getJobs(eq(transformName), filterCaptor.capture(), anyString()))
+            .thenReturn(mockResponse);
+
+        assertThrows(NotFoundException.class, () -> mediaKind.getJobFromPartialName(transformName, partialJobName));
+
+        String filterUsed = filterCaptor.getValue();
+        assertThat(filterUsed).contains("contains(name,'" + partialJobName + "')");
+        assertThat(filterUsed).contains("properties/created ge");
+        assertThat(filterUsed).contains("properties/created le");
+        assertThat(filterUsed).contains("properties/state eq 'Finished'");
+    }
 }

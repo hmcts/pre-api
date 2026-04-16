@@ -27,7 +27,9 @@ jobs:
           cache: 'gradle'
 
       - name: Run OpenAPI Publisher
-        run: ./gradlew integration --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisherTest'
+        env:
+          RUN_DB_MIGRATION_ON_STARTUP: false
+        run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
 
       - name: Convert OpenAPI to Swagger v2
         run: |

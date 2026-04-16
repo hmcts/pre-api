@@ -7,7 +7,6 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 @Data
 public class SearchRecordings {
@@ -24,9 +23,7 @@ public class SearchRecordings {
     private String id;
     private Integer version;
 
-    @Nullable
     private Timestamp startedAtFrom;
-    @Nullable
     private Timestamp startedAtUntil;
     private List<UUID> authorisedBookings;
     private UUID authorisedCourt;
