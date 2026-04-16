@@ -35,7 +35,9 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -157,19 +159,33 @@ public class ReportService {
                 .toList();
 
             // Batch fetch all possible entities for those IDs
-            var users = userRepository.findAllById(createdByIds);
-            var appAccesses = appAccessRepository.findAllById(createdByIds);
-            var portalAccesses = portalAccessRepository.findAllById(createdByIds);
+            List<User> users = userRepository.findAllById(createdByIds);
+            List<AppAccess> appAccesses = appAccessRepository.findAllById(createdByIds);
+            List<PortalAccess> portalAccesses = portalAccessRepository.findAllById(createdByIds);
 
             // Build sets for fast type checking
-            var userIdSet = users.stream().map(User::getId).collect(Collectors.toSet());
-            var appAccessIdSet = appAccesses.stream().map(AppAccess::getId).collect(Collectors.toSet());
-            var portalAccessIdSet = portalAccesses.stream().map(PortalAccess::getId).collect(Collectors.toSet());
+            Set<UUID> userIdSet = users
+                .stream()
+                .map(User::getId).collect(Collectors.toSet());
+            Set<UUID> appAccessIdSet = appAccesses
+                .stream()
+                .map(AppAccess::getId)
+                .collect(Collectors.toSet());
+            Set<UUID> portalAccessIdSet = portalAccesses
+                .stream()
+                .map(PortalAccess::getId)
+                .collect(Collectors.toSet());
 
             // Build lookup maps
-            var userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
-            var appAccessMap = appAccesses.stream().collect(Collectors.toMap(AppAccess::getId, a -> a));
-            var portalAccessMap = portalAccesses.stream().collect(Collectors.toMap(PortalAccess::getId, p -> p));
+            Map<UUID, User> userMap = users
+                .stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+            Map<UUID, AppAccess> appAccessMap = appAccesses
+                .stream()
+                .collect(Collectors.toMap(AppAccess::getId, a -> a));
+            Map<UUID, PortalAccess> portalAccessMap = portalAccesses
+                .stream()
+                .collect(Collectors.toMap(PortalAccess::getId, p -> p));
 
             // Collect all unique recording IDs from audits
             List<UUID> recordingIds = audits.stream()
@@ -179,8 +195,8 @@ public class ReportService {
                 .toList();
 
             // Batch fetch all referenced recordings
-            var recordings = recordingRepository.findAllById(recordingIds);
-            var recordingMap = recordings.stream().collect(Collectors.toMap(Recording::getId, r -> r));
+            List<Recording> recordings = recordingRepository.findAllById(recordingIds);
+            Map<UUID, Recording> recordingMap = recordings.stream().collect(Collectors.toMap(Recording::getId, r -> r));
 
             return audits.stream()
                 .map(a -> {
@@ -262,13 +278,13 @@ public class ReportService {
 
     private PlaybackReportArgsRecord toPlaybackReport(
         Audit audit,
-        java.util.Set<UUID> userIdSet,
-        java.util.Set<UUID> appAccessIdSet,
-        java.util.Set<UUID> portalAccessIdSet,
-        java.util.Map<UUID, User> userMap,
-        java.util.Map<UUID, AppAccess> appAccessMap,
-        java.util.Map<UUID, PortalAccess> portalAccessMap,
-        java.util.Map<UUID, Recording> recordingMap) {
+        Set<UUID> userIdSet,
+        Set<UUID> appAccessIdSet,
+        Set<UUID> portalAccessIdSet,
+        Map<UUID, User> userMap,
+        Map<UUID, AppAccess> appAccessMap,
+        Map<UUID, PortalAccess> portalAccessMap,
+        Map<UUID, Recording> recordingMap) {
         UUID recordingId = getRecordingIDForAudit(audit);
 
         User user = getCreatedByUserForAudit(
@@ -305,12 +321,12 @@ public class ReportService {
 
     private User getCreatedByUserForAudit(
         Audit audit,
-        java.util.Set<UUID> userIdSet,
-        java.util.Set<UUID> appAccessIdSet,
-        java.util.Set<UUID> portalAccessIdSet,
-        java.util.Map<UUID, User> userMap,
-        java.util.Map<UUID, AppAccess> appAccessMap,
-        java.util.Map<UUID, PortalAccess> portalAccessMap
+        Set<UUID> userIdSet,
+        Set<UUID> appAccessIdSet,
+        Set<UUID> portalAccessIdSet,
+        Map<UUID, User> userMap,
+        Map<UUID, AppAccess> appAccessMap,
+        Map<UUID, PortalAccess> portalAccessMap
     ) {
         UUID createdBy = audit.getCreatedBy();
 

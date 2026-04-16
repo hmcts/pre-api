@@ -341,12 +341,8 @@ public class ReportServiceTest {
         user.setEmail("example@example.com");
         user.setFirstName("Example");
         user.setLastName("Person");
-        List<User> users = List.of(user);
-        List<UUID> userIds = users.stream().map(User::getId).toList();
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.PORTAL);
-        List<Recording> recordings = List.of(recordingEntity);
-        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -360,7 +356,13 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
+
+        List<User> users = List.of(user);
+        List<UUID> userIds = users.stream().map(User::getId).toList();
         when(userRepository.findAllById(userIds)).thenReturn(users);
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
         when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
@@ -394,12 +396,8 @@ public class ReportServiceTest {
         var portalAccess = new PortalAccess();
         portalAccess.setId(UUID.randomUUID());
         portalAccess.setUser(user);
-        List<PortalAccess> portalAccesses = List.of(portalAccess);
-        List<UUID> portalAccessIds = portalAccesses.stream().map(PortalAccess::getId).toList();
         auditEntity.setCreatedBy(portalAccess.getId());
         auditEntity.setSource(AuditLogSource.PORTAL);
-        List<Recording> recordings = List.of(recordingEntity);
-        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -413,7 +411,13 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
+
+        List<PortalAccess> portalAccesses = List.of(portalAccess);
+        List<UUID> portalAccessIds = portalAccesses.stream().map(PortalAccess::getId).toList();
         when(portalAccessRepository.findAllById(portalAccessIds)).thenReturn(portalAccesses);
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
         when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
@@ -440,8 +444,6 @@ public class ReportServiceTest {
     @Test
     void reportPlaybackPortalSuccessRecordingid() {
         auditEntity.setSource(AuditLogSource.PORTAL);
-        List<Recording> recordings = List.of(recordingEntity);
-        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -455,6 +457,9 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
         when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
@@ -543,12 +548,8 @@ public class ReportServiceTest {
         user.setEmail("example@example.com");
         user.setFirstName("Example");
         user.setLastName("Person");
-        List<User> users = List.of(user);
-        List<UUID> userIds = users.stream().map(User::getId).toList();
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.APPLICATION);
-        List<Recording> recordings = List.of(recordingEntity);
-        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -562,7 +563,13 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
+
+        List<User> users = List.of(user);
+        List<UUID> userIds = users.stream().map(User::getId).toList();
         when(userRepository.findAllById(userIds)).thenReturn(users);
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
         when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
@@ -594,12 +601,8 @@ public class ReportServiceTest {
         var appAccess = new AppAccess();
         appAccess.setId(UUID.randomUUID());
         appAccess.setUser(user);
-        List<AppAccess> appAccesses = List.of(appAccess);
-        List<UUID> appAccessIds = appAccesses.stream().map(AppAccess::getId).toList();
         auditEntity.setCreatedBy(appAccess.getId());
         auditEntity.setSource(AuditLogSource.APPLICATION);
-        List<Recording> recordings = List.of(recordingEntity);
-        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -613,7 +616,13 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
+
+        List<AppAccess> appAccesses = List.of(appAccess);
+        List<UUID> appAccessIds = appAccesses.stream().map(AppAccess::getId).toList();
         when(appAccessRepository.findAllById(appAccessIds)).thenReturn(appAccesses);
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
         when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
