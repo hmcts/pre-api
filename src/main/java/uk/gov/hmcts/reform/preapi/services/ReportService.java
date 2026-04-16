@@ -35,6 +35,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -139,17 +140,40 @@ public class ReportService {
             final String functionalAreaVideoPlayer = "Video Player";
             final String functionalAreaViewRecordings = "View Recordings";
 
-            return auditRepository
+            // Fetch the audits
+            List<Audit> audits = auditRepository
                 .findBySourceAndFunctionalAreaAndActivity(
                     source,
                     source == AuditLogSource.PORTAL
                         ? functionalAreaVideoPlayer
                         : functionalAreaViewRecordings,
                     activityPlay
-                )
-                .stream()
+                );
+
+            // Collect all unique createdBy IDs
+            List<UUID> createdByIds = audits.stream()
+                .map(Audit::getCreatedBy)
+                .filter(Objects::nonNull)
+                .toList();
+
+            // Batch fetch all possible entities for those IDs
+            var users = userRepository.findAllById(createdByIds);
+            var appAccesses = appAccessRepository.findAllById(createdByIds);
+            var portalAccesses = portalAccessRepository.findAllById(createdByIds);
+
+            // Build sets for fast type checking
+            var userIdSet = users.stream().map(User::getId).collect(Collectors.toSet());
+            var appAccessIdSet = appAccesses.stream().map(AppAccess::getId).collect(Collectors.toSet());
+            var portalAccessIdSet = portalAccesses.stream().map(PortalAccess::getId).collect(Collectors.toSet());
+
+            // Build lookup maps
+            var userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
+            var appAccessMap = appAccesses.stream().collect(Collectors.toMap(AppAccess::getId, a -> a));
+            var portalAccessMap = portalAccesses.stream().collect(Collectors.toMap(PortalAccess::getId, p -> p));
+
+            return audits.stream()
                 .map(a -> {
-                    PlaybackReportArgsRecord args = toPlaybackReport(a);
+                    PlaybackReportArgsRecord args = toPlaybackReport(a, userIdSet, appAccessIdSet, portalAccessIdSet, userMap, appAccessMap, portalAccessMap);
                     return new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
                 })
                 .toList();
@@ -217,6 +241,50 @@ public class ReportService {
                                                                                      .map(PortalAccess::getUser)
                                                                                      .orElse(null)))
             : null;
+
+        Recording recording = recordingId != null
+            ? recordingRepository.findById(recordingId).orElse(null)
+            : null;
+
+        return new PlaybackReportArgsRecord(audit, user, recording);
+    }
+
+    private PlaybackReportArgsRecord toPlaybackReport(
+        Audit audit,
+        java.util.Set<UUID> userIdSet,
+        java.util.Set<UUID> appAccessIdSet,
+        java.util.Set<UUID> portalAccessIdSet,
+        java.util.Map<UUID, User> userMap,
+        java.util.Map<UUID, AppAccess> appAccessMap,
+        java.util.Map<UUID, PortalAccess> portalAccessMap
+    ) {
+        boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
+        UUID recordingId = null;
+        if (auditDetails) {
+            if (audit.getAuditDetails().hasNonNull("recordingId")) {
+                recordingId = UUID.fromString(audit.getAuditDetails().get("recordingId").asText());
+            } else if (audit.getAuditDetails().hasNonNull("recordinguid")) {
+                recordingId = UUID.fromString(audit.getAuditDetails().get("recordinguid").asText());
+            }
+        }
+
+        User user = null;
+        UUID createdBy = audit.getCreatedBy();
+        if (createdBy != null) {
+            if (userIdSet.contains(createdBy)) {
+                user = userMap.get(createdBy);
+            } else if (appAccessIdSet.contains(createdBy)) {
+                AppAccess appAccess = appAccessMap.get(createdBy);
+                if (appAccess != null) {
+                    user = appAccess.getUser();
+                }
+            } else if (portalAccessIdSet.contains(createdBy)) {
+                PortalAccess portalAccess = portalAccessMap.get(createdBy);
+                if (portalAccess != null) {
+                    user = portalAccess.getUser();
+                }
+            }
+        }
 
         Recording recording = recordingId != null
             ? recordingRepository.findById(recordingId).orElse(null)

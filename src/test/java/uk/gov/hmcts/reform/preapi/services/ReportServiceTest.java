@@ -37,6 +37,7 @@ import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -341,6 +342,8 @@ public class ReportServiceTest {
         user.setEmail("example@example.com");
         user.setFirstName("Example");
         user.setLastName("Person");
+        List<User> users = List.of(user);
+        List<UUID> userIds = users.stream().map(User::getId).toList();
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.PORTAL);
 
@@ -356,7 +359,7 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userRepository.findAllById(userIds)).thenReturn(users);
         when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
@@ -482,6 +485,8 @@ public class ReportServiceTest {
         user.setEmail("example@example.com");
         user.setFirstName("Example");
         user.setLastName("Person");
+        List<User> users = List.of(user);
+        List<UUID> userIds = users.stream().map(User::getId).toList();
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.APPLICATION);
 
@@ -497,7 +502,7 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userRepository.findAllById(userIds)).thenReturn(users);
         when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
 
         var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
