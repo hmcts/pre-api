@@ -11,7 +11,11 @@ on:
       java_version:
         required: true
         type: string
-      api_name:
+      api_name_to_build:
+        required: true
+        type: string
+        description: The name of the internal API, used for getting docs. Defaults to repo name.
+      api_name_to_publish:
         required: true
         type: string
         description: The name of the API, used for naming the output file. Defaults to repo name.
@@ -34,10 +38,11 @@ jobs:
           cache: 'gradle'
       - name: Run OpenAPI Publisher
         env:
-          API_NAME: ${{ inputs.api_name }}
+          API_NAME: ${{ inputs.api_name_to_build }}
         run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher' -PAPI_NAME=${API_NAME}
       - name: Commit to repository
         env:
+          API_NAME: ${{ inputs.api_name_to_publish }}
           SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
         run: |
           mkdir openapi-staging
@@ -51,4 +56,6 @@ jobs:
           echo "$(cat /tmp/openapi-specs.json)" > "docs/specs/${API_NAME}.json"
           git add "docs/specs/${API_NAME}.json"
           # Only commit and push if we have changes
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update spec for ${API_NAME}#${GITHUB_SHA:7}"; git push --set-upstream upstream master)
+          ## TODO: Temporarily enabling dry-run commits
+          ## git diff --quiet && git diff --staged --quiet || (git commit -m "Update spec for ${API_NAME}#${GITHUB_SHA:7}"; git push --set-upstream upstream master)
+          git commit --dry-run -m "Update spec for ${API_NAME}#${GITHUB_SHA:7}"

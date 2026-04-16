@@ -14,7 +14,8 @@ jobs:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
       test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
-      api_name: 'pre-api'
+      api_name_to_build: 'pre-api'
+      api_name_to_publish: 'pre-api'
       java_version: 17
   publish-b2c-api:
     uses: ./.github/workflows/shared-openapi-publish-steps.yaml
@@ -23,4 +24,5 @@ jobs:
     with:
       test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
       java_version: 17
-      api_name: 'b2c-api'
+      api_name_to_build: 'b2c-api'
+      api_name_to_publish: 'pre-api-b2c'
