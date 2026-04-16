@@ -57,6 +57,7 @@ jobs:
           echo "$(cat /tmp/openapi-specs.json)" > "docs/specs/${API_NAME}.json"
 
           ## TODO: Remove temporary cat
+          ls "docs/specs/${API_NAME}.json"
           cat "docs/specs/${API_NAME}.json"
 
           git add "docs/specs/${API_NAME}.json"
