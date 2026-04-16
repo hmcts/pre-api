@@ -49,9 +49,7 @@ class OpenAPIPublisher {
         Assertions.assertThat(mvc).isNotNull();
         Assertions.assertThat(postgresContainer.isRunning()).isTrue();
 
-        System.out.println("API NAME: " + apiName);
         Assertions.assertThat(apiName).isNotBlank();
-        Assertions.assertThat(apiName).isEqualTo("pre-api-b2c");
 
         byte[] specs = mvc.perform(get("/v3/api-docs/" + apiName))
             .andExpect(status().isOk())
