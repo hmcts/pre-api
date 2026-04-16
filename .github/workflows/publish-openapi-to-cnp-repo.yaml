@@ -35,7 +35,7 @@ jobs:
       - name: Run OpenAPI Publisher
         env:
           API_NAME: ${{ inputs.api_name }}
-        run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
+        run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher' -PAPI_NAME=${API_NAME}
       - name: Commit to repository
         env:
           SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
