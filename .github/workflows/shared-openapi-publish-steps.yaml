@@ -55,13 +55,6 @@ jobs:
           git pull upstream master
           repo=`echo "$GITHUB_REPOSITORY" | cut -f2- -d/`
           echo "$(cat /tmp/openapi-specs.json)" > "docs/specs/${API_NAME}.json"
-
-          ## TODO: Remove temporary cat
-          ls "docs/specs/${API_NAME}.json"
-          cat "docs/specs/${API_NAME}.json"
-
           git add "docs/specs/${API_NAME}.json"
           # Only commit and push if we have changes
-          ## TODO: Temporarily enabling dry-run commits
-          ## git diff --quiet && git diff --staged --quiet || (git commit -m "Update spec for ${API_NAME}#${GITHUB_SHA:7}"; git push --set-upstream upstream master)
-          git commit --dry-run -m "Update spec for ${API_NAME}#${GITHUB_SHA:7}"
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update spec for ${API_NAME}#${GITHUB_SHA:7}"; git push --set-upstream upstream master)

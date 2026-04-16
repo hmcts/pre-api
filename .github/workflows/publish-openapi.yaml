@@ -1,9 +1,6 @@
 name: Publish OpenAPI specs
 on:
-# Temporarily changing this from push to pull_request to test it without pushing to master
-# TODO: Change to push just before merge
-#  push:
-  pull_request:
+  push:
     branches:
       - "master"
 

@@ -48,7 +48,6 @@ class OpenAPIPublisher {
     void generateDocs() throws Exception {
         Assertions.assertThat(mvc).isNotNull();
         Assertions.assertThat(postgresContainer.isRunning()).isTrue();
-
         Assertions.assertThat(apiName).isNotBlank();
 
         byte[] specs = mvc.perform(get("/v3/api-docs/" + apiName))
