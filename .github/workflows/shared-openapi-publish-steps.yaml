@@ -48,12 +48,17 @@ jobs:
           mkdir openapi-staging
           cd openapi-staging
           git init
+          git config set advice.defaultBranchName false
           git config user.email "github-platform-operations@HMCTS.NET"
           git config user.name "HMCTS Platform Operations"
           git remote add upstream "https://apitoken:${SWAGGER_PUBLISHER_API_TOKEN}@github.com/hmcts/cnp-api-docs.git"
           git pull upstream master
           repo=`echo "$GITHUB_REPOSITORY" | cut -f2- -d/`
           echo "$(cat /tmp/openapi-specs.json)" > "docs/specs/${API_NAME}.json"
+
+          ## TODO: Remove temporary cat
+          cat "docs/specs/${API_NAME}.json"
+
           git add "docs/specs/${API_NAME}.json"
           # Only commit and push if we have changes
           ## TODO: Temporarily enabling dry-run commits
