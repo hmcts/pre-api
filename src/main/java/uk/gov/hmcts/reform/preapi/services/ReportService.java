@@ -194,7 +194,15 @@ public class ReportService {
 
             return audits.stream()
                 .map(a -> {
-                    PlaybackReportArgsRecord args = toPlaybackReport(a, userIdSet, appAccessIdSet, portalAccessIdSet, userMap, appAccessMap, portalAccessMap, recordingMap);
+                    PlaybackReportArgsRecord args = toPlaybackReport(
+                        a,
+                        userIdSet,
+                        appAccessIdSet,
+                        portalAccessIdSet,
+                        userMap,
+                        appAccessMap,
+                        portalAccessMap,
+                        recordingMap);
                     return new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
                 })
                 .toList();
@@ -244,15 +252,7 @@ public class ReportService {
     }
 
     private PlaybackReportArgsRecord toPlaybackReport(Audit audit) {
-        boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
-        UUID recordingId = null;
-        if (auditDetails) {
-            if (audit.getAuditDetails().hasNonNull("recordingId")) {
-                recordingId = UUID.fromString(audit.getAuditDetails().get("recordingId").asText());
-            } else if (audit.getAuditDetails().hasNonNull("recordinguid")) {
-                recordingId = UUID.fromString(audit.getAuditDetails().get("recordinguid").asText());
-            }
-        }
+        UUID recordingId = getRecordingIDForAudit(audit);
 
         User user = audit.getCreatedBy() != null
             ? userRepository.findById(audit.getCreatedBy())
@@ -278,39 +278,69 @@ public class ReportService {
         java.util.Map<UUID, User> userMap,
         java.util.Map<UUID, AppAccess> appAccessMap,
         java.util.Map<UUID, PortalAccess> portalAccessMap,
-        java.util.Map<UUID, Recording> recordingMap
-    ) {
-        boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
-        UUID recordingId = null;
-        if (auditDetails) {
-            if (audit.getAuditDetails().hasNonNull("recordingId")) {
-                recordingId = UUID.fromString(audit.getAuditDetails().get("recordingId").asText());
-            } else if (audit.getAuditDetails().hasNonNull("recordinguid")) {
-                recordingId = UUID.fromString(audit.getAuditDetails().get("recordinguid").asText());
-            }
-        }
+        java.util.Map<UUID, Recording> recordingMap) {
+        UUID recordingId = getRecordingIDForAudit(audit);
 
-        User user = null;
-        UUID createdBy = audit.getCreatedBy();
-        if (createdBy != null) {
-            if (userIdSet.contains(createdBy)) {
-                user = userMap.get(createdBy);
-            } else if (appAccessIdSet.contains(createdBy)) {
-                AppAccess appAccess = appAccessMap.get(createdBy);
-                if (appAccess != null) {
-                    user = appAccess.getUser();
-                }
-            } else if (portalAccessIdSet.contains(createdBy)) {
-                PortalAccess portalAccess = portalAccessMap.get(createdBy);
-                if (portalAccess != null) {
-                    user = portalAccess.getUser();
-                }
-            }
-        }
+        User user = getCreatedByUserForAudit(
+            audit,
+            userIdSet,
+            appAccessIdSet,
+            portalAccessIdSet,
+            userMap,
+            appAccessMap,
+            portalAccessMap);
 
         Recording recording = recordingId != null ? recordingMap.get(recordingId) : null;
 
         return new PlaybackReportArgsRecord(audit, user, recording);
+    }
+
+    private UUID getRecordingIDForAudit(Audit audit) {
+        boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
+
+        if (!auditDetails) {
+            return null;
+        }
+
+        if (audit.getAuditDetails().hasNonNull("recordingId")) {
+            return UUID.fromString(audit.getAuditDetails().get("recordingId").asText());
+        }
+
+        if (audit.getAuditDetails().hasNonNull("recordinguid")) {
+            return UUID.fromString(audit.getAuditDetails().get("recordinguid").asText());
+        }
+
+        return null;
+    }
+
+    private User getCreatedByUserForAudit(
+        Audit audit,
+        java.util.Set<UUID> userIdSet,
+        java.util.Set<UUID> appAccessIdSet,
+        java.util.Set<UUID> portalAccessIdSet,
+        java.util.Map<UUID, User> userMap,
+        java.util.Map<UUID, AppAccess> appAccessMap,
+        java.util.Map<UUID, PortalAccess> portalAccessMap
+    ) {
+        UUID createdBy = audit.getCreatedBy();
+
+        if (createdBy == null) {
+            return null;
+        }
+
+        if (userIdSet.contains(createdBy)) {
+            return userMap.get(createdBy);
+        }
+
+        if (appAccessIdSet.contains(createdBy)) {
+            return appAccessMap.get(createdBy).getUser();
+        }
+
+        if (portalAccessIdSet.contains(createdBy)) {
+            return portalAccessMap.get(createdBy).getUser();
+        }
+
+        return null;
     }
 
     @Transactional
