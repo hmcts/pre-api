@@ -171,9 +171,30 @@ public class ReportService {
             var appAccessMap = appAccesses.stream().collect(Collectors.toMap(AppAccess::getId, a -> a));
             var portalAccessMap = portalAccesses.stream().collect(Collectors.toMap(PortalAccess::getId, p -> p));
 
+            // Collect all unique recording IDs from audits
+            List<UUID> recordingIds = audits.stream()
+                .map(audit -> {
+                    var details = audit.getAuditDetails();
+                    if (details != null && !details.isNull()) {
+                        if (details.hasNonNull("recordingId")) {
+                            return UUID.fromString(details.get("recordingId").asText());
+                        } else if (details.hasNonNull("recordinguid")) {
+                            return UUID.fromString(details.get("recordinguid").asText());
+                        }
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+            // Batch fetch all referenced recordings
+            var recordings = recordingRepository.findAllById(recordingIds);
+            var recordingMap = recordings.stream().collect(Collectors.toMap(Recording::getId, r -> r));
+
             return audits.stream()
                 .map(a -> {
-                    PlaybackReportArgsRecord args = toPlaybackReport(a, userIdSet, appAccessIdSet, portalAccessIdSet, userMap, appAccessMap, portalAccessMap);
+                    PlaybackReportArgsRecord args = toPlaybackReport(a, userIdSet, appAccessIdSet, portalAccessIdSet, userMap, appAccessMap, portalAccessMap, recordingMap);
                     return new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
                 })
                 .toList();
@@ -256,7 +277,8 @@ public class ReportService {
         java.util.Set<UUID> portalAccessIdSet,
         java.util.Map<UUID, User> userMap,
         java.util.Map<UUID, AppAccess> appAccessMap,
-        java.util.Map<UUID, PortalAccess> portalAccessMap
+        java.util.Map<UUID, PortalAccess> portalAccessMap,
+        java.util.Map<UUID, Recording> recordingMap
     ) {
         boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
         UUID recordingId = null;
@@ -286,9 +308,7 @@ public class ReportService {
             }
         }
 
-        Recording recording = recordingId != null
-            ? recordingRepository.findById(recordingId).orElse(null)
-            : null;
+        Recording recording = recordingId != null ? recordingMap.get(recordingId) : null;
 
         return new PlaybackReportArgsRecord(audit, user, recording);
     }

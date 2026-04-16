@@ -346,6 +346,8 @@ public class ReportServiceTest {
         List<UUID> userIds = users.stream().map(User::getId).toList();
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.PORTAL);
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -360,7 +362,7 @@ public class ReportServiceTest {
                  )
         ).thenReturn(List.of(auditEntity));
         when(userRepository.findAllById(userIds)).thenReturn(users);
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
@@ -386,6 +388,8 @@ public class ReportServiceTest {
     @Test
     void reportPlaybackPortalSuccessRecordingid() {
         auditEntity.setSource(AuditLogSource.PORTAL);
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -399,7 +403,7 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
@@ -419,6 +423,8 @@ public class ReportServiceTest {
     @Test
     void reportPlaybackPortalSuccessNoRecordingId() {
         auditEntity.setSource(AuditLogSource.PORTAL);
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -431,7 +437,7 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
@@ -489,6 +495,8 @@ public class ReportServiceTest {
         List<UUID> userIds = users.stream().map(User::getId).toList();
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.APPLICATION);
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -503,7 +511,7 @@ public class ReportServiceTest {
                  )
         ).thenReturn(List.of(auditEntity));
         when(userRepository.findAllById(userIds)).thenReturn(users);
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
 
