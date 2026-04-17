@@ -57,7 +57,7 @@ jobs:
           git config --global user.name 'PRE DevOps'
           git config --global user.email '138598290+pre-devops@users.noreply.github.com'
 
-          CHANGED=$(git diff --name-only specs/${API_NAME}.json)
+          CHANGED=$(git diff --name-only "specs/${API_NAME}.json")
           commit_message=""
           if [ "$CHANGED" != "" ]; then
             echo "OpenAPI spec has been updated this commit"
@@ -65,14 +65,14 @@ jobs:
             commit_message="Update OpenAPI Spec for ${API_NAME}"
             git commit -m "$commit_message"
             git push
-          elif
-            echo "No changes to commit for ${API_NAME} OpenAPI spec"
+          :
+            echo "No changes to commit for ${API_NAME} OpenAPI spec";
           fi
 
       - name: Commit swagger doc to repository
         run: |
           sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" "${API_NAME}.yaml" > "${API_NAME}-stg.yaml"
-          CHANGED=$(git diff --name-only "${API_NAME}-stg.yaml)
+          CHANGED=$(git diff --name-only "${API_NAME}-stg.yaml")
           commit_message=""
           if [ "$CHANGED" != "" ]; then
             echo "Swagger spec for ${API_NAME} has been updated this commit"
@@ -80,8 +80,8 @@ jobs:
             commit_message="Update Swagger v2 Spec for ${API_NAME}"
             git commit -m "$commit_message"
             git push
-          elif
-            echo "No changes to commit for ${API_NAME} swagger spec"
+          :
+            echo "No changes to commit for ${API_NAME} swagger spec";
           fi
 
       - name: wget master main.tf
