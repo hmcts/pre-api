@@ -51,38 +51,7 @@ jobs:
           sed 's/basePath\: \//basePath\: \/${API_NAME}/g' "${API_NAME}.yaml" > "${API_NAME}2.yaml" && \
           sed 's/\- http/\- https/g' "${API_NAME}2.yaml" > "${API_NAME}.yaml" && \
           rm -f "${API_NAME}2.yaml"
-
-      - name: Commit OpenAPI doc to repository
-        run: |
-          git config --global user.name 'PRE DevOps'
-          git config --global user.email '138598290+pre-devops@users.noreply.github.com'
-
-          CHANGED=$(git diff --name-only "specs/${API_NAME}.json")
-          commit_message=""
-          if [ "$CHANGED" != "" ]; then
-            echo "OpenAPI spec has been updated this commit"
-            git add -u "specs/${API_NAME}.json"
-            commit_message="Update OpenAPI Spec for ${API_NAME}"
-            git commit -m "$commit_message"
-            git push
-          :
-            echo "No changes to commit for ${API_NAME} OpenAPI spec";
-          fi
-
-      - name: Commit swagger doc to repository
-        run: |
-          sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" "${API_NAME}.yaml" > "${API_NAME}-stg.yaml"
-          CHANGED=$(git diff --name-only "${API_NAME}-stg.yaml")
-          commit_message=""
-          if [ "$CHANGED" != "" ]; then
-            echo "Swagger spec for ${API_NAME} has been updated this commit"
-            git add -u "${API_NAME}-stg.yaml"
-            commit_message="Update Swagger v2 Spec for ${API_NAME}"
-            git commit -m "$commit_message"
-            git push
-          :
-            echo "No changes to commit for ${API_NAME} swagger spec";
-          fi
+          sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" ${API_NAME}.yaml > ${API_NAME}-stg.yaml
 
       - name: wget master main.tf
         uses: wei/wget@c15e476d1463f4936cb54f882170d9d631f1aba5
@@ -95,20 +64,20 @@ jobs:
           args: -O master.pre-api-stg.yaml https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml
 
       - name: Increment APIm revision
-#        Note: this section is only for the main API: pre-api
         run: |
           # get the revision number from the main.tf file in master
           master_revision=$(grep -i 'api_revision' main.tf | grep -oE '[0-9]+')
           branch_revision=$(grep -i 'api_revision' infrastructure/main.tf | grep -oE '[0-9]+')
 
+          commit_message=""
           if cmp "master.pre-api-stg.yaml" "pre-api-stg.yaml"; then
             echo "No changes to pre-api-stg.yaml"
             if [[ $master_revision -gt $branch_revision ]]; then
-              echo "Master revision is greater than branch revision"
+              echo "Bump branch revision number to match master"
               awk -v new_revision="$master_revision" 'BEGIN{FS=OFS="\""} /api_revision=/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
               git add infrastructure/main.tf
 
-              commit_message="${commit_message} Bump APIm revision to $master_revision"
+              commit_message="Bump APIm revision to $master_revision"
             fi
           else
             echo "Main API Spec has changed compared to master, ensure revision is incremented"
@@ -118,18 +87,24 @@ jobs:
               echo "New revision number: $new_revision"
               sed -e "s/^  api_revision.*\"$branch_revision\"/  api_revision = \"$new_revision\"/"  infrastructure/main.tf > temp && mv temp infrastructure/main.tf
               git add infrastructure/main.tf
-              commit_message="${commit_message} Bumped APIm revision to $new_revision"
             fi
           fi
 
           # cleanup
           rm -f main.tf master.pre-api-stg.yaml
 
-          # commit and push if there are changes
-          if [ -n "$commit_message" ]; then
+          CHANGED=$(git diff --name-only "specs/${API_NAME}.json" "${API_NAME}-stg.yaml" infrastructure/main.tf)
+          commit_message=""
+          if [ "$CHANGED" != "" ]; then
+            echo "OpenAPI spec has been updated this commit"
+            git add -u "specs/${API_NAME}.json"
+            commit_message="Update OpenAPI Spec for ${API_NAME} with revision number $new_revision"
+            git commit -m "$commit_message"
             git config --global user.name 'PRE DevOps'
             git config --global user.email '138598290+pre-devops@users.noreply.github.com'
-            git commit -m "$commit_message"
             git push
+          :
+            echo "No changes to commit for ${API_NAME} OpenAPI spec";
           fi
-          echo "done"
+
+         echo "done"
