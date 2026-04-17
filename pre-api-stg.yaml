@@ -2159,10 +2159,6 @@ definitions:
   PlaybackReportDTOV2:
     description: PlaybackReportDTOV2
     properties:
-      audit_id:
-        description: AuditID
-        format: uuid
-        type: string
       case_reference:
         description: ReportCaseReference
         type: string
