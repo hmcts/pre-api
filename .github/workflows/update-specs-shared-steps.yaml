@@ -12,13 +12,6 @@ jobs:
   generate-openapi-specs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm install -g api-spec-converter --ignore-scripts
-
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -40,6 +33,13 @@ jobs:
     needs: generate-openapi-specs
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install -g api-spec-converter --ignore-scripts
+
       - name: Convert OpenAPI to Swagger v2
         env:
           RUN_DB_MIGRATION_ON_STARTUP: false
@@ -57,9 +57,6 @@ jobs:
       - name: Save swagger for staging
         run: |
           sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" "${API_NAME}.yaml" > "${API_NAME}-stg.yaml"
-
-
-
 
   increment-api-version:
     needs: convert-openapi-to-swagger
