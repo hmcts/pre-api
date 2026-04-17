@@ -22,15 +22,12 @@ import uk.gov.hmcts.reform.preapi.config.ContainerImageNameSubstitutor;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Built-in feature which saves service's swagger specs in temporary directory.
- * Each CI run on master should automatically save and upload (if updated) documentation.
- */
 @Slf4j
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -59,12 +56,13 @@ class OpenAPIPublisher {
         Assertions.assertThat(specs).isNotEmpty();
         log.info("Swagger documentation generated for API " + apiName);
 
-        try (OutputStream outputStream = Files.newOutputStream(Paths.get("/tmp/openapi-specs.json"))) {
+        Path openApiSpecsPath = Paths.get("specs/" + apiName + ".json");
+        try (OutputStream outputStream = Files.newOutputStream(openApiSpecsPath)) {
             outputStream.write(specs);
         }
 
         byte[] writtenBytes;
-        try (InputStream inputStream = Files.newInputStream(Paths.get("/tmp/openapi-specs.json"))) {
+        try (InputStream inputStream = Files.newInputStream(openApiSpecsPath)) {
             writtenBytes = inputStream.readAllBytes();
         }
         Assertions.assertThat(writtenBytes).isNotEmpty();

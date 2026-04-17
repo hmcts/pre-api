@@ -1,11 +1,15 @@
-name: Publish Swagger V2
+name: Generate OpenAPI specs
 on:
-  pull_request:
-    branches:
-      - master
+  workflow_call:
+    inputs:
+      API_NAME:
+        required: true
+        type: string
+        description: The name of the API, used for naming the output file. Must be unique across all APIs.
+          Needs to match an API defined in application.yaml > springdoc.swagger-ui.urls
 
 jobs:
-  publish-swagger-v2:
+  generate-openapi-specs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-node@v6
@@ -29,24 +33,37 @@ jobs:
       - name: Run OpenAPI Publisher
         env:
           RUN_DB_MIGRATION_ON_STARTUP: false
-          API_NAME: pre-api
+          API_NAME: ${{ inputs.API_NAME }}
         run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
 
+  convert-openapi-to-swagger:
+    runs-on: ubuntu-latest
+    steps:
       - name: Convert OpenAPI to Swagger v2
+        env:
+          RUN_DB_MIGRATION_ON_STARTUP: false
+          API_NAME: ${{ inputs.API_NAME }}
         run: |
           api-spec-converter \
             --to=swagger_2 \
             --from=openapi_3 \
             --syntax=yaml \
-            --order=alpha /tmp/openapi-specs.json > pre-api.yaml
-          sed 's/basePath\: \//basePath\: \/pre-api/g' pre-api.yaml > pre-api2.yaml && \
-          sed 's/\- http/\- https/g' pre-api2.yaml > pre-api.yaml && \
-          rm -f pre-api2.yaml
+            --order=alpha "specs/${API_NAME}.json" > "${API_NAME}.yaml"
+          sed 's/basePath\: \//basePath\: \/${API_NAME}/g' "${API_NAME}.yaml" > "${API_NAME}2.yaml" && \
+          sed 's/\- http/\- https/g' "${API_NAME}2.yaml" > "${API_NAME}.yaml" && \
+          rm -f "${API_NAME}2.yaml"
 
       - name: Save swagger for staging
         run: |
-          sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" pre-api.yaml > pre-api-stg.yaml
+          sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" "${API_NAME}.yaml" > "${API_NAME}-stg.yaml"
 
+
+
+  increment-api-version:
+    env:
+      API_NAME: ${{ inputs.API_NAME }}
+    runs-on: ubuntu-latest
+    steps:
       - name: wget master main.tf
         uses: wei/wget@c15e476d1463f4936cb54f882170d9d631f1aba5
         with:
@@ -62,11 +79,11 @@ jobs:
           git config --global user.name 'PRE DevOps'
           git config --global user.email '138598290+pre-devops@users.noreply.github.com'
 
-          CHANGED=$(git diff --name-only pre-api-stg.yaml)
+          CHANGED=$(git diff --name-only pre-api-stg.yaml specs/${API_NAME}.json)
           commit_message=""
-          if [ "$CHANGED" = "pre-api-stg.yaml" ]; then
-            echo "spec has been updated this commit"
-            git add pre-api-stg.yaml
+          if [ "$CHANGED" != "" ]; then
+            echo "OpenAPI spec has been updated this commit"
+            git add -u pre-api-stg.yaml "specs/${API_NAME}.json"
             commit_message="Update Swagger v2 Spec"
           fi
 
@@ -80,6 +97,7 @@ jobs:
               echo "Master revision is greater than branch revision"
               awk -v new_revision="$master_revision" 'BEGIN{FS=OFS="\""} /api_revision=/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
               git add infrastructure/main.tf
+
               commit_message="${commit_message} Bump APIm revision to $master_revision"
             fi
           else

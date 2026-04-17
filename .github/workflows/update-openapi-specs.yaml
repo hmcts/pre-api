@@ -1,0 +1,16 @@
+name: Generate OpenAPI and Swagger docs, bump API version, and commit to branch
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  update-main-api-specs:
+    uses: ./.github/workflows/publish-swagger-v2-and-bump-apim-revision.yaml
+    with:
+      API_NAME: 'pre-api'
+
+  update-b2c-api-specs:
+    uses: ./.github/workflows/publish-swagger-v2-and-bump-apim-revision.yaml
+    with:
+      API_NAME: 'b2c-api'
