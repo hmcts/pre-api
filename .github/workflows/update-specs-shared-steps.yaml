@@ -10,6 +10,8 @@ on:
 
 jobs:
   generate-openapi-specs:
+    env:
+      API_NAME: ${{ inputs.API_NAME }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -26,13 +28,8 @@ jobs:
       - name: Run OpenAPI Publisher
         env:
           RUN_DB_MIGRATION_ON_STARTUP: false
-          API_NAME: ${{ inputs.API_NAME }}
         run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
 
-  convert-openapi-to-swagger:
-    needs: generate-openapi-specs
-    runs-on: ubuntu-latest
-    steps:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -41,9 +38,6 @@ jobs:
         run: npm install -g api-spec-converter --ignore-scripts
 
       - name: Convert OpenAPI to Swagger v2
-        env:
-          RUN_DB_MIGRATION_ON_STARTUP: false
-          API_NAME: ${{ inputs.API_NAME }}
         run: |
           api-spec-converter \
             --to=swagger_2 \
@@ -58,12 +52,6 @@ jobs:
         run: |
           sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" "${API_NAME}.yaml" > "${API_NAME}-stg.yaml"
 
-  increment-api-version:
-    needs: convert-openapi-to-swagger
-    env:
-      API_NAME: ${{ inputs.API_NAME }}
-    runs-on: ubuntu-latest
-    steps:
       - name: wget master main.tf
         uses: wei/wget@c15e476d1463f4936cb54f882170d9d631f1aba5
         with:
