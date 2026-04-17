@@ -211,6 +211,7 @@ public class ReportService {
                         recordingMap);
                     return new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
                 })
+                .sorted(Comparator.comparing(PlaybackReportDTOV2::getAuditId))
                 .toList();
         } else {
             throw new NotFoundException("Report for playback source: " + source);
