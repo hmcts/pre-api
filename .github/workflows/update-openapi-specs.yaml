@@ -6,11 +6,11 @@ on:
 
 jobs:
   update-main-api-specs:
-    uses: ./.github/workflows/publish-swagger-v2-and-bump-apim-revision.yaml
+    uses: ./.github/workflows/update-specs-shared-steps.yaml
     with:
       API_NAME: 'pre-api'
 
   update-b2c-api-specs:
-    uses: ./.github/workflows/publish-swagger-v2-and-bump-apim-revision.yaml
+    uses: ./.github/workflows/update-specs-shared-steps.yaml
     with:
       API_NAME: 'b2c-api'
