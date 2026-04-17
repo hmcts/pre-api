@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @Data
@@ -71,6 +72,7 @@ public class UserRecordingPlaybackReportDTOV2 extends BaseReportDTO {
                              .orElse(null);
             defendants = booking.getParticipants().stream()
                                 .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+                                .sorted(Comparator.comparing(Participant::getFullName))
                                 .map(Participant::getFullName)
                                 .collect(Collectors.collectingAndThen(
                                     Collectors.joining(", "),
