@@ -1,7 +1,7 @@
 java: &javavalues #This is an anchor to reuse settings in Job mode.
   enabled: true
   applicationPort: 4550
-  image: 'sdshmctspublic.azurecr.io/pre/api:latest'
+  image: 'hmctsprod.azurecr.io/pre/api:latest'
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
   aadIdentityName: pre
   keyVaults:
