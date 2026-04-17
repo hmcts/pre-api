@@ -107,4 +107,4 @@ jobs:
             echo "No changes to commit for ${API_NAME} OpenAPI spec";
           fi
 
-         echo "done"
+          echo "done"
