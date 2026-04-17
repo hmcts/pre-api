@@ -1,4 +1,4 @@
-basePath: /pre-api
+basePath: /${API_NAME}
 definitions:
   AccessDTO:
     description: AccessDTO
