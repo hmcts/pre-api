@@ -37,6 +37,7 @@ jobs:
         run: ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
 
   convert-openapi-to-swagger:
+    needs: generate-openapi-specs
     runs-on: ubuntu-latest
     steps:
       - name: Convert OpenAPI to Swagger v2
@@ -59,7 +60,9 @@ jobs:
 
 
 
+
   increment-api-version:
+    needs: convert-openapi-to-swagger
     env:
       API_NAME: ${{ inputs.API_NAME }}
     runs-on: ubuntu-latest
