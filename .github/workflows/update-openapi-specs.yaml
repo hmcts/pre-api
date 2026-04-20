@@ -5,7 +5,7 @@ on:
       - master
 
 jobs:
-  generate-openapi-specs:
+  update-openapi-specs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -22,6 +22,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+
+      - name: Install API spec converter dependency
+        run: npm install -g api-spec-converter --ignore-scripts
 
       - name: Update main API
         env:

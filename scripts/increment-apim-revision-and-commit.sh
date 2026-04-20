@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Written for Github Actions (see .github/workflows)
+#
+# Install api-spec-converter before running:
+# npm install -g api-spec-converter --ignore-scripts
+
 main() {
   set_up
   convert_open_api_to_swagger
@@ -12,9 +17,6 @@ set_up() {
     echo "Need to set API_NAME. Hint: export API_NAME=\"pre-api\""
     exit 1;
   fi
-
-  echo "Installing API spec converter"
-  npm install -g api-spec-converter --ignore-scripts
 
   if ! test -f "specs/${API_NAME}.json"; then
     echo "Could not find API spec at path specs/${API_NAME}.json"
