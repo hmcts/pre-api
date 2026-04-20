@@ -143,7 +143,7 @@ public class ReportService {
             final String functionalAreaViewRecordings = "View Recordings";
 
             // Fetch the audits
-            List<Audit> audits = auditRepository
+            final List<Audit> audits = auditRepository
                 .findBySourceAndFunctionalAreaAndActivity(
                     source,
                     source == AuditLogSource.PORTAL
@@ -153,54 +153,55 @@ public class ReportService {
                 );
 
             // Collect all unique createdBy IDs
-            List<UUID> createdByIds = audits.stream()
+            final List<UUID> createdByIds = audits.stream()
                 .map(Audit::getCreatedBy)
                 .filter(Objects::nonNull)
                 .toList();
 
             // Batch fetch all possible entities for those IDs
-            List<User> users = userRepository.findAllById(createdByIds);
-            List<AppAccess> appAccesses = appAccessRepository.findAllById(createdByIds);
-            List<PortalAccess> portalAccesses = portalAccessRepository.findAllById(createdByIds);
+            final List<User> users = userRepository.findAllById(createdByIds);
+            final List<AppAccess> appAccesses = appAccessRepository.findAllById(createdByIds);
+            final List<PortalAccess> portalAccesses = portalAccessRepository.findAllById(createdByIds);
 
             // Build sets for fast type checking
-            Set<UUID> userIdSet = users
+            final Set<UUID> userIdSet = users
                 .stream()
                 .map(User::getId).collect(Collectors.toSet());
-            Set<UUID> appAccessIdSet = appAccesses
+            final Set<UUID> appAccessIdSet = appAccesses
                 .stream()
                 .map(AppAccess::getId)
                 .collect(Collectors.toSet());
-            Set<UUID> portalAccessIdSet = portalAccesses
+            final Set<UUID> portalAccessIdSet = portalAccesses
                 .stream()
                 .map(PortalAccess::getId)
                 .collect(Collectors.toSet());
 
             // Build lookup maps
-            Map<UUID, User> userMap = users
+            final Map<UUID, User> userMap = users
                 .stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
-            Map<UUID, AppAccess> appAccessMap = appAccesses
+            final Map<UUID, AppAccess> appAccessMap = appAccesses
                 .stream()
                 .collect(Collectors.toMap(AppAccess::getId, a -> a));
-            Map<UUID, PortalAccess> portalAccessMap = portalAccesses
+            final Map<UUID, PortalAccess> portalAccessMap = portalAccesses
                 .stream()
                 .collect(Collectors.toMap(PortalAccess::getId, p -> p));
 
             // Collect all unique recording IDs from audits
-            List<UUID> recordingIds = audits.stream()
+            final List<UUID> recordingIds = audits.stream()
                 .map(this::getRecordingIDForAudit)
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
 
             // Batch fetch all referenced recordings
-            List<Recording> recordings = recordingRepository.findAllById(recordingIds);
-            Map<UUID, Recording> recordingMap = recordings.stream().collect(Collectors.toMap(Recording::getId, r -> r));
+            final List<Recording> recordings = recordingRepository.findAllById(recordingIds);
+            final Map<UUID, Recording> recordingMap =
+                recordings.stream().collect(Collectors.toMap(Recording::getId, r -> r));
 
             return audits.stream()
                 .map(a -> {
-                    PlaybackReportArgsRecord args = toPlaybackReport(
+                    final PlaybackReportArgsRecord args = toPlaybackReport(
                         a,
                         userIdSet,
                         appAccessIdSet,
