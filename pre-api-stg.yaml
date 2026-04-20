@@ -925,7 +925,6 @@ definitions:
         description: PortalAccessStatus
         enum:
           - INVITATION_SENT
-          - ADDED
           - REGISTERED
           - ACTIVE
           - INACTIVE
