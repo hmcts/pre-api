@@ -332,17 +332,23 @@ You can also run individual test classes or methods by right-clicking on them an
 
 ### Running the Integration Tests
 
-To run integration tests, a docker image is needed for the
-postgres testcontainers database (temp database for testing). This will be done during the
-running of the tests.
+To run integration tests, a docker image is needed for the postgres database (temp database for testing).
+This will be set by ContainerImageNameSubstitutor during the running of the tests.
 
 #### Pre-requisites
-Testcontainers (test helper library) needs the HMCTS postgres image for the test database it sets up. For this to pull
-from HMCTS Azure Container Registry (ACR) you must login to the ACR first:
+Testcontainers (test helper library) needs a postgres image for the test database it sets up. The image used is set
+in ContainerImageNameSubstitutor. If a registry is not set, it pulls the image from Docker Hub.
+
+To pull an image from the HMCTS Azure Container Registry (ACR) instead, you must login to the ACR first:
 
 ```bash
 az login # if not logged in already
-az acr login --name hmctspublic
+
+## (Select DCD-CNP-Prod subscription)
+
+az acr login --name hmctsprod
+
+docker image pull hmctsprod.azurecr.io/imported/postgres:16-alpine
 ```
 
 #### With the Command Line
