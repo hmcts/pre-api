@@ -79,6 +79,8 @@ bump_revision_number_and_commit_changes_to_github(){
     git add -u "specs/${API_NAME}.json" "${API_NAME}-stg.yaml" infrastructure/main.tf
     commit_message="Update OpenAPI Spec for ${API_NAME} with revision number $new_revision"
     echo "About to commit: ${commit_message}"
+    git config --global user.name 'PRE DevOps'
+    git config --global user.email '138598290+pre-devops@users.noreply.github.com'
     git commit -m "$commit_message"
     git push
   fi
