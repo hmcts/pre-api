@@ -22,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.config.ContainerImageNameSubstitutor;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -40,6 +39,9 @@ class OpenAPIPublisher {
     @Value("${api.name}")
     private String apiName;
 
+    @Value("${api.specsPath}")
+    private String specsFilePath;
+
     @DisplayName("Generate swagger documentation")
     @Test
     void generateDocs() throws Exception {
@@ -56,13 +58,12 @@ class OpenAPIPublisher {
         Assertions.assertThat(specs).isNotEmpty();
         log.info("Swagger documentation generated for API " + apiName);
 
-        Path openApiSpecsPath = Paths.get("specs/" + apiName + ".json");
-        try (OutputStream outputStream = Files.newOutputStream(openApiSpecsPath)) {
+        try (OutputStream outputStream = Files.newOutputStream(Paths.get(specsFilePath))) {
             outputStream.write(specs);
         }
 
         byte[] writtenBytes;
-        try (InputStream inputStream = Files.newInputStream(openApiSpecsPath)) {
+        try (InputStream inputStream = Files.newInputStream(Paths.get(specsFilePath))) {
             writtenBytes = inputStream.readAllBytes();
         }
         Assertions.assertThat(writtenBytes).isNotEmpty();
