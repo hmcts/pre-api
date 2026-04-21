@@ -2,6 +2,8 @@
 
 # Written for Github Actions (see .github/workflows)
 #
+# Run from project root folder.
+#
 # Install api-spec-converter before running:
 # npm install -g api-spec-converter --ignore-scripts
 
@@ -13,13 +15,8 @@ main() {
 }
 
 set_up() {
-  if [[ "${API_NAME}" == "" ]]; then
-    echo "Need to set API_NAME. Hint: export API_NAME=\"pre-api\""
-    exit 1;
-  fi
-
-  if ! test -f "specs/${API_NAME}.json"; then
-    echo "Could not find API spec at path specs/${API_NAME}.json"
+  if ! test -f "specs/pre-api.json"; then
+    echo "Could not find API spec at path specs/pre-api.json"
     exit 1
   fi
 }
@@ -27,16 +24,16 @@ set_up() {
 convert_open_api_to_swagger() {
   mkdir -p swagger_docs
 
-  echo "Converting OpenAPI to Swagger for ${API_NAME}"
+  echo "Converting OpenAPI to Swagger for pre-api"
 
   api-spec-converter --to=swagger_2 --from=openapi_3  --syntax=yaml \
-    --order=alpha "specs/${API_NAME}.json" > "swagger_docs/1.yaml"
+    --order=alpha "specs/pre-api.json" > "swagger_docs/1.yaml"
 
-  sed -E "s/basePath\: \//basePath\: \/\${API_NAME}/g" "swagger_docs/1.yaml" > "swagger_docs/2.yaml"
+  sed -E "s/basePath\: \//basePath\: \/pre-api/g" "swagger_docs/1.yaml" > "swagger_docs/2.yaml"
   sed -E "s/\- http/\- https/g" "swagger_docs/2.yaml" > "swagger_docs/3.yaml"
   sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" "swagger_docs/3.yaml" > "swagger_docs/4.yaml"
 
-  cp swagger_docs/4.yaml "${API_NAME}-stg.yaml"
+  cp swagger_docs/4.yaml "pre-api-stg.yaml"
 
   rm -rf swagger_docs
 };
@@ -74,12 +71,12 @@ bump_revision_number_and_commit_changes_to_github(){
 
   commit_message=""
 
-  CHANGED=$(git diff --name-only "specs/${API_NAME}.json" "${API_NAME}-stg.yaml" infrastructure/main.tf)
+  CHANGED=$(git diff --name-only "specs/pre-api.json" pre-api-stg.yaml infrastructure/main.tf)
 
   if [ "$CHANGED" != "" ]; then
     echo "OpenAPI spec has been updated this commit"
-    git add -u "specs/${API_NAME}.json" "${API_NAME}-stg.yaml" infrastructure/main.tf
-    commit_message="Update OpenAPI Spec for ${API_NAME} with revision number $new_revision"
+    git add -u "specs/pre-api.json" pre-api-stg.yaml infrastructure/main.tf
+    commit_message="Update OpenAPI Spec for pre-api with revision number $new_revision"
     echo "About to commit: ${commit_message}"
     git config --global user.name 'PRE DevOps'
     git config --global user.email '138598290+pre-devops@users.noreply.github.com'
