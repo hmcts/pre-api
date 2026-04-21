@@ -10,7 +10,7 @@ locals {
   env_to_deploy    = 1
   env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
-  api_revision     = "139"
+  api_revision     = "140"
   # Stg allows dev to access it. For all other envs we only allow calls from the same env
   pre_apim_b2c_dev_client_id = var.pre_apim_b2c_dev_client_id != "" ? var.pre_apim_b2c_dev_client_id : var.pre_apim_b2c_client_id
 }
@@ -48,7 +48,7 @@ module "pre_api" {
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url
-  swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api.json"
+  swagger_url           = file("../specs/pre-api.json")
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
   subscription_required = true
@@ -177,7 +177,7 @@ module "pre_api_b2c" {
   product_id            = module.pre_b2c_product.product_id
   path                  = "pre-api-b2c"
   service_url           = local.apim_service_url
-  swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api-b2c.json"
+  swagger_url           = file("../specs/b2c-api.json")
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
   subscription_required = false
