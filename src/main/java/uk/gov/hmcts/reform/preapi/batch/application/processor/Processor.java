@@ -350,7 +350,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             fileName,
             migrationRecord.getFileSizeMb(),
             migrationRecord.getArchiveId(),
-            migrationRecord.getArchiveName()
+            migrationRecord.getArchiveName(),
+            migrationRecord.getCreatedAt()
         );
     }
 

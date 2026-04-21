@@ -1108,7 +1108,8 @@ class ProcessorTest {
             "test-recording.mp4",
             "100",
             UUID.randomUUID().toString(),
-            "test-archive.mp4"
+            "test-archive.mp4",
+            null
         );
     }
 

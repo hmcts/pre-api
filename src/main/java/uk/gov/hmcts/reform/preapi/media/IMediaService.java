@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.media;
 
+import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
@@ -8,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 
 import java.util.List;
 import java.util.UUID;
@@ -50,6 +52,10 @@ public interface IMediaService {
     RecordingStatus verifyFinalAssetExists(UUID recordingId);
 
     RecordingStatus hasJobCompleted(String transformName, String jobName);
+
+    List<JobOutputAsset> getJobOutputAssets(String transformName, String jobName);
+
+    MkJob getJobFromPartialName(String transformName, String jobNamePartial);
 
     boolean checkLiveFeedAvailable(UUID captureSessionId);
 }

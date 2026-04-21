@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.validators.CreateEditRequestStatusConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
@@ -35,7 +35,6 @@ public class CreateEditRequestDTO {
     private EditRequestStatus status;
 
     @Valid
-    @NotEmpty
     @Schema(description = "CreateEditRequestInstructions")
     private List<EditCutInstructionDTO> editInstructions;
 
@@ -43,6 +42,7 @@ public class CreateEditRequestDTO {
     private Boolean jointlyAgreed;
 
     @Size(max = 512)
+    @SanitizedStringConstraint
     @Schema(description = "CreateEditRequestRejectionReason")
     private String rejectionReason;
 
@@ -50,6 +50,7 @@ public class CreateEditRequestDTO {
     private Timestamp approvedAt;
 
     @Size(max = 100)
+    @SanitizedStringConstraint
     @Schema(description = "CreateEditRequestApprovedBy")
     private String approvedBy;
 }

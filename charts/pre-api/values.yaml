@@ -1,7 +1,7 @@
 java: &javavalues #This is an anchor to reuse settings in Job mode.
   enabled: true
   applicationPort: 4550
-  image: 'sdshmctspublic.azurecr.io/pre/api:latest'
+  image: 'hmctsprod.azurecr.io/pre/api:latest'
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
   aadIdentityName: pre
   keyVaults:
@@ -75,10 +75,11 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     TASK_START_LIVE_EVENTS_POLL_INTERVAL: 2000
     TASK_CLEANUP_LIVE_EVENTS_BATCH_SIZE: 3
     TASK_CLEANUP_LIVE_EVENTS_COOLDOWN: 60000
-    ENABLE_MIGRATED_DATA: false
+    ENABLE_MIGRATED_DATA: true
     TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE: 50
     TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL: 10000
     TASK_BATCH_IMPORT_MISSING_ASSETS_MAX_SLEEP_TIME: "1800000"
+    PROCESSING_TIMEOUT_HOURS: 2
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues
