@@ -328,7 +328,7 @@ definitions:
         enum:
           - OPEN
           - PENDING_CLOSURE
-          - CHANGED
+          - CLOSED
         type: string
       test:
         description: CaseIsTest
