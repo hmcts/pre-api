@@ -42,4 +42,3 @@ jobs:
         run: |
           ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
           echo "Generated OpenAPI doc for ${API_NAME}"
-          bash ./scripts/increment-apim-revision-and-commit.sh
