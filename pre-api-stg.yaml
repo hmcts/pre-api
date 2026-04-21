@@ -1885,20 +1885,26 @@ definitions:
     properties:
       deprecation:
         type: string
+        x-nullable: true
       href:
         type: string
       hreflang:
         type: string
+        x-nullable: true
       name:
         type: string
+        x-nullable: true
       profile:
         type: string
+        x-nullable: true
       templated:
         type: boolean
       title:
         type: string
+        x-nullable: true
       type:
         type: string
+        x-nullable: true
     type: object
   Links:
     additionalProperties:
@@ -1938,6 +1944,7 @@ definitions:
         format: int64
         type: integer
     type: object
+    x-nullable: true
   PagedModelEntityModelBookingDTO:
     properties:
       _embedded:
