@@ -177,7 +177,7 @@ module "pre_api_b2c" {
   product_id            = module.pre_b2c_product.product_id
   path                  = "pre-api-b2c"
   service_url           = local.apim_service_url
-  swagger_url           = file("../specs/pre-api-b2c.json")
+  swagger_url           = file("../specs/b2c-api.json")
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
   subscription_required = false
