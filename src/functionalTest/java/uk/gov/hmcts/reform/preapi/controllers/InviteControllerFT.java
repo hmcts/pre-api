@@ -11,11 +11,11 @@ import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class InviteControllerFT extends FunctionalTestBase {
+
     @DisplayName("Create a portal invite for new user")
     @Test
     void createPortalInvite() throws JsonProcessingException {
@@ -169,7 +169,23 @@ class InviteControllerFT extends FunctionalTestBase {
         assertResponseCode(deleteResponse, 404);
     }
 
-    private CreateInviteDTO createInvite(@Nullable UUID userId) {
+    @DisplayName("Create a portal invite with unsafe data in fields")
+    @Test
+    void createPortalInviteWithUnSafeFields() throws JsonProcessingException {
+        var dto = createInvite(null);
+        dto.setOrganisation("<a href=\"http://example.com\">Malicious Link</a>");
+        dto.setFirstName("<script>alert('XSS')</script>Example");
+        dto.setLastName("<b>hello</b>");
+        assertUserExists(dto.getUserId(), false);
+
+        var putResponse = putInvite(dto);
+        assertResponseCode(putResponse, 400);
+        assertThat(putResponse.body().jsonPath().getString("organisation"))
+            .contains("potentially malicious content");
+        assertInviteExists(dto.getUserId(), false);
+    }
+
+    private CreateInviteDTO createInvite(UUID userId) {
         var dto = new CreateInviteDTO();
         dto.setUserId(userId != null ? userId : UUID.randomUUID());
         dto.setFirstName("Example");
