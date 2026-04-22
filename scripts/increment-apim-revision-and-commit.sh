@@ -39,44 +39,12 @@ convert_open_api_to_swagger() {
 };
 
 bump_revision_number_and_commit_changes_to_github(){
-  mkdir -p "temp_master"
-  git show master:infrastructure/main.tf > temp_master/main.tf
-  git show master:pre-api-stg.yaml > temp_master/pre-api-stg.yml
-
-  master_revision=$(grep -i 'api_revision' temp_master/main.tf | grep -oE '[0-9]+')
-  branch_revision=$(grep -i 'api_revision' infrastructure/main.tf | grep -oE '[0-9]+')
-  new_revision=master_revision
-
-  echo "Comparing master to branch"
-  if cmp temp_master/pre-api-stg.yml pre-api-stg.yaml; then
-    echo "No changes to pre-api-stg.yaml"
-    if [[ $master_revision -gt $branch_revision ]]; then
-      echo "Bump branch revision number to match master"
-      awk 'BEGIN{FS=OFS="\""} /api_revision=/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
-      git add infrastructure/main.tf
-    fi
-  else
-    echo "Main API Spec has changed compared to master, ensure revision is incremented"
-    echo "Master revision $master_revision; branch revision $branch_revision"
-    if [[ $master_revision -ge $branch_revision ]]; then
-      echo "Master revision $master_revision is less than/equal to branch revision $branch_revision"
-      new_revision=$((master_revision + 1))
-      echo "New revision number: $new_revision"
-      sed -e "s/^  api_revision.*\"$branch_revision\"/  api_revision = \"$new_revision\"/"  infrastructure/main.tf > temp && mv temp infrastructure/main.tf
-      git add infrastructure/main.tf
-    fi
-  fi
-
-  rm -rf temp_master
-
-  commit_message=""
-
   CHANGED=$(git diff --name-only "specs/pre-api.json" pre-api-stg.yaml infrastructure/main.tf)
 
   if [ "$CHANGED" != "" ]; then
     echo "OpenAPI spec has been updated this commit"
     git add -u "specs/pre-api.json" pre-api-stg.yaml infrastructure/main.tf
-    commit_message="Update OpenAPI Spec for pre-api with revision number $new_revision"
+    commit_message="Update OpenAPI Spec for pre-api"
     echo "About to commit: ${commit_message}"
     git -c user.name='PRE DevOps' -c user.email='138598290+pre-devops@users.noreply.github.com' commit -m "$commit_message"
     git push
