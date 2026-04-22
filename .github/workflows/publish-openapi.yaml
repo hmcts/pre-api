@@ -6,17 +6,20 @@ on:
 
 jobs:
   publish-pre-api:
-    uses: hmcts/workflow-publish-openapi-spec/.github/workflows/publish-openapi.yml@main
+    uses: ./.github/workflows/shared-openapi-publish-steps.yaml
     secrets:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
-      test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisherTest'
+      task_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
+      api_name_to_build: 'pre-api'
+      api_name_to_publish: 'pre-api'
       java_version: 17
   publish-b2c-api:
-    uses: hmcts/workflow-publish-openapi-spec/.github/workflows/publish-openapi.yml@main
+    uses: ./.github/workflows/shared-openapi-publish-steps.yaml
     secrets:
       SWAGGER_PUBLISHER_API_TOKEN: ${{ secrets.SWAGGER_PUBLISHER_API_TOKEN }}
     with:
-      test_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIB2CPublisherTest'
+      task_to_run: 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
       java_version: 17
-      api_name: 'pre-api-b2c'
+      api_name_to_build: 'b2c-api'
+      api_name_to_publish: 'pre-api-b2c'
