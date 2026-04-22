@@ -613,4 +613,28 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
         );
         assertResponseCode(registerResponse, 400);
     }
+
+    @Test
+    @DisplayName("Scenario: Try to create Capture Session with unsafe data")
+    void shouldNotCreateCaptureSessionWithUnsafeData() throws JsonProcessingException {
+        var res = doPostRequest("/testing-support/create-well-formed-booking", null)
+            .body()
+            .jsonPath();
+        var bookingId = res.getUUID("bookingId");
+
+        // create capture session
+        var dto = createCaptureSession(bookingId);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        dto.setIngestAddress("rtmps://<script>alert(1)</script>.example.com/stream");
+        dto.setLiveOutputUrl("https://ep-default-live-pre-mediakind-stg<img>src=x onerror=alert(1)>."
+                                 + "blob.core.windows.net/ingest");
+
+        var putResponse = putCaptureSession(dto);
+        assertResponseCode(putResponse, 400);
+        assertThat(putResponse.body().jsonPath().getString("ingestAddress"))
+            .contains("potentially malicious content");
+        assertThat(putResponse.body().jsonPath().getString("liveOutputUrl"))
+            .contains("potentially malicious content");
+        assertCaptureSessionExists(dto.getId(), false);
+    }
 }

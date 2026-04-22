@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
@@ -13,6 +14,8 @@ import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class VfMigrationControllerFT extends FunctionalTestBase {
     private static final String MIGRATION_RECORD_ENDPOINT = "/vf-migration-records";
@@ -46,6 +49,30 @@ public class VfMigrationControllerFT extends FunctionalTestBase {
             role
         );
         assertResponseCode(response, role == null ? 401 : 403);
+    }
+
+    @Test
+    @DisplayName("Should not allow a migration record to be updated with unsafe data")
+    void putMigrationRecordsAuthWithUnsafeData() throws JsonProcessingException {
+        CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(VfMigrationStatus.PENDING);
+        dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
+        dto.setUrn("1234567890");
+        dto.setExhibitReference("1234567890");
+        dto.setCourtId(UUID.randomUUID());
+        dto.setWitnessName("<script></script>");
+        dto.setDefendantName("<img src='x'>");
+        Response response = doPutRequest(
+            MIGRATION_RECORD_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(response, 400);
+        assertThat(response.body().jsonPath().getString("witnessName"))
+            .contains("potentially malicious content");
+        assertThat(response.body().jsonPath().getString("defendantName"))
+            .contains("potentially malicious content");
     }
 
     @NullSource

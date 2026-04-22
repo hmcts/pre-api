@@ -47,6 +47,15 @@ sourceSets {
     resources.srcDir file('src/integrationTest/resources')
   }
 
+  buildOpenApiSpecs {
+    java {
+      compileClasspath += main.output
+      runtimeClasspath += main.output
+      srcDir file('src/buildOpenApiSpecs/java')
+    }
+    resources.srcDir file('src/buildOpenApiSpecs/resources')
+  }
+
   smokeTest {
     java {
       compileClasspath += main.output
@@ -63,6 +72,9 @@ configurations {
 
   integrationTestImplementation.extendsFrom testImplementation
   integrationTestRuntimeOnly.extendsFrom runtimeOnly
+
+  buildOpenApiSpecsImplementation.extendsFrom testImplementation
+  buildOpenApiSpecsRuntimeOnly.extendsFrom runtimeOnly
 
   smokeTestImplementation.extendsFrom testImplementation
   smokeTestRuntimeOnly.extendsFrom runtimeOnly
@@ -104,7 +116,13 @@ task integration(type: Test) {
   failFast = true
 }
 
-
+task buildOpenApiSpecs(type: Test) {
+  description = "Builds OpenAPI specs"
+  group = "Verification"
+  testClassesDirs = sourceSets.buildOpenApiSpecs.output.classesDirs
+  classpath = sourceSets.buildOpenApiSpecs.runtimeClasspath
+  failFast = true
+}
 
 task smoke(type: Test) {
   description = "Runs Smoke Tests"
@@ -244,6 +262,7 @@ dependencyCheck {
     "compileOnly",
     "pmd",
     "integrationTest",
+    "buildOpenApiSpecs",
     "functionalTest",
     "smokeTest",
     "contractTestRuntimeClasspath",
@@ -336,6 +355,8 @@ dependencies {
   implementation group: 'com.microsoft.graph', name: 'microsoft-graph', version: '6.24.0'
   implementation group: 'com.azure', name: 'azure-identity', version: '1.18.2'
 
+  implementation group: 'org.jsoup', name: 'jsoup', version: '1.22.1'
+
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.42.Final')
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -354,6 +375,10 @@ dependencies {
   integrationTestImplementation sourceSets.test.runtimeClasspath
   integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: versions.testcontainers
 
+  buildOpenApiSpecsImplementation sourceSets.main.runtimeClasspath
+  buildOpenApiSpecsImplementation sourceSets.test.runtimeClasspath
+  buildOpenApiSpecsImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: versions.testcontainers
+
   functionalTestImplementation sourceSets.main.runtimeClasspath
   functionalTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: versions.springBoot
   functionalTestImplementation group: 'io.rest-assured', name: 'rest-assured', version: versions.restAssured
@@ -362,6 +387,10 @@ dependencies {
   smokeTestImplementation sourceSets.main.runtimeClasspath
   smokeTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: versions.springBoot
   smokeTestImplementation group: 'io.rest-assured', name: 'rest-assured', version: versions.restAssured
+}
+
+rootProject.tasks.named("processBuildOpenApiSpecsResources") {
+  duplicatesStrategy = 'include'
 }
 
 rootProject.tasks.named("processIntegrationTestResources") {
