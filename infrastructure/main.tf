@@ -48,8 +48,8 @@ module "pre_api" {
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url
-  swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api.json"
-  content_format        = "openapi+json-link"
+  swagger_url           = file("../specs/pre-api.json")
+  content_format        = "openapi+json"
   protocols             = ["http", "https"]
   subscription_required = true
 }
@@ -177,8 +177,8 @@ module "pre_api_b2c" {
   product_id            = module.pre_b2c_product.product_id
   path                  = "pre-api-b2c"
   service_url           = local.apim_service_url
-  swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api-b2c.json"
-  content_format        = "openapi+json-link"
+  swagger_url           = file("../specs/b2c-api.json")
+  content_format        = "openapi+json"
   protocols             = ["http", "https"]
   subscription_required = false
 }
