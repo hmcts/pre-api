@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -270,6 +271,81 @@ public class EditControllerTest {
             .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
 
         verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should return 201 when successfully created reencode edit request")
+    void upsertReencodeEditRequestCreated() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setForceReencode(true);
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
+
+        verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should pass send notifications false through to service")
+    void upsertEditRequestWithNotificationsDisabled() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setSendNotifications(false);
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        doAnswer(invocation -> {
+            CreateEditRequestDTO request = invocation.getArgument(0);
+            assertThat(request.getSendNotifications()).isFalse();
+            return UpsertResult.CREATED;
+        }).when(editRequestService).upsert(any(CreateEditRequestDTO.class));
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
+
+        verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when cut instructions and force reencode are both provided")
+    void upsertEditRequestWithCutsAndForceReencodeBadRequest() throws Exception {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setForceReencode(true);
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder()
+                                            .startOfCut("00:00:00")
+                                            .endOfCut("00:00:01")
+                                            .build()));
+        dto.setStatus(EditRequestStatus.DRAFT);
+
+        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(dto))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest());
+
+        verify(editRequestService, never()).upsert(any(CreateEditRequestDTO.class));
     }
 
     @Test

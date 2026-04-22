@@ -399,6 +399,64 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should create a new reencode edit request")
+    void createReencodeEditRequestSuccess() {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(mockRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setForceReencode(true);
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecording.getId()))
+            .thenReturn(Optional.of(mockRecording));
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        var response = underTest.upsert(dto);
+        assertThat(response).isEqualTo(UpsertResult.CREATED);
+
+        ArgumentCaptor<EditRequest> requestCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository).save(requestCaptor.capture());
+
+        EditInstructions editInstructions = EditInstructions.tryFromJson(requestCaptor.getValue().getEditInstruction());
+        assertThat(editInstructions).isNotNull();
+        assertThat(editInstructions.getRequestedInstructions()).isEmpty();
+        assertThat(editInstructions.getFfmpegInstructions()).isEmpty();
+        assertThat(editInstructions.isForceReencode()).isTrue();
+        assertThat(editInstructions.shouldSendNotifications()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should create a new edit request with notifications disabled")
+    void createEditRequestWithNotificationsDisabledSuccess() {
+        List<EditCutInstructionDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionDTO.builder()
+                             .start(60L)
+                             .end(120L)
+                             .build());
+
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(mockRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
+        dto.setSendNotifications(false);
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecording.getId()))
+            .thenReturn(Optional.of(mockRecording));
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        var response = underTest.upsert(dto);
+        assertThat(response).isEqualTo(UpsertResult.CREATED);
+
+        ArgumentCaptor<EditRequest> requestCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository).save(requestCaptor.capture());
+
+        EditInstructions editInstructions = EditInstructions.tryFromJson(requestCaptor.getValue().getEditInstruction());
+        assertThat(editInstructions).isNotNull();
+        assertThat(editInstructions.shouldSendNotifications()).isFalse();
+    }
+
+    @Test
     @DisplayName("Should update an edit request")
     void updateEditRequestSuccess() {
         List<EditCutInstructionDTO> instructions = new ArrayList<>();
@@ -464,6 +522,29 @@ public class EditRequestServiceTest {
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(dto.getSourceRecordingId());
         verify(editRequestRepository, never()).findById(any());
         verify(mockAuth, never()).getAppAccess();
+        verify(editRequestRepository, never()).save(any(EditRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should throw bad request when both cut instructions and force reencode are provided")
+    void createEditRequestWithCutsAndForceReencode() {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(mockRecordingId);
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setForceReencode(true);
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder().start(10L).end(20L).build()));
+
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> underTest.upsert(dto)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
+
+        verify(recordingService, never()).syncRecordingMetadataWithStorage(any(UUID.class));
+        verify(recordingRepository, never()).findByIdAndDeletedAtIsNull(any(UUID.class));
         verify(editRequestRepository, never()).save(any(EditRequest.class));
     }
 
@@ -784,7 +865,8 @@ public class EditRequestServiceTest {
         assertThat(dto.getVersion()).isEqualTo(2);
         assertThat(dto.getEditInstructions())
             .isEqualTo(format("{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,"
-                                  + "\"ffmpegInstructions\":null}}", editRequest.getId()));
+                                  + "\"ffmpegInstructions\":null,\"forceReencode\":false,"
+                                  + "\"sendNotifications\":true}}", editRequest.getId()));
 
         assertThat(dto.getCaptureSessionId()).isEqualTo(mockCaptureSessionId);
         assertThat(dto.getFilename()).isEqualTo("index.mp4");
@@ -816,7 +898,8 @@ public class EditRequestServiceTest {
         assertThat(dto.getVersion()).isEqualTo(3);
         assertThat(dto.getEditInstructions())
             .isEqualTo("{\"editRequestId\":null,\"editInstructions\":{\"requestedInstructions\":[],"
-                           + "\"ffmpegInstructions\":[]}}");
+                           + "\"ffmpegInstructions\":[],\"forceReencode\":false,"
+                           + "\"sendNotifications\":true}}");
     }
 
     @Test
@@ -1099,6 +1182,7 @@ public class EditRequestServiceTest {
         assertThat(editInstructions.getRequestedInstructions().getFirst().getEnd()).isEqualTo(20);
 
         assertThat(editInstructions.getFfmpegInstructions()).isNotNull();
+        assertThat(editInstructions.shouldSendNotifications()).isTrue();
 
         assertEditInstructionsEq(List.of(createSegment(0, 10), createSegment(20, 30)),
                                  editInstructions.getFfmpegInstructions());

@@ -61,7 +61,8 @@ import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass", "PMD.CyclomaticComplexity",
+    "PMD.TooManyMethods"})
 public class EditRequestService {
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
@@ -241,52 +242,20 @@ public class EditRequestService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
-        recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
-
-        Recording sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
-            .orElseThrow(() -> new NotFoundException("Source Recording: " + dto.getSourceRecordingId()));
-
-        if (sourceRecording.getDuration() == null) {
-            throw new ResourceInWrongStateException("Source Recording ("
-                                                        + dto.getSourceRecordingId()
-                                                        + ") does not have a valid duration");
-        }
-
+        validateEditMode(dto);
+        Recording sourceRecording = getSourceRecording(dto.getSourceRecordingId());
         Optional<EditRequest> existingEditRequest = editRequestRepository.findById(dto.getId());
-
         boolean isUpdate = existingEditRequest.isPresent();
-        if (dto.getEditInstructions() == null || dto.getEditInstructions().isEmpty()) {
-            if (isUpdate) {
-                log.info(
-                    "Deleting edit request {} for source recording {} as edit instructions are empty",
-                    existingEditRequest.get().getId(), dto.getSourceRecordingId()
-                );
-                delete(dto);
-                return UpsertResult.UPDATED;
-            } else {
-                throw new BadRequestException("Invalid Instruction: Cannot create an edit request with empty"
-                                                  + " instructions");
-            }
+        UpsertResult emptyInstructionResult = handleEmptyInstructions(dto, existingEditRequest, isUpdate);
+        if (emptyInstructionResult != null) {
+            return emptyInstructionResult;
         }
 
         EditRequest request = getEditRequestToCreateOrUpdate(dto, sourceRecording,
                                                              existingEditRequest.orElse(new EditRequest()));
 
-        if (!isUpdate) {
-            UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-            User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
-
-            request.setCreatedBy(user);
-        }
-
-        if (isUpdate) {
-            if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
-                editNotificationService.onEditRequestSubmitted(request);
-            } else {
-                editNotificationService.onEditRequestRejected(request);
-            }
-        }
-
+        setCreatedByForNewRequest(request, isUpdate);
+        notifyOnUpdatedRequest(dto, request, isUpdate);
         editRequestRepository.save(request);
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
@@ -317,6 +286,19 @@ public class EditRequestService {
 
     private @NotNull EditRequest getEditRequestToCreateOrUpdate(CreateEditRequestDTO dto, Recording sourceRecording,
                                                                 EditRequest request) {
+        if (dto.isForceReencode()) {
+            request.setId(dto.getId());
+            request.setSourceRecording(sourceRecording);
+            request.setStatus(dto.getStatus());
+            request.setJointlyAgreed(dto.getJointlyAgreed());
+            request.setApprovedAt(dto.getApprovedAt());
+            request.setApprovedBy(dto.getApprovedBy());
+            request.setRejectionReason(dto.getRejectionReason());
+            request.setEditInstruction(toJson(new EditInstructions(List.of(), List.of(), true,
+                                                                   shouldSendNotifications(dto))));
+            return request;
+        }
+
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
         boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
@@ -354,8 +336,78 @@ public class EditRequestService {
             isInstructionCombination ? request.getSourceRecording() : sourceRecording
         );
 
-        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions)));
+        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions, false,
+                                                               shouldSendNotifications(dto))));
         return request;
+    }
+
+    private void validateEditMode(CreateEditRequestDTO dto) {
+        if (dto.isForceReencode() && dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
+            throw new BadRequestException(
+                "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
+        }
+    }
+
+    private Recording getSourceRecording(UUID sourceRecordingId) {
+        recordingService.syncRecordingMetadataWithStorage(sourceRecordingId);
+
+        Recording sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(sourceRecordingId)
+            .orElseThrow(() -> new NotFoundException("Source Recording: " + sourceRecordingId));
+
+        if (sourceRecording.getDuration() == null) {
+            throw new ResourceInWrongStateException("Source Recording ("
+                                                        + sourceRecordingId
+                                                        + ") does not have a valid duration");
+        }
+
+        return sourceRecording;
+    }
+
+    private UpsertResult handleEmptyInstructions(CreateEditRequestDTO dto,
+                                                 Optional<EditRequest> existingEditRequest,
+                                                 boolean isUpdate) {
+        if (dto.isForceReencode() || dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
+            return null;
+        }
+
+        if (!isUpdate) {
+            throw new BadRequestException("Invalid Instruction: Cannot create an edit request with empty"
+                                              + " instructions");
+        }
+
+        log.info(
+            "Deleting edit request {} for source recording {} as edit instructions are empty",
+            existingEditRequest.orElseThrow().getId(), dto.getSourceRecordingId()
+        );
+        delete(dto);
+        return UpsertResult.UPDATED;
+    }
+
+    private void setCreatedByForNewRequest(EditRequest request, boolean isUpdate) {
+        if (isUpdate) {
+            return;
+        }
+
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
+        request.setCreatedBy(user);
+    }
+
+    private void notifyOnUpdatedRequest(CreateEditRequestDTO dto, EditRequest request, boolean isUpdate) {
+        if (!isUpdate) {
+            return;
+        }
+
+        if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
+            editNotificationService.onEditRequestSubmitted(request);
+            return;
+        }
+
+        editNotificationService.onEditRequestRejected(request);
+    }
+
+    private boolean shouldSendNotifications(CreateEditRequestDTO dto) {
+        return !Boolean.FALSE.equals(dto.getSendNotifications());
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
