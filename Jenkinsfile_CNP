@@ -46,7 +46,7 @@ withPipeline(type, product, component) {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
 
-  afterSuccess('build') { // Set to 'build' for testing only, change to 'Publish Helm chart' before merging
+  afterSuccess('Publish Helm chart') {
     if (!params.DEPLOY_TO_PROD) {
       echo "DEPLOY_TO_PROD not set - skipping production deployment"
       error("AUTO_ABORT: Production deployment skipped")
