@@ -46,19 +46,10 @@ withPipeline(type, product, component) {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
 
-//  afterSuccess('Publish Helm chart') {
-//    if (!params.DEPLOY_TO_PROD) {
-//      // I altered this to be SUCCESS so we don't get false red dots
-//      currentBuild.result = 'SUCCESS'
-//      error("Deployment to production not approved")
-//    }
-//  }
-
-  afterSuccess('build') {
+  afterSuccess('build') { // Set to 'build' for testing only, change to 'Publish Helm chart' before merging
     if (!params.DEPLOY_TO_PROD) {
-      echo("Deployment to production not approved")
-      // I altered this to be SUCCESS so we don't get false red dots
-      currentBuild.result = 'SUCCESS'
+      echo "DEPLOY_TO_PROD not set - skipping production deployment"
+      error("AUTO_ABORT: Production deployment skipped")
     }
   }
 }
