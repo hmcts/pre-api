@@ -56,9 +56,9 @@ withPipeline(type, product, component) {
 
   afterSuccess('build') {
     if (!params.DEPLOY_TO_PROD) {
+      echo("Deployment to production not approved")
       // I altered this to be SUCCESS so we don't get false red dots
       currentBuild.result = 'SUCCESS'
-      echo("Deployment to production not approved")
     }
   }
 }
