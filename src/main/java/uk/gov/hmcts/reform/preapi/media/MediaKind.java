@@ -364,7 +364,8 @@ public class MediaKind implements IMediaService {
     @Override
     public String triggerProcessingStep1(CaptureSessionDTO captureSession, String captureSessionNoHyphen,
                                          UUID recordingId) {
-        if (!checkLiveFeedAvailable(captureSession.getId())) {
+
+        if (!checkVideoPeriodsAvailable(captureSessionNoHyphen)) {
             log.info("No valid recording content found for capture session [{}] in Mediakind",
                      captureSession.getId()
             );
@@ -489,6 +490,11 @@ public class MediaKind implements IMediaService {
         String liveEventId = getSanitisedLiveEventId(captureSessionId);
         checkLiveEventExists(liveEventId);
 
+        return checkVideoPeriodsAvailable(liveEventId);
+    }
+
+    @Override
+    public boolean checkVideoPeriodsAvailable(String liveEventId) {
         MkAssetStorage assetInfo = mediaKindClient.getAssetTracks(liveEventId);
         JsonNode periods = assetInfo.getSpec().getPeriods();
 

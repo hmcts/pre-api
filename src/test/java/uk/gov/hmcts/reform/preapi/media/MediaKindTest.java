@@ -1813,6 +1813,30 @@ public class MediaKindTest {
     }
 
     @Test
+    @DisplayName("Should detect video content from asset tracks even without live event")
+    void checkFinishLiveEventVideoSuccess() throws JsonProcessingException, InterruptedException {
+        final String liveEventName = captureSession.getId().toString().replace("-", "");
+
+        var mockAssetStorage = createAssetStorage();
+
+        when(mockClient.getAssetTracks(liveEventName)).thenReturn(mockAssetStorage);
+
+        when(mockClient.getStreamingEndpointByName("default-live"))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+            
+        when(mockClient.getStreamingLocator(any()))
+            .thenReturn(MkStreamingLocator.builder().build());
+
+        var result = mediaKind.checkVideoPeriodsAvailable(liveEventName);
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
     @DisplayName("Should return a job when searching by partial name")
     void getJobFromPartialNameSuccess() {
         var transformName = "EncodeFromIngest";
