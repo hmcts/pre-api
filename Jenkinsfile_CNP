@@ -46,7 +46,15 @@ withPipeline(type, product, component) {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
 
-  afterSuccess('Publish Helm chart') {
+//  afterSuccess('Publish Helm chart') {
+//    if (!params.DEPLOY_TO_PROD) {
+//      // I altered this to be SUCCESS so we don't get false red dots
+//      currentBuild.result = 'SUCCESS'
+//      error("Deployment to production not approved")
+//    }
+//  }
+
+  afterSuccess('build') {
     if (!params.DEPLOY_TO_PROD) {
       // I altered this to be SUCCESS so we don't get false red dots
       currentBuild.result = 'SUCCESS'
