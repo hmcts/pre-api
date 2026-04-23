@@ -1,8 +1,14 @@
 #!groovy
-@Library("Infrastructure")
+@Library("Infrastructure@test-pre-prod-approval")
 def type = "java"
 def product = "pre"
 def component = "api"
+
+properties([
+  parameters([
+    booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'Deploy to production?')
+  ])
+])
 
 def secrets = [
   'pre-hmctskv-${env}': [
@@ -39,9 +45,17 @@ withPipeline(type, product, component) {
   afterSuccess('functionalTest:stg') {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
+
+  afterSuccess('Publish Helm chart') {
+    if (!params.DEPLOY_TO_PROD) {
+      // I altered this to be SUCCESS so we don't get false red dots
+      currentBuild.result = 'SUCCESS'
+      error("Deployment to production not approved")
+    }
+  }
 }
 
-static String swaggerValidate(String branchName){
+static String swaggerValidate(String branchName) {
   def repoName = "pre-api"
   def swaggerPath = "specs/pre-api.json"
   def script = 'url="https://raw.githubusercontent.com/hmcts/' + repoName + '/' + branchName + '/' + swaggerPath + '";' +
