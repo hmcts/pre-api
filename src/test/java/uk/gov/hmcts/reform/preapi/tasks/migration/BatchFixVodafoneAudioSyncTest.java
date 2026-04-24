@@ -206,7 +206,9 @@ class BatchFixVodafoneAudioSyncTest {
         when(recordingService.findAllVodafoneRootRecordings()).thenReturn(List.of(recording));
         when(migrationRecordRepository.findTopByRecordingIdOrderByCreatedAtDesc(recording.getId()))
             .thenReturn(Optional.empty());
-        when(migrationRecordRepository.findTopByCaptureSessionIdOrderByCreatedAtDesc(recording.getCaptureSession().getId()))
+        when(migrationRecordRepository.findTopByCaptureSessionIdOrderByCreatedAtDesc(
+            recording.getCaptureSession().getId()
+        ))
             .thenReturn(Optional.empty());
 
         captureUploadedReport();
