@@ -17,10 +17,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,6 +170,43 @@ public class FfmpegService implements IEditingService {
         return null;
     }
 
+    public void trimToSecondKeyframeInIngest(final UUID recordingId,
+                                             final String sourceBlobName,
+                                             final String outputBlobName) {
+        final String containerName = recordingId + "-input";
+        Path workingDirectory = null;
+        try {
+            workingDirectory = Files.createTempDirectory("audio-sync-fix-" + recordingId + "-");
+            Path inputFile = workingDirectory.resolve("source.mp4");
+            Path outputFile = workingDirectory.resolve("trimmed.mp4");
+
+            if (!azureIngestStorageService.downloadBlob(containerName, sourceBlobName, inputFile.toString())) {
+                throw new UnknownServerException("Error occurred when attempting to download file: " + sourceBlobName);
+            }
+
+            String secondKeyframe = findSecondKeyframeTimestamp(inputFile);
+            log.info(
+                "Found second keyframe at {} for recording {} source blob {}",
+                secondKeyframe,
+                recordingId,
+                sourceBlobName
+            );
+
+            if (!commandExecutor.execute(generateTrimSecondKeyframeCommand(inputFile, outputFile, secondKeyframe))) {
+                throw new UnknownServerException("Error occurred when attempting to repair audio sync for recording: "
+                                                     + recordingId);
+            }
+
+            if (!azureIngestStorageService.uploadBlob(outputFile.toString(), containerName, outputBlobName)) {
+                throw new UnknownServerException("Error occurred when attempting to upload file: " + outputBlobName);
+            }
+        } catch (IOException e) {
+            throw new UnknownServerException("Error occurred when attempting to prepare audio sync repair", e);
+        } finally {
+            cleanupWorkingDirectory(workingDirectory);
+        }
+    }
+
     private void deleteFile(String fileName) {
         File file = new File(fileName);
         try {
@@ -204,6 +243,40 @@ public class FfmpegService implements IEditingService {
             .addArgument("-b:a").addArgument("128k")
             .addArgument("-movflags").addArgument("+faststart")
             .addArgument(outputFileName);
+    }
+
+    protected CommandLine generateSecondKeyframeProbeCommand(final Path inputFilePath) {
+        return new CommandLine("ffprobe")
+            .addArgument("-v")
+            .addArgument("error")
+            .addArgument("-select_streams")
+            .addArgument("v:0")
+            .addArgument("-skip_frame")
+            .addArgument("nokey")
+            .addArgument("-show_entries")
+            .addArgument("frame=pts_time")
+            .addArgument("-of")
+            .addArgument("default=nw=1:nk=1")
+            .addArgument(inputFilePath.toString(), true);
+    }
+
+    protected CommandLine generateTrimSecondKeyframeCommand(final Path inputFilePath,
+                                                            final Path outputFilePath,
+                                                            final String secondKeyframe) {
+        return new CommandLine("ffmpeg")
+            .addArgument("-nostdin")
+            .addArgument("-y")
+            .addArgument("-ss")
+            .addArgument(secondKeyframe)
+            .addArgument("-i")
+            .addArgument(inputFilePath.toString(), true)
+            .addArgument("-c")
+            .addArgument("copy")
+            .addArgument("-avoid_negative_ts")
+            .addArgument("1")
+            .addArgument("-copytb")
+            .addArgument("1")
+            .addArgument(outputFilePath.toString(), true);
     }
 
     protected CommandLine generateConcatCommand(final String concatListFileName, final String outputFileName) {
@@ -297,5 +370,41 @@ public class FfmpegService implements IEditingService {
         }
         final long uploadEnd = System.currentTimeMillis();
         log.info("Upload completed in {} ms", uploadEnd - uploadStart);
+    }
+
+    private String findSecondKeyframeTimestamp(final Path inputFilePath) {
+        String keyframes = commandExecutor.executeAndGetOutput(generateSecondKeyframeProbeCommand(inputFilePath));
+        if (keyframes == null) {
+            throw new UnknownServerException("Error occurred when attempting to inspect MP4 keyframes");
+        }
+
+        return keyframes.lines()
+            .map(String::trim)
+            .filter(line -> !line.isEmpty())
+            .skip(1)
+            .findFirst()
+            .orElseThrow(() -> new UnknownServerException(
+                "Unable to find a second keyframe in MP4 file: " + inputFilePath.getFileName()
+            ));
+    }
+
+    private void cleanupWorkingDirectory(final Path workingDirectory) {
+        if (workingDirectory == null) {
+            return;
+        }
+
+        try {
+            Files.walk(workingDirectory)
+                .sorted(Comparator.reverseOrder())
+                .forEach(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        log.warn("Failed to delete temporary path {}", path, e);
+                    }
+                });
+        } catch (IOException e) {
+            log.warn("Failed to clean up temporary working directory {}", workingDirectory, e);
+        }
     }
 }

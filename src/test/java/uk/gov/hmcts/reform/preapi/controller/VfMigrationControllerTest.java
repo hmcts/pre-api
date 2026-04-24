@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
+import uk.gov.hmcts.reform.preapi.tasks.migration.BatchFixVodafoneAudioSync;
 import uk.gov.hmcts.reform.preapi.tasks.migration.BatchImportMissingMkAssets;
 import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
@@ -63,6 +64,9 @@ public class VfMigrationControllerTest {
 
     @MockitoBean
     private BatchImportMissingMkAssets batchImportMissingMkAssets;
+
+    @MockitoBean
+    private BatchFixVodafoneAudioSync batchFixVodafoneAudioSync;
 
     @MockitoBean
     private ScheduledTaskRunner taskRunner;
@@ -138,6 +142,17 @@ public class VfMigrationControllerTest {
             .andExpect(jsonPath("$._embedded.vfMigrationRecordDTOList[0].id").value(mockId.toString()))
             .andExpect(jsonPath("$._embedded.vfMigrationRecordDTOList[0].archive_name").value("archive-name"))
             .andExpect(jsonPath("$._embedded.vfMigrationRecordDTOList[0].status").value("SUCCESS"));
+    }
+
+    @Test
+    @DisplayName("Should trigger Vodafone audio sync repair task")
+    void shouldTriggerVodafoneAudioSyncRepairTask() throws Exception {
+        mockMvc.perform(post("/vf-migration-records/fix-audio-sync")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent());
+
+        verify(batchFixVodafoneAudioSync, times(1)).asyncRun();
     }
 
     @Test
