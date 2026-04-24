@@ -8,7 +8,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
-import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
@@ -93,7 +92,6 @@ public class BatchFixVodafoneAudioSync extends RobotUserTask {
     @Override
     public void run() {
         signInRobotUser();
-        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
         List<RecordingDTO> recordings = recordingService.findAllVodafoneRootRecordings();
         reportItems = new ArrayList<>();
 
@@ -104,6 +102,7 @@ public class BatchFixVodafoneAudioSync extends RobotUserTask {
             return;
         }
 
+        final IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
         long startTime = System.currentTimeMillis();
         for (int index = 0; index < recordings.size(); index++) {
             RecordingDTO recording = recordings.get(index);
@@ -119,9 +118,15 @@ public class BatchFixVodafoneAudioSync extends RobotUserTask {
         }
 
         writeCsvReport();
+        long successCount = reportItems.stream()
+            .filter(item -> item.migrationStatus == RecordingStatus.RECORDING_AVAILABLE)
+            .count();
+        long failureCount = reportItems.stream()
+            .filter(item -> item.migrationStatus == RecordingStatus.FAILURE)
+            .count();
         log.info("BatchFixVodafoneAudioSync completed. Successes: {}, Failures: {}",
-                 reportItems.stream().filter(item -> item.migrationStatus == RecordingStatus.RECORDING_AVAILABLE).count(),
-                 reportItems.stream().filter(item -> item.migrationStatus == RecordingStatus.FAILURE).count());
+                 successCount,
+                 failureCount);
     }
 
     @Async
