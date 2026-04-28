@@ -258,4 +258,11 @@ public class RecordingService {
             .collect(Collectors.toList());
     }
 
+    @Transactional
+    public List<RecordingDTO> findAllVodafoneRootRecordings() {
+        return recordingRepository.findAllRootOriginVodafone().stream()
+            .map(RecordingDTO::new)
+            .toList();
+    }
+
 }

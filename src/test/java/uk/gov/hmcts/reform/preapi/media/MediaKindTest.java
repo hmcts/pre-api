@@ -744,6 +744,24 @@ public class MediaKindTest {
     }
 
     @Test
+    @DisplayName("Should trigger EncodeFromMp4 using the provided filename override")
+    void triggerProcessingStep2UsesFilenameOverride() throws JsonProcessingException {
+        UUID recordingId = UUID.randomUUID();
+        String recordingNoHyphen = recordingId.toString().replace("-", "");
+        String fileNameOverride = "folder/test-syncfix.mp4";
+
+        String jobName = mediaKind.triggerProcessingStep2(recordingId, true, fileNameOverride);
+
+        ArgumentCaptor<MkJob> jobCaptor = ArgumentCaptor.forClass(MkJob.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_MP4_TRANSFORM), eq(jobName), jobCaptor.capture());
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(recordingId + "-input");
+        verify(azureIngestStorageService, never()).tryGetMp4FileName(any());
+        String serialisedJob = new JacksonConfiguration().getMapper().writeValueAsString(jobCaptor.getValue());
+        assertThat(serialisedJob).contains(fileNameOverride);
+        assertThat(jobName).startsWith(recordingNoHyphen + "_temp-");
+    }
+
+    @Test
     @DisplayName("Should throw not found when live event cannot be found to stop")
     void stopLiveEventAndProcessLiveEventNotFound() {
         final String liveEventName = captureSession.getId().toString().replace("-", "");

@@ -29,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.tasks.migration.BatchFixVodafoneAudioSync;
 import uk.gov.hmcts.reform.preapi.tasks.migration.BatchImportMissingMkAssets;
 import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateResolved;
 
@@ -42,15 +43,18 @@ public class VfMigrationController extends PreApiController {
     private final MigrationRecordService migrationRecordService;
     private final MigrateResolved migrateResolved;
     private final BatchImportMissingMkAssets batchImportMissingMkAssets;
+    private final BatchFixVodafoneAudioSync batchFixVodafoneAudioSync;
 
     @Autowired
     public VfMigrationController(final MigrationRecordService migrationRecordService,
                                  final MigrateResolved migrateResolved,
-                                 final BatchImportMissingMkAssets batchImportMissingMkAssets) {
+                                 final BatchImportMissingMkAssets batchImportMissingMkAssets,
+                                 final BatchFixVodafoneAudioSync batchFixVodafoneAudioSync) {
         super();
         this.migrationRecordService = migrationRecordService;
         this.migrateResolved = migrateResolved;
         this.batchImportMissingMkAssets = batchImportMissingMkAssets;
+        this.batchFixVodafoneAudioSync = batchFixVodafoneAudioSync;
     }
 
     @GetMapping
@@ -151,6 +155,16 @@ public class VfMigrationController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
     public ResponseEntity<Void> importVodafoneAssets() {
         batchImportMissingMkAssets.asyncRun();
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/fix-audio-sync")
+    @Operation(operationId = "fixVodafoneAudioSync",
+        summary = "Repairs Vodafone MP4 audio sync and reruns EncodeFromMp4")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> fixVodafoneAudioSync() {
+        batchFixVodafoneAudioSync.asyncRun();
 
         return ResponseEntity.noContent().build();
     }
