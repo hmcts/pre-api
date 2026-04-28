@@ -70,7 +70,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditRequestService.class)
-public class EditRequestServiceTest {
+class EditRequestServiceTest {
 
     @MockitoBean
     private EditRequestCrudService editRequestCrudService;

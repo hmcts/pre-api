@@ -46,7 +46,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 
 @SpringBootTest(classes = EditRequestCrudService.class)
-public class EditRequestCrudServiceTest {
+class EditRequestCrudServiceTest {
 
     @MockitoBean
     private EditRequestRepository editRequestRepository;
