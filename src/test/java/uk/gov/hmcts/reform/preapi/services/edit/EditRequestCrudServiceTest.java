@@ -279,4 +279,16 @@ public class EditRequestCrudServiceTest {
             .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
     }
 
+    @Test
+    @DisplayName("Should ignore attempt to delete non-existent edit request")
+    void deleteNonExistentEditRequestSuccess() throws Exception {
+        when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+        when(editRequestRepository.findById(dto.getSourceRecordingId()))
+            .thenReturn(Optional.empty());
+
+        underTest.delete(dto);
+
+        verify(editRequestRepository, times(0)).delete(any());
+    }
+
 }

@@ -39,7 +39,6 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
-import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.edit.AssetGenerationService;
@@ -72,9 +71,6 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditRequestService.class)
 public class EditRequestServiceTest {
-
-    @MockitoBean
-    private EditRequestRepository editRequestRepository;
 
     @MockitoBean
     private EditRequestCrudService editRequestCrudService;
@@ -221,7 +217,8 @@ public class EditRequestServiceTest {
         when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
             .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
 
-        when(editRequestRepository.searchAllBy(any(), any())).thenReturn(new PageImpl<>(List.of(mockEditRequest)));
+        when(editRequestCrudService.findAll(any(), any()))
+            .thenReturn(new PageImpl<>(List.of(editRequestDTO)));
 
         when(editRequestCrudService.findById(mockEditRequestId))
             .thenReturn(editRequestDTO);
@@ -363,7 +360,6 @@ public class EditRequestServiceTest {
     void createEditRequestSuccess() {
         when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecording.getId()))
             .thenReturn(Optional.of(mockRecording));
-        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
         when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
             .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
 
@@ -392,12 +388,9 @@ public class EditRequestServiceTest {
 
         verify(recordingService, times(1)).syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(dto.getSourceRecordingId());
-        verify(editRequestRepository, never()).findById(any());
         verify(mockAuth, never()).getAppAccess();
-        verify(editRequestRepository, never()).save(any(EditRequest.class));
+        verify(editRequestCrudService, never()).upsert(any(),  any(), any());
     }
-
-
 
     @Test
     @DisplayName("Should throw error when source recording does not have a duration")
@@ -413,22 +406,8 @@ public class EditRequestServiceTest {
 
         verify(recordingService, times(1)).syncRecordingMetadataWithStorage(mockRecordingId);
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
-        verify(editRequestRepository, never()).findById(any());
         verify(mockAuth, never()).getAppAccess();
-        verify(editRequestRepository, never()).save(any(EditRequest.class));
-    }
-
-    @Test
-    @DisplayName("Should ignore attempt to delete non-existent edit request")
-    void deleteNonExistentEditRequestSuccess() throws Exception {
-        when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
-        when(recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId()))
-            .thenReturn(Optional.of(mockRecording));
-        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
-
-        underTest.delete(dto);
-
-        verify(editRequestRepository, times(0)).delete(any(EditRequest.class));
+        verify(editRequestCrudService, never()).upsert(any(), any(), any());
     }
 
     @Test
@@ -494,8 +473,6 @@ public class EditRequestServiceTest {
         when(mockAuth.isAppUser()).thenReturn(false);
         when(mockAuth.isPortalUser()).thenReturn(false);
 
-        when(editRequestCrudService.findAll(any(), any())).thenReturn(Page.empty());
-
         SearchEditRequests params = new SearchEditRequests();
         Page<EditRequestDTO> result = underTest.findAll(params, Pageable.unpaged());
 
@@ -518,7 +495,6 @@ public class EditRequestServiceTest {
         when(mockAuth.getCourtId()).thenReturn(UUID.randomUUID());
 
         SearchEditRequests params = new SearchEditRequests();
-        when(editRequestCrudService.findAll(any(), any())).thenReturn(Page.empty());
 
         underTest.findAll(params, Pageable.unpaged());
 
@@ -537,7 +513,6 @@ public class EditRequestServiceTest {
         when(mockAuth.isAppUser()).thenReturn(false);
         when(mockAuth.isPortalUser()).thenReturn(true);
         when(mockAuth.getSharedBookings()).thenReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
-        when(editRequestCrudService.findAll(any(), any())).thenReturn(Page.empty());
 
         SearchEditRequests params = new SearchEditRequests();
         underTest.findAll(params, Pageable.unpaged());
@@ -635,8 +610,6 @@ public class EditRequestServiceTest {
         when(dto.getJointlyAgreed()).thenReturn(true);
 
         when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.DRAFT);
-
-        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(mockEditRequest));
 
         when(editingService.prepareEditRequestToCreateOrUpdate(dto, mockRecording, mockEditRequest))
             .thenReturn(mockEditRequest);
