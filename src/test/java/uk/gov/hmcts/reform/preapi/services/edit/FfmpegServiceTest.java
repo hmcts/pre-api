@@ -123,7 +123,8 @@ public class FfmpegServiceTest {
             .isEqualTo("Unknown Server Exception: Error occurred when attempting to download file: "
                            + editRequest.getSourceRecording().getFilename());
 
-        verify(azureFinalStorageService, times(1)).downloadBlob(containerName, inputFileName, inputFileName);
+        verify(azureFinalStorageService, times(1)).downloadBlob(containerName, inputFileName,
+                inputFileName);
         verify(commandExecutor, never()).execute(any());
         verify(azureIngestStorageService, never()).uploadBlob(any(), any(), any());
     }
@@ -149,7 +150,8 @@ public class FfmpegServiceTest {
             .isEqualTo("Unknown Server Exception: Error occurred when attempting to process edit request: "
                            + editRequest.getId());
 
-        verify(azureFinalStorageService, times(1)).downloadBlob(containerName, inputFileName, inputFileName);
+        verify(azureFinalStorageService, times(1)).downloadBlob(containerName, inputFileName,
+                inputFileName);
         verify(commandExecutor, times(1)).execute(any(CommandLine.class));
         verify(azureIngestStorageService, never()).uploadBlob(any(), any(), any());
     }
@@ -256,7 +258,8 @@ public class FfmpegServiceTest {
         List<FfmpegEditInstructionDTO> instructions = setRandomEditInstructions();
 
         LinkedHashMap<String, CommandLine>
-            commands = underTest.generateMultiEditCommands(editRequest, "input.mp4", "output.mp4");
+            commands = underTest.generateMultiEditCommands(editRequest, "input.mp4",
+                "output.mp4");
 
         assertThat(commands).isNotNull();
         assertThat(commands).hasSize(2);
@@ -371,7 +374,8 @@ public class FfmpegServiceTest {
         ).getMessage();
 
         assertThat(message).isEqualTo(
-            "Unknown Server Exception: Error occurred when attempting to process edit request: " + editRequest.getId());
+            "Unknown Server Exception: Error occurred when attempting to process edit request: "
+                    + editRequest.getId());
 
         verify(commandExecutor, times(1)).execute(any());
     }
@@ -436,7 +440,8 @@ public class FfmpegServiceTest {
     @DisplayName("Should pass correct segment file names to concat list generator")
     void shouldPassCorrectFilesToConcatListFile() throws IOException {
         List<FfmpegEditInstructionDTO> instructions = setRandomEditInstructions();
-        LinkedHashMap<String, CommandLine> commands = underTest.generateMultiEditCommands(editRequest, "input.mp4", "output.mp4");
+        LinkedHashMap<String, CommandLine> commands = underTest.generateMultiEditCommands(editRequest,
+                "input.mp4", "output.mp4");
 
         File concatListFile = new File("test-concat-list.txt");
         underTest.generateConcatListFile(commands.keySet(), concatListFile.getName());
@@ -649,14 +654,17 @@ public class FfmpegServiceTest {
     @Test
     @DisplayName("Should combine instructions correctly with single new command")
     void combineCutsOnOriginalTimelineSingleCommand() {
-        List<@NotNull FfmpegEditInstructionDTO> originallyKeptSegments = List.of(createSegment(0, 10), createSegment(20, 30));
-        List<@NotNull EditCutInstructionDTO> originalCutSegments = List.of(createCut(10, 20, "some reason"));
+        List<@NotNull FfmpegEditInstructionDTO> originallyKeptSegments = List.of(createSegment(0, 10),
+                createSegment(20, 30));
+        List<@NotNull EditCutInstructionDTO> originalCutSegments = List.of(createCut(10, 20,
+                "some reason"));
         EditInstructions originalInstructions = new EditInstructions(originalCutSegments, originallyKeptSegments);
 
         // Cut at 5–8 in the edited timeline mapping to 5–8 in the original timeline
         EditCutInstructionDTO newCut = createCut(5, 8, "test");
 
-        List<EditCutInstructionDTO> result = underTest.combineCutsOnOriginalTimeline(originalInstructions, List.of(newCut));
+        List<EditCutInstructionDTO> result = underTest.combineCutsOnOriginalTimeline(originalInstructions,
+                List.of(newCut));
 
         assertThat(result).hasSize(2);
 
@@ -672,8 +680,10 @@ public class FfmpegServiceTest {
     @Test
     @DisplayName("Should combine instructions correctly with cuts across multiple segments")
     void combineCutsOnOriginalTimelineMapsCutThatSpanningMultipleSegments() {
-        List<@NotNull FfmpegEditInstructionDTO> originallyKeptSegments = List.of(createSegment(0, 10), createSegment(20, 30));
-        List<@NotNull EditCutInstructionDTO> originalCutSegments = List.of(createCut(10, 20, "some reason"));
+        List<@NotNull FfmpegEditInstructionDTO> originallyKeptSegments = List.of(createSegment(0, 10),
+                createSegment(20, 30));
+        List<@NotNull EditCutInstructionDTO> originalCutSegments = List.of(createCut(10, 20,
+                "some reason"));
         EditInstructions originalInstructions = new EditInstructions(originalCutSegments, originallyKeptSegments);
 
         // Cut at 8–12 in the edited timeline:
@@ -681,7 +691,8 @@ public class FfmpegServiceTest {
         // - 10–12 -> 20–22 in original (segment 2)
         EditCutInstructionDTO newCut = createCut(8, 12, "test");
 
-        List<EditCutInstructionDTO> result = underTest.combineCutsOnOriginalTimeline(originalInstructions, List.of(newCut));
+        List<EditCutInstructionDTO> result = underTest.combineCutsOnOriginalTimeline(originalInstructions,
+                List.of(newCut));
 
         assertThat(result).hasSize(1);
 
@@ -752,10 +763,12 @@ public class FfmpegServiceTest {
         assertThat(editInstructions.getRequestedInstructions()).hasSize(2);
         assertThat(editInstructions.getRequestedInstructions().getFirst().getStart()).isEqualTo(5);
         assertThat(editInstructions.getRequestedInstructions().getFirst().getEnd()).isEqualTo(8);
-        assertThat(editInstructions.getRequestedInstructions().getFirst().getReason()).isEqualTo("some new reason");
+        assertThat(editInstructions.getRequestedInstructions().getFirst().getReason())
+                .isEqualTo("some new reason");
         assertThat(editInstructions.getRequestedInstructions().getLast().getStart()).isEqualTo(10);
         assertThat(editInstructions.getRequestedInstructions().getLast().getEnd()).isEqualTo(20);
-        assertThat(editInstructions.getRequestedInstructions().getLast().getReason()).isEqualTo("some original reason");
+        assertThat(editInstructions.getRequestedInstructions().getLast().getReason())
+                .isEqualTo("some original reason");
 
         assertThat(editInstructions.getFfmpegInstructions()).isNotNull();
 
