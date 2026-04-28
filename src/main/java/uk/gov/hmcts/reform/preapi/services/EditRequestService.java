@@ -141,18 +141,20 @@ public class EditRequestService {
             ? request.getSourceRecording().getId()
             : request.getSourceRecording().getParentRecording().getId();
 
-        CreateRecordingDTO createDto = new CreateRecordingDTO();
-        createDto.setId(newRecordingId);
-        createDto.setParentRecordingId(parentId);
         // if edit on edit without original edits saved (legacy edit),
         //  then these edits will not align with the original timeline
         EditInstructionDump dump = new EditInstructionDump(request.getId(), fromJson(request.getEditInstruction()));
-        createDto.setEditInstructions(toJson(dump));
-        createDto.setVersion(recordingService.getNextVersionNumber(parentId));
-        createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
-        createDto.setFilename(filename);
-        // duration is auto-generated
-        return createDto;
+
+        return new CreateRecordingDTO(
+            newRecordingId,
+            parentId,
+            request.getSourceRecording().getCaptureSession().getId(),
+            recordingService.getNextVersionNumber(parentId),
+            filename,
+            // duration is auto-generated
+            null,
+            toJson(dump)
+        );
     }
 
     @Transactional
