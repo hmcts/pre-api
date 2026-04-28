@@ -135,8 +135,7 @@ public class EditRequestService {
         return recordingService.findById(newRecordingId);
     }
 
-    @Transactional
-    public @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
+    private @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
         UUID parentId = request.getSourceRecording().getParentRecording() == null
             ? request.getSourceRecording().getId()
             : request.getSourceRecording().getParentRecording().getId();

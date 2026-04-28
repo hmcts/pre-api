@@ -412,19 +412,32 @@ class EditRequestServiceTest {
 
     @Test
     @DisplayName("Should return new create recording dto for the edit request")
-    void createRecordingSuccess() {
+    void createRecordingSuccess() throws InterruptedException {
+        when(mockRecording.getParentRecording()).thenReturn(null);
         when(mockEditRequest.getEditInstruction()).thenReturn("{}");
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.COMPLETE);
 
-        when(mockRecording.getFilename()).thenReturn("index.mp4");
-        when(recordingService.getNextVersionNumber(mockParentRecId)).thenReturn(2);
+        String expectedAssetName = "generated_asset_name";
+        when(assetGenerationService.generateAsset(any(UUID.class), any(EditRequest.class)))
+            .thenReturn(expectedAssetName);
 
-        CreateRecordingDTO dto = underTest.createRecordingDto(mockRecordingId, "index.mp4", mockEditRequest);
+        Integer expectedVersionNumber = 31;
+        when(recordingService.getNextVersionNumber(mockRecordingId)).thenReturn(expectedVersionNumber);
+
+        underTest.performEdit(mockEditRequest);
+
+        ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
+        verify(recordingService, times(1)).upsert(captor.capture());
+
+        CreateRecordingDTO dto = captor.getValue();
 
         assertThat(dto).isNotNull();
-        assertThat(dto.getId()).isEqualTo(mockRecordingId);
-        assertThat(dto.getParentRecordingId()).isEqualTo(mockParentRecId);
-        assertThat(dto.getVersion()).isEqualTo(2);
+        assertThat(dto.getId()).isNotNull();
+        assertThat(dto.getParentRecordingId()).isEqualTo(mockRecordingId);
+        assertThat(dto.getCaptureSessionId()).isEqualTo(mockCaptureSessionId);
+        assertThat(dto.getVersion()).isEqualTo(expectedVersionNumber);
+        assertThat(dto.getFilename()).isEqualTo(expectedAssetName);
+        assertThat(dto.getDuration()).isEqualTo(null);
+
         assertThat(dto.getEditInstructions())
             .isEqualTo(format(
                 "{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,"
@@ -432,38 +445,46 @@ class EditRequestServiceTest {
                     + "\"sendNotifications\":true}}", mockEditRequestId
             ));
 
-        assertThat(dto.getCaptureSessionId()).isEqualTo(mockCaptureSessionId);
-        assertThat(dto.getFilename()).isEqualTo("index.mp4");
-
-        verify(recordingService, times(1)).getNextVersionNumber(mockParentRecId);
+        verify(recordingService, times(1)).getNextVersionNumber(mockRecordingId);
     }
 
     @Test
     @DisplayName("Should return create recording dto with parent recording")
-    void createRecordingDtoWithParentRecording() {
-        when(mockRecording.getFilename()).thenReturn("source.mp4");
+    void createRecordingDtoWithParentRecording() throws InterruptedException {
+        when(mockEditRequest.getEditInstruction()).thenReturn("{}");
 
-        when(mockEditRequest.getEditInstruction()).thenReturn("""
-                                                                  {
-                                                                      "requestedInstructions": [ ],
-                                                                      "ffmpegInstructions": [ ]
-                                                                  }
-                                                                  """);
+        String expectedAssetName = "generated_asset_name";
+        when(assetGenerationService.generateAsset(any(UUID.class), any(EditRequest.class)))
+            .thenReturn(expectedAssetName);
 
-        UUID newRecordingId = UUID.randomUUID();
-        when(recordingService.getNextVersionNumber(mockParentRecId)).thenReturn(3);
+        Integer wrongVersionNumber = 15;
+        when(recordingService.getNextVersionNumber(mockRecordingId)).thenReturn(wrongVersionNumber);
 
-        CreateRecordingDTO dto = underTest.createRecordingDto(newRecordingId, "newFile.mp4", mockEditRequest);
-        assertThat(dto.getId()).isEqualTo(newRecordingId);
+        Integer expectedVersionNumber = 31;
+        when(recordingService.getNextVersionNumber(mockParentRecId)).thenReturn(expectedVersionNumber);
+
+        underTest.performEdit(mockEditRequest);
+
+        ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
+        verify(recordingService, times(1)).upsert(captor.capture());
+
+        CreateRecordingDTO dto = captor.getValue();
+
+        assertThat(dto).isNotNull();
+        assertThat(dto.getId()).isNotNull();
         assertThat(dto.getParentRecordingId()).isEqualTo(mockParentRecId);
-        assertThat(dto.getFilename()).isEqualTo("newFile.mp4");
-        assertThat(dto.getVersion()).isEqualTo(3);
+        assertThat(dto.getCaptureSessionId()).isEqualTo(mockCaptureSessionId);
+        assertThat(dto.getVersion()).isEqualTo(expectedVersionNumber);
+        assertThat(dto.getFilename()).isEqualTo(expectedAssetName);
+        assertThat(dto.getDuration()).isEqualTo(null);
+
         assertThat(dto.getEditInstructions())
             .isEqualTo(format(
-                "{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":[],"
-                    + "\"ffmpegInstructions\":[],\"forceReencode\":false,"
+                "{\"editRequestId\":\"%s\",\"editInstructions\":{\"requestedInstructions\":null,"
+                    + "\"ffmpegInstructions\":null,\"forceReencode\":false,"
                     + "\"sendNotifications\":true}}", mockEditRequestId
             ));
+        verify(recordingService, times(1)).getNextVersionNumber(mockParentRecId);
     }
 
     @Test
