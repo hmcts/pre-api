@@ -75,14 +75,14 @@ public class AssetGenerationServiceTest {
     @Test
     @DisplayName("Should throw not found when generate asset cannot find source container")
     void generateAssetSourceContainerNotFound() {
-        var editRequest = new EditRequest();
+        EditRequest editRequest = new EditRequest();
         editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
+        UUID newRecordingId = UUID.randomUUID();
+        String sourceContainer = newRecordingId + "-input";
 
         when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(false);
 
-        var message = assertThrows(
+        String message = assertThrows(
             NotFoundException.class,
             () -> underTest.generateAsset(newRecordingId, editRequest)
         ).getMessage();
@@ -95,16 +95,16 @@ public class AssetGenerationServiceTest {
     @Test
     @DisplayName("Should throw error when import asset fails when generating asset")
     void generateAssetImportAssetError() throws InterruptedException {
-        var editRequest = new EditRequest();
+        EditRequest editRequest = new EditRequest();
         editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
+        UUID newRecordingId = UUID.randomUUID();
+        String sourceContainer = newRecordingId + "-input";
 
         when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
         doThrow(new NotFoundException("Something went wrong")).when(mediaService)
             .importAsset(any(GenerateAssetDTO.class), eq(false));
 
-        var message = assertThrows(
+        String message = assertThrows(
             NotFoundException.class,
             () -> underTest.generateAsset(newRecordingId, editRequest)
         ).getMessage();
@@ -120,17 +120,17 @@ public class AssetGenerationServiceTest {
     @Test
     @DisplayName("Should throw error when import asset fails (returning error) when generating asset")
     void generateAssetImportAssetReturnsError() throws InterruptedException {
-        var editRequest = new EditRequest();
+        EditRequest editRequest = new EditRequest();
         editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
+        UUID newRecordingId = UUID.randomUUID();
+        String sourceContainer = newRecordingId + "-input";
 
         when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
-        var generateResponse = new GenerateAssetResponseDTO();
+        GenerateAssetResponseDTO generateResponse = new GenerateAssetResponseDTO();
         generateResponse.setJobStatus(JobState.ERROR.toString());
         when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(generateResponse);
 
-        var message = assertThrows(
+        String message = assertThrows(
             UnknownServerException.class,
             () -> underTest.generateAsset(newRecordingId, editRequest)
         ).getMessage();
@@ -151,20 +151,20 @@ public class AssetGenerationServiceTest {
     @Test
     @DisplayName("Should throw error when generating asset if get mp4 from final fails")
     void generateAssetGetMp4FinalNotFound() throws InterruptedException {
-        var editRequest = new EditRequest();
+        EditRequest editRequest = new EditRequest();
         editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
+        UUID newRecordingId = UUID.randomUUID();
+        String sourceContainer = newRecordingId + "-input";
 
         when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
-        var generateResponse = new GenerateAssetResponseDTO();
+        GenerateAssetResponseDTO generateResponse = new GenerateAssetResponseDTO();
         generateResponse.setJobStatus(JobState.FINISHED.toString());
         when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(generateResponse);
         doThrow(new NotFoundException("MP4 file not found in container " + newRecordingId))
             .when(azureFinalStorageService)
             .getMp4FileName(newRecordingId.toString());
 
-        var message = assertThrows(
+        String message = assertThrows(
             NotFoundException.class,
             () -> underTest.generateAsset(newRecordingId, editRequest)
         ).getMessage();
@@ -181,16 +181,16 @@ public class AssetGenerationServiceTest {
     @Test
     @DisplayName("Should throw not found when generate asset cannot find source container's mp4")
     void generateAssetSourceContainerMp4NotFound() {
-        var editRequest = new EditRequest();
+        EditRequest editRequest = new EditRequest();
         editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
+        UUID newRecordingId = UUID.randomUUID();
+        String sourceContainer = newRecordingId + "-input";
 
         when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
         doThrow(new NotFoundException("MP4 file not found in container " + sourceContainer))
             .when(azureIngestStorageService).getMp4FileName(sourceContainer);
 
-        var message = assertThrows(
+        String message = assertThrows(
             NotFoundException.class,
             () -> underTest.generateAsset(newRecordingId, editRequest)
         ).getMessage();

@@ -45,7 +45,7 @@ public class AssetGenerationService {
 
         azureFinalStorageService.createContainerIfNotExists(newRecordingId.toString());
 
-        if(request.getSourceRecording() == null) {
+        if (request.getSourceRecording() == null) {
             throw new BadRequestException("Source Recording was null for edit request " + request.getId());
         }
 

@@ -56,8 +56,7 @@ import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass", "PMD.CyclomaticComplexity",
-    "PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass", "PMD.CyclomaticComplexity"})
 public class EditRequestService {
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
