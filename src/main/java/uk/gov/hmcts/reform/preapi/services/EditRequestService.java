@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.util.Pair;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -29,18 +30,16 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
-import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.edit.AssetGenerationService;
+import uk.gov.hmcts.reform.preapi.services.edit.EditRequestCrudService;
 import uk.gov.hmcts.reform.preapi.services.edit.IEditingService;
 import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,9 +49,9 @@ import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects"})
 public class EditRequestService {
-    private final EditRequestRepository editRequestRepository;
+    private final EditRequestCrudService editRequestCrudService;
     private final RecordingRepository recordingRepository;
     private final IEditingService editingService;
     private final RecordingService recordingService;
@@ -60,13 +59,13 @@ public class EditRequestService {
     private final EditNotificationService editNotificationService;
 
     @Autowired
-    public EditRequestService(final EditRequestRepository editRequestRepository,
+    public EditRequestService(final EditRequestCrudService editRequestCrudService,
                               final RecordingRepository recordingRepository,
                               final IEditingService editingService,
                               final RecordingService recordingService,
                               final AssetGenerationService assetGenerationService,
                               final EditNotificationService editNotificationService) {
-        this.editRequestRepository = editRequestRepository;
+        this.editRequestCrudService = editRequestCrudService;
         this.recordingRepository = recordingRepository;
         this.editingService = editingService;
         this.recordingService = recordingService;
@@ -77,10 +76,7 @@ public class EditRequestService {
     @Transactional
     @PreAuthorize("@authorisationService.hasEditRequestAccess(authentication, #id)")
     public EditRequestDTO findById(UUID id) {
-        return editRequestRepository
-            .findByIdNotLocked(id)
-            .map(EditRequestDTO::new)
-            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+        return editRequestCrudService.findById(id);
     }
 
     @Transactional
@@ -89,37 +85,24 @@ public class EditRequestService {
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
-        return editRequestRepository
-            .searchAllBy(params, pageable)
-            .map(EditRequestDTO::new);
+        return editRequestCrudService.findAll(params, pageable);
     }
 
     @Transactional
     public Optional<EditRequest> getNextPendingEditRequest() {
-        return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+        return editRequestCrudService.getNextPendingEditRequest();
     }
 
     @Transactional
     public void updateEditRequestStatus(UUID id, EditRequestStatus status) {
-        EditRequest request = editRequestRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
-
-        request.setStatus(status);
-        switch (status) {
-            case PROCESSING -> request.setStartedAt(Timestamp.from(Instant.now()));
-            case ERROR, COMPLETE -> request.setFinishedAt(Timestamp.from(Instant.now()));
-            default -> {
-            }
-        }
-        editRequestRepository.save(request);
+        editRequestCrudService.updateEditRequestStatus(id, status);
     }
 
     @Transactional(noRollbackFor = Exception.class)
     public EditRequest markAsProcessing(UUID editId) throws InterruptedException {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
-        EditRequest request = editRequestRepository.findById(editId)
-            .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
+        EditRequestDTO request = editRequestCrudService.findById(editId);
 
         if (request.getStatus() != EditRequestStatus.PENDING) {
             throw new ResourceInWrongStateException(
@@ -129,8 +112,7 @@ public class EditRequestService {
                 EditRequestStatus.PENDING.toString()
             );
         }
-        updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
-        return request;
+        return editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
     }
 
     @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
@@ -176,35 +158,20 @@ public class EditRequestService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public void delete(CreateEditRequestDTO dto) {
-        Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
-
-        if (req.isEmpty()) {
-            log.info("Attempt to delete non-existing edit request with id {}", dto.getId());
-            return;
-        }
-
-        editRequestRepository.delete(req.get());
+        editRequestCrudService.delete(dto);
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
-        validateEditMode(dto);
         Recording sourceRecording = getSourceRecording(dto.getSourceRecordingId());
-        Optional<EditRequest> existingEditRequest = editRequestRepository.findById(dto.getId());
-        boolean isUpdate = existingEditRequest.isPresent();
-        UpsertResult emptyInstructionResult = handleEmptyInstructions(dto, existingEditRequest, isUpdate);
-        if (emptyInstructionResult != null) {
-            return emptyInstructionResult;
-        }
 
-        EditRequest request = editingService.prepareEditRequestToCreateOrUpdate(dto, sourceRecording,
-                                                             existingEditRequest.orElse(new EditRequest()));
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
-        setCreatedByForNewRequest(request, isUpdate);
-        notifyOnUpdatedRequest(dto, request, isUpdate);
-        editRequestRepository.save(request);
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        Pair<UpsertResult, EditRequest> result = editRequestCrudService.upsert(dto, sourceRecording, user);
+        notifyOnUpdatedRequest(dto, result);
+        return result.getFirst();
     }
 
     @Transactional
@@ -233,16 +200,7 @@ public class EditRequestService {
 
         upsert(dto);
 
-        return editRequestRepository.findById(id)
-            .map(EditRequestDTO::new)
-            .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
-    }
-
-    private void validateEditMode(CreateEditRequestDTO dto) {
-        if (dto.isForceReencode() && dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
-            throw new BadRequestException(
-                "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
-        }
+        return editRequestCrudService.findById(id);
     }
 
     private Recording getSourceRecording(UUID sourceRecordingId) {
@@ -260,47 +218,17 @@ public class EditRequestService {
         return sourceRecording;
     }
 
-    private UpsertResult handleEmptyInstructions(CreateEditRequestDTO dto,
-                                                 Optional<EditRequest> existingEditRequest,
-                                                 boolean isUpdate) {
-        if (dto.isForceReencode() || dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
-            return null;
-        }
-
-        if (!isUpdate) {
-            throw new BadRequestException("Invalid Instruction: Cannot create an edit request with empty"
-                                              + " instructions");
-        }
-
-        log.info(
-            "Deleting edit request {} for source recording {} as edit instructions are empty",
-            existingEditRequest.orElseThrow().getId(), dto.getSourceRecordingId()
-        );
-        delete(dto);
-        return UpsertResult.UPDATED;
-    }
-
-    private void setCreatedByForNewRequest(EditRequest request, boolean isUpdate) {
-        if (isUpdate) {
-            return;
-        }
-
-        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
-        request.setCreatedBy(user);
-    }
-
-    private void notifyOnUpdatedRequest(CreateEditRequestDTO dto, EditRequest request, boolean isUpdate) {
-        if (!isUpdate) {
+    private void notifyOnUpdatedRequest(CreateEditRequestDTO dto, Pair<UpsertResult, EditRequest> upserted) {
+        if (!upserted.getFirst().equals(UpsertResult.UPDATED)) {
             return;
         }
 
         if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
-            editNotificationService.onEditRequestSubmitted(request);
+            editNotificationService.onEditRequestSubmitted(upserted.getSecond());
             return;
         }
 
-        editNotificationService.onEditRequestRejected(request);
+        editNotificationService.onEditRequestRejected(upserted.getSecond());
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
