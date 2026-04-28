@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AssetGenerationService.class)
-public class AssetGenerationServiceTest {
+class AssetGenerationServiceTest {
 
     @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
