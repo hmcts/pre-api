@@ -4,6 +4,7 @@ import com.azure.resourcemanager.mediaservices.models.JobState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -33,7 +34,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AssetGenerationService.class)
-public class AssetGenerationServiceTest {
+class AssetGenerationServiceTest {
 
     @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
@@ -70,6 +71,55 @@ public class AssetGenerationServiceTest {
 
         when(mockEditRequest.getId()).thenReturn(mockEditRequestId);
         when(mockEditRequest.getSourceRecording()).thenReturn(mockRecording);
+    }
+
+    @Test
+    @DisplayName("Should generate asset")
+    void generateAssetSourceSuccess() throws InterruptedException {
+        UUID newRecordingId = UUID.randomUUID();
+        String sourceContainer = newRecordingId + "-input";
+
+        GenerateAssetResponseDTO importResponse = new GenerateAssetResponseDTO();
+        importResponse.setJobStatus(JobState.FINISHED.toString());
+        when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false)))
+            .thenReturn(importResponse);
+        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
+
+        when(azureFinalStorageService.getMp4FileName(newRecordingId.toString())).thenReturn("yay it worked");
+
+        String generatedFilename;
+
+        try {
+            generatedFilename = underTest.generateAsset(newRecordingId, mockEditRequest);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        assertThat(generatedFilename).isEqualTo("yay it worked");
+
+        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
+        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(sourceContainer);
+        verify(azureFinalStorageService, times(1))
+            .createContainerIfNotExists(newRecordingId.toString());
+
+        ArgumentCaptor<GenerateAssetDTO> captor = ArgumentCaptor.forClass(GenerateAssetDTO.class);
+        verify(mediaService, times(1))
+            .importAsset(captor.capture(), any(Boolean.class));
+
+        String expectedAssetName = newRecordingId.toString().replace("-", "");
+        GenerateAssetDTO generatedAsset = captor.getValue();
+        assertThat(generatedAsset.getSourceContainer()).isEqualTo(sourceContainer);
+        assertThat(generatedAsset.getDestinationContainer()).isEqualTo(newRecordingId);
+        assertThat(generatedAsset.getTempAsset()).isEqualTo(expectedAssetName);
+        assertThat(generatedAsset.getFinalAsset()).isEqualTo(expectedAssetName + "_output");
+        assertThat(generatedAsset.getParentRecordingId()).isEqualTo(mockRecordingId);
+        assertThat(generatedAsset.getDescription()).isNotBlank();
+
+        verify(azureIngestStorageService, times(1)).markContainerAsSafeToDelete(sourceContainer);
+        verify(azureFinalStorageService, times(1)).getMp4FileName(newRecordingId.toString());
+        verifyNoMoreInteractions(azureIngestStorageService);
+        verifyNoMoreInteractions(azureFinalStorageService);
+        verifyNoMoreInteractions(mediaService);
     }
 
     @Test
