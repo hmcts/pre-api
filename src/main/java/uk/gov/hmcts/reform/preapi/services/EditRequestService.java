@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.CsvToBeanBuilder;
@@ -23,8 +22,6 @@ import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -34,14 +31,12 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
-import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.services.edit.AssetGenerationService;
 import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 import java.io.BufferedReader;
@@ -68,9 +63,7 @@ public class EditRequestService {
     private final RecordingRepository recordingRepository;
     private final FfmpegService ffmpegService;
     private final RecordingService recordingService;
-    private final AzureIngestStorageService azureIngestStorageService;
-    private final AzureFinalStorageService azureFinalStorageService;
-    private final MediaServiceBroker mediaServiceBroker;
+    private final AssetGenerationService assetGenerationService;
     private final EditNotificationService editNotificationService;
 
     @Autowired
@@ -78,17 +71,13 @@ public class EditRequestService {
                               final RecordingRepository recordingRepository,
                               final FfmpegService ffmpegService,
                               final RecordingService recordingService,
-                              final AzureIngestStorageService azureIngestStorageService,
-                              final AzureFinalStorageService azureFinalStorageService,
-                              final MediaServiceBroker mediaServiceBroker,
+                              final AssetGenerationService assetGenerationService,
                               final EditNotificationService editNotificationService) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
         this.recordingService = recordingService;
-        this.azureIngestStorageService = azureIngestStorageService;
-        this.azureFinalStorageService = azureFinalStorageService;
-        this.mediaServiceBroker = mediaServiceBroker;
+        this.assetGenerationService = assetGenerationService;
         this.editNotificationService = editNotificationService;
     }
 
@@ -157,7 +146,7 @@ public class EditRequestService {
         String filename;
         try {
             ffmpegService.performEdit(newRecordingId, request);
-            filename = generateAsset(newRecordingId, request);
+            filename = assetGenerationService.generateAsset(newRecordingId, request);
         } catch (Exception e) {
             updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
             throw e;
@@ -189,41 +178,6 @@ public class EditRequestService {
         createDto.setFilename(filename);
         // duration is auto-generated
         return createDto;
-    }
-
-    @Transactional
-    public String generateAsset(UUID newRecordingId, EditRequest request) throws InterruptedException {
-        String sourceContainer = newRecordingId + "-input";
-        if (!azureIngestStorageService.doesContainerExist(sourceContainer)) {
-            throw new NotFoundException("Source Container (" + sourceContainer + ") does not exist");
-        }
-        // throws 404 when doesn't exist
-        azureIngestStorageService.getMp4FileName(sourceContainer);
-        azureIngestStorageService.markContainerAsProcessing(sourceContainer);
-        String assetName = newRecordingId.toString().replace("-", "");
-
-        azureFinalStorageService.createContainerIfNotExists(newRecordingId.toString());
-
-        GenerateAssetDTO generateAssetDto = GenerateAssetDTO.builder()
-            .sourceContainer(sourceContainer)
-            .destinationContainer(newRecordingId)
-            .tempAsset(assetName)
-            .finalAsset(assetName + "_output")
-            .parentRecordingId(request.getSourceRecording().getId())
-            .description("Edit of " + request.getSourceRecording().getId().toString().replace("-", ""))
-            .build();
-
-        GenerateAssetResponseDTO result = mediaServiceBroker.getEnabledMediaService()
-            .importAsset(generateAssetDto, false);
-
-        if (!result.getJobStatus().equals(JobState.FINISHED.toString())) {
-            throw new UnknownServerException("Failed to generate asset for edit request: "
-                                                 + request.getSourceRecording().getId()
-                                                 + ", new recording: "
-                                                 + newRecordingId);
-        }
-        azureIngestStorageService.markContainerAsSafeToDelete(sourceContainer);
-        return azureFinalStorageService.getMp4FileName(newRecordingId.toString());
     }
 
     @Transactional
