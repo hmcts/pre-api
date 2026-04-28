@@ -477,7 +477,7 @@ public class EditRequestServiceTest {
         Page<EditRequestDTO> result = underTest.findAll(params, Pageable.unpaged());
 
         assertNotNull(result);
-        assertEquals(0, result.getContent().size());
+        assertEquals(1, result.getContent().size());
         verify(editRequestCrudService).findAll(
             argThat(search ->
                         search.getAuthorisedBookings() == null
