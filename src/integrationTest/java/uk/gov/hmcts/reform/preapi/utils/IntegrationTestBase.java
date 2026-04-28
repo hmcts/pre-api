@@ -13,7 +13,6 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
