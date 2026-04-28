@@ -364,10 +364,10 @@ public class MediaKind implements IMediaService {
     @Override
     public String triggerProcessingStep1(CaptureSessionDTO captureSession, String captureSessionNoHyphen,
                                          UUID recordingId) {
-        if (!azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString())) {
-            log.info("No valid asset files found for capture session [{}] in container named [{}]",
-                     captureSession.getId(),
-                     captureSession.getBookingId().toString()
+
+        if (!checkVideoPeriodsAvailable(captureSessionNoHyphen)) {
+            log.info("No valid recording content found for capture session [{}] in Mediakind",
+                     captureSession.getId()
             );
             azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
             return null;
@@ -490,6 +490,11 @@ public class MediaKind implements IMediaService {
         String liveEventId = getSanitisedLiveEventId(captureSessionId);
         checkLiveEventExists(liveEventId);
 
+        return checkVideoPeriodsAvailable(liveEventId);
+    }
+
+    @Override
+    public boolean checkVideoPeriodsAvailable(String liveEventId) {
         MkAssetStorage assetInfo = mediaKindClient.getAssetTracks(liveEventId);
         JsonNode periods = assetInfo.getSpec().getPeriods();
 
