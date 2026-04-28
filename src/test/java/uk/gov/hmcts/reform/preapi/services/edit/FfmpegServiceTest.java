@@ -776,6 +776,73 @@ public class FfmpegServiceTest {
                 editInstructions.getFfmpegInstructions());
     }
 
+    @Test
+    @DisplayName("Should create a new edit request with notifications disabled")
+    void createEditRequestWithNotificationsDisabledSuccess() {
+        List<EditCutInstructionDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionDTO.builder()
+                .start(60L)
+                .end(120L)
+                .build());
+
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(mockRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
+        dto.setSendNotifications(false);
+
+        EditRequest response = underTest.prepareEditRequestToCreateOrUpdate(dto, mockRecording, editRequest);
+
+        EditInstructions editInstructions = EditInstructions.tryFromJson(response.getEditInstruction());
+        assertThat(editInstructions).isNotNull();
+        assertThat(editInstructions.shouldSendNotifications()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should update an edit request")
+    void updateEditRequestSuccess() {
+        List<EditCutInstructionDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionDTO.builder()
+                .start(60L)
+                .end(120L)
+                .build());
+
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(mockRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
+
+        EditRequest response = underTest.prepareEditRequestToCreateOrUpdate(dto, mockRecording, editRequest);
+
+        assertThat(response.getId()).isEqualTo(dto.getId());
+        assertThat(response.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(response.getSourceRecording().getId()).isEqualTo(mockRecording.getId());
+        assertThat(response.getEditInstruction())
+                .contains("\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]");
+    }
+
+    @Test
+    @DisplayName("Should create a new reencode edit request")
+    void createReencodeEditRequestSuccess() {
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(mockRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setForceReencode(true);
+
+        EditRequest response = underTest.prepareEditRequestToCreateOrUpdate(dto, mockRecording, editRequest);
+
+        EditInstructions editInstructions = EditInstructions.tryFromJson(response.getEditInstruction());
+        assertThat(editInstructions).isNotNull();
+        assertThat(editInstructions.getRequestedInstructions()).isEmpty();
+        assertThat(editInstructions.getFfmpegInstructions()).isEmpty();
+        assertThat(editInstructions.isForceReencode()).isTrue();
+        assertThat(editInstructions.shouldSendNotifications()).isTrue();
+    }
+
+
     private String generateEditInstructionsJson(List<FfmpegEditInstructionDTO> ffmpegEditInstructions)
         throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();

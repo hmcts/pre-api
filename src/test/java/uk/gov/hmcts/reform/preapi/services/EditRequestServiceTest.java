@@ -182,8 +182,10 @@ public class EditRequestServiceTest {
         when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId)).thenReturn(Optional.of(mockRecording));
         when(mockEditRequest.getId()).thenReturn(UUID.randomUUID());
 
-        when(editingService.prepareEditRequestToCreateOrUpdate(any(CreateEditRequestDTO.class), any(Recording.class),
-                                                               any(EditRequest.class))).thenReturn(mockEditRequest);
+        when(editingService.prepareEditRequestToCreateOrUpdate(
+            any(CreateEditRequestDTO.class), any(Recording.class),
+            any(EditRequest.class)
+        )).thenReturn(mockEditRequest);
 
     }
 
@@ -378,103 +380,7 @@ public class EditRequestServiceTest {
         verify(mockAuth, times(1)).getAppAccess();
         verify(editRequestRepository, times(1)).save(any(EditRequest.class));
     }
-
-    @Test
-    @DisplayName("Should create a new reencode edit request")
-    void createReencodeEditRequestSuccess() {
-        var dto = new CreateEditRequestDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(mockRecording.getId());
-        dto.setStatus(EditRequestStatus.PENDING);
-        dto.setForceReencode(true);
-
-        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecording.getId()))
-            .thenReturn(Optional.of(mockRecording));
-        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
-
-        var response = underTest.upsert(dto);
-        assertThat(response).isEqualTo(UpsertResult.CREATED);
-
-        ArgumentCaptor<EditRequest> requestCaptor = ArgumentCaptor.forClass(EditRequest.class);
-        verify(editRequestRepository).save(requestCaptor.capture());
-
-        EditInstructions editInstructions = EditInstructions.tryFromJson(requestCaptor.getValue().getEditInstruction());
-        assertThat(editInstructions).isNotNull();
-        assertThat(editInstructions.getRequestedInstructions()).isEmpty();
-        assertThat(editInstructions.getFfmpegInstructions()).isEmpty();
-        assertThat(editInstructions.isForceReencode()).isTrue();
-        assertThat(editInstructions.shouldSendNotifications()).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should create a new edit request with notifications disabled")
-    void createEditRequestWithNotificationsDisabledSuccess() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
-                             .start(60L)
-                             .end(120L)
-                             .build());
-
-        var dto = new CreateEditRequestDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(mockRecording.getId());
-        dto.setStatus(EditRequestStatus.PENDING);
-        dto.setEditInstructions(instructions);
-        dto.setSendNotifications(false);
-
-        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecording.getId()))
-            .thenReturn(Optional.of(mockRecording));
-        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
-
-        var response = underTest.upsert(dto);
-        assertThat(response).isEqualTo(UpsertResult.CREATED);
-
-        ArgumentCaptor<EditRequest> requestCaptor = ArgumentCaptor.forClass(EditRequest.class);
-        verify(editRequestRepository).save(requestCaptor.capture());
-
-        EditInstructions editInstructions = EditInstructions.tryFromJson(requestCaptor.getValue().getEditInstruction());
-        assertThat(editInstructions).isNotNull();
-        assertThat(editInstructions.shouldSendNotifications()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should update an edit request")
-    void updateEditRequestSuccess() {
-        List<EditCutInstructionDTO> instructions = new ArrayList<>();
-        instructions.add(EditCutInstructionDTO.builder()
-                             .start(60L)
-                             .end(120L)
-                             .build());
-
-        var dto = new CreateEditRequestDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setSourceRecordingId(mockRecording.getId());
-        dto.setStatus(EditRequestStatus.PENDING);
-        dto.setEditInstructions(instructions);
-
-        var editRequest = new EditRequest();
-        editRequest.setId(UUID.randomUUID());
-
-        when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecording.getId()))
-            .thenReturn(Optional.of(mockRecording));
-        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
-
-        var response = underTest.upsert(dto);
-        assertThat(response).isEqualTo(UpsertResult.UPDATED);
-
-        assertThat(editRequest.getId()).isEqualTo(dto.getId());
-        assertThat(editRequest.getStatus()).isEqualTo(EditRequestStatus.PENDING);
-        assertThat(editRequest.getSourceRecording().getId()).isEqualTo(mockRecording.getId());
-        assertThat(editRequest.getEditInstruction())
-            .contains("\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]");
-
-        verify(recordingService, times(1)).syncRecordingMetadataWithStorage(mockRecording.getId());
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecording.getId());
-        verify(editRequestRepository, times(1)).findById(dto.getId());
-        verify(mockAuth, never()).getAppAccess();
-        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
-    }
-
+    
     @Test
     @DisplayName("Should throw not found when source recording does not exist")
     void createEditRequestSourceRecordingNotFound() {
@@ -630,7 +536,6 @@ public class EditRequestServiceTest {
         assertThat(message)
             .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
     }
-
 
 
     @Test
@@ -956,6 +861,9 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
             .thenReturn(Optional.of(mockRecording));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
 
+        when(editingService.prepareEditRequestToCreateOrUpdate(dto, mockRecording, editRequest))
+            .thenReturn(editRequest);
+
         var response = underTest.upsert(dto);
         assertThat(response).isEqualTo(UpsertResult.UPDATED);
 
@@ -990,6 +898,9 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
             .thenReturn(Optional.of(mockRecording));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
 
+        when(editingService.prepareEditRequestToCreateOrUpdate(dto, mockRecording, editRequest))
+            .thenReturn(editRequest);
+
         var response = underTest.upsert(dto);
         assertThat(response).isEqualTo(UpsertResult.UPDATED);
 
@@ -1023,6 +934,8 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId))
             .thenReturn(Optional.of(mockRecording));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
+        when(editingService.prepareEditRequestToCreateOrUpdate(dto, mockRecording, editRequest))
+            .thenReturn(editRequest);
 
         var response = underTest.upsert(dto);
         assertThat(response).isEqualTo(UpsertResult.UPDATED);
