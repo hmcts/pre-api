@@ -11,15 +11,12 @@ import org.springframework.data.util.Pair;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -29,47 +26,33 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
-import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
-import uk.gov.hmcts.reform.preapi.services.edit.AssetGenerationService;
 import uk.gov.hmcts.reform.preapi.services.edit.EditRequestCrudService;
-import uk.gov.hmcts.reform.preapi.services.edit.IEditingService;
 import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-
-import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
-import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.CouplingBetweenObjects"})
 public class EditRequestService {
     private final EditRequestCrudService editRequestCrudService;
     private final RecordingRepository recordingRepository;
-    private final IEditingService editingService;
     private final RecordingService recordingService;
-    private final AssetGenerationService assetGenerationService;
     private final EditNotificationService editNotificationService;
 
     @Autowired
     public EditRequestService(final EditRequestCrudService editRequestCrudService,
                               final RecordingRepository recordingRepository,
-                              final IEditingService editingService,
                               final RecordingService recordingService,
-                              final AssetGenerationService assetGenerationService,
                               final EditNotificationService editNotificationService) {
         this.editRequestCrudService = editRequestCrudService;
         this.recordingRepository = recordingRepository;
-        this.editingService = editingService;
         this.recordingService = recordingService;
-        this.assetGenerationService = assetGenerationService;
         this.editNotificationService = editNotificationService;
     }
 
@@ -86,74 +69,6 @@ public class EditRequestService {
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
         return editRequestCrudService.findAll(params, pageable);
-    }
-
-    @Transactional
-    public Optional<EditRequest> getNextPendingEditRequest() {
-        return editRequestCrudService.getNextPendingEditRequest();
-    }
-
-    @Transactional
-    public void updateEditRequestStatus(UUID id, EditRequestStatus status) {
-        editRequestCrudService.updateEditRequestStatus(id, status);
-    }
-
-    @Transactional(noRollbackFor = Exception.class)
-    public EditRequest markAsProcessing(UUID editId) throws InterruptedException {
-        log.info("Performing Edit Request: {}", editId);
-        // retrieves locked edit request
-        EditRequestDTO request = editRequestCrudService.findById(editId);
-
-        if (request.getStatus() != EditRequestStatus.PENDING) {
-            throw new ResourceInWrongStateException(
-                EditRequest.class.getSimpleName(),
-                request.getId().toString(),
-                request.getStatus().toString(),
-                EditRequestStatus.PENDING.toString()
-            );
-        }
-        return editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
-    }
-
-    @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
-    public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
-        UUID newRecordingId = UUID.randomUUID();
-        String filename;
-        try {
-            editingService.performEdit(newRecordingId, request);
-            filename = assetGenerationService.generateAsset(newRecordingId, request);
-        } catch (Exception e) {
-            updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
-            throw e;
-        }
-
-        updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
-
-        CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
-        recordingService.upsert(createDto);
-
-        return recordingService.findById(newRecordingId);
-    }
-
-    private @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
-        UUID parentId = request.getSourceRecording().getParentRecording() == null
-            ? request.getSourceRecording().getId()
-            : request.getSourceRecording().getParentRecording().getId();
-
-        // if edit on edit without original edits saved (legacy edit),
-        //  then these edits will not align with the original timeline
-        EditInstructionDump dump = new EditInstructionDump(request.getId(), fromJson(request.getEditInstruction()));
-
-        return new CreateRecordingDTO(
-            newRecordingId,
-            parentId,
-            request.getSourceRecording().getCaptureSession().getId(),
-            recordingService.getNextVersionNumber(parentId),
-            filename,
-            // duration is auto-generated
-            null,
-            toJson(dump)
-        );
     }
 
     @Transactional
@@ -246,8 +161,5 @@ public class EditRequestService {
             log.error("Error when reading CSV file: {} ", e.getMessage());
             throw new UnknownServerException("Uploaded CSV file incorrectly formatted", e);
         }
-    }
-
-    private record EditInstructionDump(UUID editRequestId, EditInstructions editInstructions) {
     }
 }

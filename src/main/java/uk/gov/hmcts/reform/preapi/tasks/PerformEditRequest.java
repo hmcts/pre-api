@@ -8,17 +8,17 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.services.edit.EditRequestPerformService;
 
 @Slf4j
 @Component
 public class PerformEditRequest extends RobotUserTask {
 
-    private final EditRequestService editRequestService;
+    private final EditRequestPerformService editRequestService;
 
     @Autowired
-    public PerformEditRequest(EditRequestService editRequestService,
+    public PerformEditRequest(EditRequestPerformService editRequestService,
                               UserService userService,
                               UserAuthenticationService userAuthenticationService,
                               @Value("${cron-user-email}") String cronUserEmail) {
