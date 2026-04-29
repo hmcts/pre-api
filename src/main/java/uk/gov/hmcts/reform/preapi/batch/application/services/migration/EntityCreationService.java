@@ -26,6 +26,8 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -48,6 +50,8 @@ public class EntityCreationService {
     private final RecordingService recordingService;
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
+    private final BookingRepository bookingRepository;
+    private final CaptureSessionRepository captureSessionRepository;
     private final PortalAccessRepository portalAccessRepository;
 
     @Value("${vodafone-user-email}")
@@ -96,7 +100,13 @@ public class EntityCreationService {
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         bookingDTO.setId(bookingId);
         bookingDTO.setCaseId(aCase.getId());
-        bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
+        bookingDTO.setScheduledFor(
+            version != null && version.equalsIgnoreCase("COPY")
+                ? bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
+                    .map(b -> b.getScheduledFor())
+                    .orElse(cleansedData.getRecordingTimestamp())
+                : cleansedData.getRecordingTimestamp()
+        );
         Set<CreateParticipantDTO> filteredParticipants = aCase.getParticipants().stream()
             .filter(p ->
                 (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName()))
@@ -127,15 +137,37 @@ public class EntityCreationService {
             captureSessionId = UUID.randomUUID();
         }
 
+        boolean isCopy = version != null && version.equalsIgnoreCase("COPY");
+
         CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();
         captureSessionDTO.setId(captureSessionId);
         captureSessionDTO.setBookingId(booking.getId());
-        captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
 
         UUID vodafoneUser = getUserByEmail(vodafoneUserEmail);
-        captureSessionDTO.setStartedByUserId(vodafoneUser);
-        captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
-        captureSessionDTO.setFinishedByUserId(vodafoneUser);
+
+        if (isCopy) {
+            captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId).ifPresentOrElse(
+                existing -> {
+                    captureSessionDTO.setStartedAt(existing.getStartedAt());
+                    captureSessionDTO.setStartedByUserId(
+                        existing.getStartedByUser() != null ? existing.getStartedByUser().getId() : null);
+                    captureSessionDTO.setFinishedAt(existing.getFinishedAt());
+                    captureSessionDTO.setFinishedByUserId(
+                        existing.getFinishedByUser() != null ? existing.getFinishedByUser().getId() : null);
+                },
+                () -> {
+                    captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+                    captureSessionDTO.setStartedByUserId(vodafoneUser);
+                    captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
+                    captureSessionDTO.setFinishedByUserId(vodafoneUser);
+                }
+            );
+        } else {
+            captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+            captureSessionDTO.setStartedByUserId(vodafoneUser);
+            captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
+            captureSessionDTO.setFinishedByUserId(vodafoneUser);
+        }
         captureSessionDTO.setStatus(RecordingStatus.NO_RECORDING);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
