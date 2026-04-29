@@ -47,7 +47,7 @@ import static uk.gov.hmcts.reform.preapi.services.edit.EditRequestTestUtils.asse
 import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 
 @SpringBootTest(classes = FfmpegService.class)
-public class FfmpegServiceTest {
+class FfmpegServiceTest {
     @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
 
