@@ -194,6 +194,18 @@ public class FfmpegService implements IEditingService {
             .addArgument(outputFileName);
     }
 
+    protected CommandLine generateReencodeCommand(final String inputFileName, final String outputFileName) {
+        return new CommandLine("ffmpeg")
+            .addArgument("-fflags").addArgument("+genpts")
+            .addArgument("-i").addArgument(inputFileName)
+            .addArgument("-c:v").addArgument("copy")
+            .addArgument("-af").addArgument("aresample=async=1")
+            .addArgument("-c:a").addArgument("aac")
+            .addArgument("-b:a").addArgument("128k")
+            .addArgument("-movflags").addArgument("+faststart")
+            .addArgument(outputFileName);
+    }
+
     protected CommandLine generateConcatCommand(final String concatListFileName, final String outputFileName) {
         return new CommandLine("ffmpeg")
             .addArgument("-f")
@@ -212,6 +224,17 @@ public class FfmpegService implements IEditingService {
                                                                            final String inputFileName,
                                                                            final String outputFileName) {
         EditInstructions instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
+
+        if (instructions.isForceReencode()) {
+            if (instructions.getFfmpegInstructions() != null && !instructions.getFfmpegInstructions().isEmpty()) {
+                throw new UnknownServerException("Malformed edit instructions");
+            }
+
+            return new LinkedHashMap<>(Map.of(
+                outputFileName,
+                generateReencodeCommand(inputFileName, outputFileName)
+            ));
+        }
 
         if (instructions.getFfmpegInstructions() == null
             || instructions.getFfmpegInstructions().isEmpty()) {

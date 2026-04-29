@@ -1,0 +1,44 @@
+name: Generate OpenAPI and Swagger docs, bump API version, and commit to branch
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  update-openapi-specs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install API spec converter dependency
+        run: npm install -g api-spec-converter --ignore-scripts
+
+      - name: Update main API
+        env:
+          API_NAME: 'pre-api'
+          RUN_DB_MIGRATION_ON_STARTUP: false
+        run: |
+          ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
+          echo "Generated OpenAPI doc for ${API_NAME}"
+          bash ./scripts/increment-apim-revision-and-commit.sh
+
+      - name: Update B2C API
+        env:
+          API_NAME: 'b2c-api'
+          RUN_DB_MIGRATION_ON_STARTUP: false
+        run: |
+          ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
+          echo "Generated OpenAPI doc for ${API_NAME}"
