@@ -15,19 +15,19 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-// Handles download, upload and cleanup for Editing Service
-public class EditedFileUploader {
+public class AzureFileUploader implements IFileUploader {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
-    public EditedFileUploader(final AzureIngestStorageService azureIngestStorageService,
-                              final AzureFinalStorageService azureFinalStorageService) {
+    public AzureFileUploader(final AzureIngestStorageService azureIngestStorageService,
+                             final AzureFinalStorageService azureFinalStorageService) {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
     }
 
-    protected void downloadInputFile(final EditRequest request,
+    @Override
+    public void downloadInputFile(final EditRequest request,
                                    final String inputFileName) {
         final long downloadStart = System.currentTimeMillis();
         if (!azureFinalStorageService
@@ -38,21 +38,23 @@ public class EditedFileUploader {
         log.info("Download completed in {} ms", downloadEnd - downloadStart);
     }
 
-    protected void uploadOutputFile(final UUID newRecordingId,
+    @Override
+    public void uploadOutputFile(final UUID newRecordingId,
                                   final String outputFileName,
                                   final List<String> filesToDelete) {
         final long uploadStart = System.currentTimeMillis();
         if (!azureIngestStorageService.uploadBlob(outputFileName, newRecordingId + "-input", outputFileName)) {
-            cleanup(filesToDelete);
+            cleanupLocalFiles(filesToDelete);
             throw new UnknownServerException("Error occurred when attempting to upload file");
         }
         final long uploadEnd = System.currentTimeMillis();
         log.info("Upload completed in {} ms", uploadEnd - uploadStart);
 
-        cleanup(filesToDelete);
+        cleanupLocalFiles(filesToDelete);
     }
 
-    protected boolean downloadBlob(String containerName, String fileName) {
+    @Override
+    public boolean downloadBlob(String containerName, String fileName) {
         if (!azureFinalStorageService.downloadBlob(containerName, fileName, fileName)) {
             log.error("Failed to download mp4 file from container {}", containerName);
             return false;
@@ -60,7 +62,8 @@ public class EditedFileUploader {
         return true;
     }
 
-    protected void cleanup(final List<String> files) {
+    @Override
+    public void cleanupLocalFiles(final List<String> files) {
         files.forEach(this::deleteFile);
     }
 

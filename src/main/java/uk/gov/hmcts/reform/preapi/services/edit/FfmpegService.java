@@ -41,15 +41,14 @@ import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 @Service
 @SuppressWarnings({"PMD.GodClass"})
 public class FfmpegService implements IEditingService {
-
     private final CommandExecutor commandExecutor;
-    private final EditedFileUploader editedFileUploader;
+    private final IFileUploader editedFileUploader;
 
     private static final String CONCAT_FILENAME = "concat-list.txt";
 
     @Autowired
     public FfmpegService(final CommandExecutor commandExecutor,
-                         final EditedFileUploader editedFileUploader) {
+                         final IFileUploader editedFileUploader) {
         this.commandExecutor = commandExecutor;
         this.editedFileUploader = editedFileUploader;
     }
@@ -109,7 +108,7 @@ public class FfmpegService implements IEditingService {
 
             editedFileUploader.uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
         } finally {
-            editedFileUploader.cleanup(filesToDelete);
+            editedFileUploader.cleanupLocalFiles(filesToDelete);
         }
     }
 
@@ -120,7 +119,7 @@ public class FfmpegService implements IEditingService {
                                   final List<String> filesToDelete) {
         final long ffmpegStart = System.currentTimeMillis();
         if (!commandExecutor.execute(command)) {
-            editedFileUploader.cleanup(filesToDelete);
+            editedFileUploader.cleanupLocalFiles(filesToDelete);
             throw new UnknownServerException("Error occurred when attempting to process edit request: "
                     + requestId);
         }
@@ -156,7 +155,7 @@ public class FfmpegService implements IEditingService {
 
         try {
             final String strDurationInSeconds = commandExecutor.executeAndGetOutput(command);
-            editedFileUploader.cleanup(List.of(fileName));
+            editedFileUploader.cleanupLocalFiles(List.of(fileName));
             if (strDurationInSeconds != null) {
                 final double seconds = Double.parseDouble(strDurationInSeconds.trim());
                 return Duration.ofMillis((long) (seconds * 1000));
@@ -164,7 +163,7 @@ public class FfmpegService implements IEditingService {
         } catch (Exception e) {
             log.error("Failed to get duration from MP4 for recording with error: {}", e.getMessage());
         } finally {
-            editedFileUploader.cleanup(List.of(fileName));
+            editedFileUploader.cleanupLocalFiles(List.of(fileName));
         }
         return null;
     }

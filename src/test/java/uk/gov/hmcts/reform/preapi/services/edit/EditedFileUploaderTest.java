@@ -21,7 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = EditedFileUploader.class)
+@SpringBootTest(classes = AzureFileUploader.class)
 class EditedFileUploaderTest {
 
     @MockitoBean
@@ -37,7 +37,7 @@ class EditedFileUploaderTest {
     private Recording mockRecording;
 
     @Autowired
-    public EditedFileUploader underTest;
+    public AzureFileUploader underTest;
 
     @BeforeEach
     void setUp() {

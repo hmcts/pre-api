@@ -53,7 +53,7 @@ import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 class FfmpegServiceTest {
 
     @MockitoBean
-    private EditedFileUploader editedFileUploader;
+    private IFileUploader editedFileUploader;
 
     @MockitoBean
     private CommandExecutor commandExecutor;
