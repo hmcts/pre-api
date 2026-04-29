@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -293,58 +292,46 @@ class FfmpegServiceTest {
     void generateCommandSuccess() throws JsonProcessingException {
         List<FfmpegEditInstructionDTO> instructions = setRandomEditInstructions();
 
-        LinkedHashMap<String, CommandLine>
-            commands = underTest.generateMultiEditCommands(realEditRequest, "input.mp4",
-                "output.mp4");
+        Map<String, CommandLine> commands = underTest.generateMultiEditCommands(
+            realEditRequest, "input.mp4", "output.mp4");
 
         assertThat(commands).isNotNull();
         assertThat(commands).hasSize(2);
-        Map.Entry<String, CommandLine> firstCommandEntry = commands.pollFirstEntry();
-        assertThat(firstCommandEntry.getKey()).isEqualTo("0_segment.mp4");
-        CommandLine firstCommand = firstCommandEntry.getValue();
-        assertThat(firstCommand.getExecutable()).isEqualTo("ffmpeg");
 
-        String[] args1 = firstCommand.getArguments();
+        String firstSegmentName = "0_segment.mp4";
+        CommandLine firstCommand = commands.get(firstSegmentName);
+        assertCommandsGeneratedByFfmpeg(firstCommand, instructions.getFirst(), firstSegmentName);
+
+        String secondSegmentName = "1_segment.mp4";
+        CommandLine secondCommand = commands.get(secondSegmentName);
+        assertCommandsGeneratedByFfmpeg(secondCommand, instructions.getLast(), secondSegmentName);
+    }
+
+    private static void assertCommandsGeneratedByFfmpeg(CommandLine command,
+                                                        FfmpegEditInstructionDTO instructions,
+                                                        String video) {
+        assertThat(command.getExecutable()).isEqualTo("ffmpeg");
+        String[] args1 = command.getArguments();
         assertThat(args1).hasSize(12);
         assertThat(args1[0]).isEqualTo("-y");
         assertThat(args1[1]).isEqualTo("-ss");
-        assertThat(args1[2]).isEqualTo(String.valueOf(instructions.getFirst().getStart()));
+        assertThat(args1[2]).isEqualTo(String.valueOf(instructions.getStart()));
         assertThat(args1[3]).isEqualTo("-to");
-        assertThat(args1[4]).isEqualTo(String.valueOf(instructions.getFirst().getEnd()));
+        assertThat(args1[4]).isEqualTo(String.valueOf(instructions.getEnd()));
         assertThat(args1[5]).isEqualTo("-i");
         assertThat(args1[6]).isEqualTo(filename);
         assertThat(args1[7]).isEqualTo("-c");
         assertThat(args1[8]).isEqualTo("copy");
         assertThat(args1[9]).isEqualTo("-avoid_negative_ts");
         assertThat(args1[10]).isEqualTo("1");
-        assertThat(args1[11]).isEqualTo("0_segment.mp4");
-
-        Map.Entry<String, CommandLine> secondCommandEntry = commands.pollFirstEntry();
-        assertThat(secondCommandEntry.getKey()).isEqualTo("1_segment.mp4");
-        CommandLine secondCommand = secondCommandEntry.getValue();
-        assertThat(secondCommand.getExecutable()).isEqualTo("ffmpeg");
-
-        String[] args2 = secondCommand.getArguments();
-        assertThat(args2).hasSize(12);
-        assertThat(args2[0]).isEqualTo("-y");
-        assertThat(args2[1]).isEqualTo("-ss");
-        assertThat(args2[2]).isEqualTo(String.valueOf(instructions.getLast().getStart()));
-        assertThat(args2[3]).isEqualTo("-to");
-        assertThat(args2[4]).isEqualTo(String.valueOf(instructions.getLast().getEnd()));
-        assertThat(args2[5]).isEqualTo("-i");
-        assertThat(args2[6]).isEqualTo(filename);
-        assertThat(args2[7]).isEqualTo("-c");
-        assertThat(args2[8]).isEqualTo("copy");
-        assertThat(args2[9]).isEqualTo("-avoid_negative_ts");
-        assertThat(args2[10]).isEqualTo("1");
-        assertThat(args2[11]).isEqualTo("1_segment.mp4");
+        assertThat(args1[11]).isEqualTo(video);
     }
 
     @Test
     @DisplayName("Should generate a single edit command in multi-command mode")
     void generateSingleEditCommandInMultiCommandMode() {
         realEditRequest.setEditInstruction("{\"ffmpegInstructions\": [{\"start\": 10, \"end\": 20}]}");
-        LinkedHashMap<String, CommandLine> commands =
+        Map<String, CommandLine> commands =
             underTest.generateMultiEditCommands(realEditRequest, filename, "output.mp4");
 
         assertThat(commands).hasSize(1);
@@ -360,7 +347,7 @@ class FfmpegServiceTest {
             "{\"requestedInstructions\":[],\"ffmpegInstructions\":[],\"forceReencode\":true}"
         );
 
-        LinkedHashMap<String, CommandLine> commands =
+        Map<String, CommandLine> commands =
             underTest.generateMultiEditCommands(realEditRequest, filename, "output.mp4");
 
         assertThat(commands).hasSize(1);
@@ -384,7 +371,7 @@ class FfmpegServiceTest {
     @DisplayName("Should generate multiple edit commands and concatenate segments")
     void generateMultipleEditCommandsAndConcatenateSegments() throws JsonProcessingException {
         setRandomEditInstructions();
-        LinkedHashMap<String, CommandLine> commands =
+        Map<String, CommandLine> commands =
             underTest.generateMultiEditCommands(realEditRequest, filename, "output.mp4");
 
         assertThat(commands).hasSizeGreaterThan(1);
@@ -476,8 +463,10 @@ class FfmpegServiceTest {
     void shouldPassCorrectFilesToConcatListFile() throws IOException {
         setRandomEditInstructions();
 
-        LinkedHashMap<String, CommandLine> commands = underTest.generateMultiEditCommands(realEditRequest,
-                filename, "output.mp4");
+        Map<String, CommandLine> commands = underTest.generateMultiEditCommands(
+            realEditRequest,
+            filename, "output.mp4"
+        );
 
         File concatListFile = new File("test-concat-list.txt");
         underTest.generateConcatListFile(commands.keySet(), concatListFile.getName());

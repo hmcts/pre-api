@@ -207,10 +207,10 @@ public class FfmpegService implements IEditingService {
     }
 
     // Should be private but leaving as protected for now to avoid re-writing tests
-    @SuppressWarnings({"PMD.AvoidLiteralsInIfCondition", "PMD.LooseCoupling"})
-    protected LinkedHashMap<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
-                                                                           final String inputFileName,
-                                                                           final String outputFileName) {
+    @SuppressWarnings({"PMD.AvoidLiteralsInIfCondition"})
+    protected Map<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
+                                                                 final String inputFileName,
+                                                                 final String outputFileName) {
         EditInstructions instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
 
         if (instructions.isForceReencode()) {
