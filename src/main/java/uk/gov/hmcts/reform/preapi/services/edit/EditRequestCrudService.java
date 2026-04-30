@@ -41,14 +41,14 @@ public class EditRequestCrudService {
 
     public Optional<EditRequest> findByIdIfExists(UUID id) {
         return editRequestRepository
-            .findByIdNotLocked(id);
+                .findByIdNotLocked(id);
     }
 
     public EditRequestDTO findById(UUID id) {
         return editRequestRepository
-            .findByIdNotLocked(id)
-            .map(EditRequestDTO::new)
-            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+                .findByIdNotLocked(id)
+                .map(EditRequestDTO::new)
+                .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
     }
 
     public Page<EditRequestDTO> findAll(final SearchEditRequests params, Pageable pageable) {
@@ -62,7 +62,7 @@ public class EditRequestCrudService {
     @Transactional(noRollbackFor = Exception.class)
     public EditRequest updateEditRequestStatus(UUID id, EditRequestStatus status) {
         EditRequest request = editRequestRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+                .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
 
         request.setStatus(status);
         switch (status) {
@@ -93,14 +93,14 @@ public class EditRequestCrudService {
         validateEditMode(dto);
         Optional<EditRequest> existingEditRequest = findByIdIfExists(dto.getId());
         boolean isUpdate = existingEditRequest.isPresent();
-        UpsertResult emptyInstructionResult = handleEmptyInstructions(dto, existingEditRequest, isUpdate);
+        UpsertResult emptyInstructionResult = handleEmptyInstructions(dto, existingEditRequest);
         if (emptyInstructionResult != null) {
             return Pair.of(emptyInstructionResult, existingEditRequest.orElse(new EditRequest()));
         }
 
         EditRequest request = editingService.prepareEditRequestToCreateOrUpdate(
-            dto, sourceRecording,
-            existingEditRequest.orElse(new EditRequest())
+                dto, sourceRecording,
+                existingEditRequest.orElse(new EditRequest())
         );
 
         if (!isUpdate) {
@@ -119,25 +119,22 @@ public class EditRequestCrudService {
         log.debug("Validating edit request {}", dto);
         if (dto.isForceReencode() && dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
             throw new BadRequestException(
-                "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
+                    "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
         }
     }
 
     private UpsertResult handleEmptyInstructions(CreateEditRequestDTO dto,
-                                                 Optional<EditRequest> existingEditRequest,
-                                                 boolean isUpdate) {
+                                                 Optional<EditRequest> existingEditRequest) {
         if (dto.isForceReencode() || dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
             return null;
         }
 
-        if (!isUpdate) {
-            throw new BadRequestException("Invalid Instruction: Cannot create an edit request with empty"
-                                              + " instructions");
-        }
-
         log.info(
-            "Deleting edit request {} for source recording {} as edit instructions are empty",
-            existingEditRequest.orElseThrow().getId(), dto.getSourceRecordingId()
+                "Deleting edit request {} for source recording {} as edit instructions are empty",
+                existingEditRequest
+                        .orElseThrow(() -> new BadRequestException("Invalid Instruction: Cannot delete edit request "
+                                + "instructions: does not exist"))
+                        .getId(), dto.getSourceRecordingId()
         );
         delete(dto);
         return UpsertResult.UPDATED;
