@@ -21,7 +21,6 @@ import uk.gov.hmcts.reform.preapi.dto.B2CErrorDTO;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 @Slf4j
 @ControllerAdvice
@@ -232,12 +231,6 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), getStatus(e));
     }
 
-    @ExceptionHandler(NoSuchElementException.class)
-    ResponseEntity<String> noSuchElementExceptionHandler(final NoSuchElementException e)
-        throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), getStatus(e));
-    }
-
     @ExceptionHandler(UnsupportedMediaTypeException.class)
     ResponseEntity<String> unsupportedMediaTypeException(final UnsupportedMediaTypeException e)
         throws JsonProcessingException {
@@ -281,7 +274,6 @@ public class GlobalControllerExceptionHandler {
     private static HttpStatus getStatus(Throwable t) {
         return switch (t) {
             case NotFoundException ignored -> HttpStatus.NOT_FOUND;
-            case NoSuchElementException ignored -> HttpStatus.NOT_FOUND;
             case ConflictException ignored -> HttpStatus.CONFLICT;
             case ForbiddenException ignored -> HttpStatus.FORBIDDEN;
             case AssetFilesNotFoundException ignored -> HttpStatus.NOT_FOUND;
