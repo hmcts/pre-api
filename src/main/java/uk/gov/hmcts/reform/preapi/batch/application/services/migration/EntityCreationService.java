@@ -20,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -32,6 +33,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -100,13 +102,7 @@ public class EntityCreationService {
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         bookingDTO.setId(bookingId);
         bookingDTO.setCaseId(aCase.getId());
-        bookingDTO.setScheduledFor(
-            version != null && version.equalsIgnoreCase("COPY")
-                ? bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
-                    .map(b -> b.getScheduledFor())
-                    .orElse(cleansedData.getRecordingTimestamp())
-                : cleansedData.getRecordingTimestamp()
-        );
+        bookingDTO.setScheduledFor(determineScheduledFor(version, bookingId, cleansedData));
         Set<CreateParticipantDTO> filteredParticipants = aCase.getParticipants().stream()
             .filter(p ->
                 (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName()))
@@ -339,20 +335,20 @@ public class EntityCreationService {
         CreateUserDTO sharedWith;
         if (existingUserId != null) {
             UUID userId = UUID.fromString(existingUserId);
-            
+
             sharedWith = new CreateUserDTO();
             sharedWith.setId(userId);
             sharedWith.setEmail(lowerEmail);
             sharedWith.setFirstName(firstName);
             sharedWith.setLastName(lastName);
-            
+
             boolean isActive = isUserActiveForMigration(userId, lowerEmail);
             if (!isActive) {
                 loggingService.logWarning(
                     "User %s is inactive or deleted", lowerEmail);
             } else {
                 loggingService.logDebug("Found existing user in cache: %s (%s)", lowerEmail, existingUserId);
-                
+
                 if (!userHasPortalAccess(existingUserId)) {
                     CreateInviteDTO invite = createInvite(sharedWith);
                     invites.add(invite);
@@ -454,7 +450,7 @@ public class EntityCreationService {
                     loggingService.logDebug("User %s has deleted portal access - skipping invite and share", email);
                     return false;
                 }
-                
+
                 loggingService.logDebug("User %s has no portal access - allowing invite creation", email);
                 return true;
             }
@@ -471,5 +467,14 @@ public class EntityCreationService {
             loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
             return false;
         }
+    }
+
+    private Timestamp determineScheduledFor(String version, UUID bookingId, ProcessedRecording cleansedData) {
+
+        return version != null && version.equalsIgnoreCase("COPY")
+            ? bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
+            .map(Booking::getScheduledFor)
+            .orElse(cleansedData.getRecordingTimestamp())
+            : cleansedData.getRecordingTimestamp();
     }
 }
