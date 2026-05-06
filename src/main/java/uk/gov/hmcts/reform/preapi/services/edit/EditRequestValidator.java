@@ -68,7 +68,7 @@ public class EditRequestValidator {
         } else {
             if (instructions.getFfmpegInstructions() == null
                 || instructions.getFfmpegInstructions().isEmpty()) {
-                throw new UnknownServerException("No edit instructions received for edit request ");
+                throw new UnknownServerException("No edit instructions received for edit request");
             }
         }
     }
