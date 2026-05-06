@@ -8,6 +8,6 @@ echo "Piping SQL commands to PostgreSQL Docker container"
 cat docker/database/local/data/*/*.sql | docker exec -i $(docker container ls  | grep 'pre-api-db' | awk '{print $1}') psql -U pre -d api
 
 echo "Removing SQL files"
-# rm -rf docker/database/local/data
+rm -rf docker/database/local/data
 
 echo "Finished"
