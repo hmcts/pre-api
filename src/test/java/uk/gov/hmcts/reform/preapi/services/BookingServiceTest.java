@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +17,17 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
@@ -35,6 +40,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -70,6 +77,9 @@ class BookingServiceTest {
     private ParticipantRepository participantRepository;
 
     @MockitoBean
+    private AuditRepository auditRepository;
+
+    @MockitoBean
     private CaptureSessionService captureSessionService;
 
     @MockitoBean
@@ -80,6 +90,8 @@ class BookingServiceTest {
 
     @Autowired
     private BookingService bookingService;
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @DisplayName("Find All By CaseId")
     @Test
@@ -718,14 +730,20 @@ class BookingServiceTest {
 
     @Test
     @DisplayName("Should find all bookings with capture sessions stuck in processing")
-    void findAllBookingsWithCaptureSessionsStuckInProcessing() {
+    void findAllBookingsWithCaptureSessionsStuckInProcessing() throws JsonProcessingException {
         LocalDate currentDate = LocalDate.now();
 
-        var court = createCourt();
-        var booking1 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(10, 0))));
-        var booking2 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(15, 0))));
-        createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(16, 0))));
-        var bookingsWithCaptureSessionsStuckInProcessing = List.of(booking1, booking2);
+        Court court = createCourt();
+        Booking booking1 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(10, 0))));
+        CaptureSession captureSession1 = createCaptureSession(booking1, RecordingStatus.PROCESSING);
+        booking1.setCaptureSessions(Set.of(captureSession1));
+        Booking booking2 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(15, 0))));
+        CaptureSession captureSession2 = createCaptureSession(booking2, RecordingStatus.PROCESSING);
+        booking2.setCaptureSessions(Set.of(captureSession2));
+        Booking booking3 = createBooking(court, Timestamp.valueOf(currentDate.atTime(LocalTime.of(16, 0))));
+        CaptureSession captureSession3 = createCaptureSession(booking3, RecordingStatus.RECORDING_AVAILABLE);
+        booking3.setCaptureSessions(Set.of(captureSession3));
+        List<Booking> bookingsWithCaptureSessionsStuckInProcessing = List.of(booking1, booking2);
         setAuthentication();
 
         when(bookingRepository.searchBookingsBy(
@@ -743,7 +761,16 @@ class BookingServiceTest {
             anyBoolean(),
             any())).thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
-        var bookings = bookingService.findAllBookingsWithCaptureSessionsStuckInProcessing();
+        Audit audit1 = createCaptureSessionUpdatedAudit(captureSession1, RecordingStatus.PROCESSING);
+        Audit audit2 = createCaptureSessionUpdatedAudit(captureSession2, RecordingStatus.PROCESSING);
+        List<Audit> audits = List.of(audit1, audit2);
+
+        when(auditRepository.findRecordsForCaptureSessionsUpdatedByTableRecordIdsAndStatus(
+            List.of(captureSession1.getId(), captureSession2.getId()),
+            RecordingStatus.PROCESSING))
+            .thenReturn(audits);
+
+        List<BookingDTO> bookings = bookingService.findAllBookingsWithCaptureSessionsStuckInProcessing();
 
         assertThat(bookings).hasSize(bookingsWithCaptureSessionsStuckInProcessing.size());
     }
@@ -759,6 +786,33 @@ class BookingServiceTest {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setCourt(court);
         return HelperFactory.createBooking(caseEntity, scheduledFor, null);
+    }
+
+    private CaptureSession createCaptureSession(Booking booking, RecordingStatus status) {
+        return HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            "ingest address",
+            "live output url",
+            booking.getScheduledFor(),
+            null,
+            null,
+            null,
+            status,
+            null
+        );
+    }
+
+    private Audit createCaptureSessionUpdatedAudit(
+        CaptureSession captureSession,
+        RecordingStatus status) throws JsonProcessingException {
+        Audit audit = new Audit();
+        audit.setTableRecordId(captureSession.getId());
+        audit.setCategory("CaptureSession");
+        audit.setActivity("UPDATE");
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"captureSessionStatus\": \"" + status.name() + "\"}"));
+        audit.setCreatedAt(Timestamp.from(Instant.now().minus(3, ChronoUnit.HOURS)));
+        return audit;
     }
 
     private void setAuthentication() {

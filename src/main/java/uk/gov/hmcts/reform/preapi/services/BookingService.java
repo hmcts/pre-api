@@ -320,7 +320,7 @@ public class BookingService {
             null,
             null,
             null,
-            null,
+            Optional.empty(),
             null,
             null,
             recordingStatuses,
