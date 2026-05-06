@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
-import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -45,9 +44,7 @@ public class AssetGenerationService {
 
         azureFinalStorageService.createContainerIfNotExists(newRecordingId.toString());
 
-        if (request.getSourceRecording() == null) {
-            throw new BadRequestException("Source Recording was null for edit request " + request.getId());
-        }
+        EditRequestValidator.ensureEditRequestHasSourceRecording(request);
 
         UUID sourceRecordingId = request.getSourceRecording().getId();
         GenerateAssetDTO generateAssetDto = GenerateAssetDTO.builder()
