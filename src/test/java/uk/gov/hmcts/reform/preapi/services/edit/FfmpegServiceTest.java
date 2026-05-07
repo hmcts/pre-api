@@ -274,8 +274,8 @@ class FfmpegServiceTest {
             () -> underTest.generateMultiEditCommands(realEditRequest, filename, filename)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Unknown Server Exception: " +
-                                          "No edit instructions received for edit request");
+        assertThat(message).isEqualTo("Unknown Server Exception: "
+                                          + "No edit instructions received for edit request");
     }
 
     @Test
