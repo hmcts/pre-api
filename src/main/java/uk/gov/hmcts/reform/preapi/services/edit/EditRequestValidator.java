@@ -17,9 +17,12 @@ import java.util.List;
 import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
 
 @Slf4j
-public class EditRequestValidator {
-
+public final class EditRequestValidator {
     protected static final Integer SINGLETON_LIST_SIZE = 1;
+
+    private EditRequestValidator() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
 
     protected static void ensureEditRequestHasSourceRecording(EditRequest request) {
         if (request.getSourceRecording() == null) {
@@ -60,7 +63,7 @@ public class EditRequestValidator {
         return request.getSourceRecording().getFilename();
     }
 
-    protected static void checkForNonEmptyInstructionsOrForceReencode(EditInstructions instructions){
+    protected static void checkForNonEmptyInstructionsOrForceReencode(EditInstructions instructions) {
         if (instructions.isForceReencode()) {
             if (instructions.getFfmpegInstructions() != null && !instructions.getFfmpegInstructions().isEmpty()) {
                 throw new UnknownServerException("Cannot force re-encode: edit instructions are not empty");
@@ -74,7 +77,7 @@ public class EditRequestValidator {
     }
 
     protected static void checkThatEditsDoNotCutAnEntireRecording(final List<EditCutInstructionDTO> instructions,
-                                                                  final long recordingDuration){
+                                                                  final long recordingDuration) {
         if (instructions.size() == SINGLETON_LIST_SIZE) {
             EditCutInstructionDTO firstInstruction = instructions.getFirst();
             if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
@@ -89,7 +92,7 @@ public class EditRequestValidator {
         }
     }
 
-    protected static void checkThatEditsDoNotOverlap(final List<EditCutInstructionDTO> instructions){
+    protected static void checkThatEditsDoNotOverlap(final List<EditCutInstructionDTO> instructions) {
         for (int i = 1; i < instructions.size(); i++) {
             EditCutInstructionDTO prev = instructions.get(i - 1);
             EditCutInstructionDTO curr = instructions.get(i);

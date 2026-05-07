@@ -3,7 +3,11 @@ package uk.gov.hmcts.reform.preapi.services.edit;
 import org.apache.commons.exec.CommandLine;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 
-public class FfmpegCommandGenerator {
+public final class FfmpegCommandGenerator {
+
+    private FfmpegCommandGenerator() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
 
     protected static CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
                                                            final String inputFileName,
