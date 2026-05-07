@@ -16,6 +16,10 @@ import java.util.UUID;
 public interface MigrationRecordRepository extends JpaRepository<MigrationRecord, UUID> {
     Optional<MigrationRecord> findByArchiveId(String archiveId);
 
+    Optional<MigrationRecord> findTopByRecordingIdOrderByCreatedAtDesc(UUID recordingId);
+
+    Optional<MigrationRecord> findTopByCaptureSessionIdOrderByCreatedAtDesc(UUID captureSessionId);
+
     List<MigrationRecord> findAllByArchiveName(String archiveName);
 
     List<MigrationRecord> findAllByStatus(VfMigrationStatus status);
