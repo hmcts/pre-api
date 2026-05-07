@@ -120,7 +120,8 @@ class FfmpegServiceTest {
             () -> underTest.performEdit(newRecordingId, realEditRequest)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Not found: No file name provided");
+        assertThat(message).isEqualTo("Not found: No file name provided for edit request "
+                                          + realEditRequest.getId());
 
         verify(editedFileUploader, never()).downloadBlob(any(), any());
         verify(commandExecutor, never()).execute(any());
@@ -139,7 +140,8 @@ class FfmpegServiceTest {
             () -> underTest.performEdit(newRecordingId, realEditRequest)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Not found: No file name provided");
+        assertThat(message).isEqualTo("Not found: No file name provided for edit request "
+                                          + realEditRequest.getId());
 
         verifyNoMoreInteractions(editedFileUploader);
         verify(commandExecutor, never()).execute(any());

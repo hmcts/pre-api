@@ -159,8 +159,7 @@ public class FfmpegService implements IEditingService {
     }
 
     // Should be private but leaving as protected for now to avoid re-writing tests
-    @SuppressWarnings("PMD.LooseCoupling")
-    protected LinkedHashMap<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
+    protected Map<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
                                                                            final String inputFileName,
                                                                            final String outputFileName) {
 
