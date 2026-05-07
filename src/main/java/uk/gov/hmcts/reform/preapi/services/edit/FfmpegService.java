@@ -13,11 +13,8 @@ import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -44,26 +41,24 @@ import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GodClass"})
 public class FfmpegService implements IEditingService {
-    private final AzureIngestStorageService azureIngestStorageService;
-    private final AzureFinalStorageService azureFinalStorageService;
     private final CommandExecutor commandExecutor;
+    private final IFileUploader editedFileUploader;
 
     private static final String CONCAT_FILENAME = "concat-list.txt";
 
     @Autowired
-    public FfmpegService(AzureIngestStorageService azureIngestStorageService,
-                         AzureFinalStorageService azureFinalStorageService,
-                         CommandExecutor commandExecutor) {
-        this.azureIngestStorageService = azureIngestStorageService;
-        this.azureFinalStorageService = azureFinalStorageService;
+    public FfmpegService(final CommandExecutor commandExecutor,
+                         final IFileUploader editedFileUploader) {
         this.commandExecutor = commandExecutor;
+        this.editedFileUploader = editedFileUploader;
     }
 
     @Override
     public void performEdit(UUID newRecordingId, EditRequest request) {
+
         String inputFileName = EditRequestValidator.checkEditRequestHasValidFileName(request);
+
         String outputFileName = newRecordingId + ".mp4";
         performCommandsForEdit(request, newRecordingId, inputFileName, outputFileName);
     }
@@ -77,7 +72,7 @@ public class FfmpegService implements IEditingService {
         filesToDelete.add(outputFileName);
         final Map<String, CommandLine> commands = generateMultiEditCommands(request, inputFileName, outputFileName);
 
-        downloadInputFile(request, inputFileName);
+        editedFileUploader.downloadInputFile(request, inputFileName);
         try {
             // single command
             if (commands.size() == SINGLETON_LIST_SIZE) {
@@ -88,8 +83,7 @@ public class FfmpegService implements IEditingService {
                         outputFileName,
                         filesToDelete
                 );
-                uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
-                cleanup(filesToDelete);
+                editedFileUploader.uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
                 return;
             }
 
@@ -110,9 +104,9 @@ public class FfmpegService implements IEditingService {
             final long ffmpegEnd = System.currentTimeMillis();
             log.info("All ffmpeg commands completed in {} ms", ffmpegEnd - ffmpegStart);
 
-            uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
+            editedFileUploader.uploadOutputFile(newRecordingId, outputFileName, filesToDelete);
         } finally {
-            cleanup(filesToDelete);
+            editedFileUploader.cleanupLocalFiles(filesToDelete);
         }
     }
 
@@ -123,7 +117,7 @@ public class FfmpegService implements IEditingService {
                                   final List<String> filesToDelete) {
         final long ffmpegStart = System.currentTimeMillis();
         if (!commandExecutor.execute(command)) {
-            cleanup(filesToDelete);
+            editedFileUploader.cleanupLocalFiles(filesToDelete);
             throw new UnknownServerException("Error occurred when attempting to process edit request: "
                     + requestId);
         }
@@ -143,20 +137,15 @@ public class FfmpegService implements IEditingService {
         log.info("Ffmpeg concat completed in {} ms", ffmpegEnd - ffmpegStart);
     }
 
-    public void cleanup(final List<String> files) {
-        files.forEach(this::deleteFile);
-    }
-
     public Duration getDurationFromMp4(final String containerName, final String fileName) {
-        if (!azureFinalStorageService.downloadBlob(containerName, fileName, fileName)) {
-            log.error("Failed to download mp4 file from container {}", containerName);
+        if (!editedFileUploader.downloadBlob(containerName, fileName)) {
             return null;
         }
 
         try {
             CommandLine durationCommand = generateGetDurationCommand(fileName);
             final String strDurationInSeconds = commandExecutor.executeAndGetOutput(durationCommand);
-            deleteFile(fileName);
+            editedFileUploader.cleanupLocalFiles(List.of(fileName));
             if (strDurationInSeconds != null) {
                 final double seconds = Double.parseDouble(strDurationInSeconds.trim());
                 return Duration.ofMillis((long) (seconds * 1000));
@@ -164,22 +153,9 @@ public class FfmpegService implements IEditingService {
         } catch (Exception e) {
             log.error("Failed to get duration from MP4 for recording with error: {}", e.getMessage());
         } finally {
-            deleteFile(fileName);
+            editedFileUploader.cleanupLocalFiles(List.of(fileName));
         }
         return null;
-    }
-
-    private void deleteFile(String fileName) {
-        File file = new File(fileName);
-        try {
-            if (file.delete()) {
-                log.info("Successfully deleted file: {}", fileName);
-            } else {
-                log.info("Failed to delete file: {}", fileName);
-            }
-        } catch (Exception e) {
-            log.error("Error deleting file: {}", fileName, e);
-        }
     }
 
     // Should be private but leaving as protected for now to avoid re-writing tests
@@ -187,6 +163,7 @@ public class FfmpegService implements IEditingService {
     protected LinkedHashMap<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
                                                                            final String inputFileName,
                                                                            final String outputFileName) {
+
         EditInstructions instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
 
         EditRequestValidator.checkForNonEmptyInstructionsOrForceReencode(instructions);
@@ -209,8 +186,9 @@ public class FfmpegService implements IEditingService {
                 .mapToObj(i -> {
                     FfmpegEditInstructionDTO instruction = instructions.getFfmpegInstructions().get(i);
                     String segmentFileName = format("%d_segment.mp4", i);
-                    return Map.entry(segmentFileName, generateSingleEditCommand(instruction, inputFileName,
-                                                                                segmentFileName));
+
+                    return Map.entry(segmentFileName,
+                            generateSingleEditCommand(instruction, inputFileName, segmentFileName));
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         Map.Entry::getValue,
@@ -232,44 +210,15 @@ public class FfmpegService implements IEditingService {
         }
     }
 
-    private void downloadInputFile(final EditRequest request,
-                                   final String inputFileName) {
-        final long downloadStart = System.currentTimeMillis();
-        if (!azureFinalStorageService
-                .downloadBlob(request.getSourceRecording().getId().toString(), inputFileName, inputFileName)) {
-            throw new UnknownServerException("Error occurred when attempting to download file: " + inputFileName);
-        }
-        final long downloadEnd = System.currentTimeMillis();
-        log.info("Download completed in {} ms", downloadEnd - downloadStart);
-
-    }
-
-    private void uploadOutputFile(final UUID newRecordingId,
-                                  final String outputFileName,
-                                  final List<String> filesToDelete) {
-        final long uploadStart = System.currentTimeMillis();
-        if (!azureIngestStorageService.uploadBlob(outputFileName, newRecordingId + "-input", outputFileName)) {
-            cleanup(filesToDelete);
-            throw new UnknownServerException("Error occurred when attempting to upload file");
-        }
-        final long uploadEnd = System.currentTimeMillis();
-        log.info("Upload completed in {} ms", uploadEnd - uploadStart);
-    }
-
     @Override
     public @NotNull EditRequest prepareEditRequestToCreateOrUpdate(final CreateEditRequestDTO dto,
                                                                    final Recording sourceRecording,
                                                                    final EditRequest request) {
         if (dto.isForceReencode()) {
-            request.setId(dto.getId());
-            request.setSourceRecording(sourceRecording);
-            request.setStatus(dto.getStatus());
-            request.setJointlyAgreed(dto.getJointlyAgreed());
-            request.setApprovedAt(dto.getApprovedAt());
-            request.setApprovedBy(dto.getApprovedBy());
-            request.setRejectionReason(dto.getRejectionReason());
-            request.setEditInstruction(toJson(new EditInstructions(List.of(), List.of(), true,
-                    shouldSendNotifications(dto))));
+            String newEditInstruction = toJson(new EditInstructions(
+                List.of(), List.of(), true,
+                shouldSendNotifications(dto)));
+            request.updateEditRequestFromDto(dto, sourceRecording, newEditInstruction);
             return request;
         }
 
@@ -291,15 +240,9 @@ public class FfmpegService implements IEditingService {
 
         boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
 
-        request.setId(dto.getId());
-        request.setSourceRecording(!isInstructionCombination
-                ? sourceRecording
-                : sourceRecording.getParentRecording());
-        request.setStatus(dto.getStatus());
-        request.setJointlyAgreed(dto.getJointlyAgreed());
-        request.setApprovedAt(dto.getApprovedAt());
-        request.setApprovedBy(dto.getApprovedBy());
-        request.setRejectionReason(dto.getRejectionReason());
+        Recording recordingForUpdatedEdit = !isInstructionCombination
+            ? sourceRecording
+            : sourceRecording.getParentRecording();
 
         List<EditCutInstructionDTO> requestedEdits = isInstructionCombination
                 ? combineCutsOnOriginalTimeline(prevInstructions, dto.getEditInstructions())
@@ -310,8 +253,13 @@ public class FfmpegService implements IEditingService {
                 isInstructionCombination ? request.getSourceRecording() : sourceRecording
         );
 
-        request.setEditInstruction(toJson(new EditInstructions(requestedEdits, editInstructions, false,
-                shouldSendNotifications(dto))));
+        String newEditInstruction = toJson(new EditInstructions(
+            requestedEdits, editInstructions, false,
+            shouldSendNotifications(dto)
+        ));
+
+        request.updateEditRequestFromDto(dto, recordingForUpdatedEdit, newEditInstruction);
+
         return request;
     }
 

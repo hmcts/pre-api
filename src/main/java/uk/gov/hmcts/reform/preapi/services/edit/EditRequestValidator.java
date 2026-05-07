@@ -18,19 +18,19 @@ import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
 
 @Slf4j
 public final class EditRequestValidator {
-    protected static final Integer SINGLETON_LIST_SIZE = 1;
+    static final Integer SINGLETON_LIST_SIZE = 1;
 
     private EditRequestValidator() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
-    protected static void ensureEditRequestHasSourceRecording(EditRequest request) {
+    static void ensureEditRequestHasSourceRecording(EditRequest request) {
         if (request.getSourceRecording() == null) {
             throw new BadRequestException("Source Recording was null for edit request " + request.getId());
         }
     }
 
-    protected static void validateEditMode(CreateEditRequestDTO dto) {
+    static void validateEditMode(CreateEditRequestDTO dto) {
         log.debug("Validating edit request {}", dto);
         if (dto.isForceReencode() && dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
             throw new BadRequestException(
@@ -38,7 +38,7 @@ public final class EditRequestValidator {
         }
     }
 
-    protected static void ensureStatusIsPendingBeforeProcessingEdit(EditRequestDTO request) {
+    static void ensureStatusIsPendingBeforeProcessingEdit(EditRequestDTO request) {
         if (request.getStatus() != EditRequestStatus.PENDING) {
             throw new ResourceInWrongStateException(
                 EditRequest.class.getSimpleName(),
@@ -49,7 +49,7 @@ public final class EditRequestValidator {
         }
     }
 
-    protected static String checkEditRequestHasValidFileName(EditRequest request) {
+    static String checkEditRequestHasValidFileName(EditRequest request) {
         if (request == null) {
             throw new NotFoundException("Could not perform edit: request is null");
         }
@@ -63,7 +63,7 @@ public final class EditRequestValidator {
         return request.getSourceRecording().getFilename();
     }
 
-    protected static void checkForNonEmptyInstructionsOrForceReencode(EditInstructions instructions) {
+    static void checkForNonEmptyInstructionsOrForceReencode(EditInstructions instructions) {
         if (instructions.isForceReencode()) {
             if (instructions.getFfmpegInstructions() != null && !instructions.getFfmpegInstructions().isEmpty()) {
                 throw new UnknownServerException("Cannot force re-encode: edit instructions are not empty");
@@ -76,7 +76,7 @@ public final class EditRequestValidator {
         }
     }
 
-    protected static void checkThatEditsDoNotCutAnEntireRecording(final List<EditCutInstructionDTO> instructions,
+    static void checkThatEditsDoNotCutAnEntireRecording(final List<EditCutInstructionDTO> instructions,
                                                                   final long recordingDuration) {
         if (instructions.size() == SINGLETON_LIST_SIZE) {
             EditCutInstructionDTO firstInstruction = instructions.getFirst();
@@ -92,7 +92,7 @@ public final class EditRequestValidator {
         }
     }
 
-    protected static void checkThatEditsDoNotOverlap(final List<EditCutInstructionDTO> instructions) {
+    static void checkThatEditsDoNotOverlap(final List<EditCutInstructionDTO> instructions) {
         for (int i = 1; i < instructions.size(); i++) {
             EditCutInstructionDTO prev = instructions.get(i - 1);
             EditCutInstructionDTO curr = instructions.get(i);
@@ -106,7 +106,7 @@ public final class EditRequestValidator {
         }
     }
 
-    protected static void validateEditInstruction(final EditCutInstructionDTO instruction,
+    static void validateEditInstruction(final EditCutInstructionDTO instruction,
                                                   final long recordingDuration) {
         if (instruction.getStart() == instruction.getEnd()) {
             throw new BadRequestException(

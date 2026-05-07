@@ -9,7 +9,7 @@ public final class FfmpegCommandGenerator {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
-    protected static CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
+    static CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
                                                            final String inputFileName,
                                                            final String outputFileName) {
         return new CommandLine("ffmpeg")
@@ -22,7 +22,7 @@ public final class FfmpegCommandGenerator {
             .addArgument(outputFileName);
     }
 
-    protected static CommandLine generateReencodeCommand(final String inputFileName, final String outputFileName) {
+    static CommandLine generateReencodeCommand(final String inputFileName, final String outputFileName) {
         return new CommandLine("ffmpeg")
             .addArgument("-fflags").addArgument("+genpts")
             .addArgument("-i").addArgument(inputFileName)
@@ -34,7 +34,7 @@ public final class FfmpegCommandGenerator {
             .addArgument(outputFileName);
     }
 
-    protected static CommandLine generateConcatCommand(final String concatListFileName, final String outputFileName) {
+    static CommandLine generateConcatCommand(final String concatListFileName, final String outputFileName) {
         return new CommandLine("ffmpeg")
             .addArgument("-f")
             .addArgument("concat")
@@ -47,7 +47,7 @@ public final class FfmpegCommandGenerator {
             .addArgument(outputFileName);
     }
 
-    protected static CommandLine generateGetDurationCommand(final String fileName) {
+    static CommandLine generateGetDurationCommand(final String fileName) {
         return new CommandLine("ffprobe")
             .addArgument("-v")
             .addArgument("error")
