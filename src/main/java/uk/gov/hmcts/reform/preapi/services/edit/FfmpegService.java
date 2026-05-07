@@ -11,8 +11,6 @@ import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
-import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 
@@ -34,12 +32,15 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.lang.String.format;
-import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
+import static uk.gov.hmcts.reform.preapi.services.edit.EditRequestValidator.SINGLETON_LIST_SIZE;
+import static uk.gov.hmcts.reform.preapi.services.edit.FfmpegCommandGenerator.generateConcatCommand;
+import static uk.gov.hmcts.reform.preapi.services.edit.FfmpegCommandGenerator.generateGetDurationCommand;
+import static uk.gov.hmcts.reform.preapi.services.edit.FfmpegCommandGenerator.generateReencodeCommand;
+import static uk.gov.hmcts.reform.preapi.services.edit.FfmpegCommandGenerator.generateSingleEditCommand;
 import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GodClass"})
 public class FfmpegService implements IEditingService {
     private final CommandExecutor commandExecutor;
     private final IFileUploader editedFileUploader;
@@ -55,20 +56,13 @@ public class FfmpegService implements IEditingService {
 
     @Override
     public void performEdit(UUID newRecordingId, EditRequest request) {
-        if (request == null || request.getSourceRecording() == null) {
-            throw new NotFoundException("Could not perform edit: request or recording is null");
-        }
 
-        String inputFileName = request.getSourceRecording().getFilename();
-        if (inputFileName == null) {
-            throw new NotFoundException("No file name provided");
-        }
+        String inputFileName = EditRequestValidator.checkEditRequestHasValidFileName(request);
 
         String outputFileName = newRecordingId + ".mp4";
         performCommandsForEdit(request, newRecordingId, inputFileName, outputFileName);
     }
 
-    @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
     private void performCommandsForEdit(final EditRequest request,
                                         final UUID newRecordingId,
                                         final String inputFileName,
@@ -81,7 +75,7 @@ public class FfmpegService implements IEditingService {
         editedFileUploader.downloadInputFile(request, inputFileName);
         try {
             // single command
-            if (commands.size() == 1) {
+            if (commands.size() == SINGLETON_LIST_SIZE) {
                 runFfmpegCommand(
                         request.getId(),
                         commands.get(outputFileName),
@@ -104,7 +98,7 @@ public class FfmpegService implements IEditingService {
             // concat segments
             generateConcatListFile(commands.keySet(), CONCAT_FILENAME);
             filesToDelete.add(CONCAT_FILENAME);
-            final CommandLine concatCommand = generateConcatCommand(outputFileName);
+            final CommandLine concatCommand = generateConcatCommand(CONCAT_FILENAME, outputFileName);
             runFfmpegConcatCommand(request.getId(), concatCommand, outputFileName);
 
             final long ffmpegEnd = System.currentTimeMillis();
@@ -148,17 +142,9 @@ public class FfmpegService implements IEditingService {
             return null;
         }
 
-        final CommandLine command = new CommandLine("ffprobe")
-                .addArgument("-v")
-                .addArgument("error")
-                .addArgument("-show_entries")
-                .addArgument("format=duration")
-                .addArgument("-of")
-                .addArgument("default=noprint_wrappers=1:nokey=1")
-                .addArgument(fileName, true);
-
         try {
-            final String strDurationInSeconds = commandExecutor.executeAndGetOutput(command);
+            CommandLine durationCommand = generateGetDurationCommand(fileName);
+            final String strDurationInSeconds = commandExecutor.executeAndGetOutput(durationCommand);
             editedFileUploader.cleanupLocalFiles(List.of(fileName));
             if (strDurationInSeconds != null) {
                 final double seconds = Double.parseDouble(strDurationInSeconds.trim());
@@ -172,78 +158,34 @@ public class FfmpegService implements IEditingService {
         return null;
     }
 
-    private CommandLine generateSingleEditCommand(final FfmpegEditInstructionDTO instruction,
-                                                    final String inputFileName,
-                                                    final String outputFileName) {
-        return new CommandLine("ffmpeg")
-                .addArgument("-y")
-                .addArgument("-ss").addArgument(String.valueOf(instruction.getStart()))
-                .addArgument("-to").addArgument(String.valueOf(instruction.getEnd()))
-                .addArgument("-i").addArgument(inputFileName)
-                .addArgument("-c").addArgument("copy")
-                .addArgument("-avoid_negative_ts").addArgument("1")
-                .addArgument(outputFileName);
-    }
-
-    private CommandLine generateReencodeCommand(final String inputFileName, final String outputFileName) {
-        return new CommandLine("ffmpeg")
-                .addArgument("-fflags").addArgument("+genpts")
-                .addArgument("-i").addArgument(inputFileName)
-                .addArgument("-c:v").addArgument("copy")
-                .addArgument("-af").addArgument("aresample=async=1")
-                .addArgument("-c:a").addArgument("aac")
-                .addArgument("-b:a").addArgument("128k")
-                .addArgument("-movflags").addArgument("+faststart")
-                .addArgument(outputFileName);
-    }
-
-    private CommandLine generateConcatCommand(final String outputFileName) {
-        return new CommandLine("ffmpeg")
-                .addArgument("-f")
-                .addArgument("concat")
-                .addArgument("-safe")
-                .addArgument("0")
-                .addArgument("-i")
-                .addArgument(CONCAT_FILENAME)
-                .addArgument("-c")
-                .addArgument("copy")
-                .addArgument(outputFileName);
-    }
-
     // Should be private but leaving as protected for now to avoid re-writing tests
-    @SuppressWarnings({"PMD.AvoidLiteralsInIfCondition"})
     protected Map<String, CommandLine> generateMultiEditCommands(final EditRequest editRequest,
-                                                                 final String inputFileName,
-                                                                 final String outputFileName) {
+                                                                           final String inputFileName,
+                                                                           final String outputFileName) {
+
         EditInstructions instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
 
-        if (instructions.isForceReencode()) {
-            if (instructions.getFfmpegInstructions() != null && !instructions.getFfmpegInstructions().isEmpty()) {
-                throw new UnknownServerException("Malformed edit instructions");
-            }
+        EditRequestValidator.checkForNonEmptyInstructionsOrForceReencode(instructions);
 
+        if (instructions.isForceReencode()) {
             return new LinkedHashMap<>(Map.of(
                     outputFileName,
                     generateReencodeCommand(inputFileName, outputFileName)
             ));
         }
 
-        if (instructions.getFfmpegInstructions() == null
-                || instructions.getFfmpegInstructions().isEmpty()) {
-            throw new UnknownServerException("Malformed edit instructions");
-        }
-
-        if (instructions.getFfmpegInstructions().size() == 1) {
+        if (instructions.getFfmpegInstructions().size() == SINGLETON_LIST_SIZE) {
             FfmpegEditInstructionDTO instruction = instructions.getFfmpegInstructions().getFirst();
             return new LinkedHashMap<>(Map.of(
                     outputFileName,
-                    generateSingleEditCommand(instruction, inputFileName, outputFileName)));
+                   generateSingleEditCommand(instruction, inputFileName, outputFileName)));
         }
 
         return IntStream.range(0, instructions.getFfmpegInstructions().size())
                 .mapToObj(i -> {
                     FfmpegEditInstructionDTO instruction = instructions.getFfmpegInstructions().get(i);
                     String segmentFileName = format("%d_segment.mp4", i);
+
                     return Map.entry(segmentFileName,
                             generateSingleEditCommand(instruction, inputFileName, segmentFileName));
                 })
@@ -279,7 +221,6 @@ public class FfmpegService implements IEditingService {
             return request;
         }
 
-        // false
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
         boolean sourceInstructionsAreNotEmpty = !isOriginalRecordingEdit
@@ -296,7 +237,6 @@ public class FfmpegService implements IEditingService {
                 && prevInstructions.getRequestedInstructions() != null
                 && !prevInstructions.getRequestedInstructions().isEmpty();
 
-        // false
         boolean isInstructionCombination = sourceInstructionsAreNotEmpty && prevInstructionsAreNotEmpty;
 
         Recording recordingForUpdatedEdit = !isInstructionCombination
@@ -327,68 +267,22 @@ public class FfmpegService implements IEditingService {
     }
 
     // Should be private but leaving as protected to avoid rewriting tests
-    @SuppressWarnings({"PMD.CognitiveComplexity", "PMD.AvoidLiteralsInIfCondition"})
     protected List<FfmpegEditInstructionDTO> invertInstructions(final List<EditCutInstructionDTO> instructions,
-                                                             final Recording recording) {
+                                                                final Recording recording) {
         long recordingDuration = recording.getDuration().toSeconds();
-        if (instructions.size() == 1) {
-            EditCutInstructionDTO firstInstruction = instructions.getFirst();
-            if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
-                throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
-                        + formatTime(firstInstruction.getStart())
-                        + "), End("
-                        + formatTime(firstInstruction.getEnd())
-                        + "), Recording Duration("
-                        + formatTime(recordingDuration)
-                        + ")");
-            }
-        }
+        EditRequestValidator.checkThatEditsDoNotCutAnEntireRecording(instructions, recordingDuration);
 
         instructions.sort(Comparator.comparing(EditCutInstructionDTO::getStart)
                 .thenComparing(EditCutInstructionDTO::getEnd));
 
-        for (int i = 1; i < instructions.size(); i++) {
-            EditCutInstructionDTO prev = instructions.get(i - 1);
-            EditCutInstructionDTO curr = instructions.get(i);
-            if (curr.getStart() < prev.getEnd()) {
-                throw new BadRequestException("Overlapping instructions: Previous End("
-                        + formatTime(prev.getEnd())
-                        + "), Current Start("
-                        + formatTime(curr.getStart())
-                        + ")");
-            }
-        }
+        EditRequestValidator.checkThatEditsDoNotOverlap(instructions);
 
         long currentTime = 0L;
         List<FfmpegEditInstructionDTO> invertedInstructions = new ArrayList<>();
 
         // invert
         for (EditCutInstructionDTO instruction : instructions) {
-            if (instruction.getStart() == instruction.getEnd()) {
-                throw new BadRequestException(
-                        "Invalid instruction: Instruction with 0 second duration invalid: Start("
-                                + formatTime(instruction.getStart())
-                                + "), End("
-                                + formatTime(instruction.getEnd())
-                                + ")");
-            }
-            if (instruction.getEnd() < instruction.getStart()) {
-                throw new BadRequestException(
-                        "Invalid instruction: Instruction with end time before start time: Start("
-                                + formatTime(instruction.getStart())
-                                + "), End("
-                                + formatTime(instruction.getEnd())
-                                + ")");
-            }
-            if (instruction.getEnd() > recordingDuration) {
-                throw new BadRequestException("Invalid instruction: Instruction end time exceeding duration: Start("
-                        + formatTime(instruction.getStart())
-                        + "), End("
-                        + formatTime(instruction.getEnd())
-                        + "), Recording Duration("
-                        + formatTime(recordingDuration)
-                        + ")");
-            }
+            EditRequestValidator.validateEditInstruction(instruction, recordingDuration);
             if (currentTime < instruction.getStart()) {
                 invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime, instruction.getStart()));
             }

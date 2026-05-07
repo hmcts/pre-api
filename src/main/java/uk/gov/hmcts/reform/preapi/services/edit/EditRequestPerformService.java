@@ -12,7 +12,6 @@ import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
@@ -70,15 +69,7 @@ public class EditRequestPerformService {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
         EditRequestDTO request = editRequestCrudService.findById(editId);
-
-        if (request.getStatus() != EditRequestStatus.PENDING) {
-            throw new ResourceInWrongStateException(
-                EditRequest.class.getSimpleName(),
-                request.getId().toString(),
-                request.getStatus().toString(),
-                EditRequestStatus.PENDING.toString()
-            );
-        }
+        EditRequestValidator.ensureStatusIsPendingBeforeProcessingEdit(request);
         return editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
     }
 
