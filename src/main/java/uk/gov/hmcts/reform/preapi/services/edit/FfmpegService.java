@@ -55,6 +55,10 @@ public class FfmpegService implements IEditingService {
 
     @Override
     public void performEdit(UUID newRecordingId, EditRequest request) {
+        if (request == null || request.getSourceRecording() == null) {
+            throw new NotFoundException("Could not perform edit: request or recording is null");
+        }
+
         String inputFileName = request.getSourceRecording().getFilename();
         if (inputFileName == null) {
             throw new NotFoundException("No file name provided");
