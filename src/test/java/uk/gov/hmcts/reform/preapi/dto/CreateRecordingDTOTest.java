@@ -79,4 +79,31 @@ class CreateRecordingDTOTest {
         assertThat(createRecordingDTO.getDuration()).isEqualTo(recording.getDuration());
         assertThat(createRecordingDTO.getEditInstructions()).isEqualTo(recording.getEditInstructions());
     }
+
+    @Test
+    @DisplayName("Should return new create recording dto with lots of params")
+    void createRecordingSuccess() {
+        UUID recId = UUID.randomUUID();
+        UUID parentId = UUID.randomUUID();
+        UUID captureSessionId = UUID.randomUUID();
+        Integer version = 32;
+        String filename = "example-filename.txt";
+        String editInstructions = "{}";
+
+        CreateRecordingDTO dto = new CreateRecordingDTO(recId, parentId, captureSessionId, version, filename,
+            // duration is auto-generated
+            null,
+            editInstructions
+        );
+
+        assertThat(dto).isNotNull();
+        assertThat(dto.getId()).isEqualTo(recId);
+        assertThat(dto.getParentRecordingId()).isEqualTo(parentId);
+        assertThat(dto.getCaptureSessionId()).isEqualTo(captureSessionId);
+        assertThat(dto.getVersion()).isEqualTo(version);
+        assertThat(dto.getFilename()).isEqualTo(filename);
+        assertThat(dto.getEditInstructions())
+            .isEqualTo(editInstructions);
+    }
+
 }
