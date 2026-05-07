@@ -45,7 +45,6 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
-import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -438,9 +437,7 @@ class TestingSupportController {
                 appAccess,
                 List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
 
-        EditRequest editRequest = new EditRequest();
-        editRequest.setId(editId);
-        editRequest.setStatus(EditRequestStatus.PROCESSING);
+        EditRequest editRequest = editRequestService.markAsProcessing(editId);
         RecordingDTO recording = editRequestService.performEdit(editRequest);
         EditRequestDTO request = editRequestService.findById(editId);
 
