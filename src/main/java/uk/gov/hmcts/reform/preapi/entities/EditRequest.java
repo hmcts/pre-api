@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
@@ -74,5 +75,18 @@ public class EditRequest extends CreatedModifiedAtEntity {
         details.put("approvedAt", approvedAt);
         details.put("approvedBy", approvedBy);
         return details;
+    }
+
+    public void updateEditRequestFromDto(CreateEditRequestDTO dto,
+                                         Recording sourceRecording,
+                                         String newEditInstruction) {
+        this.setId(dto.getId());
+        this.setSourceRecording(sourceRecording);
+        this.setStatus(dto.getStatus());
+        this.setJointlyAgreed(dto.getJointlyAgreed());
+        this.setApprovedAt(dto.getApprovedAt());
+        this.setApprovedBy(dto.getApprovedBy());
+        this.setRejectionReason(dto.getRejectionReason());
+        this.setEditInstruction(newEditInstruction);
     }
 }
