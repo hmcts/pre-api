@@ -31,3 +31,5 @@ bin/migration/*/*.txt
 bin/migration/**/__pycache__/
 migration_report_*
 /Migration Reports/
+temp/
+docker/database/local/data
