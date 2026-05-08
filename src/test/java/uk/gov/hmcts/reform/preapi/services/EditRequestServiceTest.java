@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import com.azure.resourcemanager.mediaservices.models.JobState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,8 +23,6 @@ import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -42,15 +39,12 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
-import uk.gov.hmcts.reform.preapi.media.IMediaService;
-import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.services.edit.AssetGenerationService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -68,14 +62,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditRequestService.class)
@@ -93,16 +85,7 @@ public class EditRequestServiceTest {
     private RecordingService recordingService;
 
     @MockitoBean
-    private AzureIngestStorageService azureIngestStorageService;
-
-    @MockitoBean
-    private AzureFinalStorageService azureFinalStorageService;
-
-    @MockitoBean
-    private MediaServiceBroker mediaServiceBroker;
-
-    @MockitoBean
-    private IMediaService mediaService;
+    private AssetGenerationService assetGenerationService;
 
     @MockitoBean
     private EditNotificationService editNotificationService;
@@ -189,10 +172,13 @@ public class EditRequestServiceTest {
         when(mockParentRecording.getId()).thenReturn(mockParentRecId);
         when(mockParentRecording.getCaptureSession()).thenReturn(mockCaptureSession);
 
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        try {
+            when(assetGenerationService.generateAsset(any(UUID.class), any(EditRequest.class)))
+                .thenReturn("filename");
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
-        when(azureFinalStorageService.getRecordingDuration(mockRecordingId)).thenReturn(Duration.ofMinutes(3));
-        when(azureFinalStorageService.getMp4FileName(mockRecordingId.toString())).thenReturn("filename");
         when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId)).thenReturn(Optional.of(mockRecording));
         when(mockEditRequest.getId()).thenReturn(UUID.randomUUID());
     }
@@ -268,11 +254,6 @@ public class EditRequestServiceTest {
         var newRecordingDto = new RecordingDTO();
         newRecordingDto.setParentRecordingId(mockRecording.getId());
         when(recordingService.findById(any(UUID.class))).thenReturn(newRecordingDto);
-        when(azureIngestStorageService.doesContainerExist(anyString())).thenReturn(true);
-        var importResponse = new GenerateAssetResponseDTO();
-        importResponse.setJobStatus(JobState.FINISHED.toString());
-        when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(importResponse);
-        when(azureFinalStorageService.getMp4FileName(anyString())).thenReturn("index.mp4");
 
         var res = underTest.performEdit(editRequest);
         assertThat(res).isNotNull();
@@ -293,10 +274,6 @@ public class EditRequestServiceTest {
 
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(recordingService, times(1)).findById(any(UUID.class));
-        verify(azureIngestStorageService, times(1)).doesContainerExist(anyString());
-        verify(azureIngestStorageService, times(1)).getMp4FileName(anyString());
-        verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
-        verify(azureFinalStorageService, times(1)).getMp4FileName(anyString());
 
         // Notification is sent by RecordingListener instead
         verify(editNotificationService, times(0)).sendNotifications(booking);
@@ -900,135 +877,6 @@ public class EditRequestServiceTest {
             .isEqualTo("{\"editRequestId\":null,\"editInstructions\":{\"requestedInstructions\":[],"
                            + "\"ffmpegInstructions\":[],\"forceReencode\":false,"
                            + "\"sendNotifications\":true}}");
-    }
-
-    @Test
-    @DisplayName("Should throw not found when generate asset cannot find source container")
-    void generateAssetSourceContainerNotFound() {
-        var editRequest = new EditRequest();
-        editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
-
-        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(false);
-
-        var message = assertThrows(
-            NotFoundException.class,
-            () -> underTest.generateAsset(newRecordingId, editRequest)
-        ).getMessage();
-        assertThat(message).isEqualTo("Not found: Source Container (" + sourceContainer + ") does not exist");
-
-        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
-        verifyNoMoreInteractions(azureIngestStorageService);
-    }
-
-    @Test
-    @DisplayName("Should throw not found when generate asset cannot find source container's mp4")
-    void generateAssetSourceContainerMp4NotFound() {
-        var editRequest = new EditRequest();
-        editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
-
-        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
-        doThrow(new NotFoundException("MP4 file not found in container " + sourceContainer))
-            .when(azureIngestStorageService).getMp4FileName(sourceContainer);
-
-        var message = assertThrows(
-            NotFoundException.class,
-            () -> underTest.generateAsset(newRecordingId, editRequest)
-        ).getMessage();
-        assertThat(message).isEqualTo("Not found: MP4 file not found in container " + sourceContainer);
-
-        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
-        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
-        verifyNoMoreInteractions(azureIngestStorageService);
-    }
-
-    @Test
-    @DisplayName("Should throw error when import asset fails when generating asset")
-    void generateAssetImportAssetError() throws InterruptedException {
-        var editRequest = new EditRequest();
-        editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
-
-        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
-        doThrow(new NotFoundException("Something went wrong")).when(mediaService)
-            .importAsset(any(GenerateAssetDTO.class), eq(false));
-
-        var message = assertThrows(
-            NotFoundException.class,
-            () -> underTest.generateAsset(newRecordingId, editRequest)
-        ).getMessage();
-        assertThat(message).isEqualTo("Not found: Something went wrong");
-
-        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
-        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
-        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(sourceContainer);
-        verify(azureIngestStorageService, never()).markContainerAsSafeToDelete(sourceContainer);
-        verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
-    }
-
-    @Test
-    @DisplayName("Should throw error when import asset fails (returning error) when generating asset")
-    void generateAssetImportAssetReturnsError() throws InterruptedException {
-        var editRequest = new EditRequest();
-        editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
-
-        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
-        var generateResponse = new GenerateAssetResponseDTO();
-        generateResponse.setJobStatus(JobState.ERROR.toString());
-        when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(generateResponse);
-
-        var message = assertThrows(
-            UnknownServerException.class,
-            () -> underTest.generateAsset(newRecordingId, editRequest)
-        ).getMessage();
-        assertThat(message)
-            .isEqualTo("Unknown Server Exception: Failed to generate asset for edit request: "
-                           + editRequest.getSourceRecording().getId()
-                           + ", new recording: "
-                           + newRecordingId);
-
-        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
-        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
-        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(sourceContainer);
-        verify(azureIngestStorageService, never()).markContainerAsSafeToDelete(sourceContainer);
-        verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
-        verify(azureFinalStorageService, never()).getMp4FileName(any());
-    }
-
-    @Test
-    @DisplayName("Should throw error when generating asset if get mp4 from final fails")
-    void generateAssetGetMp4FinalNotFound() throws InterruptedException {
-        var editRequest = new EditRequest();
-        editRequest.setSourceRecording(mockRecording);
-        var newRecordingId = UUID.randomUUID();
-        var sourceContainer = newRecordingId + "-input";
-
-        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
-        var generateResponse = new GenerateAssetResponseDTO();
-        generateResponse.setJobStatus(JobState.FINISHED.toString());
-        when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(generateResponse);
-        doThrow(new NotFoundException("MP4 file not found in container " + newRecordingId))
-            .when(azureFinalStorageService)
-            .getMp4FileName(newRecordingId.toString());
-
-        var message = assertThrows(
-            NotFoundException.class,
-            () -> underTest.generateAsset(newRecordingId, editRequest)
-        ).getMessage();
-        assertThat(message).isEqualTo("Not found: MP4 file not found in container " + newRecordingId);
-
-        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
-        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
-        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(sourceContainer);
-        verify(azureIngestStorageService, times(1)).markContainerAsSafeToDelete(sourceContainer);
-        verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
-        verify(azureFinalStorageService, times(1)).getMp4FileName(any());
     }
 
     @Test
