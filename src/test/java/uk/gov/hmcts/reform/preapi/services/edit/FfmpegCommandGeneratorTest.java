@@ -5,12 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
-import uk.gov.hmcts.reform.preapi.entities.EditRequest;
-
-import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.hmcts.reform.preapi.services.edit.EditRequestTestUtils.createSegment;
@@ -26,7 +21,7 @@ public class FfmpegCommandGeneratorTest {
 
     @Test
     @DisplayName("Should generate re-encode Ffmpeg command")
-    void checkGenerateReencodeCommand(){
+    void checkGenerateReencodeCommand() {
         CommandLine command =
             FfmpegCommandGenerator.generateReencodeCommand(INPUT_FILENAME, OUTPUT_FILENAME);
 
@@ -45,7 +40,7 @@ public class FfmpegCommandGeneratorTest {
 
     @Test
     @DisplayName("Should generate a single edit command")
-    void shouldGenerateSingleEditCommand(){
+    void shouldGenerateSingleEditCommand() {
         FfmpegEditInstructionDTO instruction = createSegment(20, 30);
 
         CommandLine command = FfmpegCommandGenerator.generateSingleEditCommand(
@@ -59,7 +54,7 @@ public class FfmpegCommandGeneratorTest {
 
     @Test
     @DisplayName("Should generate concat command")
-    void shouldGenerateConcatCommand(){
+    void shouldGenerateConcatCommand() {
         CommandLine command = FfmpegCommandGenerator.generateConcatCommand(INPUT_FILENAME, OUTPUT_FILENAME);
         assertThat(command.toString()).contains("-f", "concat", "-safe", "0", "-i", INPUT_FILENAME,
                                                 "-c", "copy", OUTPUT_FILENAME);
@@ -67,7 +62,7 @@ public class FfmpegCommandGeneratorTest {
 
     @Test
     @DisplayName("Should generate get duration command")
-    void shouldGenerateGetDurationCommand(){
+    void shouldGenerateGetDurationCommand() {
         CommandLine command = FfmpegCommandGenerator.generateGetDurationCommand(INPUT_FILENAME);
         assertThat(command.toString()).contains("ffprobe", "-v", "error",
                                                 "-show_entries", "format=duration",
