@@ -358,7 +358,7 @@ dependencies {
   implementation group: 'org.jsoup', name: 'jsoup', version: '1.22.2'
 
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.49.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.50.Final')
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.10:all'
