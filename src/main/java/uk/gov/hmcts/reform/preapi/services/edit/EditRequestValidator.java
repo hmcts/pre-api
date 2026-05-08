@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services.edit;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
@@ -9,13 +10,13 @@ import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 
 import java.util.List;
 
 import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
 
+@Service
 @Slf4j
 public final class EditRequestValidator {
     static final Integer SINGLETON_LIST_SIZE = 1;
@@ -66,12 +67,12 @@ public final class EditRequestValidator {
     static void checkForNonEmptyInstructionsOrForceReencode(EditInstructions instructions) {
         if (instructions.isForceReencode()) {
             if (instructions.getFfmpegInstructions() != null && !instructions.getFfmpegInstructions().isEmpty()) {
-                throw new UnknownServerException("Cannot force re-encode: edit instructions are not empty");
+                throw new BadRequestException("Cannot force re-encode: edit instructions are not empty");
             }
         } else {
             if (instructions.getFfmpegInstructions() == null
                 || instructions.getFfmpegInstructions().isEmpty()) {
-                throw new UnknownServerException("No edit instructions received for edit request");
+                throw new BadRequestException("No edit instructions received for edit request");
             }
         }
     }
