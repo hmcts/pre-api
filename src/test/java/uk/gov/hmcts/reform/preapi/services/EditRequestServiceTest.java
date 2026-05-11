@@ -689,44 +689,33 @@ class EditRequestServiceTest {
     @Test
     @DisplayName("Should find recording ids with force re-encode requests")
     void findRecordingIdsWithForceReencodeRequests() {
-        UUID forceReencodeRecordingId = UUID.randomUUID();
-        UUID regularEditRecordingId = UUID.randomUUID();
-        Set<UUID> recordingIds = Set.of(forceReencodeRecordingId, regularEditRecordingId);
+        UUID result1 = UUID.randomUUID();
+        UUID result2 = UUID.randomUUID();
+        Set<UUID> recordingIds = Set.of(result1, result2);
 
-        when(editRequestRepository.findAllBySourceRecordingIdIn(recordingIds))
-            .thenReturn(List.of(
-                editRequest(forceReencodeRecordingId, true),
-                editRequest(regularEditRecordingId, false)
+        when(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(recordingIds))
+            .thenReturn(Set.of(
+                result1,
+                result2
             ));
 
         Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(recordingIds);
 
-        assertThat(result).containsExactly(forceReencodeRecordingId);
+        assertThat(result).containsExactly(result1, result2);
+        verify(editRequestCrudService, times(1))
+            .findRecordingIdsWithForceReencodeRequests(any());
     }
 
     @Test
     @DisplayName("Should not query force re-encode requests for empty recording ids")
     void findRecordingIdsWithForceReencodeRequestsEmptySet() {
+        when(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(Set.of()))
+            .thenReturn(Set.of());
+
         Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(Set.of());
 
         assertThat(result).isEmpty();
-        verify(editRequestRepository, never()).findAllBySourceRecordingIdIn(any());
-    }
-
-    private static EditRequest editRequest(UUID sourceRecordingId, boolean forceReencode) {
-        Recording recording = new Recording();
-        recording.setId(sourceRecordingId);
-
-        EditRequest editRequest = new EditRequest();
-        editRequest.setSourceRecording(recording);
-        editRequest.setEditInstruction("""
-            {
-              "requestedInstructions": [],
-              "ffmpegInstructions": [],
-              "forceReencode": %s,
-              "sendNotifications": false
-            }
-            """.formatted(forceReencode));
-        return editRequest;
+        verify(editRequestCrudService, times(1))
+            .findRecordingIdsWithForceReencodeRequests(any());
     }
 }
