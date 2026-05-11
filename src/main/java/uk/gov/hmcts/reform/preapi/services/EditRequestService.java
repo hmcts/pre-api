@@ -52,7 +52,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -115,6 +117,23 @@ public class EditRequestService {
     @Transactional
     public Optional<EditRequest> getNextPendingEditRequest() {
         return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    }
+
+    @Transactional(readOnly = true)
+    public Set<UUID> findRecordingIdsWithForceReencodeRequests(Set<UUID> sourceRecordingIds) {
+        if (sourceRecordingIds.isEmpty()) {
+            return Set.of();
+        }
+
+        return editRequestRepository.findAllBySourceRecordingIdIn(sourceRecordingIds).stream()
+            .filter(editRequest -> {
+                EditInstructions instructions = EditInstructions.tryFromJson(editRequest.getEditInstruction());
+                return instructions != null && instructions.isForceReencode();
+            })
+            .map(EditRequest::getSourceRecording)
+            .filter(Objects::nonNull)
+            .map(Recording::getId)
+            .collect(Collectors.toSet());
     }
 
     @Transactional
