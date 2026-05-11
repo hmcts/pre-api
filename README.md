@@ -537,6 +537,40 @@ or by source code:
 TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
 ```
 
+### Re-encode recordings from CSV
+
+`ReEncodeRecordingsFromCsv` creates force re-encode edit requests for recordings listed in a CSV file. It sets
+`force_reencode` to `true` and `send_notifications` to `false` on every edit request it creates.
+
+By default, the task will not create another re-encode request for a recording that already has a force re-encode edit
+request. Set `REENCODE_RECORDINGS_FORCE=true` to override that check and submit a new re-encode request anyway.
+Duplicate recording ids within the same CSV run are skipped.
+
+The CSV requires `source_recording_id` and can include an optional `case_reference` column for clearer progress logs:
+
+```csv
+source_recording_id,case_reference
+11111111-1111-1111-1111-111111111111,CASE-123
+22222222-2222-2222-2222-222222222222,CASE-456
+```
+
+Run it by source:
+
+```bash
+REENCODE_RECORDINGS_CSV_PATH=/path/to/re-encode-recordings.csv \
+TASK_NAME=ReEncodeRecordingsFromCsv \
+./gradlew bootRun
+```
+
+Or by JAR:
+
+```bash
+./gradlew bootJar
+REENCODE_RECORDINGS_CSV_PATH=/path/to/re-encode-recordings.csv \
+TASK_NAME=ReEncodeRecordingsFromCsv \
+java -jar build/libs/pre-api.jar run
+```
+
 ## Troubleshooting
 
 ### Common Issues
