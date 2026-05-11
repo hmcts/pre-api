@@ -41,8 +41,11 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static uk.gov.hmcts.reform.preapi.media.edit.EditInstructions.fromJson;
 import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
@@ -91,6 +94,23 @@ public class EditRequestService {
     @Transactional
     public Optional<EditRequest> getNextPendingEditRequest() {
         return editRequestCrudService.getNextPendingEditRequest();
+    }
+
+    @Transactional(readOnly = true)
+    public Set<UUID> findRecordingIdsWithForceReencodeRequests(Set<UUID> sourceRecordingIds) {
+        if (sourceRecordingIds.isEmpty()) {
+            return Set.of();
+        }
+
+        return editRequestRepository.findAllBySourceRecordingIdIn(sourceRecordingIds).stream()
+            .filter(editRequest -> {
+                EditInstructions instructions = EditInstructions.tryFromJson(editRequest.getEditInstruction());
+                return instructions != null && instructions.isForceReencode();
+            })
+            .map(EditRequest::getSourceRecording)
+            .filter(Objects::nonNull)
+            .map(Recording::getId)
+            .collect(Collectors.toSet());
     }
 
     @Transactional
