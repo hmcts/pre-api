@@ -554,10 +554,13 @@ source_recording_id,case_reference
 22222222-2222-2222-2222-222222222222,CASE-456
 ```
 
+For deployments that build the CSV into the application, replace `src/main/resources/re-encode-recordings.csv` before
+building the image and set `REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv`.
+
 Run it by source:
 
 ```bash
-REENCODE_RECORDINGS_CSV_PATH=/path/to/re-encode-recordings.csv \
+REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv \
 TASK_NAME=ReEncodeRecordingsFromCsv \
 ./gradlew bootRun
 ```
@@ -566,10 +569,13 @@ Or by JAR:
 
 ```bash
 ./gradlew bootJar
-REENCODE_RECORDINGS_CSV_PATH=/path/to/re-encode-recordings.csv \
+REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv \
 TASK_NAME=ReEncodeRecordingsFromCsv \
 java -jar build/libs/pre-api.jar run
 ```
+
+Filesystem paths are also supported for local runs, for example
+`REENCODE_RECORDINGS_CSV_PATH=/path/to/re-encode-recordings.csv`.
 
 ## Troubleshooting
 
