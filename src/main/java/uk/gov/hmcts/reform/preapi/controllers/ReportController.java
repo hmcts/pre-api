@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
@@ -168,5 +169,13 @@ public class ReportController {
         summary = "Get report on app users and their primary courts v2")
     public ResponseEntity<List<UserPrimaryCourtReportDTO>> reportUserPrimaryCourts() {
         return ResponseEntity.ok(reportService.reportUserPrimaryCourts());
+    }
+
+    @GetMapping("/user-full-access-report")
+    @Operation(
+        operationId = "reportUserFullAccess",
+        summary = "Get full report on app users")
+    public ResponseEntity<List<UserAccessReportDTO>> reportUserFullAccess() {
+        return ResponseEntity.ok(reportService.reportUserFullAccess());
     }
 }
