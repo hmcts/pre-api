@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.dto.reports;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.opencsv.bean.CsvBindByName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,44 +16,47 @@ import java.sql.Timestamp;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UserAccessReportDTO {
 
+    @CsvBindByName(column = "First name")
     @Schema(description = "UserReportFirstName")
     private String firstName;
 
+    @CsvBindByName(column = "Last name")
     @Schema(description = "UserReportLastName")
     private String lastName;
 
+    @CsvBindByName(column = "Primary email")
     @Schema(description = "UserPrimaryEmail")
     private String primaryEmail;
 
+    @CsvBindByName(column = "Additional email")
     @Schema(description = "UserAdditionalEmail")
     private String additionalEmail;
 
+    @CsvBindByName(column = "Court name")
     @Schema(description = "CourtName")
     private String courtName;
 
+    @CsvBindByName(column = "Access type")
     @Schema(description = "AccessType")
     private String accessType;
 
+    @CsvBindByName(column = "Access role")
     @Schema(description = "UserReportRoleName")
     private String roleName;
 
+    @CsvBindByName(column = "Active")
     @Schema(description = "UserReportActive")
     private String active;
-
-    @Schema(description = "UserReportLastAccess")
-    private Timestamp lastAccess;
 
     public UserAccessReportDTO(String firstName, String lastName,
                                String primaryEmail, String additionalEmail,
                                String courtName, boolean isDefaultCourt,
-                               String roleName, Timestamp lastAccess,
-                               boolean active) {
+                               String roleName, boolean active) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.primaryEmail = primaryEmail;
         this.additionalEmail = additionalEmail;
         this.courtName = courtName;
-        this.lastAccess = lastAccess;
         this.roleName = roleName;
 
         if (isDefaultCourt) {
@@ -66,6 +70,5 @@ public class UserAccessReportDTO {
         } else {
             this.active = "Inactive";
         }
-
     }
 }

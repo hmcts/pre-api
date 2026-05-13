@@ -376,7 +376,6 @@ public class ReportService {
                                                          access.getCourt().getName(),
                                                          access.isDefaultCourt(),
                                                          access.getRole().getName(),
-                                                         access.getLastAccess(),
                                                          access.isActive()))
             .toList();
     }
