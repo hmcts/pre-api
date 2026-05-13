@@ -353,7 +353,7 @@ dependencies {
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
   implementation group: 'com.microsoft.graph', name: 'microsoft-graph', version: '6.24.0'
-  implementation group: 'com.azure', name: 'azure-identity', version: '1.18.3'
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.18.2'
 
   implementation group: 'org.jsoup', name: 'jsoup', version: '1.22.2'
 
