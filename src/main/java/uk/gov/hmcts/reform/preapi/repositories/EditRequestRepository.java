@@ -13,7 +13,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
-import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.util.Collection;
 import java.util.List;
@@ -29,7 +28,23 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
     @QueryHints({@QueryHint(name = "jakarta.persistence.lock.timeout", value = "0")})
     Optional<EditRequest> findById(@NotNull UUID id);
 
-    Optional<EditRequest> findFirstByStatusIsOrderByCreatedAt(EditRequestStatus status);
+    @Query(value = """
+        SELECT * FROM edit_requests e
+        WHERE e.status = 'PENDING'
+        AND COALESCE(e.edit_instruction ->> 'forceReencode', 'false') = 'false'
+        ORDER BY e.created_at
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<EditRequest> findFirstPendingRegularEditRequest();
+
+    @Query(value = """
+        SELECT * FROM edit_requests e
+        WHERE e.status = 'PENDING'
+        AND e.edit_instruction ->> 'forceReencode' = 'true'
+        ORDER BY e.created_at
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<EditRequest> findFirstPendingReencodeEditRequest();
 
     @Query(
         """
