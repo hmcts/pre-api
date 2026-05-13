@@ -537,6 +537,23 @@ or by source code:
 TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
 ```
 
+### Perform edit requests
+
+`PerformEditRequest` processes one pending edit request per run.
+
+By default, it only picks up regular edit requests and skips force re-encode requests. Set
+`PERFORM_EDIT_REQUEST_REENCODE_ONLY=true` to switch the same task to only pick up force re-encode requests.
+
+```bash
+TASK_NAME=PerformEditRequest ./gradlew bootRun
+```
+
+```bash
+PERFORM_EDIT_REQUEST_REENCODE_ONLY=true \
+TASK_NAME=PerformEditRequest \
+./gradlew bootRun
+```
+
 ### Re-encode recordings from CSV
 
 `ReEncodeRecordingsFromCsv` creates force re-encode edit requests for recordings listed in a CSV file. It sets
