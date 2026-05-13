@@ -1900,7 +1900,6 @@ definitions:
         x-nullable: true
       href:
         type: string
-        x-nullable: true
       hreflang:
         type: string
         x-nullable: true
@@ -1912,7 +1911,6 @@ definitions:
         x-nullable: true
       templated:
         type: boolean
-        x-nullable: true
       title:
         type: string
         x-nullable: true
