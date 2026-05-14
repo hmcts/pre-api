@@ -55,6 +55,17 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     // ==================================================
     private void processChannelUserData(CSVChannelData channelDataItem) {
         String channelName = channelDataItem.getChannelName();
+        String email = channelDataItem.getChannelUserEmail();
+
+        if (email == null || email.isBlank()) {
+            loggingService.logWarning(
+                "Skipping channel user entry with missing email for channel: %s, user: %s",
+                channelName,
+                channelDataItem.getChannelUser()
+            );
+            return;
+        }
+
         List<String[]> existing = cacheService.getChannelReference(channelName)
             .orElse(new ArrayList<>());
 
