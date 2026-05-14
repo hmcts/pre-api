@@ -5,13 +5,9 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.opencsv.bean.CsvBindByName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.AppAccessCourtType;
 
-import java.sql.Timestamp;
-
 @Data
-@NoArgsConstructor
 @Schema(description = "UserAccessReport")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UserAccessReportDTO {
@@ -47,6 +43,10 @@ public class UserAccessReportDTO {
     @CsvBindByName(column = "Active")
     @Schema(description = "UserReportActive")
     private String active;
+
+    private UserAccessReportDTO() {
+        throw new IllegalArgumentException("UserAccessReportDTO must be instantiated with fields");
+    }
 
     public UserAccessReportDTO(String firstName, String lastName,
                                String primaryEmail, String additionalEmail,
