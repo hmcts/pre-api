@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.opencsv.bean.CsvBindByName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.AppAccessCourtType;
 
 @Data
@@ -24,9 +25,9 @@ public class UserAccessReportDTO {
     @Schema(description = "UserPrimaryEmail")
     private String primaryEmail;
 
-    @CsvBindByName(column = "Additional email")
-    @Schema(description = "UserAdditionalEmail")
-    private String additionalEmail;
+    @CsvBindByName(column = "Alternative email")
+    @Schema(description = "UserAlternativeEmail")
+    private String alternativeEmail;
 
     @CsvBindByName(column = "Court name")
     @Schema(description = "CourtName")
@@ -48,27 +49,30 @@ public class UserAccessReportDTO {
         throw new IllegalArgumentException("UserAccessReportDTO must be instantiated with fields");
     }
 
-    public UserAccessReportDTO(String firstName, String lastName,
-                               String primaryEmail, String additionalEmail,
-                               String courtName, boolean isDefaultCourt,
-                               String roleName, boolean active) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.primaryEmail = primaryEmail;
-        this.additionalEmail = additionalEmail;
-        this.courtName = courtName;
-        this.roleName = roleName;
+    public UserAccessReportDTO(AppAccess access) {
+        if (access == null || access.getUser() == null || access.getRole() == null
+                || access.getCourt() == null) {
+            throw new IllegalArgumentException("UserAccessReportDTO must be instantiated with non-null values");
+        }
 
-        if (isDefaultCourt) {
+        this.firstName = access.getUser().getFirstName();
+        this.lastName = access.getUser().getLastName();
+        this.primaryEmail = access.getUser().getEmail();
+        this.alternativeEmail = access.getUser().getAlternativeEmail();
+        this.courtName = access.getCourt().getName();
+        this.roleName = access.getRole().getName();
+
+        if (access.isDefaultCourt()) {
             this.accessType = AppAccessCourtType.PRIMARY.accessType;
         } else {
             this.accessType = AppAccessCourtType.SECONDARY.accessType;
         }
 
-        if (active) {
+        if (access.isActive()) {
             this.active = "Active";
         } else {
             this.active = "Inactive";
         }
     }
+
 }

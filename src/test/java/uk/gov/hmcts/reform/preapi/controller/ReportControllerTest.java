@@ -39,6 +39,7 @@ import uk.gov.hmcts.reform.preapi.reports.UserFullAccessCsvReportGenerator;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
@@ -601,14 +602,11 @@ public class ReportControllerTest {
     @DisplayName("Should return user full access report as JSON")
     @Test
     void reportUserFullAccessAsJsonSuccess() throws Exception {
-        UserAccessReportDTO dto = new UserAccessReportDTO("First", "Last",
-                                                          "Primary email", "Additional email",
-                                                          "Court Name", true,
-                                                          "Level 1", true
-        );
+        UserAccessReportDTO dto = HelperFactory.createUserAccessReportDTO("user 1 ");
+        UserAccessReportDTO dto2 = HelperFactory.createUserAccessReportDTO("user 2 ");
 
         when(reportService.reportUserFullAccess())
-            .thenReturn(List.of(dto));
+            .thenReturn(List.of(dto, dto2));
 
         mockMvc.perform(get("/reports-v2/user-full-access-report"))
             .andExpect(status().isOk())
@@ -616,10 +614,18 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].first_name").value(dto.getFirstName()))
             .andExpect(jsonPath("$[0].last_name").value(dto.getLastName()))
             .andExpect(jsonPath("$[0].primary_email").value(dto.getPrimaryEmail()))
-            .andExpect(jsonPath("$[0].additional_email").value(dto.getAdditionalEmail()))
+            .andExpect(jsonPath("$[0].alternative_email").value(dto.getAlternativeEmail()))
             .andExpect(jsonPath("$[0].court_name").value(dto.getCourtName()))
             .andExpect(jsonPath("$[0].active").value(dto.getActive()))
-            .andExpect(jsonPath("$[0].role_name").value(dto.getRoleName()));
+            .andExpect(jsonPath("$[0].role_name").value(dto.getRoleName()))
+
+            .andExpect(jsonPath("$[1].first_name").value(dto2.getFirstName()))
+            .andExpect(jsonPath("$[1].last_name").value(dto2.getLastName()))
+            .andExpect(jsonPath("$[1].primary_email").value(dto2.getPrimaryEmail()))
+            .andExpect(jsonPath("$[1].alternative_email").value(dto2.getAlternativeEmail()))
+            .andExpect(jsonPath("$[1].court_name").value(dto2.getCourtName()))
+            .andExpect(jsonPath("$[1].active").value(dto2.getActive()))
+            .andExpect(jsonPath("$[1].role_name").value(dto2.getRoleName()));
     }
 
     @DisplayName("Should render CSV body returned by report generator")
@@ -630,7 +636,7 @@ public class ReportControllerTest {
             first,last,whatever
             second,user,
             """;
-        when(userFullAccessCsvReportGenerator.generateCsvReport())
+        when(userFullAccessCsvReportGenerator.getCsvReportAsString())
             .thenReturn(Optional.of(returnedByReport));
 
         mockMvc.perform(get("/reports-v2/user-full-access-report-csv"))
@@ -642,7 +648,7 @@ public class ReportControllerTest {
     @DisplayName("Should return no content status if empty CSV returned by report generator")
     @Test
     void reportUserFullAccessEmptyCsvSuccess() throws Exception {
-        when(userFullAccessCsvReportGenerator.generateCsvReport())
+        when(userFullAccessCsvReportGenerator.getCsvReportAsString())
             .thenReturn(Optional.empty());
 
         mockMvc.perform(get("/reports-v2/user-full-access-report-csv"))

@@ -17,7 +17,7 @@ public class UserFullAccessCsvReportGenerator extends CsvReportGenerator impleme
 
     private static final List<String> COLUMN_ORDER = List.of(
         "First name", "Last name",
-        "Primary email", "Additional email",
+        "Primary email", "Alternative email",
         "Court name", "Access role",
         "Access type", "Active"
     );
@@ -29,7 +29,7 @@ public class UserFullAccessCsvReportGenerator extends CsvReportGenerator impleme
     }
 
     @Override
-    public Optional<String> generateCsvReport() {
+    public Optional<String> getCsvReportAsString() {
         List<UserAccessReportDTO> userAccessReportDTOS = reportService.reportUserFullAccess();
         return generateCsvReport(COLUMN_ORDER, userAccessReportDTOS, UserAccessReportDTO.class);
     }

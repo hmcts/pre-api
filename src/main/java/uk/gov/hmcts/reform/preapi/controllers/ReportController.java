@@ -195,7 +195,7 @@ public class ReportController {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.CONTENT_TYPE, "text/csv");
 
-        Optional<String> csvContent = userFullAccessCsvReportGenerator.generateCsvReport();
+        Optional<String> csvContent = userFullAccessCsvReportGenerator.getCsvReportAsString();
         if (csvContent.isEmpty()) {
             return ResponseEntity
                 .noContent()

@@ -5,5 +5,5 @@ import java.util.Optional;
 @FunctionalInterface
 public interface IReportGenerator {
 
-    Optional<String> generateCsvReport();
+    Optional<String> getCsvReportAsString();
 }

@@ -369,16 +369,8 @@ public class ReportService {
     public List<UserAccessReportDTO> reportUserFullAccess() {
         return this.appAccessRepository.findAll()
             .stream()
-            .map(access -> new UserAccessReportDTO(access.getUser().getFirstName(),
-                                                         access.getUser().getLastName(),
-                                                         access.getUser().getEmail(),
-                                                         access.getUser().getAlternativeEmail(),
-                                                         access.getCourt().getName(),
-                                                         access.isDefaultCourt(),
-                                                         access.getRole().getName(),
-                                                         access.isActive()))
+            .map(UserAccessReportDTO::new)
             .toList();
     }
-
 
 }

@@ -19,7 +19,7 @@ public class ReportUserFullAccess implements Runnable {
     @Override
     public void run() {
         log.info("Starting ReportUserFullAccess Task");
-        csvReportGenerator.generateCsvReport();
+        csvReportGenerator.getCsvReportAsString();
         // TODO: Upload the output to Sharepoint file
     }
 
