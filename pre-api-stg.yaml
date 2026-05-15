@@ -2594,8 +2594,8 @@ definitions:
       active:
         description: UserReportActive
         type: string
-      additional_email:
-        description: UserAdditionalEmail
+      alternative_email:
+        description: UserAlternativeEmail
         type: string
       court_name:
         description: CourtName
