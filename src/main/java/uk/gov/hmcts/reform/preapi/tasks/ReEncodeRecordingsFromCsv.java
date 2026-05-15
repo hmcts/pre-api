@@ -6,6 +6,8 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -15,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +37,7 @@ public class ReEncodeRecordingsFromCsv extends RobotUserTask {
     private static final String STATUS_ERROR = "ERROR";
 
     private final EditRequestService editRequestService;
+    private final ResourceLoader resourceLoader;
     private final String csvPath;
     private final boolean forceReencode;
 
@@ -67,11 +71,13 @@ public class ReEncodeRecordingsFromCsv extends RobotUserTask {
     public ReEncodeRecordingsFromCsv(EditRequestService editRequestService,
                                      UserService userService,
                                      UserAuthenticationService userAuthenticationService,
+                                     ResourceLoader resourceLoader,
                                      @Value("${cron-user-email}") String cronUserEmail,
                                      @Value("${REENCODE_RECORDINGS_CSV_PATH:}") String csvPath,
                                      @Value("${REENCODE_RECORDINGS_FORCE:false}") boolean forceReencode) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.editRequestService = editRequestService;
+        this.resourceLoader = resourceLoader;
         this.csvPath = csvPath;
         this.forceReencode = forceReencode;
     }
@@ -95,13 +101,7 @@ public class ReEncodeRecordingsFromCsv extends RobotUserTask {
             throw new IOException("REENCODE_RECORDINGS_CSV_PATH must be set");
         }
 
-        Path path = Path.of(csvPath);
-        if (!Files.exists(path)) {
-            throw new IOException("CSV file not found: " + csvPath);
-        }
-
-        log.info("Reading re-encode CSV file from {}", path.toAbsolutePath());
-        try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+        try (BufferedReader reader = openCsvReader()) {
             CsvToBean<ReEncodeRow> csvToBean = new CsvToBeanBuilder<ReEncodeRow>(reader)
                 .withType(ReEncodeRow.class)
                 .withIgnoreLeadingWhiteSpace(true)
@@ -115,6 +115,26 @@ public class ReEncodeRecordingsFromCsv extends RobotUserTask {
             ));
             return rows;
         }
+    }
+
+    private BufferedReader openCsvReader() throws IOException {
+        if (csvPath.startsWith(ResourceLoader.CLASSPATH_URL_PREFIX)) {
+            Resource resource = resourceLoader.getResource(csvPath);
+            if (!resource.exists()) {
+                throw new IOException("CSV file not found: " + csvPath);
+            }
+
+            log.info("Reading re-encode CSV file from {}", csvPath);
+            return new BufferedReader(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8));
+        }
+
+        Path path = Path.of(csvPath);
+        if (!Files.exists(path)) {
+            throw new IOException("CSV file not found: " + csvPath);
+        }
+
+        log.info("Reading re-encode CSV file from {}", path.toAbsolutePath());
+        return Files.newBufferedReader(path, StandardCharsets.UTF_8);
     }
 
     private void processRows(List<ReEncodeRow> rows) {
