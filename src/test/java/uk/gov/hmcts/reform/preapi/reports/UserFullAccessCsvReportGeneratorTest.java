@@ -35,18 +35,26 @@ public class UserFullAccessCsvReportGeneratorTest {
         );
 
         List<UserAccessReportDTO> writableObjects = List.of(
-            new UserAccessReportDTO("first", "user", "primary@email",
-                                    "additional@email.co.uk", "court name", true,
-                                    "Level 1", true),
-            new UserAccessReportDTO("first", "user", "primary@email",
-                                    "additional@email.co.uk", "other court", false,
-                                    "Level 4", true),
-            new UserAccessReportDTO("second", "user", "primary@email",
-                                    "additional@email.co.uk", "court name", true,
-                                    "Level 1", false),
-            new UserAccessReportDTO("third", "user", "primary@email",
-                                    "additional@email.co.uk", "court name", true,
-                                    "Level 1", true)
+            new UserAccessReportDTO(
+                "first", "user", "primary@email",
+                "additional@email.co.uk", "court name", true,
+                "Level 1", true
+            ),
+            new UserAccessReportDTO(
+                "first", "user", "primary@email",
+                "additional@email.co.uk", "other court", false,
+                "Level 4", true
+            ),
+            new UserAccessReportDTO(
+                "second", "user", "primary@email",
+                "additional@email.co.uk", "court name", true,
+                "Level 1", false
+            ),
+            new UserAccessReportDTO(
+                "third", "user", "primary@email",
+                "additional@email.co.uk", "court name", true,
+                "Level 1", true
+            )
         );
 
         when(reportService.reportUserFullAccess()).thenReturn(writableObjects);
@@ -57,12 +65,12 @@ public class UserFullAccessCsvReportGeneratorTest {
 
         String csv = result.orElseThrow(() -> new NotFoundException("No CSV generated"));
         assertThat(csv).isEqualTo(
-"""
-FIRST NAME,LAST NAME,PRIMARY EMAIL,ADDITIONAL EMAIL,COURT NAME,ACCESS ROLE,ACCESS TYPE,ACTIVE
-first,user,primary@email,additional@email.co.uk,court name,Level 1,Primary,Active
-first,user,primary@email,additional@email.co.uk,other court,Level 4,Secondary,Active
-second,user,primary@email,additional@email.co.uk,court name,Level 1,Primary,Inactive
-third,user,primary@email,additional@email.co.uk,court name,Level 1,Primary,Active
-""");
+                """
+                FIRST NAME,LAST NAME,PRIMARY EMAIL,ADDITIONAL EMAIL,COURT NAME,ACCESS ROLE,ACCESS TYPE,ACTIVE
+                first,user,primary@email,additional@email.co.uk,court name,Level 1,Primary,Active
+                first,user,primary@email,additional@email.co.uk,other court,Level 4,Secondary,Active
+                second,user,primary@email,additional@email.co.uk,court name,Level 1,Primary,Inactive
+                third,user,primary@email,additional@email.co.uk,court name,Level 1,Primary,Active
+                """);
     }
 }

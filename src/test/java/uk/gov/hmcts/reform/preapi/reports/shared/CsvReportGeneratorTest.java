@@ -1,8 +1,8 @@
 package uk.gov.hmcts.reform.preapi.reports.shared;
 
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,7 +34,10 @@ public class CsvReportGeneratorTest {
             "Primary email"
         );
 
-        Optional<String> result = underTest.generateCsvReport(columnOrder, writableObjects, UserAccessReportDTO.class);
+        Optional<String> result = underTest.generateCsvReport(
+            columnOrder, writableObjects,
+            UserAccessReportDTO.class
+        );
 
         assertThat(result.isPresent());
 
@@ -53,7 +56,10 @@ public class CsvReportGeneratorTest {
             "Primary email"
         );
 
-        Optional<String> result = underTest.generateCsvReport(columnOrder, writableObjects, UserAccessReportDTO.class);
+        Optional<String> result = underTest.generateCsvReport(
+            columnOrder, writableObjects,
+            UserAccessReportDTO.class
+        );
 
         assertThat(result.isPresent());
 
@@ -66,18 +72,22 @@ public class CsvReportGeneratorTest {
     public void shouldDefaultToAlphanumericIfNoColumnOrderSpecified() {
         final List<String> columnOrder = List.of();
 
-        Optional<String> result = underTest.generateCsvReport(columnOrder, writableObjects, UserAccessReportDTO.class);
+        Optional<String> result = underTest.generateCsvReport(
+            columnOrder, writableObjects,
+            UserAccessReportDTO.class
+        );
 
         assertThat(result.isPresent());
 
         String csv = result.orElseThrow(() -> new NotFoundException("No CSV generated"));
-        assertThat(csv).isEqualTo("""
-ACCESS ROLE,ACCESS TYPE,ACTIVE,ADDITIONAL EMAIL,COURT NAME,FIRST NAME,LAST NAME,PRIMARY EMAIL
-Level 1,Primary,Active,additional@email.co.uk,court name,first,user,primary@email
-Level 4,Secondary,Active,additional@email.co.uk,other court,first,user,primary@email
-Level 1,Primary,Inactive,additional@email.co.uk,court name,second,user,primary@email
-Level 1,Primary,Active,additional@email.co.uk,court name,third,user,primary@email
-""");
+        assertThat(csv)
+            .isEqualTo("""
+                           ACCESS ROLE,ACCESS TYPE,ACTIVE,ADDITIONAL EMAIL,COURT NAME,FIRST NAME,LAST NAME,PRIMARY EMAIL
+                           Level 1,Primary,Active,additional@email.co.uk,court name,first,user,primary@email
+                           Level 4,Secondary,Active,additional@email.co.uk,other court,first,user,primary@email
+                           Level 1,Primary,Inactive,additional@email.co.uk,court name,second,user,primary@email
+                           Level 1,Primary,Active,additional@email.co.uk,court name,third,user,primary@email
+                           """);
     }
 
     @Test
@@ -108,18 +118,26 @@ Level 1,Primary,Active,additional@email.co.uk,court name,third,user,primary@emai
 
     private static @NotNull List<UserAccessReportDTO> getInputObjects() {
         return List.of(
-            new UserAccessReportDTO("first", "user", "primary@email",
-                                    "additional@email.co.uk", "court name", true,
-                                    "Level 1", true),
-            new UserAccessReportDTO("first", "user", "primary@email",
-                                    "additional@email.co.uk", "other court", false,
-                                    "Level 4", true),
-            new UserAccessReportDTO("second", "user", "primary@email",
-                                    "additional@email.co.uk", "court name", true,
-                                    "Level 1", false),
-            new UserAccessReportDTO("third", "user", "primary@email",
-                                    "additional@email.co.uk", "court name", true,
-                                    "Level 1", true)
+            new UserAccessReportDTO(
+                "first", "user", "primary@email",
+                "additional@email.co.uk", "court name", true,
+                "Level 1", true
+            ),
+            new UserAccessReportDTO(
+                "first", "user", "primary@email",
+                "additional@email.co.uk", "other court", false,
+                "Level 4", true
+            ),
+            new UserAccessReportDTO(
+                "second", "user", "primary@email",
+                "additional@email.co.uk", "court name", true,
+                "Level 1", false
+            ),
+            new UserAccessReportDTO(
+                "third", "user", "primary@email",
+                "additional@email.co.uk", "court name", true,
+                "Level 1", true
+            )
         );
     }
 }
