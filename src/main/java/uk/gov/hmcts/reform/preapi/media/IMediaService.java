@@ -49,6 +49,8 @@ public interface IMediaService {
 
     String triggerProcessingStep2(UUID recordingId, boolean isImport);
 
+    String triggerProcessingStep2(UUID recordingId, boolean isImport, String fileNameOverride);
+
     RecordingStatus verifyFinalAssetExists(UUID recordingId);
 
     RecordingStatus hasJobCompleted(String transformName, String jobName);

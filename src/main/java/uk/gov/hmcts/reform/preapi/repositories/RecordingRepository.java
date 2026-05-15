@@ -149,4 +149,14 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Recording> findAllOriginVodafoneNoDuration();
+
+    @Query("""
+        SELECT r FROM Recording r
+        WHERE r.captureSession.origin = 'VODAFONE'
+        AND r.parentRecording IS NULL
+        AND r.deletedAt IS NULL
+        AND r.captureSession.deletedAt IS NULL
+        """
+    )
+    List<Recording> findAllRootOriginVodafone();
 }

@@ -385,8 +385,15 @@ public class MediaKind implements IMediaService {
 
     @Override
     public String triggerProcessingStep2(UUID recordingId, boolean isImport) {
+        return triggerProcessingStep2(recordingId, isImport, null);
+    }
+
+    @Override
+    public String triggerProcessingStep2(UUID recordingId, boolean isImport, String fileNameOverride) {
         String containerName = recordingId.toString() + (isImport ? "-input" : "");
-        String filename = azureIngestStorageService.tryGetMp4FileName(containerName);
+        String filename = fileNameOverride != null
+            ? fileNameOverride
+            : azureIngestStorageService.tryGetMp4FileName(containerName);
         if (filename == null) {
             log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
             return null;

@@ -6,6 +6,7 @@ import org.apache.commons.exec.CommandLine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -33,6 +34,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -468,6 +470,51 @@ public class FfmpegServiceTest {
         verify(commandExecutor, times(1)).execute(any());
         verify(azureFinalStorageService, times(1)).downloadBlob(any(), any(), any());
         verify(azureIngestStorageService, times(1)).uploadBlob(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Should trim the ingest MP4 to the second keyframe and upload the repaired blob")
+    void shouldTrimToSecondKeyframeInIngest() {
+        UUID recordingId = UUID.randomUUID();
+        String sourceBlob = "source/path/video.mp4";
+        String outputBlob = "source/path/video-syncfix.mp4";
+
+        when(azureIngestStorageService.downloadBlob(eq(recordingId + "-input"), eq(sourceBlob), any()))
+            .thenReturn(true);
+        when(commandExecutor.executeAndGetOutput(any(CommandLine.class))).thenReturn("0.000000\n1.250000\n");
+        when(commandExecutor.execute(any(CommandLine.class))).thenReturn(true);
+        when(azureIngestStorageService.uploadBlob(any(), eq(recordingId + "-input"), eq(outputBlob))).thenReturn(true);
+
+        ffmpegService.trimToSecondKeyframeInIngest(recordingId, sourceBlob, outputBlob);
+
+        ArgumentCaptor<CommandLine> commandCaptor = ArgumentCaptor.forClass(CommandLine.class);
+        verify(commandExecutor, times(1)).executeAndGetOutput(commandCaptor.capture());
+        assertThat(commandCaptor.getValue().getExecutable()).isEqualTo("ffprobe");
+
+        verify(commandExecutor, times(1)).execute(commandCaptor.capture());
+        assertThat(commandCaptor.getValue().getExecutable()).isEqualTo("ffmpeg");
+        assertThat(commandCaptor.getValue().getArguments()).contains("-ss", "1.250000", "-copytb", "1");
+        verify(azureIngestStorageService, times(1)).uploadBlob(any(), eq(recordingId + "-input"), eq(outputBlob));
+    }
+
+    @Test
+    @DisplayName("Should fail when there is no second keyframe to trim to")
+    void shouldFailWhenSecondKeyframeMissing() {
+        UUID recordingId = UUID.randomUUID();
+        String sourceBlob = "source/path/video.mp4";
+
+        when(azureIngestStorageService.downloadBlob(eq(recordingId + "-input"), eq(sourceBlob), any()))
+            .thenReturn(true);
+        when(commandExecutor.executeAndGetOutput(any(CommandLine.class))).thenReturn("0.000000\n");
+
+        String message = assertThrows(
+            UnknownServerException.class,
+            () -> ffmpegService.trimToSecondKeyframeInIngest(recordingId, sourceBlob, "out.mp4")
+        ).getMessage();
+
+        assertThat(message).contains("Unable to find a second keyframe");
+        verify(commandExecutor, never()).execute(any(CommandLine.class));
+        verify(azureIngestStorageService, never()).uploadBlob(any(), any(), any());
     }
 
     private String generateEditInstructionsJson(List<FfmpegEditInstructionDTO> ffmpegEditInstructions)

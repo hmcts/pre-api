@@ -5344,6 +5344,23 @@ paths:
       summary: Search all migration records
       tags:
         - vf-migration-controller
+  /vf-migration-records/fix-audio-sync:
+    post:
+      operationId: fixVodafoneAudioSync
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Repairs Vodafone MP4 audio sync and reruns EncodeFromMp4
+      tags:
+        - vf-migration-controller
   /vf-migration-records/import-assets:
     post:
       operationId: importVodafoneAssets
