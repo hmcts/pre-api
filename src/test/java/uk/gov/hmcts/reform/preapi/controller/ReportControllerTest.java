@@ -1,11 +1,14 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
@@ -33,6 +37,7 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.reports.UserFullAccessCsvReportGenerator;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
@@ -44,6 +49,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -54,6 +60,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -68,6 +75,9 @@ public class ReportControllerTest {
 
     @MockitoBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockitoBean
+    private UserFullAccessCsvReportGenerator userFullAccessCsvReportGenerator;
 
     @MockitoBean
     private ScheduledTaskRunner taskRunner;
@@ -588,5 +598,56 @@ public class ReportControllerTest {
                                                               .atOffset(ZoneOffset.UTC)
                                                               .format(DateTimeFormatter
                                                                       .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS+00:00"))));
+    }
+
+    @DisplayName("Should return user full access report as JSON")
+    @Test
+    void reportUserFullAccessAsJsonSuccess() throws Exception {
+        UserAccessReportDTO dto = new UserAccessReportDTO("First", "Last",
+        "Primary email", "Additional email","Court Name",
+        true, "Level 1", true);
+
+        when(reportService.reportUserFullAccess())
+            .thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/reports-v2/user-full-access-report"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$[0].first_name").value(dto.getFirstName()))
+            .andExpect(jsonPath("$[0].last_name").value(dto.getLastName()))
+            .andExpect(jsonPath("$[0].primary_email").value(dto.getPrimaryEmail()))
+            .andExpect(jsonPath("$[0].additional_email").value(dto.getAdditionalEmail()))
+            .andExpect(jsonPath("$[0].court_name").value(dto.getCourtName()))
+            .andExpect(jsonPath("$[0].active").value(dto.getActive()))
+            .andExpect(jsonPath("$[0].role_name").value(dto.getRoleName()));
+    }
+
+    @DisplayName("Should render CSV body returned by report generator")
+    @Test
+    void reportUserFullAccessSuccess() throws Exception {
+        String returnedByReport = """
+            FIRST_NAME,LAST_NAME,OTHER_FIELDS
+            first,last,whatever
+            second,user,
+            """;
+        when(userFullAccessCsvReportGenerator.generateCsvReport())
+            .thenReturn(Optional.of(returnedByReport));
+
+        mockMvc.perform(get("/reports-v2/user-full-access-report-csv"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/csv"))
+            .andExpect(content().string(returnedByReport));
+    }
+
+    @DisplayName("Should return no content status if empty CSV returned by report generator")
+    @Test
+    void reportUserFullAccessEmptyCsvSuccess() throws Exception {
+        when(userFullAccessCsvReportGenerator.generateCsvReport())
+            .thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/reports-v2/user-full-access-report-csv"))
+            .andExpect(status().isNoContent())
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/csv"))
+            .andExpect(content().string(""));
     }
 }

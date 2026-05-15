@@ -192,16 +192,19 @@ public class ReportController {
     @Operation(
         operationId = "reportUserFullAccessCsv",
         summary = "Get full report on app users in CSV format")
-    public ResponseEntity<byte[]> reportUserFullAccessCsv() throws IOException {
-        Optional<String> csvContent = userFullAccessCsvReportGenerator.generateCsvReport();
-        if (csvContent.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-
-        byte[] csvBytes = csvContent.get().getBytes(StandardCharsets.UTF_8);
+    public ResponseEntity<byte[]> reportUserFullAccessCsv() {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.CONTENT_TYPE, "text/csv");
 
+        Optional<String> csvContent = userFullAccessCsvReportGenerator.generateCsvReport();
+        if (csvContent.isEmpty()) {
+            return ResponseEntity
+                .noContent()
+                .headers(headers)
+                .build();
+        }
+
+        byte[] csvBytes = csvContent.get().getBytes(StandardCharsets.UTF_8);
         return ResponseEntity.ok()
             .headers(headers)
             .body(csvBytes);
