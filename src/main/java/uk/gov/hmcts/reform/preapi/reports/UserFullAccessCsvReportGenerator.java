@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.reports;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.reports.shared.CsvReportGenerator;
@@ -21,6 +22,7 @@ public class UserFullAccessCsvReportGenerator extends CsvReportGenerator impleme
         "Access type", "Active"
     );
 
+    @Autowired
     public UserFullAccessCsvReportGenerator(ReportService reportService) {
         super();
         this.reportService = reportService;

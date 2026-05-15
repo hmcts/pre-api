@@ -19,7 +19,7 @@ import java.util.Optional;
 @Slf4j
 public class CsvReportGenerator {
 
-    protected <T> Optional<String> generateCsvReport(List<String> columnOrder,
+    public <T> Optional<String> generateCsvReport(List<String> columnOrder,
                                                   List<T> writableObjects,
                                                   Class<T> reportClass) {
         if (writableObjects == null || writableObjects.isEmpty()) {

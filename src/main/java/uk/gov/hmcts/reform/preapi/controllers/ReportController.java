@@ -26,7 +26,6 @@ import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.reports.UserFullAccessCsvReportGenerator;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
