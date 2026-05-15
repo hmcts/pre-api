@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.dto.reports;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -61,5 +62,41 @@ class UserAccessReportDTOTest {
         UserAccessReportDTO userAccessReportDTO = new UserAccessReportDTO(appAccess);
         assertThat(userAccessReportDTO.getAccessType()).isEqualTo("Primary");
         assertThat(userAccessReportDTO.getActive()).isEqualTo("Active");
+    }
+
+    @Test
+    void throwExceptionWhenNullAppAccess() {
+        AppAccess appAccessWithNullUser = appAccess;
+        appAccessWithNullUser.setUser(null);
+        String message = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> new UserAccessReportDTO(appAccessWithNullUser)
+        ).getMessage();
+        assertThat(message)
+                .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
+    }
+
+    @Test
+    void throwExceptionWhenNullCourt() {
+        AppAccess appAccessWithNullCourt = appAccess;
+        appAccessWithNullCourt.setUser(null);
+        String message = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> new UserAccessReportDTO(appAccessWithNullCourt)
+        ).getMessage();
+        assertThat(message)
+                .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
+    }
+
+    @Test
+    void throwExceptionWhenNullRole() {
+        AppAccess appAccessWithNullRole = appAccess;
+        appAccessWithNullRole.setUser(null);
+        String message = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> new UserAccessReportDTO(appAccessWithNullRole)
+        ).getMessage();
+        assertThat(message)
+                .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
     }
 }
