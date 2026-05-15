@@ -602,8 +602,10 @@ public class ReportControllerTest {
     @Test
     void reportUserFullAccessAsJsonSuccess() throws Exception {
         UserAccessReportDTO dto = new UserAccessReportDTO("First", "Last",
-        "Primary email", "Additional email","Court Name",
-        true, "Level 1", true);
+                                                          "Primary email", "Additional email",
+                                                          "Court Name", true,
+                                                          "Level 1", true
+        );
 
         when(reportService.reportUserFullAccess())
             .thenReturn(List.of(dto));
