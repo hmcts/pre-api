@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
@@ -32,6 +33,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
@@ -45,6 +47,7 @@ import java.util.UUID;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -126,12 +129,14 @@ public class ReportServiceTest {
 
     @BeforeEach
     void reset() {
+        SecurityContextHolder.clearContext();
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setStatus(null);
         recordingEntity.setDuration(null);
         recordingEntity.setVersion(1);
         recordingEntity.setParentRecording(null);
+        recordingEntity.setReencode(false);
         auditEntity.setSource(null);
         auditEntity.setCreatedBy(null);
         auditEntity.setAuditDetails(null);
@@ -238,6 +243,59 @@ public class ReportServiceTest {
 
         assertThat(report.getFirst().getVersion()).isEqualTo(2);
         assertThat(report.getLast().getVersion()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("Find all edited recordings hides re-encoded recordings for non super users")
+    void reportEditsHidesReencodedRecordingsForNonSuperUser() {
+        recordingEntity.setVersion(2);
+        var reencodedRecording = new Recording();
+        reencodedRecording.setId(UUID.randomUUID());
+        reencodedRecording.setVersion(3);
+        reencodedRecording.setCreatedAt(Timestamp.from(Instant.now()));
+        reencodedRecording.setCaptureSession(captureSessionEntity);
+        reencodedRecording.setReencode(true);
+
+        when(recordingRepository.findAllByParentRecordingIsNotNull())
+            .thenReturn(List.of(recordingEntity, reencodedRecording));
+
+        var report = reportService.reportEdits();
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getVersion()).isEqualTo(recordingEntity.getVersion());
+    }
+
+    @Test
+    @DisplayName("Find all edited recordings includes re-encoded recordings for super users")
+    void reportEditsIncludesReencodedRecordingsForSuperUser() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        recordingEntity.setVersion(2);
+        recordingEntity.setReencode(true);
+
+        when(recordingRepository.findAllByParentRecordingIsNotNull()).thenReturn(List.of(recordingEntity));
+
+        var report = reportService.reportEdits();
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getVersion()).isEqualTo(recordingEntity.getVersion());
+    }
+
+    @Test
+    @DisplayName("Find counts for recordings includes re-encoded recordings for super users")
+    void reportRecordingsPerCaseIncludesReencodedForSuperUser() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(recordingRepository.countRecordingsPerCase(true)).thenReturn(List.of());
+
+        var report = reportService.reportRecordingsPerCase();
+
+        assertThat(report.size()).isEqualTo(0);
+        verify(recordingRepository, times(1)).countRecordingsPerCase(true);
     }
 
     @DisplayName("Find shared bookings and return report list")

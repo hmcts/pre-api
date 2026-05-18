@@ -266,6 +266,56 @@ class RecordingServiceTest {
         verify(recordingRepository).save(argThat(Recording::isReencode));
     }
 
+    @DisplayName("Create a recording from top-level force re-encode edit instructions as re-encoded")
+    @Test
+    void createRecordingFromTopLevelForceReencodeMarkedReencoded() {
+        var aCase = new Case();
+        aCase.setState(CaseState.OPEN);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setVersion(2);
+        recordingModel.setEditInstructions("{\"forceReencode\":true}");
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
+
+        assertThat(recordingService.upsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
+
+        verify(recordingRepository).save(argThat(Recording::isReencode));
+    }
+
+    @DisplayName("Create a recording with invalid edit instructions as not re-encoded")
+    @Test
+    void createRecordingWithInvalidEditInstructionsNotMarkedReencoded() {
+        var aCase = new Case();
+        aCase.setState(CaseState.OPEN);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setVersion(2);
+        recordingModel.setEditInstructions("not-json");
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
+
+        assertThat(recordingService.upsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
+
+        verify(recordingRepository).save(argThat(recording -> !recording.isReencode()));
+    }
+
     @DisplayName("Update a recording")
     @Test
     void updateRecordingSuccess() {
