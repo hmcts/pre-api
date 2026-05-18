@@ -41,8 +41,8 @@ public class EditRequestPerformService {
         this.recordingService = recordingService;
     }
 
-    public Optional<EditRequest> getNextPendingEditRequest() {
-        return editRequestCrudService.getNextPendingEditRequest();
+    public Optional<EditRequest> getNextPendingEditRequest(boolean reencodeOnly) {
+        return editRequestCrudService.getNextPendingEditRequest(reencodeOnly);
     }
 
     @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
