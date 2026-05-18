@@ -98,8 +98,12 @@ public class EditRequestService {
     }
 
     @Transactional
-    public Optional<EditRequest> getNextPendingEditRequest() {
-        return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    public Optional<EditRequest> getNextPendingEditRequest(boolean reencodeOnly) {
+        if (reencodeOnly) {
+            return editRequestRepository.findFirstPendingReencodeEditRequest();
+        }
+
+        return editRequestRepository.findFirstPendingRegularEditRequest();
     }
 
     @Transactional(readOnly = true)
