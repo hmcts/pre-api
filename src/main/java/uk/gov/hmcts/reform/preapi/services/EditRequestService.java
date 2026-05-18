@@ -8,6 +8,7 @@ import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -74,6 +75,9 @@ public class EditRequestService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
     private final EditNotificationService editNotificationService;
+    private final boolean hideReencodedRecordings;
+
+    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
 
     @Autowired
     public EditRequestService(final EditRequestRepository editRequestRepository,
@@ -83,7 +87,9 @@ public class EditRequestService {
                               final AzureIngestStorageService azureIngestStorageService,
                               final AzureFinalStorageService azureFinalStorageService,
                               final MediaServiceBroker mediaServiceBroker,
-                              final EditNotificationService editNotificationService) {
+                              final EditNotificationService editNotificationService,
+                              @Value("${feature-flags.hide-reencoded-recordings:true}")
+                              final boolean hideReencodedRecordings) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -92,26 +98,29 @@ public class EditRequestService {
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
         this.editNotificationService = editNotificationService;
+        this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasEditRequestAccess(authentication, #id)")
     public EditRequestDTO findById(UUID id) {
+        boolean includeHiddenByReencode = canViewReencodedRecordings();
         return editRequestRepository
             .findByIdNotLocked(id)
-            .map(EditRequestDTO::new)
+            .map(editRequest -> new EditRequestDTO(editRequest, true, includeHiddenByReencode))
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
     }
 
     @Transactional
     public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        boolean includeHiddenByReencode = canViewReencodedRecordings(auth);
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
         return editRequestRepository
             .searchAllBy(params, pageable)
-            .map(EditRequestDTO::new);
+            .map(editRequest -> new EditRequestDTO(editRequest, true, includeHiddenByReencode));
     }
 
     @Transactional
@@ -431,6 +440,15 @@ public class EditRequestService {
 
     private boolean shouldSendNotifications(CreateEditRequestDTO dto) {
         return !Boolean.FALSE.equals(dto.getSendNotifications());
+    }
+
+    private boolean canViewReencodedRecordings() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        return canViewReencodedRecordings(auth);
+    }
+
+    private boolean canViewReencodedRecordings(UserAuthentication auth) {
+        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {

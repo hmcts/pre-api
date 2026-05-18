@@ -199,7 +199,7 @@ public class ReportServiceTest {
         anotherCase.setCourt(courtEntity);
         anotherCase.setReference("XYZ456");
 
-        when(recordingRepository.countRecordingsPerCase())
+        when(recordingRepository.countRecordingsPerCase(false))
             .thenReturn(List.of(new Object[] { caseEntity, 1L }, new Object[]{ anotherCase, (long) 0 }));
 
         var report = reportService.reportRecordingsPerCase();

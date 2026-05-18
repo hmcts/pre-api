@@ -19,10 +19,22 @@ import java.util.UUID;
 public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     Optional<Recording> findByIdAndDeletedAtIsNull(UUID id);
 
+    @Query("""
+        SELECT r FROM Recording r
+        WHERE r.id = :id
+        AND r.deletedAt IS NULL
+        AND (:includeHiddenByReencode = TRUE OR r.hiddenByReencode = FALSE)
+        """)
+    Optional<Recording> findByIdAndDeletedAtIsNull(
+        @Param("id") UUID id,
+        @Param("includeHiddenByReencode") boolean includeHiddenByReencode
+    );
+
     @Query(
         """
         SELECT r FROM Recording r
         WHERE (:includeDeleted = TRUE OR r.deletedAt IS NULL)
+        AND (:includeHiddenByReencode = TRUE OR r.hiddenByReencode = FALSE)
         AND (:includeVodafone = TRUE
             OR (r.captureSession.origin != 'VODAFONE' AND r.captureSession.booking.caseId.origin != 'VODAFONE'))
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
@@ -89,6 +101,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         @Param("searchParams") SearchRecordings searchParams,
         @Param("includeDeleted") boolean includeDeleted,
         @Param("includeVodafone") boolean includeVodafone,
+        @Param("includeHiddenByReencode") boolean includeHiddenByReencode,
         Pageable pageable
     );
 
@@ -113,6 +126,21 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Object[]> countRecordingsPerCase();
+
+    @Query("""
+        SELECT c, COUNT(c)
+        FROM Recording r
+        LEFT JOIN CaptureSession cs ON r.captureSession.id=cs.id
+        LEFT JOIN Booking b ON cs.booking.id=b.id
+        LEFT JOIN Case c ON b.caseId.id=c.id
+        WHERE r.version = 1
+        AND r.deletedAt IS NULL
+        AND (:includeHiddenByReencode = TRUE OR r.hiddenByReencode = FALSE)
+        GROUP BY c
+        ORDER BY count(c) DESC
+        """
+    )
+    List<Object[]> countRecordingsPerCase(@Param("includeHiddenByReencode") boolean includeHiddenByReencode);
 
     int countByParentRecording_Id(UUID id);
 

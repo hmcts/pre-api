@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,9 @@ import java.util.stream.Collectors;
 @Service
 public class RecordingService {
 
+    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final RecordingRepository recordingRepository;
     private final CaptureSessionRepository captureSessionRepository;
     private final CaptureSessionService captureSessionService;
@@ -50,24 +55,31 @@ public class RecordingService {
     @Setter
     private boolean enableMigratedData;
 
+    @Setter
+    private boolean hideReencodedRecordings;
+
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository,
                             @Lazy CaptureSessionService captureSessionService,
                             AzureFinalStorageService azureFinalStorageService,
-                            @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
+                            @Value("${migration.enableMigratedData:false}") boolean enableMigratedData,
+                            @Value("${feature-flags.hide-reencoded-recordings:true}")
+                            boolean hideReencodedRecordings) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.enableMigratedData = enableMigratedData;
+        this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public RecordingDTO findById(UUID recordingId) {
-        return recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
-            .map(RecordingDTO::new)
+        boolean includeHiddenByReencode = canViewReencodedRecordings();
+        return recordingRepository.findByIdAndDeletedAtIsNull(recordingId, includeHiddenByReencode)
+            .map(recording -> new RecordingDTO(recording, includeHiddenByReencode))
             .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
     }
 
@@ -97,6 +109,7 @@ public class RecordingService {
         );
 
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        boolean includeHiddenByReencode = canViewReencodedRecordings(auth);
         params.setAuthorisedBookings(
             auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );
@@ -108,10 +121,11 @@ public class RecordingService {
             .searchAllBy(
                 params,
                 includeDeleted,
-                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
+                enableMigratedData || auth.hasRole(ROLE_SUPER_USER),
+                includeHiddenByReencode,
                 pageable
             )
-            .map(RecordingDTO::new);
+            .map(recording -> new RecordingDTO(recording, includeHiddenByReencode));
     }
 
     @Transactional
@@ -133,6 +147,7 @@ public class RecordingService {
         recordingEntity.setFilename(createRecordingDTO.getFilename());
         recordingEntity.setDuration(createRecordingDTO.getDuration());
         recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
+        recordingEntity.setHiddenByReencode(isReencodedRecording(createRecordingDTO.getEditInstructions()));
 
         recordingRepository.save(recordingEntity);
 
@@ -162,6 +177,30 @@ public class RecordingService {
         }
 
         return upsert(recording, captureSession, createRecordingDTO);
+    }
+
+    private boolean isReencodedRecording(String editInstructions) {
+        if (editInstructions == null || editInstructions.isBlank()) {
+            return false;
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(editInstructions);
+            return root.path("forceReencode").asBoolean(false)
+                || root.path("editInstructions").path("forceReencode").asBoolean(false);
+        } catch (Exception e) {
+            log.warn("Unable to parse recording edit instructions while checking re-encode visibility marker", e);
+            return false;
+        }
+    }
+
+    private boolean canViewReencodedRecordings() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        return canViewReencodedRecordings(auth);
+    }
+
+    private boolean canViewReencodedRecordings(UserAuthentication auth) {
+        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
     }
 
     @Transactional

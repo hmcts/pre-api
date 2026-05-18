@@ -194,7 +194,7 @@ public class LegacyReportServiceTest {
         anotherCase.setCourt(courtEntity);
         anotherCase.setReference("XYZ456");
 
-        when(recordingRepository.countRecordingsPerCase())
+        when(recordingRepository.countRecordingsPerCase(false))
             .thenReturn(List.of(new Object[] { caseEntity, (long) 1 }, new Object[]{ anotherCase, (long) 0 }));
 
         var report = reportService.reportRecordingsPerCase();

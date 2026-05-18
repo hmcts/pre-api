@@ -168,6 +168,7 @@ capture-session-registration:
 
 feature-flags:
   enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+  hide-reencoded-recordings: ${HIDE_REENCODED_RECORDINGS:true}
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
 

@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -100,6 +101,63 @@ public class RecordingDTOTest {
         // on parent recording with child recording
         var model3 = new RecordingDTO(recordingEntity);
         assertThat(model3.getTotalVersionCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("RecordingDTO.totalVersionCount excludes hidden re-encoded versions when not included")
+    void createRecordingFromEntityExcludesHiddenReencodedVersions() {
+        var hiddenRecording = new Recording();
+        hiddenRecording.setId(UUID.randomUUID());
+        hiddenRecording.setVersion(2);
+        hiddenRecording.setFilename("test.mp4");
+        hiddenRecording.setCaptureSession(recordingEntity.getCaptureSession());
+        hiddenRecording.setParentRecording(recordingEntity);
+        hiddenRecording.setHiddenByReencode(true);
+        recordingEntity.setRecordings(Set.of(hiddenRecording));
+
+        var model = new RecordingDTO(recordingEntity, false);
+
+        assertThat(model.getTotalVersionCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("RecordingDTO.editRequests excludes force re-encode requests when not included")
+    void createRecordingFromEntityExcludesForceReencodeEditRequests() {
+        var createdBy = HelperFactory.createDefaultTestUser();
+        var forceReencodeRequest = HelperFactory.createEditRequest(
+            UUID.randomUUID(),
+            recordingEntity,
+            "{\"forceReencode\":true}",
+            EditRequestStatus.COMPLETE,
+            createdBy,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        var regularRequest = HelperFactory.createEditRequest(
+            UUID.randomUUID(),
+            recordingEntity,
+            "{\"forceReencode\":false}",
+            EditRequestStatus.COMPLETE,
+            createdBy,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        forceReencodeRequest.setModifiedAt(Timestamp.from(Instant.now()));
+        regularRequest.setModifiedAt(Timestamp.from(Instant.now().plusSeconds(1)));
+        recordingEntity.setEditRequests(Set.of(forceReencodeRequest, regularRequest));
+
+        var model = new RecordingDTO(recordingEntity, false);
+
+        assertThat(model.getEditRequests()).hasSize(1);
+        assertThat(model.getEditRequests().getFirst().getId()).isEqualTo(regularRequest.getId());
     }
 
     @DisplayName("RecordingDTO.participants should be sorted by participant first name")

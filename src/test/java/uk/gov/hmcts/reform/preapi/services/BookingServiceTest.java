@@ -169,7 +169,7 @@ class BookingServiceTest {
         var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(null, false, false,null))
+        when(recordingRepository.searchAllBy(null, false, false, false, null))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }
@@ -737,4 +737,3 @@ class BookingServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
     }
 }
-

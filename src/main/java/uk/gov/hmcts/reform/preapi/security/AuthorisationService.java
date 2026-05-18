@@ -40,7 +40,9 @@ public class AuthorisationService {
     private final EditRequestRepository editRequestRepository;
 
     private final boolean enableMigratedData;
+    private final boolean hideReencodedRecordings;
 
+    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
     private static final String ROLE_LEVEL_2 = "ROLE_LEVEL_2";
 
     public AuthorisationService(BookingRepository bookingRepository,
@@ -49,7 +51,9 @@ public class AuthorisationService {
                                 CaptureSessionRepository captureSessionRepository,
                                 RecordingRepository recordingRepository,
                                 EditRequestRepository editRequestRepository,
-                                @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
+                                @Value("${migration.enableMigratedData:false}") boolean enableMigratedData,
+                                @Value("${feature-flags.hide-reencoded-recordings:true}")
+                                boolean hideReencodedRecordings) {
         this.bookingRepository = bookingRepository;
         this.caseRepository = caseRepository;
         this.participantRepository = participantRepository;
@@ -57,6 +61,7 @@ public class AuthorisationService {
         this.recordingRepository = recordingRepository;
         this.editRequestRepository = editRequestRepository;
         this.enableMigratedData = enableMigratedData;
+        this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
@@ -106,11 +111,20 @@ public class AuthorisationService {
     }
 
     public boolean hasRecordingAccess(UserAuthentication authentication, UUID recordingId) {
-        if (recordingId == null || (enableMigratedData && authentication.isAdmin())) {
+        if (recordingId == null) {
             return true;
         }
         Recording entity = recordingRepository.findById(recordingId).orElse(null);
-        return entity == null || hasCaptureSessionAccess(authentication, entity.getCaptureSession().getId());
+        if (entity == null) {
+            return true;
+        }
+
+        if (enableMigratedData && authentication.isAdmin()) {
+            return canViewReencodedRecording(authentication, entity);
+        }
+
+        return canViewReencodedRecording(authentication, entity)
+            && hasCaptureSessionAccess(authentication, entity.getCaptureSession().getId());
     }
 
     public boolean hasParticipantAccess(UserAuthentication authentication, UUID participantId) {
@@ -197,7 +211,13 @@ public class AuthorisationService {
     }
 
     public boolean canViewVodafoneData(UserAuthentication authentication) {
-        return enableMigratedData || authentication.hasRole("ROLE_SUPER_USER");
+        return enableMigratedData || authentication.hasRole(ROLE_SUPER_USER);
+    }
+
+    public boolean canViewReencodedRecording(UserAuthentication authentication, Recording recording) {
+        return !hideReencodedRecordings
+            || !recording.isHiddenByReencode()
+            || authentication.hasRole(ROLE_SUPER_USER);
     }
 
     public boolean isVodafoneData(Case caseEntity) {
