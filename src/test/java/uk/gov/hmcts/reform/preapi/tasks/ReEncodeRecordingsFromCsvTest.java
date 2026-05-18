@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.springframework.core.io.DefaultResourceLoader;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
@@ -125,6 +126,17 @@ class ReEncodeRecordingsFromCsvTest {
     }
 
     @Test
+    @DisplayName("Reads re-encode CSV from classpath resource")
+    void readsCsvFromClasspathResource() {
+        task("classpath:re-encode-recordings.csv", false).run();
+
+        var dtoCaptor = ArgumentCaptor.forClass(CreateEditRequestDTO.class);
+        verify(editRequestService).upsert(dtoCaptor.capture());
+        assertThat(dtoCaptor.getValue().getSourceRecordingId())
+            .isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+    }
+
+    @Test
     @DisplayName("Skips invalid recording ids without submitting an edit request")
     void skipsInvalidRecordingIds() throws IOException {
         Path csv = writeCsv("""
@@ -192,6 +204,7 @@ class ReEncodeRecordingsFromCsvTest {
             editRequestService,
             userService,
             userAuthenticationService,
+            new DefaultResourceLoader(),
             CRON_USER_EMAIL,
             csvPath,
             forceReencode

@@ -72,6 +72,11 @@ public class EditRequestService {
         return editRequestCrudService.findAll(params, pageable);
     }
 
+    @Transactional
+    public Optional<EditRequest> getNextPendingEditRequest(boolean reencodeOnly) {
+        return editRequestCrudService.getNextPendingEditRequest(reencodeOnly);
+    }
+
     @Transactional(readOnly = true)
     public Set<UUID> findRecordingIdsWithForceReencodeRequests(Set<UUID> sourceRecordingIds) {
         return editRequestCrudService.findRecordingIdsWithForceReencodeRequests(sourceRecordingIds);
