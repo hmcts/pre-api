@@ -56,7 +56,7 @@ class ReEncodeRecordingsFromCsvTest {
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(access);
         when(userAuthenticationService.validateUser(any())).thenReturn(Optional.of(mock(UserAuthentication.class)));
-        when(editRequestService.findRecordingIdsWithForceReencodeRequests(anySet())).thenReturn(Set.of());
+        when(editRequestService.findRecordingIdsAlreadyQueuedOrCompletedForReencode(anySet())).thenReturn(Set.of());
     }
 
     @Test
@@ -98,7 +98,7 @@ class ReEncodeRecordingsFromCsvTest {
             %s,CASE-123
             %s,CASE-456
             """.formatted(duplicateRecordingId, duplicateRecordingId, existingRecordingId));
-        when(editRequestService.findRecordingIdsWithForceReencodeRequests(anySet()))
+        when(editRequestService.findRecordingIdsAlreadyQueuedOrCompletedForReencode(anySet()))
             .thenReturn(Set.of(existingRecordingId));
 
         task(csv, false).run();
@@ -121,7 +121,7 @@ class ReEncodeRecordingsFromCsvTest {
 
         var dtoCaptor = ArgumentCaptor.forClass(CreateEditRequestDTO.class);
         verify(editRequestService).upsert(dtoCaptor.capture());
-        verify(editRequestService, never()).findRecordingIdsWithForceReencodeRequests(anySet());
+        verify(editRequestService, never()).findRecordingIdsAlreadyQueuedOrCompletedForReencode(anySet());
         assertThat(dtoCaptor.getValue().getSourceRecordingId()).isEqualTo(recordingId);
     }
 
@@ -147,7 +147,7 @@ class ReEncodeRecordingsFromCsvTest {
 
         task(csv, false).run();
 
-        verify(editRequestService).findRecordingIdsWithForceReencodeRequests(Set.of());
+        verify(editRequestService).findRecordingIdsAlreadyQueuedOrCompletedForReencode(Set.of());
         verify(editRequestService, never()).upsert(any());
     }
 

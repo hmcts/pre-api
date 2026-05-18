@@ -399,7 +399,7 @@ public class AuthorisationServiceTest {
         var recordingId = UUID.randomUUID();
         var recording = new Recording();
         recording.setId(recordingId);
-        recording.setHiddenByReencode(true);
+        recording.setReencode(true);
 
         when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
@@ -414,7 +414,7 @@ public class AuthorisationServiceTest {
         var recordingId = UUID.randomUUID();
         var recording = new Recording();
         recording.setId(recordingId);
-        recording.setHiddenByReencode(true);
+        recording.setReencode(true);
         var captureSession = new CaptureSession();
         recording.setCaptureSession(captureSession);
 

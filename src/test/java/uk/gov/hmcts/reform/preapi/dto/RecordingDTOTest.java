@@ -105,14 +105,14 @@ public class RecordingDTOTest {
 
     @Test
     @DisplayName("RecordingDTO.totalVersionCount excludes hidden re-encoded versions when not included")
-    void createRecordingFromEntityExcludesHiddenReencodedVersions() {
+    void createRecordingFromEntityExcludesReencodedVersions() {
         var hiddenRecording = new Recording();
         hiddenRecording.setId(UUID.randomUUID());
         hiddenRecording.setVersion(2);
         hiddenRecording.setFilename("test.mp4");
         hiddenRecording.setCaptureSession(recordingEntity.getCaptureSession());
         hiddenRecording.setParentRecording(recordingEntity);
-        hiddenRecording.setHiddenByReencode(true);
+        hiddenRecording.setReencode(true);
         recordingEntity.setRecordings(Set.of(hiddenRecording));
 
         var model = new RecordingDTO(recordingEntity, false);

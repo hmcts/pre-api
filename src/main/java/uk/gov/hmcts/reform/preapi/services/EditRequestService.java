@@ -52,8 +52,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -104,23 +104,23 @@ public class EditRequestService {
     @Transactional
     @PreAuthorize("@authorisationService.hasEditRequestAccess(authentication, #id)")
     public EditRequestDTO findById(UUID id) {
-        boolean includeHiddenByReencode = canViewReencodedRecordings();
+        boolean includeReencodedRecordings = canViewReencodedRecordings();
         return editRequestRepository
             .findByIdNotLocked(id)
-            .map(editRequest -> new EditRequestDTO(editRequest, true, includeHiddenByReencode))
+            .map(editRequest -> new EditRequestDTO(editRequest, true, includeReencodedRecordings))
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
     }
 
     @Transactional
     public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        boolean includeHiddenByReencode = canViewReencodedRecordings(auth);
+        boolean includeReencodedRecordings = canViewReencodedRecordings(auth);
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
         return editRequestRepository
             .searchAllBy(params, pageable)
-            .map(editRequest -> new EditRequestDTO(editRequest, true, includeHiddenByReencode));
+            .map(editRequest -> new EditRequestDTO(editRequest, true, includeReencodedRecordings));
     }
 
     @Transactional
@@ -133,20 +133,18 @@ public class EditRequestService {
     }
 
     @Transactional(readOnly = true)
-    public Set<UUID> findRecordingIdsWithForceReencodeRequests(Set<UUID> sourceRecordingIds) {
+    public Set<UUID> findRecordingIdsAlreadyQueuedOrCompletedForReencode(Set<UUID> sourceRecordingIds) {
         if (sourceRecordingIds.isEmpty()) {
             return Set.of();
         }
 
-        return editRequestRepository.findAllBySourceRecordingIdIn(sourceRecordingIds).stream()
-            .filter(editRequest -> {
-                EditInstructions instructions = EditInstructions.tryFromJson(editRequest.getEditInstruction());
-                return instructions != null && instructions.isForceReencode();
-            })
-            .map(EditRequest::getSourceRecording)
-            .filter(Objects::nonNull)
-            .map(Recording::getId)
-            .collect(Collectors.toSet());
+        Set<UUID> reencodeRecordingIds = new HashSet<>(
+            recordingRepository.findRecordingIdsWithCompletedReencode(sourceRecordingIds)
+        );
+        reencodeRecordingIds.addAll(editRequestRepository.findSourceRecordingIdsWithForceReencodeRequests(
+            sourceRecordingIds
+        ));
+        return reencodeRecordingIds;
     }
 
     @Transactional

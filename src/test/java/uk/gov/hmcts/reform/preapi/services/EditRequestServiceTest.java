@@ -1526,30 +1526,30 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
     }
 
     @Test
-    @DisplayName("Should find recording ids with force re-encode requests")
-    void findRecordingIdsWithForceReencodeRequests() {
-        UUID forceReencodeRecordingId = UUID.randomUUID();
-        UUID regularEditRecordingId = UUID.randomUUID();
-        Set<UUID> recordingIds = Set.of(forceReencodeRecordingId, regularEditRecordingId);
+    @DisplayName("Should find recording ids already queued or completed for re-encode")
+    void findRecordingIdsAlreadyQueuedOrCompletedForReencode() {
+        UUID completedReencodeRecordingId = UUID.randomUUID();
+        UUID queuedReencodeRecordingId = UUID.randomUUID();
+        Set<UUID> recordingIds = Set.of(completedReencodeRecordingId, queuedReencodeRecordingId);
 
-        when(editRequestRepository.findAllBySourceRecordingIdIn(recordingIds))
-            .thenReturn(List.of(
-                editRequest(forceReencodeRecordingId, true),
-                editRequest(regularEditRecordingId, false)
-            ));
+        when(recordingRepository.findRecordingIdsWithCompletedReencode(recordingIds))
+            .thenReturn(Set.of(completedReencodeRecordingId));
+        when(editRequestRepository.findSourceRecordingIdsWithForceReencodeRequests(recordingIds))
+            .thenReturn(Set.of(queuedReencodeRecordingId));
 
-        Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(recordingIds);
+        Set<UUID> result = underTest.findRecordingIdsAlreadyQueuedOrCompletedForReencode(recordingIds);
 
-        assertThat(result).containsExactly(forceReencodeRecordingId);
+        assertThat(result).containsExactlyInAnyOrder(completedReencodeRecordingId, queuedReencodeRecordingId);
     }
 
     @Test
-    @DisplayName("Should not query force re-encode requests for empty recording ids")
-    void findRecordingIdsWithForceReencodeRequestsEmptySet() {
-        Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(Set.of());
+    @DisplayName("Should not query re-encode state for empty recording ids")
+    void findRecordingIdsAlreadyQueuedOrCompletedForReencodeEmptySet() {
+        Set<UUID> result = underTest.findRecordingIdsAlreadyQueuedOrCompletedForReencode(Set.of());
 
         assertThat(result).isEmpty();
-        verify(editRequestRepository, never()).findAllBySourceRecordingIdIn(any());
+        verify(recordingRepository, never()).findRecordingIdsWithCompletedReencode(any());
+        verify(editRequestRepository, never()).findSourceRecordingIdsWithForceReencodeRequests(any());
     }
 
 
@@ -1571,20 +1571,4 @@ South East,Example Court,PRE.Edits.Example@justice.gov.uk
         return new EditCutInstructionDTO(start, end, reason);
     }
 
-    private static EditRequest editRequest(UUID sourceRecordingId, boolean forceReencode) {
-        Recording recording = new Recording();
-        recording.setId(sourceRecordingId);
-
-        EditRequest editRequest = new EditRequest();
-        editRequest.setSourceRecording(recording);
-        editRequest.setEditInstruction("""
-            {
-              "requestedInstructions": [],
-              "ffmpegInstructions": [],
-              "forceReencode": %s,
-              "sendNotifications": false
-            }
-            """.formatted(forceReencode));
-        return editRequest;
-    }
 }

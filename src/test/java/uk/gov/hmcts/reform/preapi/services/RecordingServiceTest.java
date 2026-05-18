@@ -111,7 +111,7 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(null);
         recordingEntity.setParentRecording(null);
         recordingEntity.setCaptureSession(captureSession);
-        recordingEntity.setHiddenByReencode(false);
+        recordingEntity.setReencode(false);
     }
 
     @DisplayName("Find a recording by it's id and return a model")
@@ -132,7 +132,7 @@ class RecordingServiceTest {
         when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        recordingEntity.setHiddenByReencode(true);
+        recordingEntity.setReencode(true);
         when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId(), true))
             .thenReturn(Optional.of(recordingEntity));
 
@@ -239,9 +239,9 @@ class RecordingServiceTest {
         assertThat(recordingService.upsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
     }
 
-    @DisplayName("Create a recording from a force re-encode edit request as hidden by re-encode")
+    @DisplayName("Create a recording from a force re-encode edit request as re-encoded")
     @Test
-    void createRecordingFromForceReencodeMarkedHidden() {
+    void createRecordingFromForceReencodeMarkedReencoded() {
         var aCase = new Case();
         aCase.setState(CaseState.OPEN);
         var booking = new Booking();
@@ -263,7 +263,7 @@ class RecordingServiceTest {
 
         assertThat(recordingService.upsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
 
-        verify(recordingRepository).save(argThat(Recording::isHiddenByReencode));
+        verify(recordingRepository).save(argThat(Recording::isReencode));
     }
 
     @DisplayName("Update a recording")

@@ -10,8 +10,10 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -23,18 +25,18 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         SELECT r FROM Recording r
         WHERE r.id = :id
         AND r.deletedAt IS NULL
-        AND (:includeHiddenByReencode = TRUE OR r.hiddenByReencode = FALSE)
+        AND (:includeReencodedRecordings = TRUE OR r.reencode = FALSE)
         """)
     Optional<Recording> findByIdAndDeletedAtIsNull(
         @Param("id") UUID id,
-        @Param("includeHiddenByReencode") boolean includeHiddenByReencode
+        @Param("includeReencodedRecordings") boolean includeReencodedRecordings
     );
 
     @Query(
         """
         SELECT r FROM Recording r
         WHERE (:includeDeleted = TRUE OR r.deletedAt IS NULL)
-        AND (:includeHiddenByReencode = TRUE OR r.hiddenByReencode = FALSE)
+        AND (:includeReencodedRecordings = TRUE OR r.reencode = FALSE)
         AND (:includeVodafone = TRUE
             OR (r.captureSession.origin != 'VODAFONE' AND r.captureSession.booking.caseId.origin != 'VODAFONE'))
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
@@ -101,7 +103,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         @Param("searchParams") SearchRecordings searchParams,
         @Param("includeDeleted") boolean includeDeleted,
         @Param("includeVodafone") boolean includeVodafone,
-        @Param("includeHiddenByReencode") boolean includeHiddenByReencode,
+        @Param("includeReencodedRecordings") boolean includeReencodedRecordings,
         Pageable pageable
     );
 
@@ -112,6 +114,31 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     List<Recording> findAllByParentRecordingIsNull();
 
     boolean existsByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
+
+    @Query("""
+        SELECT DISTINCT recording.id
+        FROM Recording recording
+        LEFT JOIN recording.parentRecording parent
+        WHERE recording.id IN :sourceRecordingIds
+        AND (
+            recording.reencode = TRUE
+            OR EXISTS (
+                SELECT 1
+                FROM Recording reencoded
+                WHERE reencoded.reencode = TRUE
+                AND (
+                    reencoded.parentRecording.id = recording.id
+                    OR (
+                        parent.id IS NOT NULL
+                        AND reencoded.parentRecording.id = parent.id
+                    )
+                )
+            )
+        )
+        """)
+    Set<UUID> findRecordingIdsWithCompletedReencode(
+        @Param("sourceRecordingIds") Collection<UUID> sourceRecordingIds
+    );
 
     @Query("""
         SELECT c, COUNT(c)
@@ -135,12 +162,14 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         LEFT JOIN Case c ON b.caseId.id=c.id
         WHERE r.version = 1
         AND r.deletedAt IS NULL
-        AND (:includeHiddenByReencode = TRUE OR r.hiddenByReencode = FALSE)
+        AND (:includeReencodedRecordings = TRUE OR r.reencode = FALSE)
         GROUP BY c
         ORDER BY count(c) DESC
         """
     )
-    List<Object[]> countRecordingsPerCase(@Param("includeHiddenByReencode") boolean includeHiddenByReencode);
+    List<Object[]> countRecordingsPerCase(
+        @Param("includeReencodedRecordings") boolean includeReencodedRecordings
+    );
 
     int countByParentRecording_Id(UUID id);
 

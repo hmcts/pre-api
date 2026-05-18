@@ -63,7 +63,7 @@ public class RecordingDTO extends BaseRecordingDTO {
         this(recording, true);
     }
 
-    public RecordingDTO(Recording recording, boolean includeHiddenByReencode) {
+    public RecordingDTO(Recording recording, boolean includeReencodedRecordings) {
         super();
         id = recording.getId();
         captureSession = new CaptureSessionDTO(recording.getCaptureSession());
@@ -74,7 +74,7 @@ public class RecordingDTO extends BaseRecordingDTO {
             ? recording.getParentRecording().getRecordings()
             : recording.getRecordings();
         totalVersionCount = versions != null
-            ? (int) versions.stream().filter(r -> includeHiddenByReencode || !r.isHiddenByReencode()).count() + 1
+            ? (int) versions.stream().filter(r -> includeReencodedRecordings || !r.isReencode()).count() + 1
             : 1;
         version = recording.getVersion();
         filename = recording.getFilename();
@@ -98,7 +98,7 @@ public class RecordingDTO extends BaseRecordingDTO {
             .flatMap(request ->
                          request
                              .stream()
-                             .filter(e -> includeHiddenByReencode || !isForceReencode(e))
+                             .filter(e -> includeReencodedRecordings || !isForceReencode(e))
                              .sorted(Comparator.comparing(EditRequest::getModifiedAt).reversed())
                              .map(e -> new EditRequestDTO(e, false)))
             .collect(Collectors.toList());

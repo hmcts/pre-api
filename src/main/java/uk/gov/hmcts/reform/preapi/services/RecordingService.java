@@ -77,9 +77,9 @@ public class RecordingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public RecordingDTO findById(UUID recordingId) {
-        boolean includeHiddenByReencode = canViewReencodedRecordings();
-        return recordingRepository.findByIdAndDeletedAtIsNull(recordingId, includeHiddenByReencode)
-            .map(recording -> new RecordingDTO(recording, includeHiddenByReencode))
+        boolean includeReencodedRecordings = canViewReencodedRecordings();
+        return recordingRepository.findByIdAndDeletedAtIsNull(recordingId, includeReencodedRecordings)
+            .map(recording -> new RecordingDTO(recording, includeReencodedRecordings))
             .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
     }
 
@@ -109,7 +109,7 @@ public class RecordingService {
         );
 
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        boolean includeHiddenByReencode = canViewReencodedRecordings(auth);
+        boolean includeReencodedRecordings = canViewReencodedRecordings(auth);
         params.setAuthorisedBookings(
             auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );
@@ -122,10 +122,10 @@ public class RecordingService {
                 params,
                 includeDeleted,
                 enableMigratedData || auth.hasRole(ROLE_SUPER_USER),
-                includeHiddenByReencode,
+                includeReencodedRecordings,
                 pageable
             )
-            .map(recording -> new RecordingDTO(recording, includeHiddenByReencode));
+            .map(recording -> new RecordingDTO(recording, includeReencodedRecordings));
     }
 
     @Transactional
@@ -147,7 +147,7 @@ public class RecordingService {
         recordingEntity.setFilename(createRecordingDTO.getFilename());
         recordingEntity.setDuration(createRecordingDTO.getDuration());
         recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
-        recordingEntity.setHiddenByReencode(isReencodedRecording(createRecordingDTO.getEditInstructions()));
+        recordingEntity.setReencode(isReencodedRecording(createRecordingDTO.getEditInstructions()));
 
         recordingRepository.save(recordingEntity);
 

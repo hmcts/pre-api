@@ -207,7 +207,7 @@ public class LegacyReportService {
     private boolean canViewRecording(Recording recording) {
         return recording == null
             || !hideReencodedRecordings
-            || !recording.isHiddenByReencode()
+            || !recording.isReencode()
             || getAuthentication() != null && getAuthentication().hasRole(ROLE_SUPER_USER);
     }
 

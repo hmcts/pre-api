@@ -85,10 +85,12 @@ public class EditRequestDTO {
         this(editRequest, includeSourceRecording, true);
     }
 
-    public EditRequestDTO(EditRequest editRequest, boolean includeSourceRecording, boolean includeHiddenByReencode) {
+    public EditRequestDTO(EditRequest editRequest,
+                          boolean includeSourceRecording,
+                          boolean includeReencodedRecordings) {
         this.id = editRequest.getId();
         if (includeSourceRecording) {
-            this.sourceRecording = new RecordingDTO(editRequest.getSourceRecording(), includeHiddenByReencode);
+            this.sourceRecording = new RecordingDTO(editRequest.getSourceRecording(), includeReencodedRecordings);
         }
         this.editInstruction = fromJson(editRequest.getEditInstruction());
         this.status = editRequest.getStatus();
