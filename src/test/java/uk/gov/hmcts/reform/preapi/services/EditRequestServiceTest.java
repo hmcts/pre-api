@@ -54,6 +54,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditRequestService.class)
@@ -181,15 +182,6 @@ class EditRequestServiceTest {
         when(editRequestDTO.getId()).thenReturn(mockEditRequestId);
         when(editRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
         when(editRequestDTO.getCreatedBy()).thenReturn(courtClerkUser.getId().toString());
-
-        when(editingService.prepareEditRequestToCreateOrUpdate(
-            any(CreateEditRequestDTO.class), any(Recording.class),
-            any(EditRequest.class)
-        )).thenReturn(mockEditRequest);
-
-        when(editingService.prepareEditRequestToCreateOrUpdate(
-            dto, mockRecording, mockEditRequest
-        )).thenReturn(mockEditRequest);
     }
 
     @Test
