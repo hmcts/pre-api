@@ -130,19 +130,43 @@ class EditRequestCrudServiceTest {
     }
 
     @Test
-    @DisplayName("Should return all pending edit requests")
-    void getPendingEditRequestsSuccess() {
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PENDING);
-        when(editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
-            .thenReturn(Optional.of(mockEditRequest));
+    @DisplayName("Should return the next pending regular edit request")
+    void getPendingRegularEditRequestsSuccess() {
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.PENDING);
 
-        Optional<EditRequest> res = underTest.getNextPendingEditRequest();
+        when(editRequestRepository.findFirstPendingRegularEditRequest())
+                .thenReturn(Optional.of(editRequest));
+
+        var res = underTest.getNextPendingEditRequest(false);
 
         assertThat(res).isPresent();
-        assertThat(res.get().getId()).isEqualTo(mockEditRequestId);
+        assertThat(res.get().getId()).isEqualTo(editRequest.getId());
         assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.PENDING);
 
-        verify(editRequestRepository, times(1)).findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+        verify(editRequestRepository, times(1)).findFirstPendingRegularEditRequest();
+        verify(editRequestRepository, never()).findFirstPendingReencodeEditRequest();
+    }
+
+    @Test
+    @DisplayName("Should return the next pending re-encode edit request")
+    void getPendingReencodeEditRequestsSuccess() {
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.PENDING);
+
+        when(editRequestRepository.findFirstPendingReencodeEditRequest())
+                .thenReturn(Optional.of(editRequest));
+
+        var res = underTest.getNextPendingEditRequest(true);
+
+        assertThat(res).isPresent();
+        assertThat(res.get().getId()).isEqualTo(editRequest.getId());
+        assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.PENDING);
+
+        verify(editRequestRepository, times(1)).findFirstPendingReencodeEditRequest();
+        verify(editRequestRepository, never()).findFirstPendingRegularEditRequest();
     }
 
     @Test

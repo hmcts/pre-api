@@ -90,8 +90,8 @@ public class EditRequestService {
     }
 
     @Transactional
-    public Optional<EditRequest> getNextPendingEditRequest() {
-        return editRequestCrudService.getNextPendingEditRequest();
+    public Optional<EditRequest> getNextPendingEditRequest(boolean reencodeOnly) {
+        return editRequestCrudService.getNextPendingEditRequest(reencodeOnly);
     }
 
     @Transactional(readOnly = true)

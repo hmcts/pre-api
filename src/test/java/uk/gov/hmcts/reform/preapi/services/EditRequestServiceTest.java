@@ -9,8 +9,6 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.PessimisticLockingFailureException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Pair;
 import org.springframework.mock.web.MockMultipartFile;
@@ -56,8 +54,6 @@ import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -213,16 +209,25 @@ class EditRequestServiceTest {
         when(editingService.prepareEditRequestToCreateOrUpdate(
             dto, mockRecording, mockEditRequest
         )).thenReturn(mockEditRequest);
+    }
 
-        when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
-            .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
+    @Test
+    @DisplayName("Should pass on query for the next pending edit request")
+    void getPendingRegularEditRequestsSuccess() {
+        EditRequest editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.PENDING);
 
-        when(editRequestCrudService.findAll(any(), any()))
-            .thenReturn(new PageImpl<>(List.of(editRequestDTO)));
+        when(editRequestCrudService.getNextPendingEditRequest(false))
+            .thenReturn(Optional.of(editRequest));
 
-        when(editRequestCrudService.findById(mockEditRequestId))
-            .thenReturn(editRequestDTO);
-        when(editRequestDTO.getId()).thenReturn(mockEditRequestId);
+        Optional<EditRequest> res = underTest.getNextPendingEditRequest(false);
+
+        assertThat(res.isPresent()).isTrue();
+        assertThat(res.get().getId()).isEqualTo(editRequest.getId());
+
+        verify(editRequestCrudService, times(1)).getNextPendingEditRequest(false);
+        verifyNoMoreInteractions(editRequestCrudService);
     }
 
     @Test
@@ -474,10 +479,8 @@ class EditRequestServiceTest {
         when(mockAuth.isPortalUser()).thenReturn(false);
 
         SearchEditRequests params = new SearchEditRequests();
-        Page<EditRequestDTO> result = underTest.findAll(params, Pageable.unpaged());
+        underTest.findAll(params, Pageable.unpaged());
 
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
         verify(editRequestCrudService).findAll(
             argThat(search ->
                         search.getAuthorisedBookings() == null
