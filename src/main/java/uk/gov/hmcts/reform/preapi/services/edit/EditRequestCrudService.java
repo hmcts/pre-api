@@ -98,7 +98,7 @@ public class EditRequestCrudService {
     @Transactional
     public @NotNull Pair<UpsertResult, EditRequest> upsert(CreateEditRequestDTO dto,
                                                            Recording sourceRecording, User user) {
-        validateEditMode(dto);
+        EditRequestValidator.validateEditMode(dto);
         Optional<EditRequest> existingEditRequest = findByIdIfExists(dto.getId());
         boolean isUpdate = existingEditRequest.isPresent();
         UpsertResult emptyInstructionResult = handleEmptyInstructions(dto, existingEditRequest, isUpdate);
@@ -139,15 +139,7 @@ public class EditRequestCrudService {
             .map(Recording::getId)
             .collect(Collectors.toSet());
     }
-
-    private void validateEditMode(CreateEditRequestDTO dto) {
-        log.debug("Validating edit request {}", dto);
-        if (dto.isForceReencode() && dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
-            throw new BadRequestException(
-                "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
-        }
-    }
-
+  
     private UpsertResult handleEmptyInstructions(CreateEditRequestDTO dto,
                                                  Optional<EditRequest> existingEditRequest,
                                                  boolean isUpdate) {

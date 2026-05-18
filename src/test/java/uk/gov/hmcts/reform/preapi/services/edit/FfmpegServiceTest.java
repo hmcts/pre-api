@@ -45,6 +45,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.hmcts.reform.preapi.services.edit.EditRequestTestUtils.assertEditInstructionsEq;
+import static uk.gov.hmcts.reform.preapi.services.edit.EditRequestTestUtils.createCut;
+import static uk.gov.hmcts.reform.preapi.services.edit.EditRequestTestUtils.createSegment;
 import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 
 @Slf4j
@@ -120,7 +122,8 @@ class FfmpegServiceTest {
             () -> underTest.performEdit(newRecordingId, realEditRequest)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Not found: No file name provided");
+        assertThat(message).isEqualTo("Not found: No file name provided for edit request "
+                                          + realEditRequest.getId());
 
         verify(editedFileUploader, never()).downloadBlob(any(), any());
         verify(commandExecutor, never()).execute(any());
@@ -139,7 +142,8 @@ class FfmpegServiceTest {
             () -> underTest.performEdit(newRecordingId, realEditRequest)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Not found: No file name provided");
+        assertThat(message).isEqualTo("Not found: No file name provided for edit request "
+                                          + realEditRequest.getId());
 
         verifyNoMoreInteractions(editedFileUploader);
         verify(commandExecutor, never()).execute(any());
@@ -268,11 +272,11 @@ class FfmpegServiceTest {
     void generateCommandFromJsonEmpty() {
         realEditRequest.setEditInstruction("{\"ffmpegInstructions\": null}");
         String message = assertThrows(
-            UnknownServerException.class,
+            BadRequestException.class,
             () -> underTest.generateMultiEditCommands(realEditRequest, filename, filename)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Unknown Server Exception: Malformed edit instructions");
+        assertThat(message).isEqualTo("No edit instructions received for edit request");
     }
 
     @Test
@@ -280,11 +284,11 @@ class FfmpegServiceTest {
     void generateCommandEditInstructionsEmpty() {
         realEditRequest.setEditInstruction("{\"ffmpegInstructions\": []}");
         String message = assertThrows(
-            UnknownServerException.class,
+            BadRequestException.class,
             () -> underTest.generateMultiEditCommands(realEditRequest, "", "")
         ).getMessage();
 
-        assertThat(message).isEqualTo("Unknown Server Exception: Malformed edit instructions");
+        assertThat(message).isEqualTo("No edit instructions received for edit request");
     }
 
     @Test
@@ -864,11 +868,4 @@ class FfmpegServiceTest {
         return instructions;
     }
 
-    private static FfmpegEditInstructionDTO createSegment(long start, long end) {
-        return new FfmpegEditInstructionDTO(start, end);
-    }
-
-    private static EditCutInstructionDTO createCut(long start, long end, String reason) {
-        return new EditCutInstructionDTO(start, end, reason);
-    }
 }
