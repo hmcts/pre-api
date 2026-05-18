@@ -15,6 +15,8 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,6 +53,12 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
 
     @Query("select e from EditRequest e where e.id = ?1")
     Optional<EditRequest> findByIdNotLocked(@NotNull UUID id);
+
+    @Query("""
+        SELECT e FROM EditRequest e
+        WHERE e.sourceRecording.id IN :sourceRecordingIds
+        """)
+    List<EditRequest> findAllBySourceRecordingIdIn(@Param("sourceRecordingIds") Collection<UUID> sourceRecordingIds);
 
     @Query("""
         SELECT (COUNT(e) > 0) from EditRequest e

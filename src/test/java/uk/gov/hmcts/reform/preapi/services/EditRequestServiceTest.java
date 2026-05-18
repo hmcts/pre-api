@@ -455,5 +455,36 @@ class EditRequestServiceTest {
         );
     }
 
+    @Test
+    @DisplayName("Should find recording ids with force re-encode requests")
+    void findRecordingIdsWithForceReencodeRequests() {
+        UUID result1 = UUID.randomUUID();
+        UUID result2 = UUID.randomUUID();
+        Set<UUID> recordingIds = Set.of(result1, result2);
 
+        when(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(recordingIds))
+            .thenReturn(Set.of(
+                result1,
+                result2
+            ));
+
+        Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(recordingIds);
+
+        assertThat(result).containsExactly(result1, result2);
+        verify(editRequestCrudService, times(1))
+            .findRecordingIdsWithForceReencodeRequests(any());
+    }
+
+    @Test
+    @DisplayName("Should not query force re-encode requests for empty recording ids")
+    void findRecordingIdsWithForceReencodeRequestsEmptySet() {
+        when(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(Set.of()))
+            .thenReturn(Set.of());
+
+        Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(Set.of());
+
+        assertThat(result).isEmpty();
+        verify(editRequestCrudService, times(1))
+            .findRecordingIdsWithForceReencodeRequests(any());
+    }
 }
