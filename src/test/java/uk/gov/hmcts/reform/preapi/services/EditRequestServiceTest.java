@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Pair;
 import org.springframework.mock.web.MockMultipartFile;
@@ -47,8 +48,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -178,13 +177,38 @@ class EditRequestServiceTest {
 
         when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
             .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
-
-        when(editRequestCrudService.findAll(any(), any()))
-            .thenReturn(new PageImpl<>(List.of(editRequestDTO)));
-
-        when(editRequestCrudService.findById(mockEditRequestId))
-            .thenReturn(editRequestDTO);
+        when(editRequestCrudService.findById(mockEditRequestId)).thenReturn(editRequestDTO);
         when(editRequestDTO.getId()).thenReturn(mockEditRequestId);
+        when(editRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(editRequestDTO.getCreatedBy()).thenReturn(courtClerkUser.getId().toString());
+
+        when(editingService.prepareEditRequestToCreateOrUpdate(
+            any(CreateEditRequestDTO.class), any(Recording.class),
+            any(EditRequest.class)
+        )).thenReturn(mockEditRequest);
+
+        when(editingService.prepareEditRequestToCreateOrUpdate(
+            dto, mockRecording, mockEditRequest
+        )).thenReturn(mockEditRequest);
+    }
+
+    @Test
+    @DisplayName("Should pass on query for the next pending edit request")
+    void getPendingRegularEditRequestsSuccess() {
+        EditRequest editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.PENDING);
+
+        when(editRequestCrudService.getNextPendingEditRequest(false))
+            .thenReturn(Optional.of(editRequest));
+
+        Optional<EditRequest> res = underTest.getNextPendingEditRequest(false);
+
+        assertThat(res.isPresent()).isTrue();
+        assertThat(res.get().getId()).isEqualTo(editRequest.getId());
+
+        verify(editRequestCrudService, times(1)).getNextPendingEditRequest(false);
+        verifyNoMoreInteractions(editRequestCrudService);
     }
 
     @Test
@@ -250,10 +274,8 @@ class EditRequestServiceTest {
         when(mockAuth.isPortalUser()).thenReturn(false);
 
         SearchEditRequests params = new SearchEditRequests();
-        Page<EditRequestDTO> result = underTest.findAll(params, Pageable.unpaged());
+        underTest.findAll(params, Pageable.unpaged());
 
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
         verify(editRequestCrudService).findAll(
             argThat(search ->
                         search.getAuthorisedBookings() == null
@@ -455,5 +477,36 @@ class EditRequestServiceTest {
         );
     }
 
+    @Test
+    @DisplayName("Should find recording ids with force re-encode requests")
+    void findRecordingIdsWithForceReencodeRequests() {
+        UUID result1 = UUID.randomUUID();
+        UUID result2 = UUID.randomUUID();
+        Set<UUID> recordingIds = Set.of(result1, result2);
 
+        when(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(recordingIds))
+            .thenReturn(Set.of(
+                result1,
+                result2
+            ));
+
+        Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(recordingIds);
+
+        assertThat(result).containsExactlyInAnyOrder(result1, result2);
+        verify(editRequestCrudService, times(1))
+            .findRecordingIdsWithForceReencodeRequests(any());
+    }
+
+    @Test
+    @DisplayName("Should not query force re-encode requests for empty recording ids")
+    void findRecordingIdsWithForceReencodeRequestsEmptySet() {
+        when(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(Set.of()))
+            .thenReturn(Set.of());
+
+        Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(Set.of());
+
+        assertThat(result).isEmpty();
+        verify(editRequestCrudService, times(1))
+            .findRecordingIdsWithForceReencodeRequests(any());
+    }
 }

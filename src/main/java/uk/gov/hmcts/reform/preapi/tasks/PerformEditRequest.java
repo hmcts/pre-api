@@ -16,23 +16,26 @@ import uk.gov.hmcts.reform.preapi.services.edit.EditRequestPerformService;
 public class PerformEditRequest extends RobotUserTask {
 
     private final EditRequestPerformService editRequestService;
+    private final boolean reencodeOnly;
 
     @Autowired
     public PerformEditRequest(EditRequestPerformService editRequestService,
                               UserService userService,
                               UserAuthenticationService userAuthenticationService,
-                              @Value("${cron-user-email}") String cronUserEmail) {
+                              @Value("${cron-user-email}") String cronUserEmail,
+                              @Value("${PERFORM_EDIT_REQUEST_REENCODE_ONLY:false}") boolean reencodeOnly) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.editRequestService = editRequestService;
+        this.reencodeOnly = reencodeOnly;
     }
 
     @Override
     public void run() {
         signInRobotUser();
-        log.info("Running PerformEditRequest task");
+        log.info("Running PerformEditRequest task. Re-encode only: {}", reencodeOnly);
 
         // claims the oldest existing pending request and performs edit
-        editRequestService.getNextPendingEditRequest()
+        editRequestService.getNextPendingEditRequest(reencodeOnly)
             .ifPresentOrElse(
                 this::attemptPerformEditRequest,
                 () -> log.info("No pending edit requests found"));

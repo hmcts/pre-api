@@ -53,7 +53,8 @@ class PerformEditRequestTest {
             editRequestService,
             userService,
             userAuthenticationService,
-            CRON_USER_EMAIL
+            CRON_USER_EMAIL,
+            false
         );
 
         BaseAppAccessDTO appAccess = new BaseAppAccessDTO();
@@ -77,7 +78,7 @@ class PerformEditRequestTest {
         EditRequest editRequest5 = createPendingEditRequest();
         EditRequest editRequest6 = createPendingEditRequest();
 
-        when(editRequestService.getNextPendingEditRequest())
+        when(editRequestService.getNextPendingEditRequest(false))
             .thenReturn(Optional.of(editRequest1))
             .thenReturn(Optional.of(editRequest2))
             .thenReturn(Optional.of(editRequest3))
@@ -110,7 +111,7 @@ class PerformEditRequestTest {
         performEditRequest.run();
         performEditRequest.run();
 
-        verify(editRequestService, times(6)).getNextPendingEditRequest();
+        verify(editRequestService, times(6)).getNextPendingEditRequest(false);
         verify(editRequestService, times(1)).markAsProcessing(editRequest1.getId());
         verify(editRequestService, times(1)).performEdit(editRequest1);
         verify(editRequestService, times(1)).markAsProcessing(editRequest2.getId());
@@ -130,7 +131,25 @@ class PerformEditRequestTest {
     void runNoPendingRequests() throws InterruptedException {
         performEditRequest.run();
 
-        verify(editRequestService, times(1)).getNextPendingEditRequest();
+        verify(editRequestService, times(1)).getNextPendingEditRequest(false);
+        verify(editRequestService, never()).markAsProcessing(any());
+        verify(editRequestService, never()).performEdit(any());
+    }
+
+    @Test
+    @DisplayName("PerformEditRequest can run in re-encode only mode")
+    void runReencodeOnlyMode() throws InterruptedException {
+        performEditRequest = new PerformEditRequest(
+            editRequestService,
+            userService,
+            userAuthenticationService,
+            CRON_USER_EMAIL,
+            true
+        );
+
+        performEditRequest.run();
+
+        verify(editRequestService, times(1)).getNextPendingEditRequest(true);
         verify(editRequestService, never()).markAsProcessing(any());
         verify(editRequestService, never()).performEdit(any());
     }
