@@ -201,6 +201,11 @@ class EditRequestServiceTest {
         when(mockEditRequest.getCreatedBy()).thenReturn(courtClerkUser);
         when(mockEditRequest.getEditInstruction()).thenReturn("{}");
 
+        when(editRequestCrudService.findById(mockEditRequestId)).thenReturn(editRequestDTO);
+        when(editRequestDTO.getId()).thenReturn(mockEditRequestId);
+        when(editRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(editRequestDTO.getCreatedBy()).thenReturn(courtClerkUser.getId().toString());
+
         when(editingService.prepareEditRequestToCreateOrUpdate(
             any(CreateEditRequestDTO.class), any(Recording.class),
             any(EditRequest.class)
@@ -704,7 +709,7 @@ class EditRequestServiceTest {
 
         Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(recordingIds);
 
-        assertThat(result).containsExactly(result1, result2);
+        assertThat(result).containsExactlyInAnyOrder(result1, result2);
         verify(editRequestCrudService, times(1))
             .findRecordingIdsWithForceReencodeRequests(any());
     }
