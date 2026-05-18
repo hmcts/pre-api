@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services.edit;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
@@ -16,7 +15,6 @@ import java.util.List;
 
 import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
 
-@Service
 @Slf4j
 public final class EditRequestValidator {
     static final Integer SINGLETON_LIST_SIZE = 1;
