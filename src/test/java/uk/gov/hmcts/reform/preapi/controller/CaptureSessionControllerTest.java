@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RegistrationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -79,8 +80,8 @@ public class CaptureSessionControllerTest {
 
     private static final String CAPTURE_SESSION_REGISTRATION_PATH = "/capture-sessions/trigger-registration/{id}";
 
-    @Value("${capture-session-registration.processing-timeout-hours}")
-    private int processingTimeoutHours;
+    @Value("${capture-session-registration.processing-timeout-minutes}")
+    private int processingTimeoutMinutes;
 
     @BeforeAll
     static void setUp() {
@@ -497,7 +498,8 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
 
-        Instant exceedingTimeout = Instant.now().minus(processingTimeoutHours + 1, ChronoUnit.HOURS);
+        Instant exceedingTimeout = Instant.now()
+            .minus(processingTimeoutMinutes + 1, ChronoUnit.MINUTES);
         captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
@@ -535,7 +537,8 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.FAILURE);
 
-        Instant exceedingTimeout = Instant.now().minus(processingTimeoutHours + 1, ChronoUnit.HOURS);
+        Instant exceedingTimeout = Instant.now()
+            .minus(processingTimeoutMinutes + 1, ChronoUnit.HOURS);
         captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
@@ -559,7 +562,11 @@ public class CaptureSessionControllerTest {
         captureSessionDTO.setId(id);
         captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
 
-        captureSessionDTO.setFinishedAt(Timestamp.from(Instant.now()));
+        Instant oneMinuteAgo = Instant.now().minus(1, ChronoUnit.MINUTES);
+
+        Instant atEndOfWindowOfTolerance = oneMinuteAgo.plus(processingTimeoutMinutes, ChronoUnit.MINUTES);
+
+        captureSessionDTO.setFinishedAt(Timestamp.from(oneMinuteAgo));
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
 
@@ -568,8 +575,18 @@ public class CaptureSessionControllerTest {
             .andExpect(status().isBadRequest())
             .andReturn();
 
-        assertThat(response.getResponse().getContentAsString())
-            .contains(format("{\"message\":\"Capture session with ID %s finished processing at ", id));
+        String actualResponse = response.getResponse().getContentAsString();
+
+        String expectedResponse =
+            format("{\"message\":\"Capture session with ID %s finished processing at %s on %s. "
+                   + "This is within the agreed tolerance window of %d minutes."
+                   + " Please try again after %s.\"}", id,
+                                         DateTimeUtils.formatTime(Timestamp.from(oneMinuteAgo)),
+                                         DateTimeUtils.formatDate(Timestamp.from(oneMinuteAgo)),
+                                         processingTimeoutMinutes,
+                                         DateTimeUtils.formatTime(Timestamp.from(atEndOfWindowOfTolerance)));
+
+        assertThat(actualResponse).isEqualTo(expectedResponse);
     }
 
 }
