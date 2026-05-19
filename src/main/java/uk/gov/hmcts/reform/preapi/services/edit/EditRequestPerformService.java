@@ -10,7 +10,9 @@ import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
@@ -46,6 +48,7 @@ public class EditRequestPerformService {
     public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
         UUID newRecordingId = UUID.randomUUID();
         try {
+            ensureSourceRecordingCaseIsOpen(request);
             editingService.performEdit(newRecordingId, request);
             String filename = assetGenerationService.generateAsset(newRecordingId, request);
             CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
@@ -57,6 +60,24 @@ public class EditRequestPerformService {
 
         editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
         return recordingService.findById(newRecordingId);
+    }
+
+    private void ensureSourceRecordingCaseIsOpen(EditRequest request) {
+        EditRequestValidator.ensureEditRequestHasSourceRecording(request);
+        CaseState caseState = request.getSourceRecording()
+            .getCaptureSession()
+            .getBooking()
+            .getCaseId()
+            .getState();
+
+        if (caseState != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "Recording",
+                request.getSourceRecording().getId(),
+                caseState,
+                "OPEN"
+            );
+        }
     }
 
     @Transactional
