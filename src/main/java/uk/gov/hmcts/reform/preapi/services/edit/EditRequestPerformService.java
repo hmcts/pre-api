@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
@@ -44,23 +43,19 @@ public class EditRequestPerformService {
         return editRequestCrudService.getNextPendingEditRequest(reencodeOnly);
     }
 
-    @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
     public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
         UUID newRecordingId = UUID.randomUUID();
-        String filename;
         try {
             editingService.performEdit(newRecordingId, request);
-            filename = assetGenerationService.generateAsset(newRecordingId, request);
+            String filename = assetGenerationService.generateAsset(newRecordingId, request);
+            CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
+            recordingService.upsert(createDto);
         } catch (Exception e) {
-            editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
+            markRequestAsError(request.getId(), e);
             throw e;
         }
 
         editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
-
-        CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
-        recordingService.upsert(createDto);
-
         return recordingService.findById(newRecordingId);
     }
 
@@ -92,6 +87,15 @@ public class EditRequestPerformService {
             null,
             toJson(dump)
         );
+    }
+
+    private void markRequestAsError(UUID requestId, Exception originalException) {
+        try {
+            editRequestCrudService.updateEditRequestStatus(requestId, EditRequestStatus.ERROR);
+        } catch (Exception statusUpdateException) {
+            log.error("Failed to mark EditRequest {} as ERROR after perform failure", requestId, statusUpdateException);
+            originalException.addSuppressed(statusUpdateException);
+        }
     }
 
     private record EditInstructionDump(UUID editRequestId, EditInstructions editInstructions) {

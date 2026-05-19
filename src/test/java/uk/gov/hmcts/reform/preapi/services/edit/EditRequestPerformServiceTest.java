@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
@@ -128,6 +129,25 @@ class EditRequestPerformServiceTest {
         assertThat(performedEditRequest.getId()).isEqualTo(mockEditRequestId);
 
         verify(recordingService, never()).upsert(any());
+    }
+
+    @Test
+    @DisplayName("Should mark edit request as error when recording creation fails")
+    void performEditRecordingCreationError() {
+        doThrow(new ResourceInWrongStateException("Recording", UUID.randomUUID(), CaseState.CLOSED, "OPEN"))
+            .when(recordingService).upsert(any(CreateRecordingDTO.class));
+
+        assertThrows(
+            ResourceInWrongStateException.class,
+            () -> underTest.performEdit(mockEditRequest)
+        );
+
+        verify(editRequestCrudService, times(1))
+            .updateEditRequestStatus(mockEditRequestId, EditRequestStatus.ERROR);
+        verify(editRequestCrudService, never())
+            .updateEditRequestStatus(mockEditRequestId, EditRequestStatus.COMPLETE);
+        verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
+        verify(recordingService, never()).findById(any(UUID.class));
     }
 
     // This should probably be an integration test

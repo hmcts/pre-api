@@ -43,12 +43,20 @@ public class PerformEditRequest extends RobotUserTask {
 
     private void attemptPerformEditRequest(EditRequest editRequest) {
         log.info("Attempting to perform EditRequest {}", editRequest.getId());
+        EditRequest lockedRequest;
         try {
-            EditRequest lockedRequest = editRequestService.markAsProcessing(editRequest.getId());
-            editRequestService.performEdit(lockedRequest);
+            lockedRequest = editRequestService.markAsProcessing(editRequest.getId());
         } catch (PessimisticLockingFailureException | ResourceInWrongStateException e) {
             // edit request is locked or has already been updated to a different state so it is skipped
             log.info("Skipping EditRequest {}, already reserved by another process", editRequest.getId());
+            return;
+        } catch (Exception e) {
+            log.error("Error while reserving EditRequest {}", editRequest.getId(), e);
+            return;
+        }
+
+        try {
+            editRequestService.performEdit(lockedRequest);
         } catch (InterruptedException e) {
             log.error("Error while performing EditRequest {}", editRequest.getId(), e);
             Thread.currentThread().interrupt();
