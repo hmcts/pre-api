@@ -176,7 +176,29 @@ class EditRequestPerformServiceTest {
         verify(editingService, never()).performEdit(any(UUID.class), any(EditRequest.class));
         verify(assetGenerationService, never()).generateAsset(any(UUID.class), any(EditRequest.class));
         verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
+        verify(recordingService, never()).forceUpsert(any(CreateRecordingDTO.class));
         verify(recordingService, never()).findById(any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("Should perform re-encode request when source recording case is not open")
+    void performReencodeCaseNotOpenSuccess() throws InterruptedException {
+        when(mockCase.getState()).thenReturn(CaseState.CLOSED);
+        when(mockEditRequest.getEditInstruction()).thenReturn("{\"forceReencode\":true}");
+
+        RecordingDTO newRecordingDto = new RecordingDTO();
+        newRecordingDto.setParentRecordingId(mockRecording.getId());
+        when(recordingService.findById(any(UUID.class))).thenReturn(newRecordingDto);
+
+        RecordingDTO res = underTest.performEdit(mockEditRequest);
+
+        assertThat(res).isNotNull();
+        verify(editingService, times(1)).performEdit(any(UUID.class), eq(mockEditRequest));
+        verify(assetGenerationService, times(1)).generateAsset(any(UUID.class), eq(mockEditRequest));
+        verify(recordingService, times(1)).forceUpsert(any(CreateRecordingDTO.class));
+        verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
+        verify(editRequestCrudService, times(1))
+            .updateEditRequestStatus(mockEditRequestId, EditRequestStatus.COMPLETE);
     }
 
     // This should probably be an integration test
@@ -226,6 +248,7 @@ class EditRequestPerformServiceTest {
                                 expectedInstructions, JSONCompareMode.LENIENT);
 
         verify(recordingService, times(1)).findById(any(UUID.class));
+        verify(recordingService, never()).forceUpsert(any(CreateRecordingDTO.class));
     }
 
     @Test

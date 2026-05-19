@@ -48,11 +48,12 @@ public class EditRequestPerformService {
     public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
         UUID newRecordingId = UUID.randomUUID();
         try {
-            ensureSourceRecordingCaseIsOpen(request);
+            EditInstructions editInstructions = fromJson(request.getEditInstruction());
+            ensureSourceRecordingCaseIsOpen(request, editInstructions);
             editingService.performEdit(newRecordingId, request);
             String filename = assetGenerationService.generateAsset(newRecordingId, request);
-            CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
-            recordingService.upsert(createDto);
+            CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request, editInstructions);
+            upsertRecording(createDto, editInstructions);
         } catch (Exception e) {
             markRequestAsError(request.getId(), e);
             throw e;
@@ -62,7 +63,11 @@ public class EditRequestPerformService {
         return recordingService.findById(newRecordingId);
     }
 
-    private void ensureSourceRecordingCaseIsOpen(EditRequest request) {
+    private void ensureSourceRecordingCaseIsOpen(EditRequest request, EditInstructions editInstructions) {
+        if (editInstructions.isForceReencode()) {
+            return;
+        }
+
         EditRequestValidator.ensureEditRequestHasSourceRecording(request);
         CaseState caseState = request.getSourceRecording()
             .getCaptureSession()
@@ -89,14 +94,17 @@ public class EditRequestPerformService {
         return editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
     }
 
-    private @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
+    private @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId,
+                                                           String filename,
+                                                           EditRequest request,
+                                                           EditInstructions editInstructions) {
         UUID parentId = request.getSourceRecording().getParentRecording() == null
             ? request.getSourceRecording().getId()
             : request.getSourceRecording().getParentRecording().getId();
 
         // if edit on edit without original edits saved (legacy edit),
         //  then these edits will not align with the original timeline
-        EditInstructionDump dump = new EditInstructionDump(request.getId(), fromJson(request.getEditInstruction()));
+        EditInstructionDump dump = new EditInstructionDump(request.getId(), editInstructions);
 
         return new CreateRecordingDTO(
             newRecordingId,
@@ -108,6 +116,15 @@ public class EditRequestPerformService {
             null,
             toJson(dump)
         );
+    }
+
+    private void upsertRecording(CreateRecordingDTO createDto, EditInstructions editInstructions) {
+        if (editInstructions.isForceReencode()) {
+            recordingService.forceUpsert(createDto);
+            return;
+        }
+
+        recordingService.upsert(createDto);
     }
 
     private void markRequestAsError(UUID requestId, Exception originalException) {
