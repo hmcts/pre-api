@@ -5,13 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
@@ -44,24 +45,44 @@ public class EditRequestPerformService {
         return editRequestCrudService.getNextPendingEditRequest(reencodeOnly);
     }
 
-    @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
     public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
         UUID newRecordingId = UUID.randomUUID();
-        String filename;
         try {
+            EditInstructions editInstructions = fromJson(request.getEditInstruction());
+            ensureSourceRecordingCaseIsOpen(request, editInstructions);
             editingService.performEdit(newRecordingId, request);
-            filename = assetGenerationService.generateAsset(newRecordingId, request);
+            String filename = assetGenerationService.generateAsset(newRecordingId, request);
+            CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request, editInstructions);
+            upsertRecording(createDto, editInstructions);
         } catch (Exception e) {
-            editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.ERROR);
+            markRequestAsError(request.getId(), e);
             throw e;
         }
 
         editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
-
-        CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
-        recordingService.upsert(createDto);
-
         return recordingService.findById(newRecordingId);
+    }
+
+    private void ensureSourceRecordingCaseIsOpen(EditRequest request, EditInstructions editInstructions) {
+        if (editInstructions.isForceReencode()) {
+            return;
+        }
+
+        EditRequestValidator.ensureEditRequestHasSourceRecording(request);
+        CaseState caseState = request.getSourceRecording()
+            .getCaptureSession()
+            .getBooking()
+            .getCaseId()
+            .getState();
+
+        if (caseState != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "Recording",
+                request.getSourceRecording().getId(),
+                caseState,
+                "OPEN"
+            );
+        }
     }
 
     @Transactional
@@ -73,14 +94,17 @@ public class EditRequestPerformService {
         return editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.PROCESSING);
     }
 
-    private @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
+    private @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId,
+                                                           String filename,
+                                                           EditRequest request,
+                                                           EditInstructions editInstructions) {
         UUID parentId = request.getSourceRecording().getParentRecording() == null
             ? request.getSourceRecording().getId()
             : request.getSourceRecording().getParentRecording().getId();
 
         // if edit on edit without original edits saved (legacy edit),
         //  then these edits will not align with the original timeline
-        EditInstructionDump dump = new EditInstructionDump(request.getId(), fromJson(request.getEditInstruction()));
+        EditInstructionDump dump = new EditInstructionDump(request.getId(), editInstructions);
 
         return new CreateRecordingDTO(
             newRecordingId,
@@ -92,6 +116,24 @@ public class EditRequestPerformService {
             null,
             toJson(dump)
         );
+    }
+
+    private void upsertRecording(CreateRecordingDTO createDto, EditInstructions editInstructions) {
+        if (editInstructions.isForceReencode()) {
+            recordingService.forceUpsert(createDto);
+            return;
+        }
+
+        recordingService.upsert(createDto);
+    }
+
+    private void markRequestAsError(UUID requestId, Exception originalException) {
+        try {
+            editRequestCrudService.updateEditRequestStatus(requestId, EditRequestStatus.ERROR);
+        } catch (Exception statusUpdateException) {
+            log.error("Failed to mark EditRequest {} as ERROR after perform failure", requestId, statusUpdateException);
+            originalException.addSuppressed(statusUpdateException);
+        }
     }
 
     private record EditInstructionDump(UUID editRequestId, EditInstructions editInstructions) {
