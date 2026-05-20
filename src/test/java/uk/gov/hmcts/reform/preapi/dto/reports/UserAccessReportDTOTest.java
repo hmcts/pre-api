@@ -19,8 +19,8 @@ class UserAccessReportDTOTest {
     @BeforeEach
     void setUp() {
         final User user = HelperFactory.createUser(
-                "First", "Last",
-                "primary@email", null, "phone", null
+            "First", "Last",
+            "primary@email", null, "phone", null
         );
         user.setAlternativeEmail("additional@email");
 
@@ -66,37 +66,48 @@ class UserAccessReportDTOTest {
 
     @Test
     void throwExceptionWhenNullAppAccess() {
+        String message = Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> new UserAccessReportDTO(null)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
+    }
+
+    @Test
+    void throwExceptionWhenNullUser() {
         AppAccess appAccessWithNullUser = appAccess;
         appAccessWithNullUser.setUser(null);
         String message = Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> new UserAccessReportDTO(appAccessWithNullUser)
+            IllegalArgumentException.class,
+            () -> new UserAccessReportDTO(appAccessWithNullUser)
         ).getMessage();
         assertThat(message)
-                .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
+            .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
     }
 
     @Test
     void throwExceptionWhenNullCourt() {
         AppAccess appAccessWithNullCourt = appAccess;
-        appAccessWithNullCourt.setUser(null);
+        appAccessWithNullCourt.setCourt(null);
         String message = Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> new UserAccessReportDTO(appAccessWithNullCourt)
+            IllegalArgumentException.class,
+            () -> new UserAccessReportDTO(appAccessWithNullCourt)
         ).getMessage();
         assertThat(message)
-                .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
+            .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
     }
 
     @Test
     void throwExceptionWhenNullRole() {
         AppAccess appAccessWithNullRole = appAccess;
-        appAccessWithNullRole.setUser(null);
+        appAccessWithNullRole.setRole(null);
         String message = Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> new UserAccessReportDTO(appAccessWithNullRole)
+            IllegalArgumentException.class,
+            () -> new UserAccessReportDTO(appAccessWithNullRole)
         ).getMessage();
         assertThat(message)
-                .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
+            .isEqualTo("UserAccessReportDTO must be instantiated with non-null values");
     }
 }
