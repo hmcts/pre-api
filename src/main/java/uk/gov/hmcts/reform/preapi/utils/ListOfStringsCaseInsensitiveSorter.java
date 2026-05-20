@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.reports.shared;
+package uk.gov.hmcts.reform.preapi.utils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Locale;
 
 @Slf4j
-public class ColumnOrderComparator implements Comparator<String> {
+public class ListOfStringsCaseInsensitiveSorter implements Comparator<String> {
 
     private final List<String> columnOrder;
 
-    public ColumnOrderComparator(List<String> columnOrder) {
+    public ListOfStringsCaseInsensitiveSorter(List<String> columnOrder) {
         this.columnOrder = columnOrder.stream()
             .map(item -> item.toLowerCase(Locale.UK))
             .toList();

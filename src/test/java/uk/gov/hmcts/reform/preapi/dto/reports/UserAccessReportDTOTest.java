@@ -17,7 +17,7 @@ class UserAccessReportDTOTest {
     private AppAccess appAccess;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         final User user = HelperFactory.createUser(
                 "First", "Last",
                 "primary@email", null, "phone", null

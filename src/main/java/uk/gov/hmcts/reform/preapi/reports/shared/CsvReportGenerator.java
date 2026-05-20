@@ -9,6 +9,7 @@ import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
+import uk.gov.hmcts.reform.preapi.utils.ListOfStringsCaseInsensitiveSorter;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -30,7 +31,7 @@ public class CsvReportGenerator {
         HeaderColumnNameMappingStrategy<T> mappingStrategy
             = new HeaderColumnNameMappingStrategy<>();
         mappingStrategy.setType(reportClass);
-        mappingStrategy.setColumnOrderOnWrite(new ColumnOrderComparator(columnOrder));
+        mappingStrategy.setColumnOrderOnWrite(new ListOfStringsCaseInsensitiveSorter(columnOrder));
 
         try (StringWriter sw = new StringWriter(); CSVWriter csvWriter = new CSVWriter(sw)) {
             StatefulBeanToCsv<T> beanToCsv =
