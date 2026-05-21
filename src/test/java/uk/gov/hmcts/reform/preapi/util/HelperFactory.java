@@ -6,7 +6,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -90,22 +89,6 @@ public class HelperFactory {
         appAccess.setDeletedAt(deletedAt);
         appAccess.setDefaultCourt(isDefaultCourt);
         return appAccess;
-    }
-
-    public static UserAccessReportDTO createUserAccessReportDTO(String randomPrefix) {
-        User user = createDefaultTestUser();
-        user.setAlternativeEmail(randomPrefix.replace(" ", "-") + "alt@email.co.uk");
-        Court court = createCourt(CourtType.CROWN, randomPrefix + "court name", null);
-        Role role = createRole(randomPrefix + "role");
-        AppAccess appAccess = new AppAccess();
-        appAccess.setUser(user);
-        appAccess.setCourt(court);
-        appAccess.setRole(role);
-        appAccess.setLastAccess(new Timestamp(System.currentTimeMillis()));
-        appAccess.setActive(true);
-        appAccess.setDeletedAt(new Timestamp(System.currentTimeMillis()));
-        appAccess.setDefaultCourt(false);
-        return new UserAccessReportDTO(appAccess);
     }
 
     public static PortalAccess createPortalAccess(User user,

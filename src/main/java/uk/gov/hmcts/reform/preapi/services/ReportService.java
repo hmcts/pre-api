@@ -13,7 +13,6 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
-import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -364,13 +363,4 @@ public class ReportService {
                                                          access.getLastAccess()))
             .toList();
     }
-
-    @Transactional
-    public List<UserAccessReportDTO> reportUserFullAccess() {
-        return this.appAccessRepository.findAll()
-            .stream()
-            .map(UserAccessReportDTO::new)
-            .toList();
-    }
-
 }

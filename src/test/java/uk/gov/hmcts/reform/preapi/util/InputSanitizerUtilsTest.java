@@ -1,8 +1,9 @@
-package uk.gov.hmcts.reform.preapi.utils;
+package uk.gov.hmcts.reform.preapi.util;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
