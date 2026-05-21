@@ -409,8 +409,8 @@ class RecordingServiceTest {
     @DisplayName("Should not throw error when all recordings of a capture session have been marked as deleted")
     @Test
     void checkIfCaptureSessionHasAssociatedRecordingsSuccess() {
-        when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
-            .thenReturn(false);
+        when(recordingRepository.findFirstByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
+            .thenReturn(Optional.empty());
 
         assertDoesNotThrow(
             () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
@@ -420,15 +420,17 @@ class RecordingServiceTest {
     @DisplayName("Should throw error when all recordings of a capture session have not been marked as deleted")
     @Test
     void checkIfCaptureSessionHasAssociatedRecordingsRecordingsNotDeleted() {
-        when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
-            .thenReturn(true);
+        when(recordingRepository.findFirstByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
+            .thenReturn(Optional.of(recordingEntity));
 
         var message = assertThrows(
             CaptureSessionNotDeletedException.class,
             () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
         ).getMessage();
 
-        assertThat(message).isEqualTo("Cannot delete because an associated recording has not been deleted.");
+        assertThat(message).contains("Cannot delete because an associated recording has not been deleted.");
+        assertThat(message).contains(recordingEntity.getCaptureSession().getId().toString());
+        assertThat(message).contains(recordingEntity.getId().toString());
     }
 
     @DisplayName("Should set started at from and until when started at is set")

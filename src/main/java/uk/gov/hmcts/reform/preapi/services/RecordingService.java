@@ -189,8 +189,16 @@ public class RecordingService {
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void checkIfCaptureSessionHasAssociatedRecordings(CaptureSession captureSession) {
-        if (recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)) {
-            throw new CaptureSessionNotDeletedException();
+        Optional<Recording> recording = recordingRepository.findFirstByCaptureSessionAndDeletedAtIsNull(captureSession);
+        if (recording.isPresent()) {
+            UUID captureSessionId = captureSession.getId();
+            UUID recordingId = recording.get().getId();
+            log.error(
+                "Cannot delete capture session because an associated recording has not been deleted. captureSessionId={} recordingId={}",
+                captureSessionId,
+                recordingId
+            );
+            throw new CaptureSessionNotDeletedException(captureSessionId, recordingId);
         }
     }
 
