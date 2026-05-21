@@ -49,7 +49,8 @@ class BookingControllerFT extends FunctionalTestBase {
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 400);
         assertThat(deleteResponse.getBody().jsonPath().getString("message"))
-            .isEqualTo("Cannot delete because an associated recording has not been deleted.");
+            .contains("Cannot delete because an associated recording has not been deleted.")
+            .contains(recordingId.toString());
         assertRecordingExists(recordingId, true);
     }
 
