@@ -53,6 +53,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -225,9 +226,15 @@ public class PostMigrationJobConfig {
     //=======================
 
     private List<CaseDTO> fetchVodafoneCases() {
-        List<CaseDTO> cases = caseService.getCasesByOrigin(RecordingOrigin.VODAFONE);
-        loggingService.logInfo("Found %d Vodafone-origin cases.", cases.size());
-        return cases;
+        List<CaseDTO> vodafoneCases = caseService.getCasesByOrigin(RecordingOrigin.VODAFONE);
+        List<CaseDTO> vodafoneVisibleCases = caseService.getCasesByOrigin(RecordingOrigin.VODAFONE_VISIBLE);
+
+        List<CaseDTO> allCases = new ArrayList<>(vodafoneCases.size() + vodafoneVisibleCases.size());
+        allCases.addAll(vodafoneCases);
+        allCases.addAll(vodafoneVisibleCases);
+
+        loggingService.logInfo("Found %d Vodafone-origin cases.", allCases.size());
+        return allCases;
     }
 
     private boolean hasRecentBookings(CaseDTO caseDTO) {
