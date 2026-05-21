@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.validators.CreateEditRequestStatusConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
@@ -37,10 +38,17 @@ public class CreateEditRequestDTO {
     @Schema(description = "CreateEditRequestInstructions")
     private List<EditCutInstructionDTO> editInstructions;
 
+    @Schema(description = "Force full-file reencode instead of cut-based editing", defaultValue = "false")
+    private boolean forceReencode;
+
+    @Schema(description = "Send notifications when the edited recording becomes available", defaultValue = "true")
+    private Boolean sendNotifications = true;
+
     @Schema(description = "CreateEditRequestJointlyAgreed")
     private Boolean jointlyAgreed;
 
     @Size(max = 512)
+    @SanitizedStringConstraint
     @Schema(description = "CreateEditRequestRejectionReason")
     private String rejectionReason;
 
@@ -48,6 +56,7 @@ public class CreateEditRequestDTO {
     private Timestamp approvedAt;
 
     @Size(max = 100)
+    @SanitizedStringConstraint
     @Schema(description = "CreateEditRequestApprovedBy")
     private String approvedBy;
 }

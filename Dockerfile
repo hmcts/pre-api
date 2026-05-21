@@ -1,6 +1,6 @@
  # renovate: datasource=github-releases depName=microsoft/ApplicationInsights-Java
-ARG APP_INSIGHTS_AGENT_VERSION=3.7.7
-FROM eclipse-temurin:21-jre-jammy AS build-env
+ARG APP_INSIGHTS_AGENT_VERSION=3.7.8
+FROM hmctsprod.azurecr.io/imported/eclipse-temurin:21 AS build-env
 RUN apt-get update && apt-get install -y ffmpeg
 
 WORKDIR /usr/local/bin
@@ -14,7 +14,7 @@ RUN cp -p azcopy*/azcopy /usr/bin
 RUN chmod 0755 /usr/bin/azcopy
 
  # renovate: datasource=github-releases depName=microsoft/ApplicationInsights-Java
-FROM hmctspublic.azurecr.io/base/java:21-distroless
+FROM hmctsprod.azurecr.io/base/java:21-distroless
 COPY --from=build-env /usr/bin/ffmpeg /usr/bin
 COPY --from=build-env /usr/bin/ffprobe /usr/bin
 COPY --from=build-env /usr/bin/azcopy /usr/bin

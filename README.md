@@ -332,17 +332,23 @@ You can also run individual test classes or methods by right-clicking on them an
 
 ### Running the Integration Tests
 
-To run integration tests, a docker image is needed for the
-postgres testcontainers database (temp database for testing). This will be done during the
-running of the tests.
+To run integration tests, a docker image is needed for the postgres database (temp database for testing).
+This will be set by ContainerImageNameSubstitutor during the running of the tests.
 
 #### Pre-requisites
-Testcontainers (test helper library) needs the HMCTS postgres image for the test database it sets up. For this to pull
-from HMCTS Azure Container Registry (ACR) you must login to the ACR first:
+Testcontainers (test helper library) needs a postgres image for the test database it sets up. The image used is set
+in ContainerImageNameSubstitutor. If a registry is not set, it pulls the image from Docker Hub.
+
+To pull an image from the HMCTS Azure Container Registry (ACR) instead, you must login to the ACR first:
 
 ```bash
 az login # if not logged in already
-az acr login --name hmctspublic
+
+## (Select DCD-CNP-Prod subscription)
+
+az acr login --name hmctsprod
+
+docker image pull hmctsprod.azurecr.io/imported/postgres:16-alpine
 ```
 
 #### With the Command Line
@@ -530,6 +536,63 @@ or by source code:
 ```
 TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
 ```
+
+### Perform edit requests
+
+`PerformEditRequest` processes one pending edit request per run.
+
+By default, it only picks up regular edit requests and skips force re-encode requests. Set
+`PERFORM_EDIT_REQUEST_REENCODE_ONLY=true` to switch the same task to only pick up force re-encode requests.
+
+```bash
+TASK_NAME=PerformEditRequest ./gradlew bootRun
+```
+
+```bash
+PERFORM_EDIT_REQUEST_REENCODE_ONLY=true \
+TASK_NAME=PerformEditRequest \
+./gradlew bootRun
+```
+
+### Re-encode recordings from CSV
+
+`ReEncodeRecordingsFromCsv` creates force re-encode edit requests for recordings listed in a CSV file. It sets
+`force_reencode` to `true` and `send_notifications` to `false` on every edit request it creates.
+
+By default, the task will not create another re-encode request for a recording that already has a force re-encode edit
+request. Set `REENCODE_RECORDINGS_FORCE=true` to override that check and submit a new re-encode request anyway.
+Duplicate recording ids within the same CSV run are skipped.
+
+The CSV requires `source_recording_id` and can include an optional `case_reference` column for clearer progress logs:
+
+```csv
+source_recording_id,case_reference
+11111111-1111-1111-1111-111111111111,CASE-123
+22222222-2222-2222-2222-222222222222,CASE-456
+```
+
+For deployments that build the CSV into the application, replace `src/main/resources/re-encode-recordings.csv` before
+building the image and set `REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv`.
+
+Run it by source:
+
+```bash
+REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv \
+TASK_NAME=ReEncodeRecordingsFromCsv \
+./gradlew bootRun
+```
+
+Or by JAR:
+
+```bash
+./gradlew bootJar
+REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv \
+TASK_NAME=ReEncodeRecordingsFromCsv \
+java -jar build/libs/pre-api.jar run
+```
+
+Filesystem paths are also supported for local runs, for example
+`REENCODE_RECORDINGS_CSV_PATH=/path/to/re-encode-recordings.csv`.
 
 ## Troubleshooting
 

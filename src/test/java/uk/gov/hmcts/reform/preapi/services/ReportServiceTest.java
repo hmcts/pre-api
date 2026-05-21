@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -22,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -32,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
@@ -48,6 +51,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = ReportService.class)
@@ -333,9 +337,9 @@ public class ReportServiceTest {
             .isEqualTo(DateTimeUtils.formatDate(otherBooking.getScheduledFor()));
     }
 
-    @DisplayName("Find audits relating to playbacks from the portal and return a report")
+    @DisplayName("Find audits relating to playbacks from the portal for a user and return a report")
     @Test
-    void reportPlaybackPortalSuccess() {
+    void reportPlaybackPortalForUserSuccess() {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setEmail("example@example.com");
@@ -356,8 +360,69 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        List<User> users = List.of(user);
+        List<UUID> userIds = users.stream().map(User::getId).toList();
+        when(userRepository.findAllById(userIds)).thenReturn(users);
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
+
+        var report = reportService.reportPlayback(AuditLogSource.PORTAL);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+
+
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Find audits relating to playbacks from the portal for a portal access and return a report")
+    @Test
+    void reportPlaybackPortalForPortalAccessSuccess() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        var portalAccess = new PortalAccess();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setUser(user);
+        auditEntity.setCreatedBy(portalAccess.getId());
+        auditEntity.setSource(AuditLogSource.PORTAL);
+
+        var objectMapper = new ObjectMapper();
+        var objectNode = objectMapper.createObjectNode();
+        objectNode.put("recordingId", recordingEntity.getId().toString());
+        auditEntity.setAuditDetails(objectNode);
+
+        when(auditRepository
+                 .findBySourceAndFunctionalAreaAndActivity(
+                     AuditLogSource.PORTAL,
+                     "Video Player",
+                     "Play"
+                 )
+        ).thenReturn(List.of(auditEntity));
+
+        List<PortalAccess> portalAccesses = List.of(portalAccess);
+        List<UUID> portalAccessIds = portalAccesses.stream().map(PortalAccess::getId).toList();
+        when(portalAccessRepository.findAllById(portalAccessIds)).thenReturn(portalAccesses);
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
@@ -396,7 +461,10 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
@@ -416,6 +484,8 @@ public class ReportServiceTest {
     @Test
     void reportPlaybackPortalSuccessNoRecordingId() {
         auditEntity.setSource(AuditLogSource.PORTAL);
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -428,7 +498,7 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
@@ -474,9 +544,9 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getRegion()).isNullOrEmpty();
     }
 
-    @DisplayName("Find audits relating to playbacks from the application and return a report")
+    @DisplayName("Find audits relating to playbacks from the application for a user and return a report")
     @Test
-    void reportPlaybackApplicationSuccess() {
+    void reportPlaybackApplicationForUserSuccess() {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setEmail("example@example.com");
@@ -497,8 +567,67 @@ public class ReportServiceTest {
                      "Play"
                  )
         ).thenReturn(List.of(auditEntity));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        List<User> users = List.of(user);
+        List<UUID> userIds = users.stream().map(User::getId).toList();
+        when(userRepository.findAllById(userIds)).thenReturn(users);
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
+
+        var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
+
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+
+
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Find audits relating to playbacks from the application for an app access and return a report")
+    @Test
+    void reportPlaybackApplicationForAppAccessSuccess() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        var appAccess = new AppAccess();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUser(user);
+        auditEntity.setCreatedBy(appAccess.getId());
+        auditEntity.setSource(AuditLogSource.APPLICATION);
+
+        var objectMapper = new ObjectMapper();
+        var objectNode = objectMapper.createObjectNode();
+        objectNode.put("recordingId", recordingEntity.getId().toString());
+        auditEntity.setAuditDetails(objectNode);
+
+        when(auditRepository
+                 .findBySourceAndFunctionalAreaAndActivity(
+                     AuditLogSource.APPLICATION,
+                     "View Recordings",
+                     "Play"
+                 )
+        ).thenReturn(List.of(auditEntity));
+
+        List<AppAccess> appAccesses = List.of(appAccess);
+        List<UUID> appAccessIds = appAccesses.stream().map(AppAccess::getId).toList();
+        when(appAccessRepository.findAllById(appAccessIds)).thenReturn(appAccesses);
+
+        List<Recording> recordings = List.of(recordingEntity);
+        List<UUID> recordingIds = recordings.stream().map(Recording::getId).toList();
+        when(recordingRepository.findAllById(recordingIds)).thenReturn(recordings);
 
         var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
 
@@ -801,5 +930,43 @@ public class ReportServiceTest {
         assertThat(report.getLast().getActive()).isEqualTo("Inactive");
         assertThat(report.getLast().getRoleName()).isEqualTo(appAccess2.getRole().getName());
         assertThat(report.getLast().getLastAccess()).isEqualTo(appAccess2.getLastAccess());
+    }
+
+    @Test
+    @DisplayName("Get all users with all courts, roles and statuses")
+    void getFullUserAccessReport() {
+        User user1 = HelperFactory.createDefaultTestUser();
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Crown court", null);
+        Court court2 = HelperFactory.createCourt(CourtType.MAGISTRATE, "Mags court", null);
+        Role role = HelperFactory.createRole("role");
+
+        AppAccess access1 = HelperFactory.createAppAccess(user1, court, role, true,
+                                                          null, Timestamp.from(Instant.now()),
+                                                          true);
+
+        AppAccess access2 = HelperFactory.createAppAccess(user1, court2, role, true,
+                                                          null, Timestamp.from(Instant.now()),
+                                                          false);
+
+        AppAccess access3 = HelperFactory.createAppAccess(user1, court2, role, false,
+                                                          Timestamp.from(Instant.now()),
+                                                          Timestamp.from(Instant.now()),
+                                                          false);
+
+        when(appAccessRepository.findAll()).thenReturn(List.of(access1, access2, access3));
+
+
+        List<UserAccessReportDTO> result = reportService.reportUserFullAccess();
+
+        verify(appAccessRepository, times(1)).findAll();
+        verifyNoMoreInteractions(appAccessRepository);
+
+        assertThat(result.size()).isEqualTo(3);
+        assertThat(result.getFirst().getFirstName()).isEqualTo(user1.getFirstName());
+        assertThat(result.getFirst().getLastName()).isEqualTo(user1.getLastName());
+        assertThat(result.getFirst().getRoleName()).isEqualTo(role.getName());
+        assertThat(result.getFirst().getActive()).isEqualTo("Active");
+        assertThat(result.getFirst().getAccessType()).isEqualTo("Primary");
+
     }
 }

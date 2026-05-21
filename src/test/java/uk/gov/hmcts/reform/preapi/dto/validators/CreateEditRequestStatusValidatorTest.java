@@ -4,10 +4,12 @@ import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,6 +34,26 @@ public class CreateEditRequestStatusValidatorTest {
         var context = mock(ConstraintValidatorContext.class);
 
         assertTrue(validator.isValid(dto, context));
+    }
+
+    @Test
+    public void isInvalidWhenForceReencodeAndEditInstructionsAreBothProvided() {
+        var dto = new CreateEditRequestDTO();
+        dto.setForceReencode(true);
+        dto.setEditInstructions(List.of(EditCutInstructionDTO.builder().start(0L).end(1L).build()));
+        var context = mock(ConstraintValidatorContext.class);
+        var builder = mock(ConstraintValidatorContext.ConstraintViolationBuilder.class);
+        var nodeBuilder =
+            mock(ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext.class);
+
+        when(context.buildConstraintViolationWithTemplate(anyString())).thenReturn(builder);
+        when(builder.addPropertyNode(anyString())).thenReturn(nodeBuilder);
+
+        assertFalse(validator.isValid(dto, context));
+
+        verify(context).disableDefaultConstraintViolation();
+        verify(builder).addPropertyNode("forceReencode");
+        verify(nodeBuilder).addConstraintViolation();
     }
 
     @Test

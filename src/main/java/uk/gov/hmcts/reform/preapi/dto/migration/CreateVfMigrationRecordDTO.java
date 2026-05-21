@@ -11,6 +11,7 @@ import org.hibernate.validator.constraints.Length;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.dto.validators.AlphanumericConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -39,10 +40,12 @@ public class CreateVfMigrationRecordDTO {
 
     @Length(max = 25)
     @Schema(description = "CreateMigrationRecordDefendantName")
+    @SanitizedStringConstraint
     private String defendantName;
 
     @Length(max = 25)
     @Schema(description = "CreateMigrationRecordWitnessName")
+    @SanitizedStringConstraint
     private String witnessName;
 
     @Schema(description = "CreateMigrationRecordRecordingVersion")

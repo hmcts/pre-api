@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.util.UUID;
@@ -23,10 +24,12 @@ public class BaseUserDTO {
     @NotNull
     protected UUID id;
 
+    @SanitizedStringConstraint
     @Schema(description = "UserFirstName")
     @NotBlank
     protected String firstName;
 
+    @SanitizedStringConstraint
     @Schema(description = "UserLastName")
     @NotBlank
     protected String lastName;
@@ -41,9 +44,11 @@ public class BaseUserDTO {
     @Email
     protected String alternativeEmail;
 
+    @SanitizedStringConstraint
     @Schema(description = "UserPhoneNumber")
     protected String phoneNumber;
 
+    @SanitizedStringConstraint
     @Schema(description = "UserOrganisation")
     protected String organisation;
 

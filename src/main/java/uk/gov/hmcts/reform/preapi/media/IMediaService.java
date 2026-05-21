@@ -58,4 +58,6 @@ public interface IMediaService {
     MkJob getJobFromPartialName(String transformName, String jobNamePartial);
 
     boolean checkLiveFeedAvailable(UUID captureSessionId);
+
+    boolean checkVideoPeriodsAvailable(String liveEventId);
 }

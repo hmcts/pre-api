@@ -13,8 +13,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
-import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,7 +28,23 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
     @QueryHints({@QueryHint(name = "jakarta.persistence.lock.timeout", value = "0")})
     Optional<EditRequest> findById(@NotNull UUID id);
 
-    Optional<EditRequest> findFirstByStatusIsOrderByCreatedAt(EditRequestStatus status);
+    @Query(value = """
+        SELECT * FROM edit_requests e
+        WHERE e.status = 'PENDING'
+        AND COALESCE(e.edit_instruction ->> 'forceReencode', 'false') = 'false'
+        ORDER BY e.created_at
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<EditRequest> findFirstPendingRegularEditRequest();
+
+    @Query(value = """
+        SELECT * FROM edit_requests e
+        WHERE e.status = 'PENDING'
+        AND e.edit_instruction ->> 'forceReencode' = 'true'
+        ORDER BY e.created_at
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<EditRequest> findFirstPendingReencodeEditRequest();
 
     @Query(
         """
@@ -51,6 +68,12 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
 
     @Query("select e from EditRequest e where e.id = ?1")
     Optional<EditRequest> findByIdNotLocked(@NotNull UUID id);
+
+    @Query("""
+        SELECT e FROM EditRequest e
+        WHERE e.sourceRecording.id IN :sourceRecordingIds
+        """)
+    List<EditRequest> findAllBySourceRecordingIdIn(@Param("sourceRecordingIds") Collection<UUID> sourceRecordingIds);
 
     @Query("""
         SELECT (COUNT(e) > 0) from EditRequest e

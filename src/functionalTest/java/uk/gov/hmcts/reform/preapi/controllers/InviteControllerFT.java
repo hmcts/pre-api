@@ -15,6 +15,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class InviteControllerFT extends FunctionalTestBase {
+
     @DisplayName("Create a portal invite for new user")
     @Test
     void createPortalInvite() throws JsonProcessingException {
@@ -166,6 +167,22 @@ class InviteControllerFT extends FunctionalTestBase {
 
         var deleteResponse = doDeleteRequest(INVITES_ENDPOINT + "/" + userId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 404);
+    }
+
+    @DisplayName("Create a portal invite with unsafe data in fields")
+    @Test
+    void createPortalInviteWithUnSafeFields() throws JsonProcessingException {
+        var dto = createInvite(null);
+        dto.setOrganisation("<a href=\"http://example.com\">Malicious Link</a>");
+        dto.setFirstName("<script>alert('XSS')</script>Example");
+        dto.setLastName("<b>hello</b>");
+        assertUserExists(dto.getUserId(), false);
+
+        var putResponse = putInvite(dto);
+        assertResponseCode(putResponse, 400);
+        assertThat(putResponse.body().jsonPath().getString("organisation"))
+            .contains("potentially malicious content");
+        assertInviteExists(dto.getUserId(), false);
     }
 
     private CreateInviteDTO createInvite(UUID userId) {

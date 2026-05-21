@@ -14,6 +14,15 @@ public class CreateEditRequestStatusValidator
 
     @Override
     public boolean isValid(CreateEditRequestDTO dto, ConstraintValidatorContext cxt) {
+        if (dto.isForceReencode() && dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
+            cxt.disableDefaultConstraintViolation();
+            cxt.buildConstraintViolationWithTemplate(
+                    "must not have edit instructions when force reencode is enabled")
+                .addPropertyNode("forceReencode")
+                .addConstraintViolation();
+            return false;
+        }
+
         if (dto.getStatus() == null) {
             return true;
         }

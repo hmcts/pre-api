@@ -889,7 +889,7 @@ public class MediaServiceControllerTest {
 
     @Test
     @DisplayName("Should return 200 with updated capture session when streaming path exists")
-    void checkStreamCaptureSessionGcStateExists() throws Exception {
+    void checkStreamCaptureSessionStreamingPathExists() throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
         dto.setStatus(RecordingStatus.STANDBY);

@@ -8,31 +8,34 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.services.edit.EditRequestPerformService;
 
 @Slf4j
 @Component
 public class PerformEditRequest extends RobotUserTask {
 
-    private final EditRequestService editRequestService;
+    private final EditRequestPerformService editRequestService;
+    private final boolean reencodeOnly;
 
     @Autowired
-    public PerformEditRequest(EditRequestService editRequestService,
+    public PerformEditRequest(EditRequestPerformService editRequestService,
                               UserService userService,
                               UserAuthenticationService userAuthenticationService,
-                              @Value("${cron-user-email}") String cronUserEmail) {
+                              @Value("${cron-user-email}") String cronUserEmail,
+                              @Value("${PERFORM_EDIT_REQUEST_REENCODE_ONLY:false}") boolean reencodeOnly) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.editRequestService = editRequestService;
+        this.reencodeOnly = reencodeOnly;
     }
 
     @Override
     public void run() {
         signInRobotUser();
-        log.info("Running PerformEditRequest task");
+        log.info("Running PerformEditRequest task. Re-encode only: {}", reencodeOnly);
 
         // claims the oldest existing pending request and performs edit
-        editRequestService.getNextPendingEditRequest()
+        editRequestService.getNextPendingEditRequest(reencodeOnly)
             .ifPresentOrElse(
                 this::attemptPerformEditRequest,
                 () -> log.info("No pending edit requests found"));
@@ -40,12 +43,20 @@ public class PerformEditRequest extends RobotUserTask {
 
     private void attemptPerformEditRequest(EditRequest editRequest) {
         log.info("Attempting to perform EditRequest {}", editRequest.getId());
+        EditRequest lockedRequest;
         try {
-            EditRequest lockedRequest = editRequestService.markAsProcessing(editRequest.getId());
-            editRequestService.performEdit(lockedRequest);
+            lockedRequest = editRequestService.markAsProcessing(editRequest.getId());
         } catch (PessimisticLockingFailureException | ResourceInWrongStateException e) {
             // edit request is locked or has already been updated to a different state so it is skipped
             log.info("Skipping EditRequest {}, already reserved by another process", editRequest.getId());
+            return;
+        } catch (Exception e) {
+            log.error("Error while reserving EditRequest {}", editRequest.getId(), e);
+            return;
+        }
+
+        try {
+            editRequestService.performEdit(lockedRequest);
         } catch (InterruptedException e) {
             log.error("Error while performing EditRequest {}", editRequest.getId(), e);
             Thread.currentThread().interrupt();

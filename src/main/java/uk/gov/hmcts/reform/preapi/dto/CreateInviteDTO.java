@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 
 import java.util.UUID;
 
@@ -22,10 +23,12 @@ public class CreateInviteDTO {
 
     @Schema(description = "InviteFirstName")
     @NotBlank
+    @SanitizedStringConstraint
     protected String firstName;
 
     @Schema(description = "InviteLastName")
     @NotBlank
+    @SanitizedStringConstraint
     protected String lastName;
 
     @Schema(description = "InviteEmail")
@@ -34,9 +37,11 @@ public class CreateInviteDTO {
     protected String email;
 
     @Schema(description = "InviteOrganisation")
+    @SanitizedStringConstraint
     protected String organisation;
 
     @Schema(description = "InvitePhone")
-    protected String phone;
+    @SanitizedStringConstraint
+    protected String phone; //TODO: Sanitised constraint added but needs specific phone number validation in future
 }
 

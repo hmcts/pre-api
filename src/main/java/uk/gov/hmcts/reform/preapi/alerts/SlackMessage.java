@@ -58,9 +58,14 @@ public class SlackMessage {
 
             List<String> items = section.getItems();
 
-            message.append(items.isEmpty()
-                    ? (showIcons ? "\t:white_check_mark: " : "") + section.getEmptyMessage() + "\n\n"
-                    : String.join("\n", items) + "\n\n");
+            if (items.isEmpty()) {
+                final String prefix = showIcons ? "\t:white_check_mark: " : "";
+                message.append(prefix)
+                    .append(section.getEmptyMessage())
+                    .append("\n\n");
+            } else {
+                message.append(String.join("\n", items)).append("\n\n");
+            }
         });
 
         try {

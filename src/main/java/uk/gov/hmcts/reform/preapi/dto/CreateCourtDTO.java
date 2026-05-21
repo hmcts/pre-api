@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class CreateCourtDTO {
     @NotNull(message = "id is required")
     private UUID id;
 
+    @SanitizedStringConstraint
     @Schema(description = "CreateCourtName")
     @NotNull(message = "name is required")
     private String name;
@@ -30,10 +32,12 @@ public class CreateCourtDTO {
     @NotNull(message = "court_type is required")
     private CourtType courtType;
 
+    @SanitizedStringConstraint
     @Schema(description = "CreateCourtLocationCode")
     @NotNull(message = "location_code is required")
     private String locationCode;
 
+    @SanitizedStringConstraint
     @Schema(description = "CreateCourtCounty")
     private String county;
 

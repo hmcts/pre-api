@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
@@ -19,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -282,5 +284,28 @@ Example Court,PRE.Edits.Example@justice.gov.uk
         );
 
         verifyNoInteractions(courtRepository);
+    }
+
+    @DisplayName("Should not update court addresses with unsafe data")
+    @Test
+    void updateCourtEmailAddressesWithUnsafeData() {
+        final String fileContents = """
+Court,PRE Inbox Address
+Example Court,<script>alert('This is an attack!');</script>@justice.gov.uk
+            """;
+
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "email_addresses.csv",
+            PreApiController.CSV_FILE_TYPE, fileContents.getBytes()
+        );
+
+        when(courtRepository.findFirstByName("Example Court")).thenReturn(Optional.of(courtEntity));
+        when(courtRepository.findAll()).thenReturn(List.of(courtEntity));
+
+        assertThrows(
+            BadRequestException.class,
+            () -> courtService.updateCourtEmails(file));
+
+        verify(courtRepository, Mockito.never()).save(any());
     }
 }
