@@ -194,7 +194,9 @@ public class RecordingService {
             UUID captureSessionId = captureSession.getId();
             UUID recordingId = recording.get().getId();
             log.error(
-                "Cannot delete capture session because an associated recording has not been deleted. captureSessionId={} recordingId={}",
+                "Cannot delete capture session because an associated recording has not been deleted. "
+                    + "captureSessionId={} "
+                    + "recordingId={}",
                 captureSessionId,
                 recordingId
             );
