@@ -430,6 +430,11 @@ class TestingSupportController {
         return ResponseEntity.ok(new BookingDTO(booking));
     }
 
+    @GetMapping("/test")
+    public ResponseEntity<String> randomNewEndpointForTestingGithubActions() {
+        return ResponseEntity.ok("TODO: Delete this endpoint when testing is complete");
+    }
+
     @SneakyThrows
     @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
