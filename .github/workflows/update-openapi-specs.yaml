@@ -30,6 +30,7 @@ jobs:
         env:
           API_NAME: 'pre-api'
           RUN_DB_MIGRATION_ON_STARTUP: false
+          GH_TOKEN: ${{ github.token }}
         run: |
           ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
           echo "Generated OpenAPI doc for ${API_NAME}"

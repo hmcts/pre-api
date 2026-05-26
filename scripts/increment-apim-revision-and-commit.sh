@@ -54,8 +54,6 @@ add_warning_comment(){
 
           See https://tools.hmcts.net/confluence/spaces/S28/pages/1958069495/API+release+process for details.""";
 
-  GH_TOKEN=$(gh auth token)
-  export GH_TOKEN
   gh pr comment "$branch_name" --edit-last --create-if-none -b "$commentBody"
 }
 
