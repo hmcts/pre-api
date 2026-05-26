@@ -169,7 +169,7 @@ public class ReEncodeRecordingsFromCsv extends RobotUserTask {
             .flatMap(Optional::stream)
             .collect(Collectors.toSet());
 
-        return editRequestService.findRecordingIdsWithForceReencodeRequests(recordingIds);
+        return editRequestService.findRecordingIdsAlreadyQueuedOrCompletedForReencode(recordingIds);
     }
 
     private String processRow(ReEncodeRow row,

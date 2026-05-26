@@ -5,6 +5,7 @@ import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Pair;
@@ -34,6 +35,7 @@ import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -46,31 +48,39 @@ public class EditRequestService {
     private final RecordingRepository recordingRepository;
     private final RecordingService recordingService;
     private final EditNotificationService editNotificationService;
+    private final boolean hideReencodedRecordings;
+
+    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
 
     @Autowired
     public EditRequestService(final EditRequestCrudService editRequestCrudService,
                               final RecordingRepository recordingRepository,
                               final RecordingService recordingService,
-                              final EditNotificationService editNotificationService) {
+                              final EditNotificationService editNotificationService,
+                              @Value("${feature-flags.hide-reencoded-recordings:true}")
+                              final boolean hideReencodedRecordings) {
         this.editRequestCrudService = editRequestCrudService;
         this.recordingRepository = recordingRepository;
         this.recordingService = recordingService;
         this.editNotificationService = editNotificationService;
+        this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasEditRequestAccess(authentication, #id)")
     public EditRequestDTO findById(UUID id) {
-        return editRequestCrudService.findById(id);
+        boolean includeReencodedRecordings = canViewReencodedRecordings();
+        return editRequestCrudService.findById(id, includeReencodedRecordings);
     }
 
     @Transactional
     public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        boolean includeReencodedRecordings = canViewReencodedRecordings(auth);
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
-        return editRequestCrudService.findAll(params, pageable);
+        return editRequestCrudService.findAll(params, pageable, includeReencodedRecordings);
     }
 
     @Transactional
@@ -79,8 +89,18 @@ public class EditRequestService {
     }
 
     @Transactional(readOnly = true)
-    public Set<UUID> findRecordingIdsWithForceReencodeRequests(Set<UUID> sourceRecordingIds) {
-        return editRequestCrudService.findRecordingIdsWithForceReencodeRequests(sourceRecordingIds);
+    public Set<UUID> findRecordingIdsAlreadyQueuedOrCompletedForReencode(Set<UUID> sourceRecordingIds) {
+        if (sourceRecordingIds.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<UUID> reencodeRecordingIds = new HashSet<>(
+            recordingRepository.findRecordingIdsWithCompletedReencode(sourceRecordingIds)
+        );
+        reencodeRecordingIds.addAll(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(
+            sourceRecordingIds
+        ));
+        return reencodeRecordingIds;
     }
 
     @Transactional
@@ -128,7 +148,7 @@ public class EditRequestService {
 
         upsert(dto);
 
-        return editRequestCrudService.findById(id);
+        return editRequestCrudService.findById(id, canViewReencodedRecordings());
     }
 
     private Recording getSourceRecording(UUID sourceRecordingId) {
@@ -157,6 +177,15 @@ public class EditRequestService {
         }
 
         editNotificationService.onEditRequestRejected(upserted.getSecond());
+    }
+
+    private boolean canViewReencodedRecordings() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        return canViewReencodedRecordings(auth);
+    }
+
+    private boolean canViewReencodedRecordings(UserAuthentication auth) {
+        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
