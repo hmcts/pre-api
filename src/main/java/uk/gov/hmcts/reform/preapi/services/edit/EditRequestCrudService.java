@@ -18,16 +18,13 @@ import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -49,14 +46,28 @@ public class EditRequestCrudService {
     }
 
     public EditRequestDTO findById(UUID id) {
+        return findById(id, true);
+    }
+
+    public EditRequestDTO findById(UUID id, boolean includeReencodedRecordings) {
         return editRequestRepository
             .findByIdNotLocked(id)
-            .map(EditRequestDTO::new)
+            .map(editRequest -> new EditRequestDTO(editRequest, true, includeReencodedRecordings))
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
     }
 
     public Page<EditRequestDTO> findAll(final SearchEditRequests params, Pageable pageable) {
-        return editRequestRepository.searchAllBy(params, pageable).map(EditRequestDTO::new);
+        return findAll(params, pageable, true);
+    }
+
+    public Page<EditRequestDTO> findAll(
+        final SearchEditRequests params,
+        Pageable pageable,
+        boolean includeReencodedRecordings
+    ) {
+        return editRequestRepository
+            .searchAllBy(params, pageable)
+            .map(editRequest -> new EditRequestDTO(editRequest, true, includeReencodedRecordings));
     }
 
     public Optional<EditRequest> getNextPendingEditRequest(boolean reencodeOnly) {
@@ -129,15 +140,7 @@ public class EditRequestCrudService {
             return Set.of();
         }
 
-        return editRequestRepository.findAllBySourceRecordingIdIn(sourceRecordingIds).stream()
-            .filter(editRequest -> {
-                EditInstructions instructions = EditInstructions.tryFromJson(editRequest.getEditInstruction());
-                return instructions != null && instructions.isForceReencode();
-            })
-            .map(EditRequest::getSourceRecording)
-            .filter(Objects::nonNull)
-            .map(Recording::getId)
-            .collect(Collectors.toSet());
+        return editRequestRepository.findSourceRecordingIdsWithForceReencodeRequests(sourceRecordingIds);
     }
   
     private UpsertResult handleEmptyInstructions(CreateEditRequestDTO dto,

@@ -47,6 +47,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -175,7 +176,7 @@ class EditRequestServiceTest {
 
         when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
             .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
-        when(editRequestCrudService.findById(mockEditRequestId)).thenReturn(editRequestDTO);
+        when(editRequestCrudService.findById(mockEditRequestId, false)).thenReturn(editRequestDTO);
         when(editRequestDTO.getId()).thenReturn(mockEditRequestId);
         when(editRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
         when(editRequestDTO.getCreatedBy()).thenReturn(courtClerkUser.getId().toString());
@@ -269,7 +270,8 @@ class EditRequestServiceTest {
             argThat(search ->
                         search.getAuthorisedBookings() == null
                             && search.getAuthorisedCourt() == null),
-            any(Pageable.class)
+            any(Pageable.class),
+            anyBoolean()
         );
     }
 
@@ -289,7 +291,8 @@ class EditRequestServiceTest {
             argThat(p ->
                         p.getAuthorisedBookings() == null
                             && p.getAuthorisedCourt().equals(mockAuth.getCourtId())),
-            any(Pageable.class)
+            any(Pageable.class),
+            anyBoolean()
         );
     }
 
@@ -308,7 +311,8 @@ class EditRequestServiceTest {
             argThat(p ->
                         p.getAuthorisedBookings().containsAll(mockAuth.getSharedBookings())
                             && p.getAuthorisedCourt() == null),
-            any(Pageable.class)
+            any(Pageable.class),
+            anyBoolean()
         );
     }
 
@@ -337,7 +341,7 @@ class EditRequestServiceTest {
         when(editRequestCrudService.upsert(any(), any(), any()))
             .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
         when(editRequestCrudService.findByIdIfExists(any())).thenReturn(Optional.of(returnedByDb));
-        when(editRequestCrudService.findById(any(UUID.class))).thenReturn(editRequestDTO);
+        when(editRequestCrudService.findById(any(UUID.class), anyBoolean())).thenReturn(editRequestDTO);
 
         EditRequestDTO upsert = underTest.upsert(mockRecordingId, file);
         assertThat(upsert).isEqualTo(editRequestDTO);
@@ -467,35 +471,29 @@ class EditRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Should find recording ids with force re-encode requests")
-    void findRecordingIdsWithForceReencodeRequests() {
-        UUID result1 = UUID.randomUUID();
-        UUID result2 = UUID.randomUUID();
-        Set<UUID> recordingIds = Set.of(result1, result2);
+    @DisplayName("Should find recording ids already queued or completed for re-encode")
+    void findRecordingIdsAlreadyQueuedOrCompletedForReencode() {
+        UUID completedReencodeRecordingId = UUID.randomUUID();
+        UUID queuedReencodeRecordingId = UUID.randomUUID();
+        Set<UUID> recordingIds = Set.of(completedReencodeRecordingId, queuedReencodeRecordingId);
 
+        when(recordingRepository.findRecordingIdsWithCompletedReencode(recordingIds))
+            .thenReturn(Set.of(completedReencodeRecordingId));
         when(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(recordingIds))
-            .thenReturn(Set.of(
-                result1,
-                result2
-            ));
+            .thenReturn(Set.of(queuedReencodeRecordingId));
 
-        Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(recordingIds);
+        Set<UUID> result = underTest.findRecordingIdsAlreadyQueuedOrCompletedForReencode(recordingIds);
 
-        assertThat(result).containsExactlyInAnyOrder(result1, result2);
-        verify(editRequestCrudService, times(1))
-            .findRecordingIdsWithForceReencodeRequests(any());
+        assertThat(result).containsExactlyInAnyOrder(completedReencodeRecordingId, queuedReencodeRecordingId);
     }
 
     @Test
-    @DisplayName("Should not query force re-encode requests for empty recording ids")
-    void findRecordingIdsWithForceReencodeRequestsEmptySet() {
-        when(editRequestCrudService.findRecordingIdsWithForceReencodeRequests(Set.of()))
-            .thenReturn(Set.of());
-
-        Set<UUID> result = underTest.findRecordingIdsWithForceReencodeRequests(Set.of());
+    @DisplayName("Should not query re-encode state for empty recording ids")
+    void findRecordingIdsAlreadyQueuedOrCompletedForReencodeEmptySet() {
+        Set<UUID> result = underTest.findRecordingIdsAlreadyQueuedOrCompletedForReencode(Set.of());
 
         assertThat(result).isEmpty();
-        verify(editRequestCrudService, times(1))
-            .findRecordingIdsWithForceReencodeRequests(any());
+        verify(recordingRepository, never()).findRecordingIdsWithCompletedReencode(any());
+        verify(editRequestCrudService, never()).findRecordingIdsWithForceReencodeRequests(any());
     }
 }

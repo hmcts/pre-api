@@ -393,6 +393,38 @@ public class AuthorisationServiceTest {
         assertTrue(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
     }
 
+    @DisplayName("Should not grant access to hidden re-encoded recording when user is not super user")
+    @Test
+    void hasRecordingAccessHiddenReencodedRecordingNotSuperUser() {
+        var recordingId = UUID.randomUUID();
+        var recording = new Recording();
+        recording.setId(recordingId);
+        recording.setReencode(true);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+
+        assertFalse(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
+    @DisplayName("Should grant access to hidden re-encoded recording when user is super user")
+    @Test
+    void hasRecordingAccessHiddenReencodedRecordingSuperUser() {
+        var recordingId = UUID.randomUUID();
+        var recording = new Recording();
+        recording.setId(recordingId);
+        recording.setReencode(true);
+        var captureSession = new CaptureSession();
+        recording.setCaptureSession(captureSession);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
     @DisplayName("Should not grant access to recording when capture session access is not granted")
     @Test
     void hasRecordingAccessCaptureSessionAccessNotGranted() {
@@ -1044,7 +1076,8 @@ public class AuthorisationServiceTest {
             captureSessionRepository,
             recordingRepository,
             editRequestRepository,
-            enableMigratedData
+            enableMigratedData,
+            true
         );
     }
 }
