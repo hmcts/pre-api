@@ -100,6 +100,8 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
 
     boolean existsByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
 
+    Optional<Recording> findFirstByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
+
     @Query("""
         SELECT c, COUNT(c)
         FROM Recording r
