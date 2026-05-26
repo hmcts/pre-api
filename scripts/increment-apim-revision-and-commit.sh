@@ -9,9 +9,8 @@
 
 main() {
   set_up
-  add_warning_comment
-#  convert_open_api_to_swagger
-#  bump_revision_number_and_commit_changes_to_github
+  convert_open_api_to_swagger
+  bump_revision_number_and_commit_changes_to_github
   echo "done"
 }
 
