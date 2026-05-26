@@ -9,8 +9,9 @@
 
 main() {
   set_up
-  convert_open_api_to_swagger
-  bump_revision_number_and_commit_changes_to_github
+  add_warning_comment
+#  convert_open_api_to_swagger
+#  bump_revision_number_and_commit_changes_to_github
   echo "done"
 }
 
@@ -38,6 +39,26 @@ convert_open_api_to_swagger() {
   rm -rf swagger_docs
 };
 
+add_warning_comment(){
+  echo "Adding warning comment that API spec has been updated"
+
+  branch_name=$(git branch --show-current)
+
+  commentBody="""
+          ## :x: Change to API Spec detected
+          This pull request updates the Open API specification.
+
+          Monitor carefully when deploying to production, as sometimes the APIM fails at deployment stage.
+
+          Follow the release process and manually check that the Streaming Manager is up after the release.
+
+          See https://tools.hmcts.net/confluence/spaces/S28/pages/1958069495/API+release+process for details.""";
+
+  GH_TOKEN=$(gh auth token)
+  export GH_TOKEN
+  gh pr comment "$branch_name" --edit-last --create-if-none -b "$commentBody"
+}
+
 bump_revision_number_and_commit_changes_to_github(){
   CHANGED=$(git diff --name-only "specs/pre-api.json" pre-api-stg.yaml infrastructure/main.tf)
 
@@ -48,22 +69,7 @@ bump_revision_number_and_commit_changes_to_github(){
     echo "About to commit: ${commit_message}"
     git -c user.name='PRE DevOps' -c user.email='138598290+pre-devops@users.noreply.github.com' commit -m "$commit_message"
     git push
-
-    branch_name=$(git branch --show-current)
-
-    commentBody="""
-            ## :x: Change to API Spec detected
-            This pull request updates the Open API specification.
-
-            Monitor carefully when deploying to production, as sometimes the APIM fails at deployment stage.
-
-            Follow the release process and manually check that the Streaming Manager is up after the release.
-
-            See https://tools.hmcts.net/confluence/spaces/S28/pages/1958069495/API+release+process for details.""";
-
-    GH_TOKEN=$(gh auth token)
-    export GH_TOKEN
-    gh pr comment "$branch_name" --edit-last --create-if-none -b "$commentBody"
+    add_warning_comment
   fi
 }
 
