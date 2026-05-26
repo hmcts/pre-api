@@ -45,14 +45,13 @@ add_warning_comment(){
   branch_name=$(git branch --show-current)
 
   commentBody="""
-          ## :x: Change to API Spec detected
-          This pull request updates the Open API specification.
+:bangbang: Change to API Spec detected
 
-          Monitor carefully when deploying to production, as sometimes the APIM fails at deployment stage.
+Monitor carefully when deploying to production.
 
-          Follow the release process and manually check that the Streaming Manager is up after the release.
+Follow the release process and manually check that the Streaming Manager and portal are healthy after the release.
 
-          See https://tools.hmcts.net/confluence/spaces/S28/pages/1958069495/API+release+process for details.""";
+See https://tools.hmcts.net/confluence/spaces/S28/pages/1958069495/API+release+process for details."""
 
   gh pr comment "$branch_name" --edit-last --create-if-none -b "$commentBody"
 }
