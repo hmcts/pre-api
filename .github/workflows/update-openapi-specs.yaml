@@ -42,14 +42,3 @@ jobs:
         run: |
           ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
           echo "Generated OpenAPI doc for ${API_NAME}"
-
-      - name: Add alert comment to PR
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-           CHANGED=$(git diff --name-only "specs/pre-api.json" pre-api-stg.yaml)
-
-           if [ "$CHANGED" != "" ]; then
-              echo "Run script here"
-           fi
