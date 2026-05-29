@@ -779,7 +779,6 @@ class BookingControllerTest {
     void shouldMigrateABookingToADifferentCaseReference() throws Exception {
         UUID bookingId = UUID.randomUUID();
         UUID caseId = UUID.randomUUID();
-        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
 
         CaseDTO caseToReturn = new CaseDTO();
         caseToReturn.setId(caseId);
@@ -790,6 +789,7 @@ class BookingControllerTest {
 
         when(bookingService.findById(bookingId)).thenReturn(bookingToReturn);
 
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
         mockMvc.perform(put("/bookings/migrate-case/" + bookingId)
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(updateBookingCaseDTO))
@@ -826,7 +826,6 @@ class BookingControllerTest {
     void moveBookingToDifferentCaseReferenceErrorIfBookingDoesNotMatch() throws Exception {
         UUID bookingId = UUID.randomUUID();
         UUID caseId = UUID.randomUUID();
-        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
 
         CaseDTO caseToReturn = new CaseDTO();
         caseToReturn.setId(caseId);
@@ -837,6 +836,7 @@ class BookingControllerTest {
 
         when(bookingService.findById(bookingId)).thenReturn(bookingToReturn);
 
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
         mockMvc.perform(put("/bookings/migrate-case/" + UUID.randomUUID())
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(updateBookingCaseDTO))

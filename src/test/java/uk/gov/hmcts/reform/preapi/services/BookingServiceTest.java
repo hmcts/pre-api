@@ -723,23 +723,22 @@ class BookingServiceTest {
     @DisplayName("Should move booking to different existing case reference")
     @Test
     void moveBookingToDifferentCaseReferenceSuccess() {
-        UUID bookingId = UUID.randomUUID();
-        UUID caseId = UUID.randomUUID();
-        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
-
         Case incorrectCase = new Case();
         incorrectCase.setId(UUID.randomUUID());
 
+        UUID bookingId = UUID.randomUUID();
         Booking existingBooking = new Booking();
         existingBooking.setId(bookingId);
         existingBooking.setCaseId(incorrectCase);
 
+        UUID caseId = UUID.randomUUID();
         Case caseToMoveTo = new Case();
         caseToMoveTo.setId(caseId);
 
         when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseToMoveTo));
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(existingBooking));
 
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
         bookingService.migrateToNewCaseRef(updateBookingCaseDTO);
 
         ArgumentCaptor<Booking> bookingArgumentCaptor = ArgumentCaptor.forClass(Booking.class);
@@ -753,12 +752,12 @@ class BookingServiceTest {
     void moveBookingToDifferentCaseReferenceErrorIfCaseDoesNotExist() {
         UUID bookingId = UUID.randomUUID();
         UUID caseId = UUID.randomUUID();
-        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
 
         doThrow(
             new NotFoundException("Case: " + caseId)
         ).when(caseRepository).findById(caseId);
 
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
         assertThrows(
             NotFoundException.class,
             () -> bookingService.migrateToNewCaseRef(updateBookingCaseDTO)
@@ -770,12 +769,12 @@ class BookingServiceTest {
     void moveBookingToDifferentCaseReferenceErrorIfBookingDoesNotExist() {
         UUID bookingId = UUID.randomUUID();
         UUID caseId = UUID.randomUUID();
-        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
 
         doThrow(
             new NotFoundException("Booking: " + bookingId)
         ).when(bookingRepository).findById(bookingId);
 
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
         assertThrows(
             NotFoundException.class,
             () -> bookingService.migrateToNewCaseRef(updateBookingCaseDTO)
