@@ -176,10 +176,10 @@ public class BookingController extends PreApiController {
     }
 
     @PutMapping("/{bookingId}")
-    @Operation(operationId = "putBookingAlterCaseReference",
+    @Operation(operationId = "migrateToDifferentCaseReference",
         summary = "Migrate a Booking to a different case reference")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
-    public ResponseEntity<BookingDTO> upsert(@PathVariable UUID bookingId,
+    public ResponseEntity<BookingDTO> migrateToDifferentCaseReference(@PathVariable UUID bookingId,
                                              @Valid @RequestBody UpdateBookingCaseDTO updateBookingCaseDTO) {
         if (!bookingId.equals(updateBookingCaseDTO.getBookingId())) {
             throw new PathPayloadMismatchException("bookingId", "updateBookingCaseDTO.bookingId");
