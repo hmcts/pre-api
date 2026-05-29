@@ -175,7 +175,7 @@ public class BookingController extends PreApiController {
         return getUpsertResponse(bookingService.upsert(createBookingDTO), createBookingDTO.getId());
     }
 
-    @PutMapping("/{bookingId}")
+    @PutMapping("/migrate-case/{bookingId}")
     @Operation(operationId = "migrateToDifferentCaseReference",
         summary = "Migrate a Booking to a different case reference")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
