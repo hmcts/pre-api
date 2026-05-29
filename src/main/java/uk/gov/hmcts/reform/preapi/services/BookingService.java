@@ -272,11 +272,11 @@ public class BookingService {
 
     public void migrateToNewCaseRef(@Valid UpdateBookingCaseDTO updateBookingCaseDTO) {
         Booking booking = bookingRepository.findById(updateBookingCaseDTO.getBookingId())
-            .orElseThrow(() -> new NotFoundException("Booking not found with ID: "
+            .orElseThrow(() -> new NotFoundException("Booking: "
                                                          + updateBookingCaseDTO.getBookingId()));
 
         Case caseThatBookingShouldBeFor = caseRepository.findById(updateBookingCaseDTO.getCaseId())
-            .orElseThrow(() -> new NotFoundException("Case not found with ID: " + updateBookingCaseDTO.getCaseId()));
+            .orElseThrow(() -> new NotFoundException("Case: " + updateBookingCaseDTO.getCaseId()));
 
         booking.setCaseId(caseThatBookingShouldBeFor);
 
