@@ -185,7 +185,7 @@ public class BookingController extends PreApiController {
             throw new PathPayloadMismatchException("bookingId", "updateBookingCaseDTO.bookingId");
         }
         bookingService.migrateToNewCaseRef(updateBookingCaseDTO);
-        return ResponseEntity.ok(bookingService.findById(bookingId));
+        return ok(bookingService.findById(bookingId));
     }
 
     @DeleteMapping("/{bookingId}")
