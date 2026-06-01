@@ -279,8 +279,8 @@ repositories {
 def versions = [
   jackson         : '2.20.0',
   jacksonAnnot    : '2.20',
-  junit           : '5.14.2',
-  junitPlatform   : '1.14.2',
+  junit           : '5.14.4',
+  junitPlatform   : '1.14.4',
   restAssured     : '5.5.7',
   springBoot      : springBoot.class.package.implementationVersion,
   testcontainers  : '1.21.4'
