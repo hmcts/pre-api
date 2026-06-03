@@ -2816,7 +2816,7 @@ paths:
       responses:
         '200':
           description: OK
-      summary: Create an Audit Entry
+      summary: Create an Audit Entry in Audit table
       tags:
         - audit-controller
   /b2c/email-verification:
