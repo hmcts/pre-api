@@ -84,7 +84,7 @@ import static java.lang.Character.toLowerCase;
 @RestController
 @RequestMapping("/testing-support")
 @SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases",
-    "PMD.TooManyMethods, PMD.UnitTestShouldUseTestAnnotation"})
+    "PMD.TooManyMethods"})
 @ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
@@ -599,8 +599,8 @@ class TestingSupportController {
         return ResponseEntity.ok(new VfMigrationRecordDTO(record));
     }
 
-    @GetMapping("/test-api-spec")
-    public ResponseEntity<String> testApiSpec() {
+    @GetMapping("/trigger-api-spec")
+    public ResponseEntity<String> triggerApiSpec() {
         return ResponseEntity.ok("This is a test api spec");
     }
 
