@@ -598,6 +598,11 @@ class TestingSupportController {
         return ResponseEntity.ok(new VfMigrationRecordDTO(record));
     }
 
+    @GetMapping("/test-api-spec")
+    public ResponseEntity<String> testApiSpec() {
+        return ResponseEntity.ok("This is a test api spec");
+    }
+
     private Court createTestCourt() {
         Court court = new Court();
         court.setId(UUID.randomUUID());
