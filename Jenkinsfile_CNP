@@ -53,8 +53,8 @@ withPipeline(type, product, component) {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
 
-  afterSuccess('buildinfra:demo') {
-    runPowerAppE2eTests('demo')
+  afterSuccess('buildinfra:dev') {
+    runPowerAppE2eTests('dev')
   }
 
   afterSuccess('Publish Helm chart') {
@@ -114,7 +114,7 @@ void runPowerAppE2eTests(String environment) {
       } catch (err) {
         echo "Power App e2e tests failed for ${environment}: ${err.message}"
         echo "Attempting APIM gateway recovery before re-running tests..."
-        forceApimGatewayRebuild(environment)
+        // forceApimGatewayRebuild(environment)
         sleep(15)
 
         sh """
