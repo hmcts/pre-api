@@ -13,7 +13,14 @@ properties([
 def secrets = [
   'pre-hmctskv-${env}': [
     secret('govnotify-key-test', 'GOV_NOTIFY_API_KEY_TEST'),
-    secret('api-MKIO-TOKEN', 'MEDIA_KIND_TOKEN')
+    secret('api-MKIO-TOKEN', 'MEDIA_KIND_TOKEN'),
+    secret('pre-power-app-base-url', 'PRE_POWER_APP_URL'),
+    secret('pre-api-url', 'PRE_POWER_APP_API_URL'),
+    secret('pre-portal-base-url', 'PRE_PORTAL_URL'),
+    secret('pre-level-1-test-login-email', 'PRE_LEVEL_1_USER_EMAIL'),
+    secret('pre-level-1-test-login-password', 'PRE_LEVEL_1_USER_PASSWORD'),
+    secret('pre-level-3-test-login-email', 'PRE_LEVEL_3_USER_EMAIL'),
+    secret('pre-level-3-test-login-password', 'PRE_LEVEL_3_USER_PASSWORD')
   ]
 ]
 
@@ -46,6 +53,10 @@ withPipeline(type, product, component) {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
 
+  afterSuccess('buildinfra:demo') {
+    runPowerAppE2eTests('demo')
+  }
+
   afterSuccess('Publish Helm chart') {
     if (!params.DEPLOY_TO_PROD) {
       echo "DEPLOY_TO_PROD not set - skipping production deployment"
@@ -65,4 +76,92 @@ static String swaggerValidate(String branchName) {
     'fi;'
 
   return script
+}
+
+void runPowerAppE2eTests(String environment) {
+  echo "Running Power App e2e tests against ${environment}"
+
+  dir('pre-e2e-tests') {
+    checkout([
+      $class: 'GitSCM',
+      branches: [[name: 'refs/heads/master']],
+      userRemoteConfigs: [[url: 'https://github.com/hmcts/pre-e2e-tests.git',
+                           credentialsId: 'hmcts-jenkins-cnp']]
+    ])
+
+    withEnv([
+      "CI=true",
+      "FUNCTIONAL_TESTS_WORKERS=1"
+    ]) {
+      try {
+        sh """
+          docker build -t pre-e2e-tests-${environment} . && \\
+          docker run --rm \\
+            --ipc=host \\
+            -e CI=true \\
+            -e FUNCTIONAL_TESTS_WORKERS=1 \\
+            -e PRE_LEVEL_1_USER_EMAIL='${env.PRE_LEVEL_1_USER_EMAIL}' \\
+            -e PRE_LEVEL_1_USER_PASSWORD='${env.PRE_LEVEL_1_USER_PASSWORD}' \\
+            -e PRE_LEVEL_3_USER_EMAIL='${env.PRE_LEVEL_3_USER_EMAIL}' \\
+            -e PRE_LEVEL_3_USER_PASSWORD='${env.PRE_LEVEL_3_USER_PASSWORD}' \\
+            -e PRE_POWER_APP_URL='${env.PRE_POWER_APP_URL}' \\
+            -e PRE_POWER_APP_API_URL='${env.PRE_POWER_APP_API_URL}' \\
+            -e PRE_PORTAL_URL='${env.PRE_PORTAL_URL}' \\
+            -v \"\$(pwd)/playwright-report:/playwright/playwright-report\" \\
+            pre-e2e-tests-${environment} \\
+            "yarn playwright test playwright-e2e/tests/pre-power-app/e2e --project=Pre-Power-App-Edge --workers=1"
+        """
+      } catch (err) {
+        echo "Power App e2e tests failed for ${environment}: ${err.message}"
+        echo "Attempting APIM gateway recovery before re-running tests..."
+        forceApimGatewayRebuild(environment)
+        sleep(15)
+
+        sh """
+          docker run --rm \\
+            --ipc=host \\
+            -e CI=true \\
+            -e FUNCTIONAL_TESTS_WORKERS=1 \\
+            -e PRE_LEVEL_1_USER_EMAIL='${env.PRE_LEVEL_1_USER_EMAIL}' \\
+            -e PRE_LEVEL_1_USER_PASSWORD='${env.PRE_LEVEL_1_USER_PASSWORD}' \\
+            -e PRE_LEVEL_3_USER_EMAIL='${env.PRE_LEVEL_3_USER_EMAIL}' \\
+            -e PRE_LEVEL_3_USER_PASSWORD='${env.PRE_LEVEL_3_USER_PASSWORD}' \\
+            -e PRE_POWER_APP_URL='${env.PRE_POWER_APP_URL}' \\
+            -e PRE_POWER_APP_API_URL='${env.PRE_POWER_APP_API_URL}' \\
+            -e PRE_PORTAL_URL='${env.PRE_PORTAL_URL}' \\
+            -v \"\$(pwd)/playwright-report:/playwright/playwright-report\" \\
+            pre-e2e-tests-${environment} \\
+            "yarn playwright test playwright-e2e/tests/pre-power-app/e2e --project=Pre-Power-App-Edge --workers=1"
+        """
+      } finally {
+        sh "docker rmi pre-e2e-tests-${environment} --force || true"
+        publishHTML([
+          allowMissing: true,
+          alwaysLinkToLastBuild: true,
+          keepAll: true,
+          reportDir: 'playwright-report',
+          reportFiles: 'index.html',
+          reportName: "Power App E2E Tests - ${environment}"
+        ])
+      }
+    }
+  }
+}
+
+void forceApimGatewayRebuild(String environment) {
+  def apimServiceName = "sds-api-mgmt-${environment}"
+  def resourceGroup = "ss-${environment}-network-rg"
+
+  echo "Forcing APIM gateway rebuild: reimporting spec to ${apimServiceName}"
+
+  sh """
+    az apim api import \\
+      --resource-group ${resourceGroup} \\
+      --service-name ${apimServiceName} \\
+      --api-id pre-api \\
+      --specification-format OpenApiJson \\
+      --specification-path specs/pre-api.json \\
+      --path pre-api \\
+      --service-url https://pre-api.${environment == 'prod' ? 'platform.hmcts.net' : "${environment}.platform.hmcts.net"}
+  """
 }
