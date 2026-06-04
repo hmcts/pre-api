@@ -26,13 +26,18 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -76,6 +81,12 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private BookingRepository bookingRepository;
+
+    @MockitoBean
+    private CaptureSessionRepository captureSessionRepository;
 
     @MockitoBean
     private PortalAccessRepository portalAccessRepository;
@@ -203,12 +214,18 @@ public class EntityCreationServiceTest {
     public void createBookingShouldUseExistingBookingIdForCopy() {
         UUID archiveId = UUID.randomUUID();
         UUID existingBookingId = UUID.randomUUID();
+        Timestamp originalScheduledFor = Timestamp.from(Instant.now().minus(Duration.ofDays(30)));
 
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId(archiveId.toString());
 
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setBookingId(existingBookingId);
+
+        Booking existingBooking = new Booking();
+        existingBooking.setScheduledFor(originalScheduledFor);
+        when(bookingRepository.findByIdAndDeletedAtIsNull(existingBookingId))
+            .thenReturn(Optional.of(existingBooking));
 
         when(migrationRecordService.findByArchiveId(archiveId.toString()))
             .thenReturn(Optional.of(copyRecord));
@@ -230,7 +247,7 @@ public class EntityCreationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(existingBookingId);
         assertThat(result.getCaseId()).isEqualTo(caseDTO.getId());
-        assertThat(result.getScheduledFor()).isEqualTo(recording.getRecordingTimestamp());
+        assertThat(result.getScheduledFor()).isEqualTo(originalScheduledFor);
     }
 
     @Test
@@ -302,11 +319,22 @@ public class EntityCreationServiceTest {
         when(migrationRecordService.getOrigFromCopy(copyRecord))
             .thenReturn(Optional.of(origRecord));
 
-        BaseUserDTO user = new UserDTO();
-        user.setId(UUID.randomUUID());
-        AccessDTO accessDTO = new AccessDTO();
-        accessDTO.setUser(user);
-        when(userService.findByEmail(VODAFONE_EMAIL)).thenReturn(accessDTO);
+        Timestamp originalStartedAt = Timestamp.from(Instant.now().minus(Duration.ofDays(30)));
+        Timestamp originalFinishedAt = Timestamp.from(Instant.now().minus(Duration.ofDays(29)));
+        UUID originalStartedByUserId = UUID.randomUUID();
+
+        CaptureSession existingCaptureSession = new CaptureSession();
+        existingCaptureSession.setStartedAt(originalStartedAt);
+        existingCaptureSession.setFinishedAt(originalFinishedAt);
+        User startedBy = new User();
+        startedBy.setId(originalStartedByUserId);
+        existingCaptureSession.setStartedByUser(startedBy);
+        User finishedBy = new User();
+        UUID originalFinishedByUserId = UUID.randomUUID();
+        finishedBy.setId(originalFinishedByUserId);
+        existingCaptureSession.setFinishedByUser(finishedBy);
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(existingCaptureSessionId))
+            .thenReturn(Optional.of(existingCaptureSession));
 
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .archiveId(archiveId.toString())
@@ -322,8 +350,10 @@ public class EntityCreationServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(existingCaptureSessionId);
         assertThat(result.getBookingId()).isEqualTo(booking.getId());
-        assertThat(result.getStartedAt()).isEqualTo(processedRecording.getRecordingTimestamp());
-        assertThat(result.getStartedByUserId()).isEqualTo(user.getId());
+        assertThat(result.getStartedAt()).isEqualTo(originalStartedAt);
+        assertThat(result.getStartedByUserId()).isEqualTo(originalStartedByUserId);
+        assertThat(result.getFinishedAt()).isEqualTo(originalFinishedAt);
+        assertThat(result.getFinishedByUserId()).isEqualTo(originalFinishedByUserId);
         assertThat(result.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
     }
@@ -1356,7 +1386,7 @@ public class EntityCreationServiceTest {
     @DisplayName("createShareBookingAndInviteIfNotExists should skip inactive user")
     void createShareBookingAndInviteIfNotExistsShouldSkipInactiveUser() {
         setVodafoneEmail();
-        
+
         UUID existingUserId = UUID.randomUUID();
 
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "inactive@example.com", String.class))
@@ -1389,7 +1419,7 @@ public class EntityCreationServiceTest {
     @DisplayName("createShareBookingAndInviteIfNotExists should skip user with deleted portal access")
     void createShareBookingAndInviteIfNotExistsShouldSkipUserWithDeletedPortalAccess() {
         setVodafoneEmail();
-        
+
         UUID existingUserId = UUID.randomUUID();
 
         when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "deletedaccess@example.com", String.class))
@@ -1426,7 +1456,7 @@ public class EntityCreationServiceTest {
         method.setAccessible(true);
 
         UUID userId = UUID.randomUUID();
-        PortalAccess portalAccess = 
+        PortalAccess portalAccess =
             new PortalAccess();
         portalAccess.setStatus(AccessStatus.INACTIVE);
 

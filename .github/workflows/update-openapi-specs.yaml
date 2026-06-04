@@ -24,12 +24,13 @@ jobs:
           node-version: 22
 
       - name: Install API spec converter dependency
-        run: npm install -g api-spec-converter --ignore-scripts
+        run: npm install -g api-spec-converter@2.12.0 --ignore-scripts
 
       - name: Update main API
         env:
           API_NAME: 'pre-api'
           RUN_DB_MIGRATION_ON_STARTUP: false
+          GH_TOKEN: ${{ github.token }}
         run: |
           ./gradlew buildOpenApiSpecs --tests 'uk.gov.hmcts.reform.preapi.openapi.OpenAPIPublisher'
           echo "Generated OpenAPI doc for ${API_NAME}"

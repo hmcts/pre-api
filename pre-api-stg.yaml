@@ -2585,6 +2585,49 @@ definitions:
           - PORTAL
         type: string
     type: object
+  UpdateBookingCaseDTO:
+    description: UpdateBookingCaseDTO
+    properties:
+      booking_id:
+        description: UpdateBookingId
+        format: uuid
+        type: string
+      case_id:
+        description: CaseReferenceId
+        format: uuid
+        type: string
+    required:
+      - booking_id
+      - case_id
+    type: object
+  UserAccessReportDTO:
+    description: UserAccessReport
+    properties:
+      access_type:
+        description: AccessType
+        type: string
+      active:
+        description: UserReportActive
+        type: string
+      alternative_email:
+        description: UserAlternativeEmail
+        type: string
+      court_name:
+        description: CourtName
+        type: string
+      first_name:
+        description: UserReportFirstName
+        type: string
+      last_name:
+        description: UserReportLastName
+        type: string
+      primary_email:
+        description: UserPrimaryEmail
+        type: string
+      role_name:
+        description: UserReportRoleName
+        type: string
+    type: object
   UserDTO:
     description: UserDTO
     properties:
@@ -2924,6 +2967,39 @@ paths:
           schema:
             $ref: '#/definitions/PagedModelEntityModelBookingDTO'
       summary: 'Search All Bookings using Case Id, Case Ref, or Scheduled For'
+      tags:
+        - booking-controller
+  '/bookings/migrate-case/{bookingId}':
+    put:
+      consumes:
+        - application/json
+      operationId: migrateToDifferentCaseReference
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateBookingCaseDTO'
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/BookingDTO'
+      summary: Migrate a Booking to a different case reference
       tags:
         - booking-controller
   '/bookings/{bookingId}':
@@ -4721,6 +4797,51 @@ paths:
               $ref: '#/definitions/SharedReportDTOV2'
             type: array
       summary: Get a report on the bookings that have been shared v2
+      tags:
+        - report-controller
+  /reports-v2/user-full-access-report:
+    get:
+      operationId: reportUserFullAccess
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserAccessReportDTO'
+            type: array
+      summary: Get full report on app users
+      tags:
+        - report-controller
+  /reports-v2/user-full-access-report-csv:
+    get:
+      operationId: reportUserFullAccessCsv
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - text/csv
+      responses:
+        '200':
+          description: OK
+          schema:
+            format: byte
+            type: string
+      summary: Get full report on app users in CSV format
       tags:
         - report-controller
   /reports-v2/user-primary-courts:

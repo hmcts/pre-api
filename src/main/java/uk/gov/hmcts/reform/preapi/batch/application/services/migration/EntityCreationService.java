@@ -20,16 +20,20 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +52,8 @@ public class EntityCreationService {
     private final RecordingService recordingService;
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
+    private final BookingRepository bookingRepository;
+    private final CaptureSessionRepository captureSessionRepository;
     private final PortalAccessRepository portalAccessRepository;
 
     @Value("${vodafone-user-email}")
@@ -96,7 +102,7 @@ public class EntityCreationService {
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         bookingDTO.setId(bookingId);
         bookingDTO.setCaseId(aCase.getId());
-        bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
+        bookingDTO.setScheduledFor(determineScheduledFor(version, bookingId, cleansedData));
         Set<CreateParticipantDTO> filteredParticipants = aCase.getParticipants().stream()
             .filter(p ->
                 (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName()))
@@ -127,15 +133,37 @@ public class EntityCreationService {
             captureSessionId = UUID.randomUUID();
         }
 
+        boolean isCopy = version != null && version.equalsIgnoreCase("COPY");
+
         CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();
         captureSessionDTO.setId(captureSessionId);
         captureSessionDTO.setBookingId(booking.getId());
-        captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
 
         UUID vodafoneUser = getUserByEmail(vodafoneUserEmail);
-        captureSessionDTO.setStartedByUserId(vodafoneUser);
-        captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
-        captureSessionDTO.setFinishedByUserId(vodafoneUser);
+
+        if (isCopy) {
+            captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId).ifPresentOrElse(
+                existing -> {
+                    captureSessionDTO.setStartedAt(existing.getStartedAt());
+                    captureSessionDTO.setStartedByUserId(
+                        existing.getStartedByUser() != null ? existing.getStartedByUser().getId() : null);
+                    captureSessionDTO.setFinishedAt(existing.getFinishedAt());
+                    captureSessionDTO.setFinishedByUserId(
+                        existing.getFinishedByUser() != null ? existing.getFinishedByUser().getId() : null);
+                },
+                () -> {
+                    captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+                    captureSessionDTO.setStartedByUserId(vodafoneUser);
+                    captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
+                    captureSessionDTO.setFinishedByUserId(vodafoneUser);
+                }
+            );
+        } else {
+            captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+            captureSessionDTO.setStartedByUserId(vodafoneUser);
+            captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
+            captureSessionDTO.setFinishedByUserId(vodafoneUser);
+        }
         captureSessionDTO.setStatus(RecordingStatus.NO_RECORDING);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
@@ -307,20 +335,20 @@ public class EntityCreationService {
         CreateUserDTO sharedWith;
         if (existingUserId != null) {
             UUID userId = UUID.fromString(existingUserId);
-            
+
             sharedWith = new CreateUserDTO();
             sharedWith.setId(userId);
             sharedWith.setEmail(lowerEmail);
             sharedWith.setFirstName(firstName);
             sharedWith.setLastName(lastName);
-            
+
             boolean isActive = isUserActiveForMigration(userId, lowerEmail);
             if (!isActive) {
                 loggingService.logWarning(
                     "User %s is inactive or deleted", lowerEmail);
             } else {
                 loggingService.logDebug("Found existing user in cache: %s (%s)", lowerEmail, existingUserId);
-                
+
                 if (!userHasPortalAccess(existingUserId)) {
                     CreateInviteDTO invite = createInvite(sharedWith);
                     invites.add(invite);
@@ -422,7 +450,7 @@ public class EntityCreationService {
                     loggingService.logDebug("User %s has deleted portal access - skipping invite and share", email);
                     return false;
                 }
-                
+
                 loggingService.logDebug("User %s has no portal access - allowing invite creation", email);
                 return true;
             }
@@ -439,5 +467,14 @@ public class EntityCreationService {
             loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
             return false;
         }
+    }
+
+    private Timestamp determineScheduledFor(String version, UUID bookingId, ProcessedRecording cleansedData) {
+
+        return version != null && version.equalsIgnoreCase("COPY")
+            ? bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
+            .map(Booking::getScheduledFor)
+            .orElse(cleansedData.getRecordingTimestamp())
+            : cleansedData.getRecordingTimestamp();
     }
 }

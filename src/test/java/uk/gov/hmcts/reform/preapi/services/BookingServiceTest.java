@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
@@ -10,6 +11,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.UpdateBookingCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -47,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -169,7 +172,7 @@ class BookingServiceTest {
         var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(null, false, false,null))
+        when(recordingRepository.searchAllBy(null, false, false, false, null))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }
@@ -716,6 +719,68 @@ class BookingServiceTest {
                 any());
     }
 
+
+    @DisplayName("Should move booking to different existing case reference")
+    @Test
+    void moveBookingToDifferentCaseReferenceSuccess() {
+        Case incorrectCase = new Case();
+        incorrectCase.setId(UUID.randomUUID());
+
+        UUID bookingId = UUID.randomUUID();
+        Booking existingBooking = new Booking();
+        existingBooking.setId(bookingId);
+        existingBooking.setCaseId(incorrectCase);
+
+        UUID caseId = UUID.randomUUID();
+        Case caseToMoveTo = new Case();
+        caseToMoveTo.setId(caseId);
+
+        when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseToMoveTo));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(existingBooking));
+
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
+        bookingService.migrateToNewCaseRef(updateBookingCaseDTO);
+
+        ArgumentCaptor<Booking> bookingArgumentCaptor = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository, times(1)).save(bookingArgumentCaptor.capture());
+        assertThat(bookingArgumentCaptor.getValue().getId()).isEqualTo(bookingId);
+        assertThat(bookingArgumentCaptor.getValue().getCaseId().getId()).isEqualTo(caseId);
+    }
+
+    @DisplayName("When migrating booking case, should throw error if case not found")
+    @Test
+    void moveBookingToDifferentCaseReferenceErrorIfCaseDoesNotExist() {
+        UUID bookingId = UUID.randomUUID();
+        UUID caseId = UUID.randomUUID();
+
+        doThrow(
+            new NotFoundException("Case: " + caseId)
+        ).when(caseRepository).findById(caseId);
+
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
+        assertThrows(
+            NotFoundException.class,
+            () -> bookingService.migrateToNewCaseRef(updateBookingCaseDTO)
+        );
+    }
+
+    @DisplayName("When migrating booking case, should throw error if booking not found")
+    @Test
+    void moveBookingToDifferentCaseReferenceErrorIfBookingDoesNotExist() {
+        UUID bookingId = UUID.randomUUID();
+        UUID caseId = UUID.randomUUID();
+
+        doThrow(
+            new NotFoundException("Booking: " + bookingId)
+        ).when(bookingRepository).findById(bookingId);
+
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
+        assertThrows(
+            NotFoundException.class,
+            () -> bookingService.migrateToNewCaseRef(updateBookingCaseDTO)
+        );
+    }
+
     private Court createCourt() {
         var court = new Court();
         court.setId(UUID.randomUUID());
@@ -737,4 +802,3 @@ class BookingServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
     }
 }
-
