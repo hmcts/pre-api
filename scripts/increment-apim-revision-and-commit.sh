@@ -38,6 +38,23 @@ convert_open_api_to_swagger() {
   rm -rf swagger_docs
 };
 
+add_warning_comment(){
+  echo "Adding warning comment that API spec has been updated"
+
+  branch_name=$(git branch --show-current)
+
+  commentBody="""
+:bangbang: Change to API Spec detected
+
+Monitor carefully when deploying to production.
+
+Follow the release process and manually check that the Streaming Manager and portal are healthy after the release.
+
+See https://tools.hmcts.net/confluence/spaces/S28/pages/1958069495/API+release+process for details."""
+
+  gh pr comment "$branch_name" --edit-last --create-if-none -b "$commentBody"
+}
+
 bump_revision_number_and_commit_changes_to_github(){
   CHANGED=$(git diff --name-only "specs/pre-api.json" pre-api-stg.yaml infrastructure/main.tf)
 
@@ -48,6 +65,7 @@ bump_revision_number_and_commit_changes_to_github(){
     echo "About to commit: ${commit_message}"
     git -c user.name='PRE DevOps' -c user.email='138598290+pre-devops@users.noreply.github.com' commit -m "$commit_message"
     git push
+    add_warning_comment
   fi
 }
 

@@ -16,8 +16,8 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.services.edit.EditRequestPerformService;
 
 import java.util.Optional;
 import java.util.Set;
@@ -32,9 +32,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = PerformEditRequest.class)
-public class PerformEditRequestTest {
+class PerformEditRequestTest {
+
     @MockitoBean
-    private EditRequestService editRequestService;
+    private EditRequestPerformService editRequestService;
 
     @MockitoBean
     private UserService userService;
@@ -52,31 +53,32 @@ public class PerformEditRequestTest {
             editRequestService,
             userService,
             userAuthenticationService,
-            CRON_USER_EMAIL
+            CRON_USER_EMAIL,
+            false
         );
 
-        var appAccess = new BaseAppAccessDTO();
+        BaseAppAccessDTO appAccess = new BaseAppAccessDTO();
         appAccess.setId(UUID.randomUUID());
-        var access = new AccessDTO();
+        AccessDTO access = new AccessDTO();
         access.setAppAccess(Set.of(appAccess));
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(access);
 
-        var userAuth = mock(UserAuthentication.class);
+        UserAuthentication userAuth = mock(UserAuthentication.class);
         when(userAuthenticationService.validateUser(any())).thenReturn(Optional.of(userAuth));
     }
 
     @Test
     @DisplayName("PerformEditRequest run")
-    public void testRun() throws InterruptedException {
-        var editRequest1 = createPendingEditRequest();
-        var editRequest2 = createPendingEditRequest();
-        var editRequest3 = createPendingEditRequest();
-        var editRequest4 = createPendingEditRequest();
-        var editRequest5 = createPendingEditRequest();
-        var editRequest6 = createPendingEditRequest();
+    void testRun() throws InterruptedException {
+        EditRequest editRequest1 = createPendingEditRequest();
+        EditRequest editRequest2 = createPendingEditRequest();
+        EditRequest editRequest3 = createPendingEditRequest();
+        EditRequest editRequest4 = createPendingEditRequest();
+        EditRequest editRequest5 = createPendingEditRequest();
+        EditRequest editRequest6 = createPendingEditRequest();
 
-        when(editRequestService.getNextPendingEditRequest())
+        when(editRequestService.getNextPendingEditRequest(false))
             .thenReturn(Optional.of(editRequest1))
             .thenReturn(Optional.of(editRequest2))
             .thenReturn(Optional.of(editRequest3))
@@ -99,7 +101,7 @@ public class PerformEditRequestTest {
         // something else went wrong
         doThrow(NotFoundException.class).when(editRequestService)
             .markAsProcessing(editRequest5.getId());
-        doThrow(InterruptedException.class).when(editRequestService)
+        doThrow(RuntimeException.class).when(editRequestService)
             .markAsProcessing(editRequest6.getId());
 
         performEditRequest.run();
@@ -109,7 +111,7 @@ public class PerformEditRequestTest {
         performEditRequest.run();
         performEditRequest.run();
 
-        verify(editRequestService, times(6)).getNextPendingEditRequest();
+        verify(editRequestService, times(6)).getNextPendingEditRequest(false);
         verify(editRequestService, times(1)).markAsProcessing(editRequest1.getId());
         verify(editRequestService, times(1)).performEdit(editRequest1);
         verify(editRequestService, times(1)).markAsProcessing(editRequest2.getId());
@@ -127,16 +129,33 @@ public class PerformEditRequestTest {
     @Test
     @DisplayName("PerformEditRequest run without any pending requests")
     void runNoPendingRequests() throws InterruptedException {
+        performEditRequest.run();
+
+        verify(editRequestService, times(1)).getNextPendingEditRequest(false);
+        verify(editRequestService, never()).markAsProcessing(any());
+        verify(editRequestService, never()).performEdit(any());
+    }
+
+    @Test
+    @DisplayName("PerformEditRequest can run in re-encode only mode")
+    void runReencodeOnlyMode() throws InterruptedException {
+        performEditRequest = new PerformEditRequest(
+            editRequestService,
+            userService,
+            userAuthenticationService,
+            CRON_USER_EMAIL,
+            true
+        );
 
         performEditRequest.run();
 
-        verify(editRequestService, times(1)).getNextPendingEditRequest();
+        verify(editRequestService, times(1)).getNextPendingEditRequest(true);
         verify(editRequestService, never()).markAsProcessing(any());
         verify(editRequestService, never()).performEdit(any());
     }
 
     private EditRequest createPendingEditRequest() {
-        var editRequest = new EditRequest();
+        EditRequest editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
         return editRequest;

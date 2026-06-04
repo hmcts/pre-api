@@ -68,6 +68,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
+import uk.gov.hmcts.reform.preapi.services.edit.EditRequestPerformService;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -103,6 +104,7 @@ class TestingSupportController {
     private final AzureFinalStorageService azureFinalStorageService;
     private final MigrationRecordRepository migrationRecordRepository;
     private final EditRequestService editRequestService;
+    private final EditRequestPerformService editRequestPerformService;
 
     @Autowired
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -122,7 +124,8 @@ class TestingSupportController {
                              final AuditRepository auditRepository,
                              final AzureFinalStorageService azureFinalStorageService,
                              final MigrationRecordRepository migrationRecordRepository,
-                             final EditRequestService editRequestService) {
+                             final EditRequestService editRequestService,
+                             final EditRequestPerformService editRequestPerformService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -140,6 +143,7 @@ class TestingSupportController {
         this.azureFinalStorageService = azureFinalStorageService;
         this.migrationRecordRepository = migrationRecordRepository;
         this.editRequestService = editRequestService;
+        this.editRequestPerformService = editRequestPerformService;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -437,8 +441,8 @@ class TestingSupportController {
                 appAccess,
                 List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
 
-        EditRequest editRequest = editRequestService.markAsProcessing(editId);
-        RecordingDTO recording = editRequestService.performEdit(editRequest);
+        EditRequest editRequest = editRequestPerformService.markAsProcessing(editId);
+        RecordingDTO recording = editRequestPerformService.performEdit(editRequest);
         EditRequestDTO request = editRequestService.findById(editId);
 
         return ResponseEntity.ok(Map.of(
