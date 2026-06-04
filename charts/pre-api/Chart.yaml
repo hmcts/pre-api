@@ -3,7 +3,7 @@ appVersion: "1.0"
 description: A Helm chart for pre-api App
 name: pre-api
 home: https://github.com/hmcts/pre-api
-version: 0.0.100
+version: 0.0.101
 maintainers:
   - name: HMCTS pre team
 dependencies:
@@ -12,6 +12,6 @@ dependencies:
     repository: oci://hmctsprod.azurecr.io/helm
     condition: java.enabled
   - name: job
-    version: 2.2.0
+    version: 2.2.1
     repository: oci://hmctsprod.azurecr.io/helm
     condition: job.enabled
