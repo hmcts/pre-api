@@ -7,7 +7,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationRecordingVersion;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
+import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.PatternMatcherService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -19,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -29,28 +32,36 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.TooManyMethods")
 public class MigrationRecordService {
     private final MigrationRecordRepository migrationRecordRepository;
     private final LoggingService loggingService;
     private final CourtRepository courtRepository;
+    private final PatternMatcherService patternMatcherService;
     private final boolean dryRun;
+
+    private static final long EPOCH_THRESHOLD_SECONDS_TO_MILLIS = 100_000_000_000L;
 
     @Autowired
     public MigrationRecordService(final MigrationRecordRepository migrationRecordRepository,
                                   final CourtRepository courtRepository,
                                   final LoggingService loggingService,
+                                  final PatternMatcherService patternMatcherService,
                                   @Value("${migration.dry-run:false}") boolean dryRun) {
         this.migrationRecordRepository = migrationRecordRepository;
         this.courtRepository = courtRepository;
         this.loggingService = loggingService;
+        this.patternMatcherService = patternMatcherService;
         this.dryRun = dryRun;
     }
 
@@ -66,17 +77,17 @@ public class MigrationRecordService {
             if (result.isPresent()) {
                 log.warn("Found ORIG via parent_temp_id: {}", result.get().getArchiveId());
                 return result;
-            } 
+            }
         }
-        
+
         if (copy.getRecordingGroupKey() != null && !copy.getRecordingGroupKey().isEmpty()) {
             List<MigrationRecord> groupRecords = migrationRecordRepository
                 .findByRecordingGroupKey(copy.getRecordingGroupKey());
-            
+
             Optional<MigrationRecord> origRecord = groupRecords.stream()
                 .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
-                .filter(r -> r.getStatus() == VfMigrationStatus.SUCCESS) 
-                .filter(r -> r.getRecordingId() != null) 
+                .filter(r -> r.getStatus() == VfMigrationStatus.SUCCESS)
+                .filter(r -> r.getRecordingId() != null)
                 .sorted((a, b) -> {
                     int preferredComparison = Boolean.compare(b.getIsPreferred(), a.getIsPreferred());
                     if (preferredComparison != 0) {
@@ -90,21 +101,22 @@ public class MigrationRecordService {
                     return a.getCreatedAt().compareTo(b.getCreatedAt());
                 })
                 .findFirst();
-                
+
             if (origRecord.isPresent()) {
                 log.warn("Found ORIG via group key: {}", origRecord.get().getArchiveId());
                 return origRecord;
-            } 
-        } 
-        
+            }
+        }
+
         return Optional.empty();
     }
 
     public List<MigrationRecord> getPendingMigrationRecords() {
-        return migrationRecordRepository.findAllByStatus(VfMigrationStatus.PENDING);
+        return migrationRecordRepository.findAllByStatusOrderedByVersion(VfMigrationStatus.PENDING);
     }
 
     @Transactional
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     public UpsertResult upsert(String archiveId,
                                String archiveName,
                                Timestamp createTime,
@@ -171,14 +183,16 @@ public class MigrationRecordService {
         Timestamp createTime = null;
         long epoch = Long.parseLong(createTimeEpoch);
         if (epoch > 0) {
-            if (epoch < 100_000_000_000L) {
+            if (epoch < EPOCH_THRESHOLD_SECONDS_TO_MILLIS) {
                 epoch *= 1000;
             }
             createTime = new Timestamp(epoch);
         }
 
-        Integer parsedDuration;
-        parsedDuration = duration != null ? Integer.valueOf(duration) : null;
+        Integer parsedDuration = null;
+        if (duration != null) {
+            parsedDuration = Integer.valueOf(duration);
+        }
 
         upsert(
             archiveId,
@@ -211,12 +225,43 @@ public class MigrationRecordService {
             return false;
         }
 
+        LocalDateTime createTimeFromArchiveName = patternMatcherService
+            .findMatchingPattern(archiveItem.getSanitizedArchiveName())
+            .flatMap(entry -> {
+                Matcher matcher = entry.getValue();
+                try {
+                    String dateGroup = matcher.group("date");
+                    return RecordingUtils.parseDatePatternToLocalDateTime(dateGroup);
+                } catch (Exception e) {
+                    return Optional.empty();
+                }
+            })
+            .orElse(null);
+
+        LocalDateTime resolvedCreateTime = createTimeFromArchiveName != null
+            ? createTimeFromArchiveName
+            : archiveItem.getCreateTimeAsLocalDateTime();
+
+        if (resolvedCreateTime == null) {
+            log.warn(
+                "Skipping archive: create_time is required but could not be parsed from archive_name or create_time. "
+                    + "archiveId={}, archiveName={}, rawCreateTime={}",
+                archiveItem.getArchiveId(),
+                archiveItem.getArchiveName(),
+                archiveItem.getCreateTime()
+            );
+            loggingService.logError(
+                "Skipping archive: create_time is required but could not be parsed. archiveId=%s, rawCreateTime=%s",
+                archiveItem.getArchiveId(),
+                archiveItem.getCreateTime()
+            );
+            return false;
+        }
+
         upsert(
             archiveItem.getArchiveId(),
             archiveItem.getArchiveName(),
-            Optional.ofNullable(archiveItem.getCreateTimeAsLocalDateTime())
-                .map(Timestamp::valueOf)
-                .orElse(null),
+            Timestamp.valueOf(resolvedCreateTime),
             archiveItem.getDuration(),
             null,
             null,
@@ -326,33 +371,33 @@ public class MigrationRecordService {
 
     @Transactional
     public void updateParentTempIdIfCopy(String archiveId, String recordingGroupKey, String origVersionStr) {
-        log.warn("updateParentTempIdIfCopy called for archiveId: {}, groupKey: '{}', origVersionStr: '{}'", 
+        log.warn("updateParentTempIdIfCopy called for archiveId: {}, groupKey: '{}', origVersionStr: '{}'",
                  archiveId, recordingGroupKey, origVersionStr);
-        
+
         List<MigrationRecord> allGroupRecords = migrationRecordRepository.findByRecordingGroupKey(recordingGroupKey);
         log.warn("Found {} total records with group key: '{}'", allGroupRecords.size(), recordingGroupKey);
-        
+
         for (MigrationRecord record : allGroupRecords) {
-            log.warn("Group record: archiveId={}, version={}, preferred={}, versionNumber={}, archiveName={}", 
-                     record.getArchiveId(), record.getRecordingVersion(), record.getIsPreferred(), 
+            log.warn("Group record: archiveId={}, version={}, preferred={}, versionNumber={}, archiveName={}",
+                     record.getArchiveId(), record.getRecordingVersion(), record.getIsPreferred(),
                      record.getRecordingVersionNumber(), record.getArchiveName());
         }
-        
+
         Optional<MigrationRecord> maybeOrig = allGroupRecords
             .stream()
-            .filter(r -> !r.getArchiveName().toLowerCase().endsWith(".raw"))
+            .filter(r -> !r.getArchiveName().toLowerCase(Locale.UK).endsWith(".raw"))
             .filter(r -> "ORIG".equalsIgnoreCase(r.getRecordingVersion()))
             .filter(MigrationRecord::getIsPreferred)
             .filter(r -> {
                 String recVersion = r.getRecordingVersionNumber();
                 boolean matches = recVersion != null && recVersion.split("\\.")[0].equals(origVersionStr);
-                log.warn("Version filter: recVersion='{}', origVersionStr='{}', matches={}", 
+                log.warn("Version filter: recVersion='{}', origVersionStr='{}', matches={}",
                          recVersion, origVersionStr, matches);
                 return matches;
             })
             .sorted((a, b) -> {
-                boolean aIsMp4 = a.getArchiveName().toLowerCase().endsWith(".mp4");
-                boolean bIsMp4 = b.getArchiveName().toLowerCase().endsWith(".mp4");
+                boolean aIsMp4 = a.getArchiveName().toLowerCase(Locale.UK).endsWith(".mp4");
+                boolean bIsMp4 = b.getArchiveName().toLowerCase(Locale.UK).endsWith(".mp4");
                 if (aIsMp4 != bIsMp4) {
                     return bIsMp4 ? 1 : -1;
                 }
@@ -389,7 +434,12 @@ public class MigrationRecordService {
         if (duplicates.isEmpty()) {
             return false;
         }
-        duplicates.sort(Comparator.comparing(MigrationRecord::getCreateTime).reversed());
+        duplicates.sort(
+            Comparator.comparing(
+                MigrationRecord::getCreateTime,
+                Comparator.nullsFirst(Comparator.naturalOrder())
+            ).reversed()
+        );
         MigrationRecord preferredRecord = duplicates.getFirst();
 
         for (MigrationRecord record : duplicates) {
@@ -428,12 +478,12 @@ public class MigrationRecordService {
 
         boolean updated = false;
         boolean mp4Exists = matchingVersion.stream()
-            .anyMatch(r -> r.getArchiveName() != null && r.getArchiveName().toLowerCase().endsWith(".mp4"));
+            .anyMatch(r -> r.getArchiveName() != null && r.getArchiveName().toLowerCase(Locale.UK).endsWith(".mp4"));
 
         if (mp4Exists) {
 
             for (MigrationRecord r : matchingVersion) {
-                boolean isMp4 = r.getFileName() != null && r.getFileName().toLowerCase().endsWith(".mp4");
+                boolean isMp4 = r.getFileName() != null && r.getFileName().toLowerCase(Locale.UK).endsWith(".mp4");
                 r.setIsPreferred(isMp4);
                 migrationRecordRepository.save(r);
                 updated = true;
@@ -466,16 +516,16 @@ public class MigrationRecordService {
     }
 
     public static String generateRecordingGroupKey(
-        String urn, 
-        String exhibitRef, 
-        String witnessName, 
-        String defendantName, 
-        String datePattern, 
+        String urn,
+        String exhibitRef,
+        String witnessName,
+        String defendantName,
+        String datePattern,
         LocalDateTime createTime
     ) {
-        
+
         String datePart = normaliseDate(datePattern);
-        
+
         if (datePart == null || datePart.isEmpty()) {
             if (createTime != null) {
                 datePart = createTime.toLocalDate().toString();
@@ -488,9 +538,9 @@ public class MigrationRecordService {
             .map(MigrationRecordService::nullToEmpty)
             .map(String::trim)
             .map(String::toLowerCase)
-            .filter(s -> !s.isEmpty())   
+            .filter(s -> !s.isEmpty())
             .collect(Collectors.joining("|"));
-     
+
     }
 
     private static String normaliseDate(String in) {
@@ -499,7 +549,7 @@ public class MigrationRecordService {
         }
         if (in.matches("\\d{6}")) {
             DateTimeFormatter f = DateTimeFormatter.ofPattern("yyMMdd");
-            return LocalDate.parse(in, f).toString(); 
+            return LocalDate.parse(in, f).toString();
         }
         return in.trim();
     }
@@ -573,24 +623,88 @@ public class MigrationRecordService {
                 "MigrationRecord",
                 dto.getId().toString(),
                 entity.getStatus().toString(),
-                "PENDING, FAILED or READY"
+                "PENDING, FAILED, IGNORED or READY"
             );
         }
 
-        String courtName = courtRepository.findById(dto.getCourtId())
-            .map(Court::getName)
-            .orElseThrow(() -> new NotFoundException("Court: " + dto.getCourtId()));
+        // Only FAILED records can be marked as IGNORED
+        if (dto.getStatus() == VfMigrationStatus.IGNORED
+            && entity.getStatus() != VfMigrationStatus.FAILED) {
+            throw new ResourceInWrongStateException(
+                "MigrationRecord",
+                dto.getId().toString(),
+                entity.getStatus().toString(),
+                "FAILED (only FAILED records can be marked as IGNORED)"
+            );
+        }
 
-        entity.setCourtReference(courtName);
-        entity.setCourtId(dto.getCourtId());
-        entity.setUrn(dto.getUrn());
-        entity.setExhibitReference(dto.getExhibitReference() != null 
-            && !dto.getExhibitReference().trim().isEmpty() 
-            ? dto.getExhibitReference() 
+        boolean isIgnoredRecord = entity.getStatus() == VfMigrationStatus.IGNORED;
+        boolean isMarkingAsIgnored = dto.getStatus() == VfMigrationStatus.IGNORED;
+
+        // Validate required fields for all updates EXCEPT when record is IGNORED or being marked as IGNORED
+        // (IGNORED records can have blank values when unignoring or when being marked as ignored)
+        if (!isIgnoredRecord && !isMarkingAsIgnored) {
+            if (dto.getCourtId() == null) {
+                throw new BadRequestException("Court ID is required");
+            }
+            if (dto.getUrn() == null || dto.getUrn().trim().isEmpty()) {
+                throw new BadRequestException("URN is required");
+            }
+            if (dto.getDefendantName() == null || dto.getDefendantName().trim().isEmpty()) {
+                throw new BadRequestException("Defendant name is required");
+            }
+            if (dto.getWitnessName() == null || dto.getWitnessName().trim().isEmpty()) {
+                throw new BadRequestException("Witness name is required");
+            }
+            if (dto.getRecordingVersion() == null) {
+                throw new BadRequestException("Recording version is required");
+            }
+        }
+
+        // For IGNORED records: use DTO values if provided, otherwise use existing (even if blank)
+        UUID courtId = dto.getCourtId() != null ? dto.getCourtId() : entity.getCourtId();
+
+        VfMigrationRecordingVersion recordingVersion = dto.getRecordingVersion();
+        if (recordingVersion == null && entity.getRecordingVersion() != null) {
+            try {
+                recordingVersion = VfMigrationRecordingVersion.valueOf(entity.getRecordingVersion());
+            } catch (IllegalArgumentException e) {
+                // Ignore if can't parse existing recording version
+                loggingService.logInfo("Error parsing recording version: " + e.getMessage());
+            }
+        }
+
+        String courtName = null;
+        if (courtId != null) {
+            courtName = courtRepository.findById(courtId)
+                .map(Court::getName)
+                .orElseThrow(() -> new NotFoundException("Court: " + courtId));
+        } else if (isIgnoredRecord) {
+            courtName = entity.getCourtReference();
+        }
+
+        if (courtName != null) {
+            entity.setCourtReference(courtName);
+        }
+        if (courtId != null) {
+            entity.setCourtId(courtId);
+        }
+        entity.setUrn((dto.getUrn() != null && !dto.getUrn().trim().isEmpty())
+            ? dto.getUrn()
+            : entity.getUrn());
+        entity.setExhibitReference(dto.getExhibitReference() != null
+            && !dto.getExhibitReference().trim().isEmpty()
+            ? dto.getExhibitReference()
             : null);
-        entity.setDefendantName(dto.getDefendantName());
-        entity.setWitnessName(dto.getWitnessName());
-        entity.setRecordingVersion(dto.getRecordingVersion().toString());
+        entity.setDefendantName((dto.getDefendantName() != null && !dto.getDefendantName().trim().isEmpty())
+            ? dto.getDefendantName()
+            : entity.getDefendantName());
+        entity.setWitnessName((dto.getWitnessName() != null && !dto.getWitnessName().trim().isEmpty())
+            ? dto.getWitnessName()
+            : entity.getWitnessName());
+        if (recordingVersion != null) {
+            entity.setRecordingVersion(recordingVersion.toString());
+        }
         entity.setRecordingVersionNumber(dto.getRecordingVersionNumber() != null
                                              ? dto.getRecordingVersionNumber().toString()
                                              : null);

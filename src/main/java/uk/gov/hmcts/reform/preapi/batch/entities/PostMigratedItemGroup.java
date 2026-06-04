@@ -18,6 +18,8 @@ import java.util.List;
 public class PostMigratedItemGroup {
     private List<CreateShareBookingDTO> shareBookings;
     private List<CreateInviteDTO> invites;
+    /** Channel email this share was created with (for report display). */
+    private String sharedWithEmail;
 
     @Override
     public String toString() {

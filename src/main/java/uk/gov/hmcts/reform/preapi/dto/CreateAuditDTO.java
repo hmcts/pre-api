@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 
@@ -40,14 +41,16 @@ public class CreateAuditDTO {
     private String category;
 
     @Schema(description = "AuditActivity", examples = {"Create", "Update", "Delete", "Check", "Play", "Locked"})
+    @SanitizedStringConstraint
     private String activity;
 
     @Schema(description = "AuditFunctionalArea", examples = {"Registration", "Login", "Video Player", "API", "Admin"})
+    @SanitizedStringConstraint
     private String functionalArea;
 
     @Schema(description = "AuditDetailsJSONString")
     @JsonRawValue
-    private JsonNode auditDetails;
+    private JsonNode auditDetails; //TODO: Sanitised annotation to be added later
 
     public CreateAuditDTO(Audit auditEntity) {
         this.id = auditEntity.getId();

@@ -316,7 +316,8 @@ public class DataTransformationServiceTest {
             "recording.mp4",
             "12345",
             "ARCHIVE_ID",
-            "ARCHIVE_NAME"
+            "ARCHIVE_NAME",
+            null
         );
 
         Map<String, String> sitesDataMap = Map.of("court_reference", "Court Name");
@@ -355,7 +356,8 @@ public class DataTransformationServiceTest {
             "recording.mp4",
             "12345",
             "ARCHIVE_ID",
-            "ARCHIVE_NAME"
+            "ARCHIVE_NAME",
+            null
         );
 
         Map<String, String> sitesDataMap = Map.of("court_reference", "Court Name");
@@ -387,7 +389,8 @@ public class DataTransformationServiceTest {
             "recording.mp4",
             "12345",
             "ARCHIVE_ID",
-            "ARCHIVE_NAME"
+            "ARCHIVE_NAME",
+            null
         );
 
         Map<String, String> sitesDataMap = Map.of();
@@ -422,7 +425,8 @@ public class DataTransformationServiceTest {
             "recording.mp4",
             "12345",
             "ARCHIVE_ID",
-            "ARCHIVE_NAME"
+            "ARCHIVE_NAME",
+            null
         );
 
         Map<String, String> sitesDataMap = Map.of("court_reference", "Court Name");
@@ -457,7 +461,8 @@ public class DataTransformationServiceTest {
             "recording.mp4",
             "123456",
             "ARCHIVE_ID",
-            "ARCHIVE_NAME"
+            "ARCHIVE_NAME",
+            null
         );
 
         when(cacheService.getAllSiteReferences()).thenReturn(SITES_DATA_MAP);

@@ -24,7 +24,6 @@ import java.util.stream.Stream;
 @CaseStateConstraint
 @Schema(description = "CreateCaseDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-@SuppressWarnings("PMD.ShortClassName")
 public class CreateCaseDTO {
     @Schema(description = "CreateCaseId")
     private UUID id;

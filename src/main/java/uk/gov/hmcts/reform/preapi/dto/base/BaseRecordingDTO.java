@@ -8,12 +8,14 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.validators.JsonConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 
 import java.time.Duration;
 import java.util.UUID;
 
 @Data
 @NoArgsConstructor
+@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class BaseRecordingDTO {
     @Schema(description = "RecordingId")
     @NotNull(message = "id is required")
@@ -28,10 +30,12 @@ public abstract class BaseRecordingDTO {
     protected Integer version;
 
     @Schema(description = "RecordingURL")
+    @SanitizedStringConstraint
     protected String url; // is this not needed now as it's different for every user?
 
     @Schema(description = "RecordingFilename")
     @NotNull(message = "filename is required")
+    @SanitizedStringConstraint
     protected String filename;
 
     @Schema(

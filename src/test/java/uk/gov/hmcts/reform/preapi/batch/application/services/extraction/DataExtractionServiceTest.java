@@ -17,6 +17,7 @@ import java.util.regex.Matcher;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -223,5 +224,127 @@ public class DataExtractionServiceTest {
         assertThat(result.isSuccess()).isFalse();
         assertThat(result.getErrorMessage()).isEqualTo("Keyword 'PRE' found");
         verify(metadataValidator).validatePreExisting(data);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void extractMetaDataDefaultsVersionNumberTo1ForOrigType() {
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("test-ORIG.mp4");
+        data.setDuration(10);
+
+        var testResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validateRawFile(any(MigrationRecord.class));
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
+
+        var extensionResult = mock(ServiceResult.class);
+        when(extensionResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtension("mp4")).thenReturn(extensionResult);
+
+        Matcher matcher = mock(Matcher.class);
+        when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName()))
+            .thenReturn(Optional.of(Map.entry("Standard", matcher)));
+        when(matcher.group("ext")).thenReturn("mp4");
+        when(matcher.group("defendantLastName")).thenReturn("Defendant");
+        when(matcher.group("witnessFirstName")).thenReturn("Witness");
+        when(matcher.group("versionType")).thenReturn("ORIG");
+        when(matcher.group("versionNumber")).thenReturn(null);
+
+        var metadataResult = mock(ServiceResult.class);
+        when(metadataResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtractedMetadata(any(ExtractedMetadata.class))).thenReturn(metadataResult);
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isTrue();
+        verify(metadataValidator).validateExtractedMetadata(argThat(metadata ->
+            metadata.getRecordingVersionNumber().equals("1")
+        ));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void extractMetaDataDefaultsVersionNumberTo1ForCopyType() {
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("test-COPY.mp4");
+        data.setDuration(10);
+
+        var testResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validateRawFile(any(MigrationRecord.class));
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
+
+        var extensionResult = mock(ServiceResult.class);
+        when(extensionResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtension("mp4")).thenReturn(extensionResult);
+
+        Matcher matcher = mock(Matcher.class);
+        when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName()))
+            .thenReturn(Optional.of(Map.entry("Standard", matcher)));
+        when(matcher.group("ext")).thenReturn("mp4");
+        when(matcher.group("defendantLastName")).thenReturn("Defendant");
+        when(matcher.group("witnessFirstName")).thenReturn("Witness");
+        when(matcher.group("versionType")).thenReturn("COPY");
+        when(matcher.group("versionNumber")).thenReturn("");
+
+        var metadataResult = mock(ServiceResult.class);
+        when(metadataResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtractedMetadata(any(ExtractedMetadata.class))).thenReturn(metadataResult);
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isTrue();
+        verify(metadataValidator).validateExtractedMetadata(argThat(metadata ->
+            metadata.getRecordingVersionNumber().equals("1")
+        ));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void extractMetaDataHandlesMatcherGroupException() {
+        MigrationRecord data = new MigrationRecord();
+        data.setArchiveName("test.mp4");
+        data.setDuration(10);
+
+        var testResult = mock(ServiceResult.class);
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validatePreExisting(any(MigrationRecord.class));
+        doReturn(ServiceResultUtil.success(data))
+            .when(metadataValidator).validateRawFile(any(MigrationRecord.class));
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(MigrationRecord.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
+
+        var extensionResult = mock(ServiceResult.class);
+        when(extensionResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtension("mp4")).thenReturn(extensionResult);
+
+        Matcher matcher = mock(Matcher.class);
+        when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName()))
+            .thenReturn(Optional.of(Map.entry("Standard", matcher)));
+        when(matcher.group("ext")).thenReturn("mp4");
+        when(matcher.group("defendantLastName")).thenReturn("Defendant");
+        when(matcher.group("witnessFirstName")).thenReturn("Witness");
+        when(matcher.group("versionType")).thenReturn("ORIG");
+        when(matcher.group("versionNumber")).thenReturn("2");
+        when(matcher.group("court")).thenThrow(new IllegalStateException("Group not found"));
+
+        var metadataResult = mock(ServiceResult.class);
+        when(metadataResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtractedMetadata(any(ExtractedMetadata.class))).thenReturn(metadataResult);
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isTrue();
+        verify(metadataValidator).validateExtractedMetadata(any(ExtractedMetadata.class));
     }
 }

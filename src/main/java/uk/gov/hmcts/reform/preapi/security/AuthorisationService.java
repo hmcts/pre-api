@@ -9,8 +9,12 @@ import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -21,10 +25,12 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class AuthorisationService {
     private final BookingRepository bookingRepository;
     private final CaseRepository caseRepository;
@@ -34,6 +40,10 @@ public class AuthorisationService {
     private final EditRequestRepository editRequestRepository;
 
     private final boolean enableMigratedData;
+    private final boolean hideReencodedRecordings;
+
+    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
+    private static final String ROLE_LEVEL_2 = "ROLE_LEVEL_2";
 
     public AuthorisationService(BookingRepository bookingRepository,
                                 CaseRepository caseRepository,
@@ -41,7 +51,9 @@ public class AuthorisationService {
                                 CaptureSessionRepository captureSessionRepository,
                                 RecordingRepository recordingRepository,
                                 EditRequestRepository editRequestRepository,
-                                @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
+                                @Value("${migration.enableMigratedData:false}") boolean enableMigratedData,
+                                @Value("${feature-flags.hide-reencoded-recordings:true}")
+                                boolean hideReencodedRecordings) {
         this.bookingRepository = bookingRepository;
         this.caseRepository = caseRepository;
         this.participantRepository = participantRepository;
@@ -49,10 +61,11 @@ public class AuthorisationService {
         this.recordingRepository = recordingRepository;
         this.editRequestRepository = editRequestRepository;
         this.enableMigratedData = enableMigratedData;
+        this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
-        var booking = bookingRepository.findById(bookingId);
+        Optional<Booking> booking = bookingRepository.findById(bookingId);
 
         return booking.isPresent() && (authentication.isAppUser()
             && booking.get().getCaseId().getCourt().getId().equals(authentication.getCourtId()
@@ -70,7 +83,7 @@ public class AuthorisationService {
         if (bookingId == null) {
             return true;
         }
-        var booking = bookingRepository.findById(bookingId).orElse(null);
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
         if (booking == null) {
             return true;
         }
@@ -98,11 +111,20 @@ public class AuthorisationService {
     }
 
     public boolean hasRecordingAccess(UserAuthentication authentication, UUID recordingId) {
-        if (recordingId == null || (enableMigratedData && authentication.isAdmin())) {
+        if (recordingId == null) {
             return true;
         }
-        var entity = recordingRepository.findById(recordingId).orElse(null);
-        return entity == null || hasCaptureSessionAccess(authentication, entity.getCaptureSession().getId());
+        Recording entity = recordingRepository.findById(recordingId).orElse(null);
+        if (entity == null) {
+            return true;
+        }
+
+        if (enableMigratedData && authentication.isAdmin()) {
+            return canViewReencodedRecording(authentication, entity);
+        }
+
+        return canViewReencodedRecording(authentication, entity)
+            && hasCaptureSessionAccess(authentication, entity.getCaptureSession().getId());
     }
 
     public boolean hasParticipantAccess(UserAuthentication authentication, UUID participantId) {
@@ -110,7 +132,7 @@ public class AuthorisationService {
             return true;
         }
 
-        var participant = participantRepository.findById(participantId).orElse(null);
+        Participant participant = participantRepository.findById(participantId).orElse(null);
         return participant == null || hasCaseAccess(authentication, participant.getCaseId().getId());
     }
 
@@ -137,7 +159,7 @@ public class AuthorisationService {
             return true;
         }
         try {
-            var request = editRequestRepository.findByIdNotLocked(id).orElse(null);
+            EditRequest request = editRequestRepository.findByIdNotLocked(id).orElse(null);
             return request == null || hasRecordingAccess(authentication, request.getSourceRecording().getId());
         } catch (Exception e) {
             return false;
@@ -189,7 +211,13 @@ public class AuthorisationService {
     }
 
     public boolean canViewVodafoneData(UserAuthentication authentication) {
-        return enableMigratedData || authentication.hasRole("ROLE_SUPER_USER");
+        return enableMigratedData || authentication.hasRole(ROLE_SUPER_USER);
+    }
+
+    public boolean canViewReencodedRecording(UserAuthentication authentication, Recording recording) {
+        return !hideReencodedRecordings
+            || !recording.isReencode()
+            || authentication.hasRole(ROLE_SUPER_USER);
     }
 
     public boolean isVodafoneData(Case caseEntity) {
@@ -201,7 +229,7 @@ public class AuthorisationService {
             .map(c -> (dto.getState() == null && c.getState() == CaseState.OPEN) || c.getState() == dto.getState())
             .orElse(true)
             || authentication.isAdmin()
-            || authentication.hasRole("ROLE_LEVEL_2");
+            || authentication.hasRole(ROLE_LEVEL_2);
     }
 
     public boolean canSearchByCaseClosed(UserAuthentication authentication, Boolean caseOpen) {

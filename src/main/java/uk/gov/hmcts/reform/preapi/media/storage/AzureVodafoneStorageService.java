@@ -12,8 +12,9 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.List;
 
 @Service
@@ -25,7 +26,7 @@ public class AzureVodafoneStorageService extends AzureStorageService {
     }
 
     public List<String> fetchBlobNames(String containerName) {
-        var containerClient = client.getBlobContainerClient(containerName);
+        BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
 
         return containerClient.listBlobs().stream()
                               .map(BlobItem::getName)
@@ -34,7 +35,7 @@ public class AzureVodafoneStorageService extends AzureStorageService {
     }
 
     public List<String> fetchBlobNamesWithPrefix(String containerName, String prefix) {
-        var containerClient = client.getBlobContainerClient(containerName);
+        BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
 
         return containerClient.listBlobs(new ListBlobsOptions().setPrefix(prefix), null)
             .stream()
@@ -65,13 +66,12 @@ public class AzureVodafoneStorageService extends AzureStorageService {
             BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
             BlobClient blobClient = containerClient.getBlobClient(blobPath);
 
-            try (FileInputStream fis = new FileInputStream(file)) {
-                blobClient.upload(fis, file.length(), true);
+            try (InputStream is = Files.newInputStream(file.toPath())) {
+                blobClient.upload(is, file.length(), true);
                 log.info("Uploaded CSV to Azure: {}/{}", containerName, blobPath);
             }
         } catch (IOException e) {
             log.error("Failed to upload CSV file to Azure: {} - {}", blobPath, e.getMessage());
         }
     }
-
 }

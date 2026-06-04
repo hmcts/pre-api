@@ -21,6 +21,7 @@ public class RecordingReady extends BaseTemplate {
         );
     }
 
+    @Override
     public String getTemplateId() {
         return "6ad8d468-4a18-4180-9c08-c6fae055a385";
     }

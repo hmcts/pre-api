@@ -31,7 +31,8 @@ class ExtractedMetadataTest {
             "video.mp4",
             "20MB",
             "archiveId",
-            "filename.mp4"
+            "filename.mp4",
+            null
         );
 
         assertThat(metadata.getDefendantLastName()).isEqualTo("Smith-Jones");

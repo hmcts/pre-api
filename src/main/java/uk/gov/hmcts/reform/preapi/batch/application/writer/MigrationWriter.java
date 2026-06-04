@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
 
     private final LoggingService loggingService;
@@ -50,7 +51,7 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
         for (MigratedItemGroup item : migratedItems) {
             try {
                 loggingService.logDebug("Processing case: %s", item.getCase().getReference());
-                boolean ok = executor.processOneItem(item); 
+                boolean ok = executor.processOneItem(item);
                 if (ok) {
                     successCount.incrementAndGet();
                     migrationRecordService.updateToSuccess(item.getPassItem().cleansedData().getArchiveId());
@@ -61,10 +62,10 @@ public class MigrationWriter implements ItemWriter<MigratedItemGroup> {
                 }
             } catch (Exception e) {
                 failureCount.incrementAndGet();
-                
+
                 migrationRecordService.updateToFailed(
-                    item.getPassItem().cleansedData().getArchiveId(), 
-                    VfFailureReason.GENERAL_ERROR.toString(), 
+                    item.getPassItem().cleansedData().getArchiveId(),
+                    VfFailureReason.GENERAL_ERROR.toString(),
                     e.getMessage()
                 );
 

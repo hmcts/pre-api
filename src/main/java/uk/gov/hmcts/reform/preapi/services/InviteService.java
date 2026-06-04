@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -61,9 +62,9 @@ public class InviteService {
 
     @Transactional
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
-        var result = userService.upsert(createInviteDTO);
+        UpsertResult result = userService.upsert(createInviteDTO);
 
-        var user = userRepository.findById(createInviteDTO.getUserId())
+        User user = userRepository.findById(createInviteDTO.getUserId())
             .orElseThrow(() -> new NotFoundException("User: " + createInviteDTO.getUserId()));
         onUserInvitedToPortal(user);
 
@@ -71,7 +72,7 @@ public class InviteService {
     }
 
     public UpsertResult redeemInvite(String email) {
-        var portalAccess = portalAccessRepository
+        PortalAccess portalAccess = portalAccessRepository
             .findByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(email)
             .orElseThrow(() -> new NotFoundException("Invite: " + email));
         portalAccess.setStatus(AccessStatus.ACTIVE);
@@ -82,7 +83,7 @@ public class InviteService {
 
     @Transactional
     public void deleteByUserId(UUID userId) {
-        var portalAccess = portalAccessRepository
+        PortalAccess portalAccess = portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
 
@@ -90,16 +91,16 @@ public class InviteService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void onUserInvitedToPortal(User u) {
-        log.info("onUserInvitedToPortal: User({})", u.getId());
+    public void onUserInvitedToPortal(User user) {
+        log.info("onUserInvitedToPortal: User({})", user.getId());
 
         try {
             if (!emailServiceFactory.isEnabled()) {
                 return;
             }
-            emailServiceFactory.getEnabledEmailService().portalInvite(u);
+            emailServiceFactory.getEnabledEmailService().portalInvite(user);
         } catch (Exception e) {
-            log.error("Failed to notify user of invite to portal: " + u.getId());
+            log.error("Failed to notify user of invite to portal: " + user.getId());
         }
     }
 }

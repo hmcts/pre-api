@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @Data
@@ -25,11 +26,12 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
     protected UUID captureSessionId;
 
     public CreateRecordingDTO(Recording recording) {
+        super();
         id = recording.getId();
         captureSessionId = recording.getCaptureSession().getId();
-        parentRecordingId = recording.getParentRecording() != null
-            ? recording.getParentRecording().getId()
-            : null;
+        if (recording.getParentRecording() != null) {
+            parentRecordingId = recording.getParentRecording().getId();
+        }
         version = recording.getVersion();
         filename = recording.getFilename();
         duration = recording.getDuration();
@@ -37,6 +39,7 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
     }
 
     public CreateRecordingDTO(RecordingDTO recordingDTO) {
+        super();
         id = recordingDTO.getId();
         captureSessionId = recordingDTO.getCaptureSession().getId();
         parentRecordingId = recordingDTO.getParentRecordingId();
@@ -44,5 +47,18 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
         filename = recordingDTO.getFilename();
         duration = recordingDTO.getDuration();
         editInstructions = recordingDTO.getEditInstructions();
+    }
+
+    // This is crying out for a builder but I don't know how that works with super()
+    public CreateRecordingDTO(UUID id, UUID parentRecId, UUID captureSessionId, Integer versionNumber,
+                              String filename, Duration duration, String editInstructions) {
+        super();
+        this.id = id;
+        this.parentRecordingId = parentRecId;
+        this.captureSessionId = captureSessionId;
+        this.version = versionNumber;
+        this.filename = filename;
+        this.duration = duration;
+        this.editInstructions = editInstructions;
     }
 }

@@ -26,8 +26,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -325,6 +328,197 @@ class PostMigrationItemReaderTest {
         PostMigratedItemGroup group = new PostMigratedItemGroup();
         when(entityCreationService.createShareBookingAndInviteIfNotExists(
             booking, "user@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderSkipsWhenUserAlreadySharedWithAlternativeEmail() throws Exception {
+        MigrationRecord record = migrationRecord("archive-alt-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        // Try to share with primary email
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "primary@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        // User is already shared with alternative email
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("primary@example.com");
+        sharedWith.setAlternativeEmail("alt@example.com"); // Alternative email
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isNull();
+        
+        // Should skip because primary email matches
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(
+            any(), anyString(), anyString(), anyString()
+        );
+    }
+
+    @Test
+    void createReaderSkipsWhenUserAlreadySharedWithPrimaryEmailButTryingWithAlternative() throws Exception {
+        MigrationRecord record = migrationRecord("archive-primary-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        // Try to share with alternative email
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "alt@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        // User is already shared with primary email
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("primary@example.com"); // Primary email
+        sharedWith.setAlternativeEmail("alt@example.com"); // Alternative email
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isNull();
+        
+        // Should skip because alternative email matches
+        verify(loggingService).logDebug("Skipping share creation for %s — already shared.", "alt@example.com");
+        verify(entityCreationService, never()).createShareBookingAndInviteIfNotExists(
+            any(), anyString(), anyString(), anyString()
+        );
+    }
+
+    @Test
+    void createReaderHandlesNullEmailInSharedUser() throws Exception {
+        MigrationRecord record = migrationRecord("archive-null-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "new@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail(null); 
+        sharedWith.setAlternativeEmail("alt@example.com");
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "new@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderHandlesBlankEmailInSharedUser() throws Exception {
+        MigrationRecord record = migrationRecord("archive-blank-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "new@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("   ");
+        sharedWith.setAlternativeEmail("alt@example.com");
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "new@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderHandlesNullAlternativeEmailInSharedUser() throws Exception {
+        MigrationRecord record = migrationRecord("archive-null-alt-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "new@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("primary@example.com");
+        sharedWith.setAlternativeEmail(null); 
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "new@example.com", "user", "name"
+        )).thenReturn(group);
+
+        var readerResult = reader.createReader(false);
+        assertThat(assertDoesNotThrow(readerResult::read)).isEqualTo(group);
+    }
+
+    @Test
+    void createReaderHandlesBlankAlternativeEmailInSharedUser() throws Exception {
+        MigrationRecord record = migrationRecord("archive-blank-alt-email", "case|segment");
+        record.setBookingId(UUID.randomUUID());
+
+        when(migrationRecordService.findShareableOrigs()).thenReturn(List.of(record));
+        Map<String, List<String[]>> channelMap = new HashMap<>();
+        channelMap.put("case|segment", Collections.singletonList(new String[] {"user.name", "new@example.com"}));
+        when(cacheService.getAllChannelReferences()).thenReturn(channelMap);
+
+        ShareBookingDTO existingShare = new ShareBookingDTO();
+        existingShare.setId(UUID.randomUUID());
+        BaseUserDTO sharedWith = new BaseUserDTO();
+        sharedWith.setId(UUID.randomUUID());
+        sharedWith.setEmail("primary@example.com");
+        sharedWith.setAlternativeEmail("   "); 
+        existingShare.setSharedWithUser(sharedWith);
+        
+        BookingDTO booking = mock(BookingDTO.class);
+        when(booking.getShares()).thenReturn(List.of(existingShare));
+        when(bookingService.findById(record.getBookingId())).thenReturn(booking);
+
+        PostMigratedItemGroup group = new PostMigratedItemGroup();
+        when(entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking, "new@example.com", "user", "name"
         )).thenReturn(group);
 
         var readerResult = reader.createReader(false);

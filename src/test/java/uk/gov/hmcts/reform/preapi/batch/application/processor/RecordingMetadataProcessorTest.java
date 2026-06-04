@@ -94,7 +94,7 @@ class RecordingMetadataProcessorTest {
         ServiceResult<TestItem> testResult = ServiceResult.test(testItem);
 
         when(extractionService.process(record))
-            .thenAnswer(invocation -> testResult); 
+            .thenAnswer(invocation -> testResult);
 
         processor.processRecording(record);
 
@@ -117,7 +117,7 @@ class RecordingMetadataProcessorTest {
             .thenReturn(Optional.of(record));
 
         when(extractionService.process(record))
-            .thenAnswer(invocation -> ServiceResult.success(extracted)); 
+            .thenAnswer(invocation -> ServiceResult.success(extracted));
 
         when(transformationService.transformData(extracted))
             .thenAnswer(invocation -> ServiceResult.error("Error", "Missing"));

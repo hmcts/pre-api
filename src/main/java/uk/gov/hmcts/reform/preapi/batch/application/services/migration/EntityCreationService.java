@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
+import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,18 +20,24 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -38,12 +45,15 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class EntityCreationService {
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
     private final RecordingService recordingService;
     private final MigrationRecordService migrationRecordService;
     private final UserService userService;
+    private final BookingRepository bookingRepository;
+    private final CaptureSessionRepository captureSessionRepository;
     private final PortalAccessRepository portalAccessRepository;
 
     @Value("${vodafone-user-email}")
@@ -60,7 +70,7 @@ public class EntityCreationService {
             throw new IllegalArgumentException("Court information is missing");
         }
 
-        var caseDTO = new CreateCaseDTO();
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
         caseDTO.setId(UUID.randomUUID());
         caseDTO.setCourtId(cleansedData.getCourt().getId());
         caseDTO.setReference(cleansedData.getCaseReference());
@@ -92,7 +102,7 @@ public class EntityCreationService {
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         bookingDTO.setId(bookingId);
         bookingDTO.setCaseId(aCase.getId());
-        bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
+        bookingDTO.setScheduledFor(determineScheduledFor(version, bookingId, cleansedData));
         Set<CreateParticipantDTO> filteredParticipants = aCase.getParticipants().stream()
             .filter(p ->
                 (p.getFirstName() != null && p.getFirstName().equalsIgnoreCase(cleansedData.getWitnessFirstName()))
@@ -123,15 +133,37 @@ public class EntityCreationService {
             captureSessionId = UUID.randomUUID();
         }
 
-        var captureSessionDTO = new CreateCaptureSessionDTO();
+        boolean isCopy = version != null && version.equalsIgnoreCase("COPY");
+
+        CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();
         captureSessionDTO.setId(captureSessionId);
         captureSessionDTO.setBookingId(booking.getId());
-        captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
 
-        var vodafoneUser = getUserByEmail(vodafoneUserEmail);
-        captureSessionDTO.setStartedByUserId(vodafoneUser);
-        captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
-        captureSessionDTO.setFinishedByUserId(vodafoneUser);
+        UUID vodafoneUser = getUserByEmail(vodafoneUserEmail);
+
+        if (isCopy) {
+            captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId).ifPresentOrElse(
+                existing -> {
+                    captureSessionDTO.setStartedAt(existing.getStartedAt());
+                    captureSessionDTO.setStartedByUserId(
+                        existing.getStartedByUser() != null ? existing.getStartedByUser().getId() : null);
+                    captureSessionDTO.setFinishedAt(existing.getFinishedAt());
+                    captureSessionDTO.setFinishedByUserId(
+                        existing.getFinishedByUser() != null ? existing.getFinishedByUser().getId() : null);
+                },
+                () -> {
+                    captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+                    captureSessionDTO.setStartedByUserId(vodafoneUser);
+                    captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
+                    captureSessionDTO.setFinishedByUserId(vodafoneUser);
+                }
+            );
+        } else {
+            captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+            captureSessionDTO.setStartedByUserId(vodafoneUser);
+            captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
+            captureSessionDTO.setFinishedByUserId(vodafoneUser);
+        }
         captureSessionDTO.setStatus(RecordingStatus.NO_RECORDING);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
@@ -146,7 +178,7 @@ public class EntityCreationService {
         UUID parentRecordingId = null;
 
         if (isCopy) {
-            Optional<MigrationRecord> currentRecordOpt = 
+            Optional<MigrationRecord> currentRecordOpt =
                 migrationRecordService.findByArchiveId(cleansedData.getArchiveId());
 
             if (currentRecordOpt.isPresent()) {
@@ -170,7 +202,7 @@ public class EntityCreationService {
             }
         }
 
-        var recordingDTO = new CreateRecordingDTO();
+        CreateRecordingDTO recordingDTO = new CreateRecordingDTO();
         UUID recordingId = UUID.randomUUID();
         recordingDTO.setId(recordingId);
         recordingDTO.setCaptureSessionId(captureSession.getId());
@@ -178,7 +210,7 @@ public class EntityCreationService {
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
         recordingDTO.setFilename(cleansedData.getFileName());
-        
+
         if (isCopy) {
             recordingDTO.setParentRecordingId(parentRecordingId);
             recordingDTO.setVersion(recordingService.getNextVersionNumber(parentRecordingId));
@@ -189,15 +221,15 @@ public class EntityCreationService {
         return recordingDTO;
     }
 
-   
+
     public Set<CreateParticipantDTO> createParticipants(ProcessedRecording cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
 
-        if (cleansedData.getWitnessFirstName() != null && !cleansedData.getWitnessFirstName().trim().isEmpty()) {
+        if (StringUtils.isNotBlank(cleansedData.getWitnessFirstName())) {
             participants.add(createParticipant(ParticipantType.WITNESS, cleansedData.getWitnessFirstName(), ""));
         }
 
-        if (cleansedData.getDefendantLastName() != null && !cleansedData.getDefendantLastName().trim().isEmpty()) {
+        if (StringUtils.isNotBlank(cleansedData.getDefendantLastName())) {
             participants.add(createParticipant(ParticipantType.DEFENDANT, "", cleansedData.getDefendantLastName()));
         }
 
@@ -205,7 +237,7 @@ public class EntityCreationService {
     }
 
     private CreateParticipantDTO createParticipant(ParticipantType type, String firstName, String lastName) {
-        var participantDTO = new CreateParticipantDTO();
+        CreateParticipantDTO participantDTO = new CreateParticipantDTO();
         participantDTO.setId(UUID.randomUUID());
         participantDTO.setParticipantType(type);
         participantDTO.setFirstName(firstName != null ? firstName : Constants.DEFAULT_NAME);
@@ -218,7 +250,7 @@ public class EntityCreationService {
         CreateUserDTO sharedWith,
         CreateUserDTO sharedBy
     ) {
-        var shareBookingDTO = new CreateShareBookingDTO();
+        CreateShareBookingDTO shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(bookingDTO.getId());
         shareBookingDTO.setSharedByUser(sharedBy.getId());
@@ -253,7 +285,7 @@ public class EntityCreationService {
     }
 
     public CreateInviteDTO createInvite(CreateUserDTO user) {
-        var createInviteDTO = new CreateInviteDTO();
+        CreateInviteDTO createInviteDTO = new CreateInviteDTO();
         createInviteDTO.setEmail(user.getEmail());
         createInviteDTO.setFirstName(user.getFirstName());
         createInviteDTO.setUserId(user.getId());
@@ -270,7 +302,7 @@ public class EntityCreationService {
                 .orElse(false);
         } catch (Exception e) {
             loggingService.logWarning("Could not check portal access for user: %s - %s", userId, e.getMessage());
-            return false; 
+            return false;
         }
     }
 
@@ -279,41 +311,59 @@ public class EntityCreationService {
                                                                   String firstName,
                                                                   String lastName) {
         loggingService.logDebug("Preparing data for share booking and user: %s %s %s", email, firstName, lastName);
-        String lowerEmail = email.toLowerCase();
+        String lowerEmail = email.toLowerCase(Locale.UK);
 
         List<CreateInviteDTO> invites = new ArrayList<>();
 
         String existingUserId = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, String.class);
+
+        if (existingUserId == null) {
+            Optional<User> existingUser = userService.findByOriginalEmail(lowerEmail)
+                .or(() -> userService.findByAlternativeEmail(lowerEmail));
+
+            if (existingUser.isPresent()) {
+                UUID userId = existingUser.get().getId();
+                existingUserId = userId.toString();
+                cacheService.saveUser(lowerEmail, userId);
+                loggingService.logDebug(
+                    "Found existing user in DB for email (including alternative): %s (%s)",
+                    lowerEmail, existingUserId
+                );
+            }
+        }
+
         CreateUserDTO sharedWith;
         if (existingUserId != null) {
-            if (!isUserActiveForMigration(UUID.fromString(existingUserId), lowerEmail)) {
-                loggingService.logWarning(
-                    "User %s is inactive or deleted - skipping invite and share booking", lowerEmail);
-                PostMigratedItemGroup excludedResult = new PostMigratedItemGroup();
-                return excludedResult;
-            }
-            
+            UUID userId = UUID.fromString(existingUserId);
+
             sharedWith = new CreateUserDTO();
-            sharedWith.setId(UUID.fromString(existingUserId));
+            sharedWith.setId(userId);
             sharedWith.setEmail(lowerEmail);
             sharedWith.setFirstName(firstName);
             sharedWith.setLastName(lastName);
-            loggingService.logDebug("Found existing user in cache: %s (%s)", lowerEmail, existingUserId);
-            
-            if (!userHasPortalAccess(existingUserId)) {
-                CreateInviteDTO invite = createInvite(sharedWith);
-                invites.add(invite);
-                loggingService.logDebug(
-                    "Created invite for existing user without portal access: %s (%s)", lowerEmail, existingUserId);
+
+            boolean isActive = isUserActiveForMigration(userId, lowerEmail);
+            if (!isActive) {
+                loggingService.logWarning(
+                    "User %s is inactive or deleted", lowerEmail);
             } else {
-                loggingService.logDebug(
-                    "Skipping invite for existing user with portal access: %s (%s)", lowerEmail, existingUserId);
+                loggingService.logDebug("Found existing user in cache: %s (%s)", lowerEmail, existingUserId);
+
+                if (!userHasPortalAccess(existingUserId)) {
+                    CreateInviteDTO invite = createInvite(sharedWith);
+                    invites.add(invite);
+                    loggingService.logDebug(
+                        "Created invite for existing user without portal access: %s (%s)", lowerEmail, existingUserId);
+                } else {
+                    loggingService.logDebug(
+                        "Skipping invite for existing user with portal access: %s (%s)", lowerEmail, existingUserId);
+                }
             }
         } else {
             sharedWith = createUser(firstName, lastName, lowerEmail, UUID.randomUUID());
             cacheService.saveUser(lowerEmail, sharedWith.getId());
             loggingService.logDebug("Created new user: %s (%s)", lowerEmail, sharedWith.getId());
-            
+
             CreateInviteDTO invite = createInvite(sharedWith);
             invites.add(invite);
             loggingService.logDebug("Created invite for new user: %s (%s)", lowerEmail, sharedWith.getId());
@@ -330,7 +380,7 @@ public class EntityCreationService {
         }
 
         String vodafoneID = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX,
-                                                      vodafoneUserEmail.toLowerCase(),
+                                                      vodafoneUserEmail.toLowerCase(Locale.UK),
                                                       String.class);
         CreateUserDTO sharedBy;
 
@@ -368,10 +418,11 @@ public class EntityCreationService {
         PostMigratedItemGroup result = new PostMigratedItemGroup();
         result.setInvites(invites);
         result.setShareBookings(shareBookings);
+        result.setSharedWithEmail(lowerEmail);
         return result;
     }
 
-    
+
     private boolean isOrigRecordingPersisted(String archiveId) {
         Optional<MigrationRecord> maybeRecord = migrationRecordService.findByArchiveId(archiveId);
 
@@ -389,20 +440,26 @@ public class EntityCreationService {
                 loggingService.logDebug("User %s is deleted", email);
                 return false;
             }
-            
+
             var portalAccess = portalAccessRepository
                 .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId);
-            
+
             if (portalAccess.isEmpty()) {
+                var deletedPortalAccess = portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId);
+                if (!deletedPortalAccess.isEmpty()) {
+                    loggingService.logDebug("User %s has deleted portal access - skipping invite and share", email);
+                    return false;
+                }
+
                 loggingService.logDebug("User %s has no portal access - allowing invite creation", email);
                 return true;
             }
-            
+
             if (portalAccess.get().getStatus() == AccessStatus.INACTIVE) {
                 loggingService.logDebug("User %s has INACTIVE portal access", email);
                 return false;
             }
-            
+
             loggingService.logDebug(
                 "User %s has active portal access with status: %s", email, portalAccess.get().getStatus());
             return true;
@@ -410,5 +467,14 @@ public class EntityCreationService {
             loggingService.logWarning("Error checking user status for %s: %s", email, e.getMessage());
             return false;
         }
+    }
+
+    private Timestamp determineScheduledFor(String version, UUID bookingId, ProcessedRecording cleansedData) {
+
+        return version != null && version.equalsIgnoreCase("COPY")
+            ? bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
+            .map(Booking::getScheduledFor)
+            .orElse(cleansedData.getRecordingTimestamp())
+            : cleansedData.getRecordingTimestamp();
     }
 }

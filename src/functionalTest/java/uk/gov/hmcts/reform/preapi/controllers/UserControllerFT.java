@@ -21,7 +21,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class UserControllerFT extends FunctionalTestBase {
+class UserControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Create/update a user")
     @Test
     void shouldCreateUser() throws JsonProcessingException {
@@ -302,6 +302,26 @@ public class UserControllerFT extends FunctionalTestBase {
         assertResponseCode(responseActiveTrueForDeletedCourtAccess, 200);
         assertThat(responseActiveTrueForDeletedCourtAccess.body().jsonPath().getInt("page.totalElements"))
             .isEqualTo(0);
+    }
+
+    @DisplayName("Scenario: Should not create/update a user with un-sanitised data")
+    @Test
+    void shouldNoCreateUserWithUnsafeData() throws JsonProcessingException {
+        var dto = createUserDto();
+        dto.setOrganisation("<script>alert(1)</script>");
+        dto.setFirstName("<br>First</br>");
+        dto.setLastName("<img src='x' onerror='alert(1)'>Last</img>");
+        dto.setPhoneNumber("<script>alert(1)</script>");
+        var createResponse = putUser(dto);
+        assertResponseCode(createResponse, 400);
+        assertThat(createResponse.body().jsonPath().getString("organisation"))
+            .contains("potentially malicious content");
+        assertThat(createResponse.body().jsonPath().getString("firstName"))
+            .contains("potentially malicious content");
+        assertThat(createResponse.body().jsonPath().getString("lastName"))
+            .contains("potentially malicious content");
+        assertThat(createResponse.body().jsonPath().getString("phoneNumber"))
+            .contains("potentially malicious content");
     }
 
     private UserDTO getUserById(UUID userId) {

@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -35,7 +36,7 @@ public class InviteDTO {
     protected String code;
 
     public InviteDTO(PortalAccess portalAccess) {
-        var user = portalAccess.getUser();
+        User user = portalAccess.getUser();
         userId = user.getId();
         firstName = user.getFirstName();
         lastName = user.getLastName();

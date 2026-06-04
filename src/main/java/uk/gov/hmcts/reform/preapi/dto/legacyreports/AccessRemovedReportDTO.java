@@ -6,7 +6,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
 import java.util.Set;
@@ -41,8 +44,8 @@ public class AccessRemovedReportDTO {
     private String removalReason;
 
     public AccessRemovedReportDTO(ShareBooking shareBooking) {
-        var booking = shareBooking.getBooking();
-        var courtEntity = booking.getCaseId().getCourt();
+        Booking booking = shareBooking.getBooking();
+        Court courtEntity = booking.getCaseId().getCourt();
 
         removedAt = shareBooking.getDeletedAt();
         caseReference = booking.getCaseId().getReference();
@@ -51,7 +54,7 @@ public class AccessRemovedReportDTO {
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .collect(Collectors.toSet());
 
-        var user = shareBooking.getSharedWith();
+        User user = shareBooking.getSharedWith();
         userFullName = user.getFullName();
         userEmail = user.getEmail();
     }

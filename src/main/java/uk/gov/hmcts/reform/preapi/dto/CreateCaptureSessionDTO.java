@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -31,9 +32,11 @@ public class CreateCaptureSessionDTO {
     private RecordingOrigin origin;
 
     @Schema(description = "CreateCaptureSessionIngestAddress")
+    @SanitizedStringConstraint
     private String ingestAddress;
 
     @Schema(description = "CreateCaptureSessionLiveOutputURL")
+    @SanitizedStringConstraint
     private String liveOutputUrl;
 
     @Schema(description = "CreateCaptureSessionStartedAt")
@@ -59,13 +62,13 @@ public class CreateCaptureSessionDTO {
         this.ingestAddress = captureSession.getIngestAddress();
         this.liveOutputUrl = captureSession.getLiveOutputUrl();
         this.startedAt = captureSession.getStartedAt();
-        this.startedByUserId = captureSession.getStartedByUser() != null
-            ? captureSession.getStartedByUser().getId()
-            : null;
+        if (captureSession.getStartedByUser() != null) {
+            this.startedByUserId = captureSession.getStartedByUser().getId();
+        }
         this.finishedAt = captureSession.getFinishedAt();
-        this.finishedByUserId = captureSession.getFinishedByUser() != null
-            ? captureSession.getFinishedByUser().getId()
-            : null;
+        if (captureSession.getFinishedByUser() != null) {
+            this.finishedByUserId = captureSession.getFinishedByUser().getId();
+        }
         this.status = captureSession.getStatus();
     }
 

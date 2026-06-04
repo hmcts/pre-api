@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
@@ -87,7 +88,7 @@ public class CaseController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<CaseDTO> assembler
     ) {
-        var resultPage = caseService.searchBy(
+        Page<CaseDTO> resultPage = caseService.searchBy(
             params.getReference(),
             params.getCourtId(),
             params.getIncludeDeleted() != null && params.getIncludeDeleted(),

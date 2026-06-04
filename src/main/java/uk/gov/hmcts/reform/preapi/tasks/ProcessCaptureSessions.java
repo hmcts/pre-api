@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -18,6 +19,15 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.sql.Timestamp;
 import java.time.Instant;
 
+/**
+ * {@summary This belongs to the unused cron job solution for stuck-in-processing capture sessions.}
+ *
+ * @deprecated This belongs to the cron job solution for the problem where capture sessions get stuck in processing.
+ *     See <a href="https://tools.hmcts.net/jira/issues/?jql=labels%20%3D%20capture-session-interrupted-processing">Jira label</a>.
+ *     We have decided not to proceed with this solution, and we are investigating other architectural solutions.
+ *     See <a href="https://justiceuk.sharepoint.com/:w:/r/sites/PreRecordedEvidenceBAUTeam/Shared%20Documents/General/Spikes/Recording%20Process%20-%20Event%20Based%20Workflow%20Spike.docx?d=wc920d7600b8446c889fd197324e7927c&csf=1&web=1&e=EuSHgB">spike</a>.
+ */
+@Deprecated
 @Slf4j
 @Component
 public class ProcessCaptureSessions extends RobotUserTask {
@@ -45,7 +55,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
         signInRobotUser();
         log.info("Starting process capture session task");
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
         encodeJobService.findAllProcessing().forEach(job -> checkJob(job, mediaService));
 
         encodeJobService.findAllProcessing()
@@ -108,7 +118,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
 
     private void onEncodeFromIngestProcessingComplete(EncodeJobDTO job, IMediaService mediaService) {
         log.info("EncodeFromIngest for capture session {} is complete", job.getCaptureSessionId());
-        var jobName = mediaService.triggerProcessingStep2(job.getRecordingId(), false);
+        String jobName = mediaService.triggerProcessingStep2(job.getRecordingId(), false);
 
         if (jobName == null) {
             log.info("No recording found for capture session {}", job.getCaptureSessionId());
@@ -127,7 +137,7 @@ public class ProcessCaptureSessions extends RobotUserTask {
         encodeJobService.delete(job.getId());
         if (mediaService.verifyFinalAssetExists(job.getRecordingId()) == RecordingStatus.RECORDING_AVAILABLE) {
             log.info("Final asset found for capture session {}", job.getCaptureSessionId());
-            var captureSession = captureSessionService.stopCaptureSession(
+            CaptureSessionDTO captureSession = captureSessionService.stopCaptureSession(
                 job.getCaptureSessionId(),
                 RecordingStatus.RECORDING_AVAILABLE,
                 job.getRecordingId()
