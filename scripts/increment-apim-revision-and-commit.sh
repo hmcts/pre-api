@@ -30,7 +30,7 @@ convert_open_api_to_swagger() {
     --order=alpha "specs/pre-api.json" > "swagger_docs/1.yaml"
 
   sed -E "s/basePath\: \//basePath\: \/pre-api/g" "swagger_docs/1.yaml" > "swagger_docs/2.yaml"
-  sed -E "s/\- http/\- https/g" "swagger_docs/2.yaml" > "swagger_docs/3.yaml"
+  sed -E "s/^(\s*)- http$/\1- https\n\1- http/" "swagger_docs/2.yaml" > "swagger_docs/3.yaml"
   sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" "swagger_docs/3.yaml" > "swagger_docs/4.yaml"
 
   cp swagger_docs/4.yaml "pre-api-stg.yaml"
