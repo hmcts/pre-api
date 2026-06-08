@@ -211,24 +211,24 @@ getProject().tasks.named('sonarqube').configure {
   dependsOn jacocoTestReport
 }
 
-sonar {
-  def coverageExclusionList = [
-    '**uk/gov/hmcts/reform/preapi/data/exception/PendingMigrationScriptException*',
-    '**uk/gov/hmcts/reform/preapi/data/migration/FlywayNoOpStrategy*',
-    '**uk/gov/hmcts/reform/preapi/batch/**',
-    '**uk/gov/hmcts/reform/preapi/dto/migration/**',
-    '**uk/gov/hmcts/reform/preapi/tasks/migration/**',
-    '**uk/gov/hmcts/reform/preapi/controllers/TestingSupportController*',
-    '**/uk/gov/hmcts/reform/preapi/Application.java',
-  ]
+def coverageExclusionList = [
+  '**uk/gov/hmcts/reform/preapi/data/exception/PendingMigrationScriptException*',
+  '**uk/gov/hmcts/reform/preapi/data/migration/FlywayNoOpStrategy*',
+  '**uk/gov/hmcts/reform/preapi/batch/**',
+  '**uk/gov/hmcts/reform/preapi/dto/migration/**',
+  '**uk/gov/hmcts/reform/preapi/tasks/migration/**',
+  '**uk/gov/hmcts/reform/preapi/controllers/TestingSupportController*',
+  '**/uk/gov/hmcts/reform/preapi/Application.java',
+]
 
-  def duplicateCodeExclusionList = [
-    '**uk/gov/hmcts/reform/preapi/entities/**',
-    '**uk/gov/hmcts/reform/preapi/controllers/LegacyReportController*',
-    '**uk/gov/hmcts/reform/preapi/services/LegacyReportService*',
-    '**uk/gov/hmcts/reform/preapi/dto/base/BaseUserDTO*'
-  ]
+def duplicateCodeExclusionList = [
+  '**uk/gov/hmcts/reform/preapi/entities/**',
+  '**uk/gov/hmcts/reform/preapi/controllers/LegacyReportController*',
+  '**uk/gov/hmcts/reform/preapi/services/LegacyReportService*',
+  '**uk/gov/hmcts/reform/preapi/dto/base/BaseUserDTO*'
+]
 
+sonarqube {
   properties {
     property "sonar.projectName", "Reform :: pre-api"
     property "sonar.projectKey", "uk.gov.hmcts.reform:pre-api"
