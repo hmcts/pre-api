@@ -15,7 +15,7 @@ plugins {
   id 'org.springframework.boot' version '3.5.6'
   id 'org.owasp.dependencycheck' version '12.2.0'
   id 'com.github.ben-manes.versions' version '0.54.0'
-  id 'org.sonarqube' version '7.3.0.8198'
+  id 'org.sonarqube' version '6.3.1.5724'
   id "io.freefair.lombok" version "9.5.0"
   id 'org.flywaydb.flyway' version '12.7.0'
   id "info.solidsoft.pitest" version '1.19.0'
@@ -207,7 +207,7 @@ tasks.register("migratePostgresDatabase", FlywayMigrateTask) {
   }
 }
 
-getProject().tasks.named('sonar').configure {
+getProject().tasks.named('sonarqube').configure {
   dependsOn jacocoTestReport
 }
 
