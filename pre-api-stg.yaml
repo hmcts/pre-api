@@ -2787,7 +2787,7 @@ info:
   license:
     name: MIT
     url: 'https://opensource.org/licenses/MIT'
-  title: PRE API
+  title: Pre Recorded Evidence API
   version: v0.0.1
 paths:
   '/accept-terms-and-conditions/{termsId}':
@@ -5530,6 +5530,7 @@ paths:
         - vf-migration-controller
 schemes:
   - https
+  - http
 security:
   - Ocp-Apim-Subscription-Key: []
 securityDefinitions:
