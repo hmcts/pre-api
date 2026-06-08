@@ -230,6 +230,7 @@ sonar {
   ]
 
   properties {
+    property "sonar.organization", "hmcts"
     property "sonar.projectName", "Reform :: pre-api"
     property "sonar.projectKey", "uk.gov.hmcts.reform:pre-api"
     property "sonar.exclusions", coverageExclusionList.join(", ")
