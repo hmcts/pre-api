@@ -129,6 +129,8 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             isNull(),
+            isNull(),
+            isNull(),
             eq(false),
             isNull(),
             any()
@@ -140,6 +142,8 @@ public class UserControllerTest {
             .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
 
         verify(userService, times(1)).findAllBy(
+            isNull(),
+            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -158,7 +162,19 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), isNull(), any());
+            .findAllBy(
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(courtId),
+                isNull(),
+                isNull(),
+                eq(false),
+                isNull(),
+                any()
+            );
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -172,7 +188,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), eq(roleId), any(), eq(false), any(), any());
+            .findAllBy(any(), any(), any(), any(), any(), any(), eq(roleId), any(), eq(false), any(), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -923,6 +939,8 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             isNull(),
+            isNull(),
+            isNull(),
             anyBoolean(),
             isNull(),
             any()
@@ -936,13 +954,27 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), isNull(), any());
+            .findAllBy(
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(false),
+                isNull(),
+                any()
+            );
     }
 
     @DisplayName("Should set include deleted param to false when set to false")
     @Test
     public void testGetCasesIncludeDeletedFalse() throws Exception {
         when(userService.findAllBy(
+            isNull(),
+            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -962,13 +994,27 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), isNull(), any());
+            .findAllBy(
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(false),
+                isNull(),
+                any()
+            );
     }
 
     @DisplayName("Should set include deleted param to true when set to true")
     @Test
     public void testGetCasesIncludeDeletedTrue() throws Exception {
         when(userService.findAllBy(
+            isNull(),
+            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -988,7 +1034,19 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), isNull(), any());
+            .findAllBy(
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(true),
+                isNull(),
+                any()
+            );
     }
 
     @DisplayName("Should undelete a user by id and return a 200 response")

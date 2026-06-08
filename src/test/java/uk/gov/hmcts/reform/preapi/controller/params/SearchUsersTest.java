@@ -22,6 +22,32 @@ public class SearchUsersTest {
     }
 
     @Test
+    public void getFirstName() {
+        var searchUsers = new SearchUsers();
+        searchUsers.setFirstName("John");
+        assertEquals("John", searchUsers.getFirstName());
+
+        searchUsers.setFirstName("");
+        assertNull(searchUsers.getFirstName());
+
+        searchUsers.setFirstName(null);
+        assertNull(searchUsers.getFirstName());
+    }
+
+    @Test
+    public void getLastName() {
+        var searchUsers = new SearchUsers();
+        searchUsers.setLastName("Doe");
+        assertEquals("Doe", searchUsers.getLastName());
+
+        searchUsers.setLastName("");
+        assertNull(searchUsers.getLastName());
+
+        searchUsers.setLastName(null);
+        assertNull(searchUsers.getLastName());
+    }
+
+    @Test
     public void getEmail() {
         var searchUsers = new SearchUsers();
         searchUsers.setEmail("john.doe@example.com");
