@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.media.UUIDSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
@@ -33,7 +34,9 @@ public class OpenAPIConfiguration {
                       .license(new License().name("MIT").url("https://opensource.org/licenses/MIT")))
             .externalDocs(new ExternalDocumentation()
                               .description("README")
-                              .url("https://github.com/hmcts/pre-api"));
+                              .url("https://github.com/hmcts/pre-api"))
+            .addServersItem(new Server().url("https://").description("HTTPS"))
+            .addServersItem(new Server().url("http://").description("HTTP"));
     }
 
     @Bean

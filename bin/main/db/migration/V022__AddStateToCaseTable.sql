@@ -1,0 +1,9 @@
+CREATE TYPE public.CASE_STATE AS ENUM (
+    'OPEN',
+    'PENDING_CLOSURE',
+    'CLOSED'
+);
+
+ALTER TABLE public.cases
+    ADD COLUMN state CASE_STATE DEFAULT 'OPEN' NOT NULL,
+    ADD COLUMN closed_at TIMESTAMP;
