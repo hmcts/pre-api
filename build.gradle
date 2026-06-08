@@ -207,9 +207,8 @@ tasks.register("migratePostgresDatabase", FlywayMigrateTask) {
   }
 }
 
-getProject().tasks.named('sonarqube').configure {
-  dependsOn jacocoTestReport
-}
+project.tasks['sonarqube'].dependsOn jacocoTestReport
+project.tasks['check'].dependsOn integration
 
 def coverageExclusionList = [
   '**uk/gov/hmcts/reform/preapi/data/exception/PendingMigrationScriptException*',
