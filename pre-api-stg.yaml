@@ -5530,6 +5530,7 @@ paths:
         - vf-migration-controller
 schemes:
   - https
+  - http
 security:
   - Ocp-Apim-Subscription-Key: []
 securityDefinitions:
