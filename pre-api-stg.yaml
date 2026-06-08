@@ -1,4 +1,4 @@
-basePath: /pre-api
+basePath: null
 definitions:
   AccessDTO:
     description: AccessDTO
@@ -5530,7 +5530,6 @@ paths:
         - vf-migration-controller
 schemes:
   - https
-  - http
 security:
   - Ocp-Apim-Subscription-Key: []
 securityDefinitions:
