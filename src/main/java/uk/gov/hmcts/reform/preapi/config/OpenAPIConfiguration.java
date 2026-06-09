@@ -11,6 +11,8 @@ import io.swagger.v3.oas.models.media.UUIDSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
@@ -27,6 +29,8 @@ public class OpenAPIConfiguration {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
+            .addServersItem(new Server().url("http://localhost").description("Generated server url"))
+            .addServersItem(new Server().url("https://localhost").description("Generated server url"))
             .info(new Info().title("Pre Recorded Evidence API")
                       .description("PRE API - Used for managing courts, bookings, recordings and permissions.")
                       .version("v0.0.1")
