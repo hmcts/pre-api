@@ -34,7 +34,7 @@ public class AuditController {
     }
 
     @PutMapping("/{id}")
-    @Operation(operationId = "putAudit", summary = "Create an Audit Entry")
+    @Operation(operationId = "putAudit", summary = "Create an Audit Entry in Audit table")
     public ResponseEntity<Void> upsertAudit(@RequestHeader HttpHeaders headers,
                                             @PathVariable UUID id,
                                             @Valid @RequestBody CreateAuditDTO createAuditDTO) {
