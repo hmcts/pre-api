@@ -50,7 +50,7 @@ module "pre_api" {
   service_url           = local.apim_service_url
   swagger_url           = file("../specs/pre-api.json")
   content_format        = "openapi+json"
-  protocols             = ["https"]
+  protocols             = ["http", "https"]
   subscription_required = true
 }
 
