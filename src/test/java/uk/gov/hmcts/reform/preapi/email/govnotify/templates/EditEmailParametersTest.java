@@ -3,8 +3,6 @@ package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -27,24 +25,15 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = EditEmailParameters.class)
-public class EditEmailParametersTest {
+class EditEmailParametersTest {
 
-    @MockitoBean
     private Recording mockRecording;
-
-    @MockitoBean
     private CaptureSession mockCaptureSession;
-
-    @MockitoBean
     private Booking mockBooking;
-
-    @MockitoBean
     private Court mockCourt;
-
-    @MockitoBean
     private Case mockCase;
 
     private final UUID editRequestId = UUID.randomUUID();
@@ -54,19 +43,25 @@ public class EditEmailParametersTest {
     private final String portalUrl = "http://localhost:8080";
 
     @BeforeEach
-    public void setUp() {
-        when(mockRecording.getCaptureSession()).thenReturn(mockCaptureSession);
-        when(mockCaptureSession.getBooking()).thenReturn(mockBooking);
-
+    void setUp() {
+        mockCourt = mock(Court.class);
         when(mockCourt.getName()).thenReturn("Court Name");
         when(mockCourt.getGroupEmail()).thenReturn("Group Email");
 
+        mockCase = mock(Case.class);
         when(mockCase.getCourt()).thenReturn(mockCourt);
         when(mockCase.getReference()).thenReturn("Test Case");
 
+        mockBooking = mock(Booking.class);
         when(mockBooking.getCaseId()).thenReturn(mockCase);
         when(mockBooking.getWitnessName()).thenReturn("Witness Name");
         when(mockBooking.getDefendantName()).thenReturn("Defendant Name");
+
+        mockCaptureSession = mock(CaptureSession.class);
+        when(mockCaptureSession.getBooking()).thenReturn(mockBooking);
+
+        mockRecording = mock(Recording.class);
+        when(mockRecording.getCaptureSession()).thenReturn(mockCaptureSession);
 
         EditCutInstructionDTO instruction1 = new EditCutInstructionDTO(5, 10, "first reason");
         EditCutInstructionDTO instruction2 = new EditCutInstructionDTO(23, 26, "second reason");
@@ -157,31 +152,27 @@ public class EditEmailParametersTest {
 
     @Test
     @DisplayName("Should accurately create edit email parameters for REJECTED edit")
-    public void shouldAccuratelyCreateEmailParameters() {
+    void shouldAccuratelyCreateEmailParameters() {
         editRequest.setStatus(EditRequestStatus.REJECTED);
         editRequest.setRejectionReason("Rejected Reason");
         editRequest.setJointlyAgreed(false);
 
         EditEmailParameters editEmailParameters = new EditEmailParameters(editRequest, portalUrl);
 
-        assertThat(editEmailParameters.getJointlyAgreed()).isEqualTo(false);
+        assertThat(editEmailParameters.getJointlyAgreed()).isFalse();
 
         Map<String, Object> paramsMap = editEmailParameters.getEmailParameters();
 
-        assertThat(paramsMap).isNotNull();
         assertThat(paramsMap).isNotEmpty();
-        assertThat(paramsMap.get("rejection_reason")).isEqualTo(editRequest.getRejectionReason());
-        assertThat(paramsMap.get("jointly_agreed")).isEqualTo("No");
-        assertThat(paramsMap.get("case_reference")).isEqualTo(mockCase.getReference());
-        assertThat(paramsMap.get("court_name")).isEqualTo(mockCourt.getName());
-        assertThat(paramsMap.get("witness_name")).isEqualTo("Witness Name");
-        assertThat(paramsMap.get("defendant_names")).isEqualTo("Defendant Name");
-        assertThat(paramsMap.get("edit_count")).isEqualTo(3);
-        assertThat(paramsMap.get("portal_link")).isEqualTo("http://localhost:8080");
 
-        Object gotSummary = paramsMap.get("edit_summary");
-        assertThat(gotSummary).isNotNull();
-        assertThat(gotSummary).isInstanceOf(String.class);
+        assertThat(paramsMap).containsEntry("rejection_reason", editRequest.getRejectionReason());
+        assertThat(paramsMap).containsEntry("jointly_agreed", "No");
+        assertThat(paramsMap).containsEntry("case_reference", mockCase.getReference());
+        assertThat(paramsMap).containsEntry("court_name", mockCourt.getName());
+        assertThat(paramsMap).containsEntry("witness_name", "Witness Name");
+        assertThat(paramsMap).containsEntry("defendant_names", "Defendant Name");
+        assertThat(paramsMap).containsEntry("edit_count", 3);
+        assertThat(paramsMap).containsEntry("portal_link", "http://localhost:8080");
 
         String expectedSummary = """
             Edit 1:\s
@@ -203,53 +194,53 @@ public class EditEmailParametersTest {
             Reason: third reason
 
             """;
-
-        assertThat(gotSummary).isEqualTo(expectedSummary);
+        assertThat(paramsMap).containsEntry("edit_summary", expectedSummary);
     }
 
     @Test
     @DisplayName("Should accurately create edit email parameters for JOINTLY_AGREED edit")
-    public void shouldAccuratelyCreateEmailParametersForJointlyAgreed() {
+    void shouldAccuratelyCreateEmailParametersForJointlyAgreed() {
         editRequest.setStatus(EditRequestStatus.SUBMITTED);
         editRequest.setRejectionReason(null);
         editRequest.setJointlyAgreed(true);
 
         EditEmailParameters editEmailParameters = new EditEmailParameters(editRequest, portalUrl);
 
-        assertThat(editEmailParameters.getJointlyAgreed()).isEqualTo(true);
+        assertThat(editEmailParameters.getJointlyAgreed()).isTrue();
 
         Map<String, Object> paramsMap = editEmailParameters.getEmailParameters();
 
-        assertThat(paramsMap).isNotNull();
         assertThat(paramsMap).isNotEmpty();
-        assertThat(paramsMap.get("rejection_reason")).isEqualTo("");
-        assertThat(paramsMap.get("jointly_agreed")).isEqualTo("Yes");
-        assertThat(paramsMap.get("case_reference")).isEqualTo(mockCase.getReference());
-        assertThat(paramsMap.get("court_name")).isEqualTo(mockCourt.getName());
-        assertThat(paramsMap.get("witness_name")).isEqualTo("Witness Name");
-        assertThat(paramsMap.get("defendant_names")).isEqualTo("Defendant Name");
-        assertThat(paramsMap.get("edit_count")).isEqualTo(3);
-        assertThat(paramsMap.get("portal_link")).isEqualTo("http://localhost:8080");
-        assertThat(paramsMap.get("edit_summary")).isEqualTo("""
-                                                                Edit 1:\s
-                                                                Start time: 00:00:05
-                                                                End time: 00:00:10
-                                                                Time Removed: 00:00:05
-                                                                Reason: first reason
+        assertThat(paramsMap).containsEntry("rejection_reason", "");
+        assertThat(paramsMap).containsEntry("jointly_agreed", "Yes");
+        assertThat(paramsMap).containsEntry("case_reference", mockCase.getReference());
+        assertThat(paramsMap).containsEntry("court_name", mockCourt.getName());
+        assertThat(paramsMap).containsEntry("witness_name", "Witness Name");
+        assertThat(paramsMap).containsEntry("defendant_names", "Defendant Name");
+        assertThat(paramsMap).containsEntry("edit_count", 3);
+        assertThat(paramsMap).containsEntry("portal_link", "http://localhost:8080");
+        assertThat(paramsMap).containsEntry(
+            "edit_summary", """
+                Edit 1:\s
+                Start time: 00:00:05
+                End time: 00:00:10
+                Time Removed: 00:00:05
+                Reason: first reason
 
-                                                                Edit 2:\s
-                                                                Start time: 00:00:23
-                                                                End time: 00:00:26
-                                                                Time Removed: 00:00:03
-                                                                Reason: second reason
+                Edit 2:\s
+                Start time: 00:00:23
+                End time: 00:00:26
+                Time Removed: 00:00:03
+                Reason: second reason
 
-                                                                Edit 3:\s
-                                                                Start time: 00:00:31
-                                                                End time: 00:00:32
-                                                                Time Removed: 00:00:01
-                                                                Reason: third reason
+                Edit 3:\s
+                Start time: 00:00:31
+                End time: 00:00:32
+                Time Removed: 00:00:01
+                Reason: third reason
 
-                                                                """);
+                """
+        );
     }
 
 }

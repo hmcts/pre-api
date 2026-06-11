@@ -81,6 +81,9 @@ public class GovNotifyTest {
 
     private EditRequest editRequest;
 
+    private static final User sampleUser = getSampleUser();
+    private static final Case sampleCase = getSampleCase();
+
     @BeforeEach
     void setUp() throws NotificationClientException {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
@@ -88,10 +91,8 @@ public class GovNotifyTest {
 
         underTest = new GovNotify("http://localhost:8080", mockGovNotifyClient);
 
-        Case testCase = getSampleCase();
-
         Booking booking = mock(Booking.class);
-        when(booking.getCaseId()).thenReturn(testCase);
+        when(booking.getCaseId()).thenReturn(sampleCase);
         when(booking.getWitnessName()).thenReturn("Witness Name");
         when(booking.getDefendantName()).thenReturn("Defendant Name");
 
@@ -201,8 +202,8 @@ public class GovNotifyTest {
 
     @DisplayName(("Should send recording ready email"))
     @Test
-    void shouldSendRecordingReadyEmail() throws NotificationClientException {
-        var response = underTest.recordingReady(getSampleUser(), getSampleCase());
+    void shouldSendRecordingReadyEmail() {
+        var response = underTest.recordingReady(sampleUser, sampleCase);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -212,7 +213,7 @@ public class GovNotifyTest {
     @DisplayName(("Should send recording edited email"))
     @Test
     void shouldSendRecordingEditedEmail() {
-        var response = underTest.recordingEdited(getSampleUser(), getSampleCase());
+        var response = underTest.recordingEdited(sampleUser, sampleCase);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -221,8 +222,8 @@ public class GovNotifyTest {
 
     @DisplayName(("Should send portal invite email"))
     @Test
-    void shouldSendPortalInviteEmail() throws NotificationClientException {
-        var response = underTest.portalInvite(getSampleUser());
+    void shouldSendPortalInviteEmail() {
+        var response = underTest.portalInvite(sampleUser);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -233,7 +234,7 @@ public class GovNotifyTest {
     @Test
     void shouldSendCasePendingClosureEmail() {
         var response = underTest.casePendingClosure(
-            getSampleUser(), getSampleCase(),
+            sampleUser, sampleCase,
             Timestamp.valueOf("2025-01-01 00:00:00.0")
         );
 
@@ -244,8 +245,8 @@ public class GovNotifyTest {
 
     @DisplayName(("Should send case closed email"))
     @Test
-    void shouldSendCaseClosedEmail() throws NotificationClientException {
-        var response = underTest.caseClosed(getSampleUser(), getSampleCase());
+    void shouldSendCaseClosedEmail() {
+        var response = underTest.caseClosed(sampleUser, sampleCase);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -254,8 +255,8 @@ public class GovNotifyTest {
 
     @DisplayName(("Should send case closure cancelled email"))
     @Test
-    void shouldSendCaseClosureCancelledEmail() throws NotificationClientException {
-        var response = underTest.caseClosureCancelled(getSampleUser(), getSampleCase());
+    void shouldSendCaseClosureCancelledEmail() {
+        var response = underTest.caseClosureCancelled(sampleUser, sampleCase);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -288,10 +289,9 @@ public class GovNotifyTest {
 
         // Gov Notify template ID
         assertThat(templateCaptor.getValue()).isEqualTo("aa2a836f-b6f0-46dc-91e0-1698822c5137");
-        Case expectedCase = getSampleCase();
-        assertThat(emailAddressCaptor.getValue()).isEqualTo(expectedCase.getCourt().getGroupEmail());
-        assertThat(variablesCaptor.getValue().get("case_reference")).isEqualTo(expectedCase.getReference());
-        assertThat(variablesCaptor.getValue().get("court_name")).isEqualTo(expectedCase.getCourt().getName());
+        assertThat(emailAddressCaptor.getValue()).isEqualTo(sampleCase.getCourt().getGroupEmail());
+        assertThat(variablesCaptor.getValue().get("case_reference")).isEqualTo(sampleCase.getReference());
+        assertThat(variablesCaptor.getValue().get("court_name")).isEqualTo(sampleCase.getCourt().getName());
         assertThat(variablesCaptor.getValue().get("defendant_names")).isEqualTo("Defendant Name");
         assertThat(variablesCaptor.getValue().get("edit_summary")).isNotNull();
         assertThat(variablesCaptor.getValue().get("edit_count"))
@@ -310,10 +310,10 @@ public class GovNotifyTest {
 
         var message = assertThrows(
             EmailFailedToSendException.class,
-            () -> underTest.recordingReady(getSampleUser(), getSampleCase())
+            () -> underTest.recordingReady(sampleUser, sampleCase)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
+        assertThat(message).isEqualTo("Failed to send email to: " + sampleUser.getEmail());
     }
 
     @DisplayName(("Should fail to send recording edited email"))
@@ -325,10 +325,10 @@ public class GovNotifyTest {
 
         var message = assertThrows(
             EmailFailedToSendException.class,
-            () -> underTest.recordingEdited(getSampleUser(), getSampleCase())
+            () -> underTest.recordingEdited(sampleUser, sampleCase)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
+        assertThat(message).isEqualTo("Failed to send email to: " + sampleUser.getEmail());
     }
 
     @DisplayName(("Should absorb error thrown by email parameters creation"))
@@ -351,10 +351,10 @@ public class GovNotifyTest {
 
         var message = assertThrows(
             EmailFailedToSendException.class,
-            () -> underTest.portalInvite(getSampleUser())
+            () -> underTest.portalInvite(sampleUser)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
+        assertThat(message).isEqualTo("Failed to send email to: " + sampleUser.getEmail());
     }
 
     @DisplayName(("Should fail to send case pending closure email"))
@@ -367,14 +367,14 @@ public class GovNotifyTest {
         var message = assertThrows(
             EmailFailedToSendException.class,
             () -> underTest.casePendingClosure(
-                getSampleUser(),
-                getSampleCase(),
+                sampleUser,
+                sampleCase,
                 Timestamp.valueOf("2025-01-01 00:00:00.0")
             )
         )
             .getMessage();
 
-        assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
+        assertThat(message).isEqualTo("Failed to send email to: " + sampleUser.getEmail());
     }
 
     @DisplayName(("Should fail to send case closed email"))
@@ -386,10 +386,10 @@ public class GovNotifyTest {
 
         var message = assertThrows(
             EmailFailedToSendException.class,
-            () -> underTest.caseClosed(getSampleUser(), getSampleCase())
+            () -> underTest.caseClosed(sampleUser, sampleCase)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
+        assertThat(message).isEqualTo("Failed to send email to: " + sampleUser.getEmail());
     }
 
     @DisplayName(("Should fail to send case closure cancelled email"))
@@ -401,17 +401,17 @@ public class GovNotifyTest {
 
         var message = assertThrows(
             EmailFailedToSendException.class,
-            () -> underTest.caseClosureCancelled(getSampleUser(), getSampleCase())
+            () -> underTest.caseClosureCancelled(sampleUser, sampleCase)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
+        assertThat(message).isEqualTo("Failed to send email to: " + sampleUser.getEmail());
     }
 
     @DisplayName(("Should send email verification email"))
     @Test
     void shouldSendEmailVerificationEmail() {
-        var user = getSampleUser();
-        var response = underTest.emailVerification(user.getEmail(), user.getFirstName(), user.getLastName(), "123456");
+        var response = underTest.emailVerification(sampleUser.getEmail(), sampleUser.getFirstName(),
+                                                   sampleUser.getLastName(), "123456");
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -424,18 +424,17 @@ public class GovNotifyTest {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
             .thenThrow(mock(NotificationClientException.class));
 
-        var user = getSampleUser();
         var message = assertThrows(
             EmailFailedToSendException.class,
             () -> underTest.emailVerification(
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
+                sampleUser.getEmail(),
+                sampleUser.getFirstName(),
+                sampleUser.getLastName(),
                 "123456"
             )
         ).getMessage();
 
-        assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
+        assertThat(message).isEqualTo("Failed to send email to: " + sampleUser.getEmail());
     }
 
     @Test
@@ -450,7 +449,7 @@ public class GovNotifyTest {
         ).getMessage();
 
         assertThat(message).isEqualTo("Failed to send email to: "
-                                          + getSampleCase().getCourt().getGroupEmail());
+                                          + sampleCase.getCourt().getGroupEmail());
     }
 
     @DisplayName("Should prefer alternative email when it ends with .cjsm.net")

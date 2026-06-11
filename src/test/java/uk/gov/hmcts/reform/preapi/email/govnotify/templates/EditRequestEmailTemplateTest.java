@@ -17,7 +17,7 @@ public class EditRequestEmailTemplateTest {
 
     @Test
     @DisplayName("Should create REJECTED edit email template")
-    public void getRejectionEmailTemplate() {
+    void getRejectionEmailTemplate() {
         EditEmailParameters parameters = mock(EditEmailParameters.class);
         when(parameters.getEditRequestStatus()).thenReturn(EditRequestStatus.REJECTED);
         when(parameters.getJointlyAgreed()).thenReturn(true);
@@ -31,12 +31,12 @@ public class EditRequestEmailTemplateTest {
         assertThat(template.getTemplateId()).isEqualTo("aa2a836f-b6f0-46dc-91e0-1698822c5137");
         assertThat(template.getEditingEmailType()).isEqualTo(EditingEmailType.REJECTED);
         assertThat(template.getTo()).isEqualTo("test@email.com");
-        assertThat(template.getVariables().get("jointly_agreed")).isEqualTo("Yes");
+        assertThat(template.getVariables()).containsEntry("jointly_agreed", "Yes");
     }
 
     @Test
     @DisplayName("Should create JOINTLY_AGREED edit email template")
-    public void getJointlyAgreedEmailTemplate() {
+    void getJointlyAgreedEmailTemplate() {
         EditEmailParameters parameters = mock(EditEmailParameters.class);
         when(parameters.getEditRequestStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(parameters.getJointlyAgreed()).thenReturn(true);
@@ -48,12 +48,12 @@ public class EditRequestEmailTemplateTest {
         assertThat(template.getTemplateId()).isEqualTo("018ad5d2-c7ba-42a8-ad50-6baaaecf210c");
         assertThat(template.getEditingEmailType()).isEqualTo(EditingEmailType.JOINTLY_AGREED);
         assertThat(template.getTo()).isEqualTo("test@email.com");
-        assertThat(template.getVariables().get("jointly_agreed")).isEqualTo("Yes");
+        assertThat(template.getVariables()).containsEntry("jointly_agreed", "Yes");
     }
 
     @Test
     @DisplayName("Should create NOT_JOINTLY_AGREED edit email template")
-    public void getNotJointlyAgreedEmailTemplate() {
+    void getNotJointlyAgreedEmailTemplate() {
         EditEmailParameters parameters = mock(EditEmailParameters.class);
         when(parameters.getEditRequestStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(parameters.getJointlyAgreed()).thenReturn(false);
@@ -65,12 +65,12 @@ public class EditRequestEmailTemplateTest {
         assertThat(template.getTemplateId()).isEqualTo("fb11d2a9-086d-4f27-9208-a3ddfe696919");
         assertThat(template.getEditingEmailType()).isEqualTo(EditingEmailType.NOT_JOINTLY_AGREED);
         assertThat(template.getTo()).isEqualTo("test@email.com");
-        assertThat(template.getVariables().get("jointly_agreed")).isEqualTo("No");
+        assertThat(template.getVariables()).containsEntry("jointly_agreed", "No");
     }
 
     @Test
     @DisplayName("Should throw exception if unrecognised email type")
-    public void throwExceptionIfUnrecognisedEmailType() {
+    void throwExceptionIfUnrecognisedEmailType() {
         EditEmailParameters parameters = mock(EditEmailParameters.class);
         when(parameters.getEditRequestStatus()).thenReturn(EditRequestStatus.COMPLETE);
 

@@ -27,10 +27,6 @@ public class EditEmailParameters {
     private String toEmailAddress; // court group email
     private Map<String, Object> emailParameters;
 
-    public EditEmailParameters() {
-        // This constructor is intentionally empty. It is only needed for mocks in tests.
-    }
-
     public EditEmailParameters(EditRequest editRequest, String portalUrl) {
         if (portalUrl == null) {
             throw new BadRequestException("Portal URL is missing");
