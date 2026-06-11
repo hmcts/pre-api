@@ -8,6 +8,8 @@ import org.mockito.Captor;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
@@ -16,22 +18,33 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
+import uk.gov.hmcts.reform.preapi.utils.JsonUtils;
 import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = GovNotify.class)
@@ -64,12 +77,38 @@ public class GovNotifyTest {
 
     private GovNotify underTest;
 
+    private EditRequest editRequest;
+
     @BeforeEach
     void setUp() throws NotificationClientException {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
             .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
 
         underTest = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+
+        Case testCase = getSampleCase();
+
+        Booking booking = mock(Booking.class);
+        when(booking.getCaseId()).thenReturn(testCase);
+        when(booking.getWitnessName()).thenReturn("Witness Name");
+        when(booking.getDefendantName()).thenReturn("Defendant Name");
+
+        CaptureSession captureSession = mock(CaptureSession.class);
+        when(captureSession.getBooking()).thenReturn(booking);
+
+        Recording recording = mock(Recording.class);
+        when(recording.getCaptureSession()).thenReturn(captureSession);
+
+        CreateEditRequestDTO dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setJointlyAgreed(true);
+        dto.setStatus(EditRequestStatus.REJECTED);
+
+        EditCutInstructionDTO instruction1 = new EditCutInstructionDTO(0, 30, "first reason");
+        EditInstructions editInstructions = new EditInstructions(List.of(instruction1), new ArrayList<>());
+
+        editRequest = new EditRequest();
+        editRequest.updateEditRequestFromDto(dto, recording, JsonUtils.toJson(editInstructions));
     }
 
     @DisplayName("Should create CaseClosed template")
@@ -190,8 +229,11 @@ public class GovNotifyTest {
 
     @DisplayName(("Should send case pending closure email"))
     @Test
-    void shouldSendCasePendingClosureEmail() throws NotificationClientException {
-        var response = underTest.casePendingClosure(getSampleUser(), getSampleCase(), Timestamp.valueOf("2025-01-01 00:00:00.0"));
+    void shouldSendCasePendingClosureEmail() {
+        var response = underTest.casePendingClosure(
+            getSampleUser(), getSampleCase(),
+            Timestamp.valueOf("2025-01-01 00:00:00.0")
+        );
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -221,44 +263,41 @@ public class GovNotifyTest {
     @Captor
     private ArgumentCaptor<Map<String, Object>> variablesCaptor;
 
-//    @Test
-//    @DisplayName("Should send editing rejection email")
-//    void sendEditRejectionEmail() throws NotificationClientException {
-//        EditRequest mockEditRequest = mock(EditRequest.class);
-//        when()
-//
-//
-//        EmailResponse response = underTest.sendEmailAboutEditingRequest(params)
-//            .orElseThrow(() -> new EmailFailedToSendException("Something went wrong"));
-//
-//        assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
-//        assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
-//        assertThat(response.getBody()).isEqualTo("MESSAGE TEXT");
-//
-//        ArgumentCaptor<String> emailAddressCaptor = ArgumentCaptor.forClass(String.class);
-//        ArgumentCaptor<String> templateCaptor = ArgumentCaptor.forClass(String.class);
-//        ArgumentCaptor<String> referenceCaptor = ArgumentCaptor.forClass(String.class);
-//
-//        verify(mockGovNotifyClient, times(1)).sendEmail(
-//            templateCaptor.capture(),
-//            emailAddressCaptor.capture(),
-//            variablesCaptor.capture(),
-//            referenceCaptor.capture()
-//        );
-//
-//        // Gov Notify template ID
-//        assertThat(templateCaptor.getValue()).isEqualTo("aa2a836f-b6f0-46dc-91e0-1698822c5137");
-//        assertThat(emailAddressCaptor.getValue()).isEqualTo(params.getToEmailAddress());
-//        assertThat(variablesCaptor.getValue().get("case_reference")).isEqualTo(params.getCaseReference());
-//        assertThat(variablesCaptor.getValue().get("defendant_names")).isEqualTo(params.getDefendantName());
-//        assertThat(variablesCaptor.getValue().get("court_name")).isEqualTo(params.getCourtName());
-//        assertThat(variablesCaptor.getValue().get("edit_summary")).isEqualTo(params.getEditSummary());
-//        assertThat(variablesCaptor.getValue().get("edit_count"))
-//            .isEqualTo(params.getNumberOfRequestedEditInstructions());
-//        assertThat(variablesCaptor.getValue().get("jointly_agreed")).isEqualTo("Yes");
-//        assertThat(variablesCaptor.getValue().get("rejection_reason")).isEqualTo(params.getRejectionReason());
-//        assertThat(variablesCaptor.getValue().get("portal_link")).isEqualTo("http://localhost:8080");
-//    }
+    @Test
+    @DisplayName("Should send editing email")
+    void sendEditRejectionEmail() throws NotificationClientException {
+        EmailResponse response = underTest.sendEmailAboutEditingRequest(editRequest)
+            .orElseThrow(() -> new EmailFailedToSendException("Something went wrong"));
+
+        assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
+        assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
+        assertThat(response.getBody()).isEqualTo("MESSAGE TEXT");
+
+        ArgumentCaptor<String> emailAddressCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> templateCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> referenceCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(mockGovNotifyClient, times(1)).sendEmail(
+            templateCaptor.capture(),
+            emailAddressCaptor.capture(),
+            variablesCaptor.capture(),
+            referenceCaptor.capture()
+        );
+
+        // Gov Notify template ID
+        assertThat(templateCaptor.getValue()).isEqualTo("aa2a836f-b6f0-46dc-91e0-1698822c5137");
+        Case expectedCase = getSampleCase();
+        assertThat(emailAddressCaptor.getValue()).isEqualTo(expectedCase.getCourt().getGroupEmail());
+        assertThat(variablesCaptor.getValue().get("case_reference")).isEqualTo(expectedCase.getReference());
+        assertThat(variablesCaptor.getValue().get("court_name")).isEqualTo(expectedCase.getCourt().getName());
+        assertThat(variablesCaptor.getValue().get("defendant_names")).isEqualTo("Defendant Name");
+        assertThat(variablesCaptor.getValue().get("edit_summary")).isNotNull();
+        assertThat(variablesCaptor.getValue().get("edit_count"))
+            .isEqualTo(1);
+        assertThat(variablesCaptor.getValue().get("jointly_agreed")).isEqualTo("Yes");
+        assertThat(variablesCaptor.getValue().get("rejection_reason")).isEqualTo("");
+        assertThat(variablesCaptor.getValue().get("portal_link")).isEqualTo("http://localhost:8080");
+    }
 
     @DisplayName(("Should fail to send recording ready email"))
     @Test
@@ -386,22 +425,20 @@ public class GovNotifyTest {
         assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
     }
 
-//    @Test
-//    @DisplayName("Should fail to send editing email")
-//    void shouldFailToSendEditingEmail() throws NotificationClientException {
-//        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
-//            .thenThrow(mock(NotificationClientException.class));
-//
-//        EditEmailParameters params = getSampleEditEmailParams(EditRequestStatus.REJECTED, true);
-//
-//        var message = assertThrows(
-//            EmailFailedToSendException.class,
-//            () -> underTest.sendEmailAboutEditingRequest(params)
-//        )
-//            .getMessage();
-//
-//        assertThat(message).isEqualTo("Failed to send email to: " + getSampleCase().getCourt().getGroupEmail());
-//    }
+    @Test
+    @DisplayName("Should fail to send editing email")
+    void shouldFailToSendEditingEmail() throws NotificationClientException {
+        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
+            .thenThrow(mock(NotificationClientException.class));
+
+        var message = assertThrows(
+            EmailFailedToSendException.class,
+            () -> underTest.sendEmailAboutEditingRequest(editRequest)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Failed to send email to: "
+                                          + getSampleCase().getCourt().getGroupEmail());
+    }
 
     @DisplayName("Should prefer alternative email when it ends with .cjsm.net")
     @Test
@@ -511,20 +548,4 @@ public class GovNotifyTest {
         return forCase;
     }
 
-//    private static EditEmailParameters getSampleEditEmailParams(EditRequestStatus editRequestStatus,
-//                                                                boolean jointlyAgreed) {
-//        Case testCase = getSampleCase();
-//        return EditEmailParameters.builder()
-//            .toEmailAddress(testCase.getCourt().getGroupEmail())
-//            .caseReference(testCase.getReference())
-//            .courtName(testCase.getCourt().getName())
-//            .witnessName(getSampleUser().getFirstName())
-//            .defendantName(getSampleUser().getFullName())
-//            .editSummary("my edits")
-//            .editRequestStatus(editRequestStatus)
-//            .numberOfRequestedEditInstructions(3)
-//            .jointlyAgreed(jointlyAgreed)
-//            .rejectionReason("REJECTION REASON")
-//            .build();
-//    }
 }

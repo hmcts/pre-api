@@ -74,25 +74,18 @@ public class EditEmailParametersTest {
 
         instructionsList = Arrays.asList(instruction1, instruction2, instruction3);
 
-        EditInstructions defaultEditInstructions = new EditInstructions(instructionsList, new ArrayList<>());
-        String editInstructionsAsJson = JsonUtils.toJson(defaultEditInstructions);
-
         CreateEditRequestDTO dto = new CreateEditRequestDTO();
         dto.setId(editRequestId);
         dto.setJointlyAgreed(true);
         dto.setStatus(EditRequestStatus.APPROVED);
         dto.setRejectionReason("Rejection Reason");
 
+        EditInstructions defaultEditInstructions = new EditInstructions(instructionsList, new ArrayList<>());
+        String editInstructionsAsJson = JsonUtils.toJson(defaultEditInstructions);
+
         editRequest = new EditRequest();
         editRequest.updateEditRequestFromDto(dto, mockRecording, editInstructionsAsJson);
     }
-
-//    @Test
-//    @DisplayName("Cannot create email parameters from null edit request")
-//    void cannotCreateEmailParametersFromNullEditRequest() {
-//        EditRequest editRequest = null;
-//        assertThrows(NotFoundException.class, () -> new EditEmailParameters(editRequest));
-//    }
 
     @Test
     @DisplayName("Cannot create email parameters with null recording")
@@ -229,28 +222,28 @@ public class EditEmailParametersTest {
 
         assertThat(paramsMap).isNotNull();
         assertThat(paramsMap).isNotEmpty();
-        assertThat(paramsMap.get("rejection_reason")).isEqualTo(null);
+        assertThat(paramsMap.get("rejection_reason")).isEqualTo("");
         assertThat(paramsMap.get("jointly_agreed")).isEqualTo("Yes");
         assertThat(paramsMap.get("case_reference")).isEqualTo(mockCase.getReference());
         assertThat(paramsMap.get("court_name")).isEqualTo(mockCourt.getName());
         assertThat(paramsMap.get("witness_name")).isEqualTo("Witness Name");
         assertThat(paramsMap.get("defendant_names")).isEqualTo("Defendant Name");
         assertThat(paramsMap.get("edit_count")).isEqualTo(3);
-        assertThat(paramsMap.get("portal_link")).isEqualTo("test.portal.url");
+        assertThat(paramsMap.get("portal_link")).isEqualTo("http://localhost:8080");
         assertThat(paramsMap.get("edit_summary")).isEqualTo("""
-                                                                Edit 1:
+                                                                Edit 1:\s
                                                                 Start time: 00:00:05
                                                                 End time: 00:00:10
                                                                 Time Removed: 00:00:05
                                                                 Reason: first reason
 
-                                                                Edit 2:
+                                                                Edit 2:\s
                                                                 Start time: 00:00:23
                                                                 End time: 00:00:26
                                                                 Time Removed: 00:00:03
                                                                 Reason: second reason
 
-                                                                Edit 3:
+                                                                Edit 3:\s
                                                                 Start time: 00:00:31
                                                                 End time: 00:00:32
                                                                 Time Removed: 00:00:01

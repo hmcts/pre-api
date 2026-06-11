@@ -28,36 +28,35 @@ public class EditEmailParameters {
     private Map<String, Object> emailParameters;
 
     public EditEmailParameters() {
+        // This constructor is intentionally empty. It is only needed for mocks in tests.
     }
 
     public EditEmailParameters(EditRequest editRequest, String portalUrl) {
-        validateEditRequestIsOkayForNotification(editRequest);
-
         if (portalUrl == null) {
             throw new BadRequestException("Portal URL is missing");
         }
 
-        Booking booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
+        validateEditRequestIsOkayForNotification(editRequest);
 
-        List<EditCutInstructionDTO> requestInstructions =
-            EditInstructions.fromJson(editRequest.getEditInstruction()).getRequestedInstructions();
+        Booking booking = validateAndRetrieveBooking(editRequest);
 
+        List<EditCutInstructionDTO> requestInstructions = validateAndRetrieveRequestInstructions(editRequest);
         String summary = generateEditSummary(requestInstructions);
 
-        this.toEmailAddress = booking.getCaseId().getCourt().getGroupEmail();
-        this.editRequestStatus = editRequest.getStatus();
-        this.jointlyAgreed = editRequest.getJointlyAgreed();
         this.emailParameters = Map.of(
-            "rejection_reason", editRequest.getRejectionReason(),
+            "edit_summary", summary,
+            "rejection_reason", editRequest.getRejectionReason() == null ? "" : editRequest.getRejectionReason(),
             "jointly_agreed", editRequest.getJointlyAgreed() ? "Yes" : "No",
             "case_reference", booking.getCaseId().getReference(),
             "court_name", booking.getCaseId().getCourt().getName(),
             "witness_name", booking.getWitnessName(),
             "defendant_names", booking.getDefendantName(),
-            "edit_summary", summary,
             "portal_link", portalUrl,
             "edit_count", requestInstructions.size()
         );
+        this.toEmailAddress = booking.getCaseId().getCourt().getGroupEmail();
+        this.editRequestStatus = editRequest.getStatus();
+        this.jointlyAgreed = editRequest.getJointlyAgreed();
     }
 
     private void validateEditRequestIsOkayForNotification(EditRequest editRequest) {
@@ -74,7 +73,9 @@ public class EditEmailParameters {
             throw new NotFoundException("No capture session found when trying to send edit notification, edit ID: "
                                             + editRequest.getId());
         }
+    }
 
+    private Booking validateAndRetrieveBooking(EditRequest editRequest) {
         Booking booking = editRequest.getSourceRecording().getCaptureSession().getBooking();
         if (booking == null) {
             throw new NotFoundException("No booking found when trying to send edit notification, edit ID: "
@@ -102,13 +103,20 @@ public class EditEmailParameters {
                     court.getName(), editRequest.getId()
                 ));
         }
+        return booking;
+    }
 
+    private static List<EditCutInstructionDTO> validateAndRetrieveRequestInstructions(EditRequest editRequest) {
         if (editRequest.getEditInstruction() == null) {
             throw new BadRequestException("No instructions found when trying to send edit notification for edit ID: "
                                               + editRequest.getId());
         }
 
         EditInstructions instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
+        if (instructions == null) {
+            throw new BadRequestException("Could not parse instructions for edit request : "
+                                              + editRequest.getId());
+        }
 
         if (!instructions.shouldSendNotifications()) {
             throw new BadRequestException("Instructions say not to notify for edit request : "
@@ -121,6 +129,7 @@ public class EditEmailParameters {
             throw new BadRequestException("No instructions found when trying to send edit notification for edit ID: "
                                               + editRequest.getId());
         }
+        return requestInstructions;
     }
 
     private String generateEditSummary(List<EditCutInstructionDTO> editInstructions) {
