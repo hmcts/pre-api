@@ -1,20 +1,33 @@
 package uk.gov.hmcts.reform.preapi.email;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
+import uk.gov.hmcts.reform.preapi.utils.JsonUtils;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 class GovNotifyFT {
@@ -28,6 +41,9 @@ class GovNotifyFT {
     @Autowired
     GovNotify client;
 
+    @MockitoBean
+    EditRequest editRequest;
+
     private User createUser() {
         var user = new User();
         user.setFirstName(USER_FIRST_NAME);
@@ -39,31 +55,35 @@ class GovNotifyFT {
     private Case createCase() {
         var court = new Court();
         court.setName(COURT_NAME);
+        court.setGroupEmail(FROM_EMAIL_ADDRESS);
+
         var forCase = new Case();
         forCase.setCourt(court);
         forCase.setReference(CASE_REFERENCE);
         return forCase;
     }
 
+    @BeforeEach
+    public void setUp() {
+        Case testCase = createCase();
+        Booking booking = mock(Booking.class);
+        when(booking.getCaseId()).thenReturn(testCase);
+        when(booking.getWitnessName()).thenReturn(USER_FIRST_NAME);
+        when(booking.getDefendantName()).thenReturn(USER_LAST_NAME);
 
-    private EditEmailParameters createEditEmailParameters() {
-        return EditEmailParameters.builder()
-            .toEmailAddress(FROM_EMAIL_ADDRESS)
-            .caseReference("123456")
-            .witnessName("First")
-            .defendantName("First Last")
-            .courtName("Court Name")
-            .editSummary("""
-                             Edit 1:\s
-                             Start time: 00:00:00
-                             End time: 00:00:30
-                             Time Removed: 00:00:00
-                             Reason:\s""")
-            .editRequestStatus(EditRequestStatus.DRAFT)
-            .numberOfRequestedEditInstructions(1)
-            .jointlyAgreed(true)
-            .rejectionReason(null)
-            .build();
+        CaptureSession captureSession = mock(CaptureSession.class);
+        when(captureSession.getBooking()).thenReturn(booking);
+
+        Recording recording = mock(Recording.class);
+        when(recording.getCaptureSession()).thenReturn(captureSession);
+
+        EditCutInstructionDTO instruction1 = new EditCutInstructionDTO(0, 30, "first reason");
+        EditInstructions defaultEditInstructions = new EditInstructions(List.of(instruction1), new ArrayList<>());
+        when(editRequest.getEditInstruction()).thenReturn(JsonUtils.toJson(defaultEditInstructions));
+
+        when(editRequest.getJointlyAgreed()).thenReturn(true);
+        when(editRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+        when(editRequest.getSourceRecording()).thenReturn(recording);
     }
 
     private void compareBody(String expected, EmailResponse emailResponse) {
@@ -265,7 +285,10 @@ class GovNotifyFT {
     @DisplayName("Should send editing jointly agreed email")
     @SuppressWarnings("LineLength")
     void editingJointlyAgreed() {
-        EmailResponse response = client.sendEmailAboutEditingRequest(createEditEmailParameters());
+        when(editRequest.getJointlyAgreed()).thenReturn(true);
+        when(editRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+
+        EmailResponse response = client.sendEmailAboutEditingRequest(editRequest).orElseThrow();
 
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
@@ -290,17 +313,18 @@ class GovNotifyFT {
 
             Edits have been jointly agreed: Yes
 
-            PRE Portal link: [http://localhost:8080](http://localhost:8080)""", response);
+            PRE Portal link: [http://localhost:8080](http://localhost:8080)""", response
+        );
     }
 
     @Test
     @DisplayName("Should send editing not jointly agreed email")
     @SuppressWarnings("LineLength")
     void editingNotJointlyAgreed() {
-        EditEmailParameters editEmailParameters = createEditEmailParameters();
-        editEmailParameters.setJointlyAgreed(false);
+        when(editRequest.getJointlyAgreed()).thenReturn(false);
+        when(editRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
 
-        Optional<EmailResponse> response = client.sendEmailAboutEditingRequest(editEmailParameters);
+        EmailResponse response = client.sendEmailAboutEditingRequest(editRequest).orElseThrow();
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456 (NOT JOINTLY AGREED)",
@@ -331,11 +355,10 @@ class GovNotifyFT {
     @DisplayName("Should send editing rejection email")
     @SuppressWarnings("LineLength")
     void editingRejectionEmail() {
-        EditEmailParameters editEmailParameters = createEditEmailParameters();
-        editEmailParameters.setRejectionReason("REJECTION REASON");
-        editEmailParameters.setJointlyAgreed(true);
+        when(editRequest.getJointlyAgreed()).thenReturn(true);
+        when(editRequest.getStatus()).thenReturn(EditRequestStatus.REJECTED);
 
-        var response = client.sendEmailAboutEditingRequest(editEmailParameters);
+        var response = client.sendEmailAboutEditingRequest(editRequest).orElseThrow();
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request REJECTION for case reference 123456",

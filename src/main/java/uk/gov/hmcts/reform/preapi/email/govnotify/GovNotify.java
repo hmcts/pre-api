@@ -11,12 +11,13 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditEmailParameters;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditRequestStatusChanged;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EditRequestEmailTemplate;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.EmailVerification;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
 import uk.gov.service.notify.NotificationClient;
@@ -28,7 +29,6 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class GovNotify implements IEmailService {
     private final NotificationClient client;
     private final String portalUrl;
@@ -160,18 +160,13 @@ public class GovNotify implements IEmailService {
     }
 
     @Override
-    public Optional<EmailResponse> sendEmailAboutEditingRequest(EditEmailParameters editEmailParameters) {
-        EditRequestStatusChanged template = new EditRequestStatusChanged(editEmailParameters, portalUrl);
+    public Optional<EmailResponse> sendEmailAboutEditingRequest(EditRequest editRequest) {
+
+        EditEmailParameters editEmailParameters = new EditEmailParameters(editRequest, portalUrl);
+
+        EditRequestEmailTemplate template = new EditRequestEmailTemplate(editEmailParameters);
 
         String to = editEmailParameters.getToEmailAddress();
-
-        if (to == null) {
-            log.error(
-                "Court {} does not have a group email for sending edit request submission email for case: {}",
-                editEmailParameters.getCourtName(), editEmailParameters.getCaseReference()
-            );
-            return Optional.empty();
-        }
 
         try {
             log.info("Edit request {} email sent to {}", template.getEditingEmailType(), to);
