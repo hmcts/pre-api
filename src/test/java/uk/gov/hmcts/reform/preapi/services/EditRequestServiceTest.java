@@ -52,6 +52,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -391,6 +392,26 @@ class EditRequestServiceTest {
             BadRequestException.class,
             () -> underTest.upsert(mockRecordingId, file)
         );
+    }
+
+    @Test
+    @DisplayName("*New* edit request does not trigger email on submission (to review: maybe it should)")
+    void newEditRequestDoesNotTriggerEmailOnSubmission() {
+        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+        when(dto.getJointlyAgreed()).thenReturn(true);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+
+        // Important bit here: CRUD service returns CREATED for new edit request
+        when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
+            .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
+
+        UpsertResult response = underTest.upsert(dto);
+        assertThat(response).isEqualTo(UpsertResult.CREATED);
+
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
+        verify(mockAuth, times(1)).getAppAccess();
+        verify(editRequestCrudService, times(1)).upsert(dto, mockRecording, courtClerkUser);
+        verifyNoInteractions(editNotificationService);
     }
 
     @Test
