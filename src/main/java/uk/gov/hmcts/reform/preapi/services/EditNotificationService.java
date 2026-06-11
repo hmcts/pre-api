@@ -38,6 +38,7 @@ public class EditNotificationService {
             && editRequest.getStatus() != EditRequestStatus.REJECTED) {
             // For edited recordings, notification is sent by RecordingListener instead
             log.info("No notification needed for edit request status {}", editRequest.getStatus().name());
+            return;
         }
 
         try {
