@@ -3,15 +3,17 @@ package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 import lombok.Getter;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
-public class EditRequestStatusChanged extends BaseTemplate {
+import static java.lang.String.format;
+
+public class EditRequestEmailTemplate extends BaseTemplate {
 
     @Getter
     private final EditingEmailType editingEmailType;
 
-    public EditRequestStatusChanged(EditEmailParameters editEmailParameters, String portalUrl) {
+    public EditRequestEmailTemplate(EditEmailParameters editEmailParameters) {
         super(
             editEmailParameters.getToEmailAddress(),
-            editEmailParameters.getEmailParameterMap(portalUrl)
+            editEmailParameters.getEmailParameters()
         );
 
         this.editingEmailType = calculateEditingEmailType(editEmailParameters);
@@ -27,7 +29,7 @@ public class EditRequestStatusChanged extends BaseTemplate {
     }
 
     private EditingEmailType calculateEditingEmailType(EditEmailParameters editEmailParameters) {
-        if(editEmailParameters.getEditRequestStatus() == EditRequestStatus.REJECTED) {
+        if (editEmailParameters.getEditRequestStatus() == EditRequestStatus.REJECTED) {
             return EditingEmailType.REJECTED;
         }
 
@@ -38,8 +40,10 @@ public class EditRequestStatusChanged extends BaseTemplate {
                 return EditingEmailType.NOT_JOINTLY_AGREED;
             }
         }
-        throw new IllegalArgumentException("Could not work out which type of edit email to send:" +
-                                               " edit status %s, jointly agreed %b"
-                                               + editEmailParameters.getEditRequestStatus());
+        throw new IllegalArgumentException(format(
+            "Could not work out which type of edit email to send: edit status %s, jointly agreed %b",
+            editEmailParameters.getEditRequestStatus().name(),
+            editEmailParameters.getJointlyAgreed()
+        ));
     }
 }
