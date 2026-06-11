@@ -70,4 +70,3 @@ bump_revision_number_and_commit_changes_to_github(){
 }
 
 main
-
