@@ -162,7 +162,13 @@ public class GovNotify implements IEmailService {
     @Override
     public Optional<EmailResponse> sendEmailAboutEditingRequest(EditRequest editRequest) {
 
-        EditEmailParameters editEmailParameters = new EditEmailParameters(editRequest, portalUrl);
+        EditEmailParameters editEmailParameters;
+        try {
+            editEmailParameters = new EditEmailParameters(editRequest, portalUrl);
+        } catch (Exception e) {
+            log.error("Failed to create email parameters for edit request submission: {}", e.getMessage());
+            return Optional.empty();
+        }
 
         EditRequestEmailTemplate template = new EditRequestEmailTemplate(editEmailParameters);
 

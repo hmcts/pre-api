@@ -37,6 +37,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = GovNotify.class)
@@ -327,6 +329,17 @@ public class GovNotifyTest {
         ).getMessage();
 
         assertThat(message).isEqualTo("Failed to send email to: " + getSampleUser().getEmail());
+    }
+
+    @DisplayName(("Should absorb error thrown by email parameters creation"))
+    @Test
+    void shouldAbsorbErrorThrownByEmailParameters() {
+        editRequest.setSourceRecording(null); // will cause exception
+
+        Optional<EmailResponse> emailResponse = underTest.sendEmailAboutEditingRequest(editRequest);
+
+        assertThat(emailResponse).isEmpty();
+        verifyNoInteractions(mockGovNotifyClient);
     }
 
     @DisplayName(("Should fail to send portal invite email"))
