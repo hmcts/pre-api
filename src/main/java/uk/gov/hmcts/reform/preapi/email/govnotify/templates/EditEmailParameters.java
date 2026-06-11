@@ -22,10 +22,10 @@ import static java.lang.String.format;
 @Getter
 public class EditEmailParameters {
 
-    private Boolean jointlyAgreed;
-    private EditRequestStatus editRequestStatus;
-    private String toEmailAddress; // court group email
-    private Map<String, Object> emailParameters;
+    private final Boolean jointlyAgreed;
+    private final EditRequestStatus editRequestStatus;
+    private final String toEmailAddress; // court group email
+    private final Map<String, Object> emailParameters;
 
     public EditEmailParameters(EditRequest editRequest, String portalUrl) {
         if (portalUrl == null) {

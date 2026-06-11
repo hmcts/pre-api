@@ -26,7 +26,7 @@ public class StringToolsTest {
     @DisplayName("Should cope with big time")
     public void should_cope_with_big_time() {
         String parsedTime = StringTools.formatTimeAsString(3569429);
-        assertThat(parsedTime).isEqualTo("991:53:29");
+        assertThat(parsedTime).isEqualTo("991:30:29");
     }
 
     @Test
