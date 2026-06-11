@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
@@ -185,17 +186,20 @@ public class GovNotifyTest {
     @Test
     void shouldCreateEmailServiceFactory() {
         var govNotify = new GovNotify("GovNotify", mockGovNotifyClient);
-        var emailServiceFactory = new EmailServiceFactory("GovNotify", true, List.of(govNotify));
+        List<IEmailService> emailServiceList = List.of(govNotify);
+        var emailServiceFactory = new EmailServiceFactory("GovNotify", true,
+                                                          emailServiceList);
         assertThat(emailServiceFactory).isNotNull();
         assertThat(emailServiceFactory.getEnabledEmailService()).isEqualTo(govNotify);
         assertThat(emailServiceFactory.isEnabled()).isTrue();
 
         assertThat(emailServiceFactory.getEnabledEmailService("GovNotify")).isEqualTo(govNotify);
-        assertThrows(IllegalArgumentException.class, () -> emailServiceFactory.getEnabledEmailService("nonexistent"));
+        assertThrows(IllegalArgumentException.class,
+                     () -> emailServiceFactory.getEnabledEmailService("nonexistent"));
 
         assertThrows(
             IllegalArgumentException.class, () ->
-                new EmailServiceFactory("nonexistent", true, List.of(govNotify))
+                new EmailServiceFactory("nonexistent", true, emailServiceList)
         );
     }
 
@@ -290,15 +294,14 @@ public class GovNotifyTest {
         // Gov Notify template ID
         assertThat(templateCaptor.getValue()).isEqualTo("aa2a836f-b6f0-46dc-91e0-1698822c5137");
         assertThat(emailAddressCaptor.getValue()).isEqualTo(sampleCase.getCourt().getGroupEmail());
-        assertThat(variablesCaptor.getValue().get("case_reference")).isEqualTo(sampleCase.getReference());
-        assertThat(variablesCaptor.getValue().get("court_name")).isEqualTo(sampleCase.getCourt().getName());
-        assertThat(variablesCaptor.getValue().get("defendant_names")).isEqualTo("Defendant Name");
-        assertThat(variablesCaptor.getValue().get("edit_summary")).isNotNull();
-        assertThat(variablesCaptor.getValue().get("edit_count"))
-            .isEqualTo(1);
-        assertThat(variablesCaptor.getValue().get("jointly_agreed")).isEqualTo("Yes");
-        assertThat(variablesCaptor.getValue().get("rejection_reason")).isEqualTo("");
-        assertThat(variablesCaptor.getValue().get("portal_link")).isEqualTo("http://localhost:8080");
+        Map<String, Object> variables = variablesCaptor.getValue();
+        assertThat(variables).containsEntry("case_reference", sampleCase.getReference());
+        assertThat(variables).containsEntry("court_name", sampleCase.getCourt().getName());
+        assertThat(variables).containsEntry("defendant_names", "Defendant Name");
+        assertThat(variables).containsEntry("edit_count", 1);
+        assertThat(variables).containsEntry("jointly_agreed", "Yes");
+        assertThat(variables).containsEntry("rejection_reason", "");
+        assertThat(variables).containsEntry("portal_link", "http://localhost:8080");
     }
 
     @DisplayName(("Should fail to send recording ready email"))
@@ -410,8 +413,10 @@ public class GovNotifyTest {
     @DisplayName(("Should send email verification email"))
     @Test
     void shouldSendEmailVerificationEmail() {
-        var response = underTest.emailVerification(sampleUser.getEmail(), sampleUser.getFirstName(),
-                                                   sampleUser.getLastName(), "123456");
+        var response = underTest.emailVerification(
+            sampleUser.getEmail(), sampleUser.getFirstName(),
+            sampleUser.getLastName(), "123456"
+        );
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");

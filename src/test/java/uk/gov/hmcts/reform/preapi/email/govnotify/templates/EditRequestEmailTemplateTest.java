@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
@@ -13,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class EditRequestEmailTemplateTest {
+class EditRequestEmailTemplateTest {
 
     @Test
     @DisplayName("Should create REJECTED edit email template")
