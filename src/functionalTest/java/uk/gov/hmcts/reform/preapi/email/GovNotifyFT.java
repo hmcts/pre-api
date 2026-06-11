@@ -299,14 +299,14 @@ class GovNotifyFT {
 
             Court: Court Name
             Case reference: 123456
-            Witness name: First
-            Defendant name(s): First Last
+            Witness name: John
+            Defendant name(s): Doe
 
             Edit 1:\s
             Start time: 00:00:00
             End time: 00:00:30
-            Time Removed: 00:00:00
-            Reason:\s
+            Time Removed: 00:00:30
+            Reason: first reason
 
 
             Edits have been jointly agreed: Yes
@@ -334,14 +334,14 @@ class GovNotifyFT {
 
             Court: Court Name
             Case reference: 123456
-            Witness name: First
-            Defendant name(s): First Last
+            Witness name: John
+            Defendant name(s): Doe
 
             Edit 1:\s
             Start time: 00:00:00
             End time: 00:00:30
-            Time Removed: 00:00:00
-            Reason:\s
+            Time Removed: 00:00:30
+            Reason: first reason
 
 
             Edits have been jointly agreed: No
@@ -354,6 +354,7 @@ class GovNotifyFT {
     @SuppressWarnings("LineLength")
     void editingRejectionEmail() {
         when(editRequest.getJointlyAgreed()).thenReturn(true);
+        when(editRequest.getRejectionReason()).thenReturn("REJECTION REASON");
         when(editRequest.getStatus()).thenReturn(EditRequestStatus.REJECTED);
 
         var response = client.sendEmailAboutEditingRequest(editRequest).orElseThrow();
@@ -370,14 +371,14 @@ class GovNotifyFT {
 
             Court: Court Name
             Case reference: 123456
-            Witness name: First
-            Defendant name(s): First Last
+            Witness name: John
+            Defendant name(s): Doe
 
             Edit 1:\s
             Start time: 00:00:00
             End time: 00:00:30
-            Time Removed: 00:00:00
-            Reason:\s
+            Time Removed: 00:00:30
+            Reason: first reason
 
 
             Edits have been jointly agreed: Yes
