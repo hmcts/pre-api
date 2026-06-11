@@ -410,7 +410,7 @@ class EditRequestServiceTest {
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
         verify(mockAuth, times(1)).getAppAccess();
         verify(editRequestCrudService, times(1)).upsert(dto, mockRecording, courtClerkUser);
-        verify(editNotificationService, times(1)).onEditRequestSubmitted(mockEditRequest);
+        verify(editNotificationService, times(1)).editRequestStatusWasUpdated(mockEditRequest);
     }
 
     @Test
@@ -427,7 +427,7 @@ class EditRequestServiceTest {
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
         verify(mockAuth, times(1)).getAppAccess();
         verify(editRequestCrudService, times(1)).upsert(dto, mockRecording, courtClerkUser);
-        verify(editNotificationService, times(1)).onEditRequestSubmitted(mockEditRequest);
+        verify(editNotificationService, times(1)).editRequestStatusWasUpdated(mockEditRequest);
     }
 
     @Test
@@ -447,7 +447,7 @@ class EditRequestServiceTest {
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
         verify(mockAuth, times(1)).getAppAccess();
         verify(editRequestCrudService, times(1)).upsert(dto, mockRecording, courtClerkUser);
-        verify(editNotificationService, times(1)).onEditRequestRejected(mockEditRequest);
+        verify(editNotificationService, times(1)).editRequestStatusWasUpdated(mockEditRequest);
     }
 
     @DisplayName("Should throw an exception if edit instructions have unsafe data")

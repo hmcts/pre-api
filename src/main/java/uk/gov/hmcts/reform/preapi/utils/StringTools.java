@@ -1,13 +1,10 @@
 package uk.gov.hmcts.reform.preapi.utils;
 
-import java.time.Duration;
-import java.time.LocalTime;
-
 import static java.lang.String.format;
 
-public class StringTools {
-    public static boolean isBlankString(String string) {
-        return string == null || string.trim().isEmpty();
+public final class StringTools {
+    private StringTools() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     public static String formatTimeAsString(Integer time) {
