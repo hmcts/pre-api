@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -15,15 +16,20 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -64,6 +70,8 @@ class EditNotificationServiceTest {
     private Case testCase;
     private Court court;
     private Booking booking;
+    private Participant witness;
+    private Participant defendant;
     private ShareBooking shareBooking1;
     private ShareBooking shareBooking2;
 
@@ -71,32 +79,52 @@ class EditNotificationServiceTest {
 
     @BeforeEach
     void setup() {
-        shareWith1 = HelperFactory.createUser("First", "User", "example1@example.com",
-                                                   new Timestamp(System.currentTimeMillis()), null, null);
+        shareWith1 = HelperFactory.createUser(
+            "First", "User", "example1@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
-        shareWith2 = HelperFactory.createUser("Second", "User", "example2@example.com",
-                                                   new Timestamp(System.currentTimeMillis()), null, null);
+        shareWith2 = HelperFactory.createUser(
+            "Second", "User", "example2@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
-        sharedBy = HelperFactory.createUser("Court", "Clerk", "court.clerk@example.com",
-                                                   new Timestamp(System.currentTimeMillis()), null, null);
+        sharedBy = HelperFactory.createUser(
+            "Court", "Clerk", "court.clerk@example.com",
+            new Timestamp(System.currentTimeMillis()), null, null
+        );
 
         court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC");
+        court.setGroupEmail(testEmail);
 
         testCase = HelperFactory.createCase(court, "Test Case", false, null);
 
         booking = HelperFactory.createBooking(testCase, new Timestamp(System.currentTimeMillis()), null);
 
-        shareBooking1 = HelperFactory.createShareBooking(shareWith1, sharedBy, booking,
-                                                                       new Timestamp(System.currentTimeMillis()));
+        witness = new Participant();
+        witness.setFirstName("Witness");
+        witness.setParticipantType(ParticipantType.WITNESS);
+        defendant = new Participant();
+        defendant.setFirstName("Defendant lastname");
+        defendant.setParticipantType(ParticipantType.DEFENDANT);
+        booking.setParticipants(Set.of(witness, defendant));
 
-        shareBooking2 = HelperFactory.createShareBooking(shareWith2, sharedBy, booking,
-                                                                       new Timestamp(System.currentTimeMillis()));
+        shareBooking1 = HelperFactory.createShareBooking(
+            shareWith1, sharedBy, booking,
+            new Timestamp(System.currentTimeMillis())
+        );
+
+        shareBooking2 = HelperFactory.createShareBooking(
+            shareWith2, sharedBy, booking,
+            new Timestamp(System.currentTimeMillis())
+        );
 
         booking.setShares(Set.of(shareBooking1, shareBooking2));
 
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
         when(emailService.recordingEdited(any(), any())).thenReturn(emailResponse);
         when(mockEditRequest.getSourceRecording()).thenReturn(mockRecording);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(mockRecording.getCaptureSession()).thenReturn(mockCaptureSession);
         when(mockCaptureSession.getBooking()).thenReturn(booking);
     }
@@ -114,45 +142,91 @@ class EditNotificationServiceTest {
     @DisplayName("Should be able to notify appropriately when edit request is submitted jointly agreed")
     @Test
     void testEditRequestSubmittedJointlyAgreed() {
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(mockEditRequest.getJointlyAgreed()).thenReturn(true);
-        court.setGroupEmail(testEmail);
-        underTest.onEditRequestSubmitted(mockEditRequest);
 
-        verify(emailService, times(1)).editingJointlyAgreed(testEmail, mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+
+        ArgumentCaptor<EditRequest> paramsCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(emailService, times(1)).sendEmailAboutEditingRequest(paramsCaptor.capture());
         verifyNoMoreInteractions(emailService);
+
+        assertThat(paramsCaptor.getValue()).isEqualTo(mockEditRequest);
     }
 
     @DisplayName("Should be able to notify appropriately when edit request is submitted not jointly agreed")
     @Test
     void testEditRequestSubmittedNotJointlyAgreed() {
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(mockEditRequest.getJointlyAgreed()).thenReturn(false);
-        court.setGroupEmail(testEmail);
-        underTest.onEditRequestSubmitted(mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
 
-        verify(emailService, times(1)).editingNotJointlyAgreed(testEmail, mockEditRequest);
+        ArgumentCaptor<EditRequest> paramsCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(emailService, times(1)).sendEmailAboutEditingRequest(paramsCaptor.capture());
         verifyNoMoreInteractions(emailService);
+
+        assertThat(paramsCaptor.getValue()).isEqualTo(mockEditRequest);
     }
 
     @DisplayName("Should be able to notify appropriately when edit request is rejected")
     @Test
     void testEditRequestRejected() {
-        court.setGroupEmail(testEmail);
-        underTest.onEditRequestRejected(mockEditRequest);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.REJECTED);
 
-        verify(emailService, times(1)).editingRejected(testEmail, mockEditRequest);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+
+        ArgumentCaptor<EditRequest> paramsCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(emailService, times(1)).sendEmailAboutEditingRequest(paramsCaptor.capture());
         verifyNoMoreInteractions(emailService);
+        assertThat(paramsCaptor.getValue()).isEqualTo(mockEditRequest);
     }
 
-    @DisplayName("Should not attempt to email if court email address is null")
+    @DisplayName("Should not notify for null edit request")
+    @Test
+    void testNullEditRequestNotNotified() {
+        assertDoesNotThrow(() -> underTest.editRequestStatusWasUpdated(null));
+        verifyNoInteractions(emailService);
+    }
+
+    @DisplayName("Should not notify when edit request is approved, completed, or non-submission status")
+    @Test
+    void testNoEditRequestNotificationForOtherStatusTypes() {
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.COMPLETE);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        verifyNoInteractions(emailService);
+
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.APPROVED);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        verifyNoInteractions(emailService);
+
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        verifyNoInteractions(emailService);
+
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        verifyNoInteractions(emailService);
+
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PROCESSING);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        verifyNoInteractions(emailService);
+
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.ERROR);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
+        verifyNoInteractions(emailService);
+    }
+
+    @DisplayName("Should pass on attempt to email as null court email address is now handled downstream")
     @Test
     void testEditRequestNotificationsWhenNoCourtEmail() {
         court.setGroupEmail(null);
 
-        underTest.onEditRequestSubmitted(mockEditRequest);
-        verifyNoInteractions(emailService);
+        underTest.editRequestStatusWasUpdated(mockEditRequest);
 
-        underTest.onEditRequestRejected(mockEditRequest);
-        verifyNoInteractions(emailService);
+        ArgumentCaptor<EditRequest> paramsCaptor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(emailService, times(1)).sendEmailAboutEditingRequest(paramsCaptor.capture());
+        verifyNoMoreInteractions(emailService);
+        assertThat(paramsCaptor.getValue()).isEqualTo(mockEditRequest);
     }
 
 }

@@ -118,7 +118,10 @@ public class EditRequestService {
         User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
         Pair<UpsertResult, EditRequest> result = editRequestCrudService.upsert(dto, sourceRecording, user);
-        notifyOnUpdatedRequest(dto, result);
+        if (result.getFirst().equals(UpsertResult.UPDATED)) {
+            editNotificationService.editRequestStatusWasUpdated(result.getSecond());
+        }
+
         return result.getFirst();
     }
 
@@ -164,19 +167,6 @@ public class EditRequestService {
         }
 
         return sourceRecording;
-    }
-
-    private void notifyOnUpdatedRequest(CreateEditRequestDTO dto, Pair<UpsertResult, EditRequest> upserted) {
-        if (!upserted.getFirst().equals(UpsertResult.UPDATED)) {
-            return;
-        }
-
-        if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
-            editNotificationService.onEditRequestSubmitted(upserted.getSecond());
-            return;
-        }
-
-        editNotificationService.onEditRequestRejected(upserted.getSecond());
     }
 
     private boolean canViewReencodedRecordings() {
