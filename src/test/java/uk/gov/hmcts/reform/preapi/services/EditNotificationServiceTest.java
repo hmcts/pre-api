@@ -29,6 +29,7 @@ import java.sql.Timestamp;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -178,6 +179,13 @@ class EditNotificationServiceTest {
         verify(emailService, times(1)).sendEmailAboutEditingRequest(paramsCaptor.capture());
         verifyNoMoreInteractions(emailService);
         assertThat(paramsCaptor.getValue()).isEqualTo(mockEditRequest);
+    }
+
+    @DisplayName("Should not notify for null edit request")
+    @Test
+    void testNullEditRequestNotNotified() {
+        assertDoesNotThrow(() -> underTest.editRequestStatusWasUpdated(null));
+        verifyNoInteractions(emailService);
     }
 
     @DisplayName("Should not notify when edit request is approved, completed, or non-submission status")

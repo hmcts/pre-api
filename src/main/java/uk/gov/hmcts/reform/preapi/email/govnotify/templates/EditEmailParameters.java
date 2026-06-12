@@ -39,10 +39,11 @@ public class EditEmailParameters {
         List<EditCutInstructionDTO> requestInstructions = validateAndRetrieveRequestInstructions(editRequest);
         String summary = generateEditSummary(requestInstructions);
 
+        Boolean jointlyAgreed = editRequest.getJointlyAgreed();
         this.emailParameters = Map.of(
             "edit_summary", summary,
             "rejection_reason", editRequest.getRejectionReason() == null ? "" : editRequest.getRejectionReason(),
-            "jointly_agreed", editRequest.getJointlyAgreed() ? "Yes" : "No",
+            "jointly_agreed", jointlyAgreed ? "Yes" : "No",
             "case_reference", booking.getCaseId().getReference(),
             "court_name", booking.getCaseId().getCourt().getName(),
             "witness_name", booking.getWitnessName(),
@@ -52,7 +53,7 @@ public class EditEmailParameters {
         );
         this.toEmailAddress = booking.getCaseId().getCourt().getGroupEmail();
         this.editRequestStatus = editRequest.getStatus();
-        this.jointlyAgreed = editRequest.getJointlyAgreed();
+        this.jointlyAgreed = jointlyAgreed;
     }
 
     private void validateEditRequestIsOkayForNotification(EditRequest editRequest) {
@@ -108,7 +109,7 @@ public class EditEmailParameters {
                                               + editRequest.getId());
         }
 
-        EditInstructions instructions = EditInstructions.fromJson(editRequest.getEditInstruction());
+        EditInstructions instructions = EditInstructions.tryFromJson(editRequest.getEditInstruction());
         if (instructions == null) {
             throw new BadRequestException("Could not parse instructions for edit request : "
                                               + editRequest.getId());

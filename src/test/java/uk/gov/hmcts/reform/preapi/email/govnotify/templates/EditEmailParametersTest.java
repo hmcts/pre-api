@@ -39,6 +39,7 @@ class EditEmailParametersTest {
     private final UUID editRequestId = UUID.randomUUID();
     private EditRequest editRequest;
     private List<EditCutInstructionDTO> instructionsList;
+    private CreateEditRequestDTO dto;
 
     private final String portalUrl = "http://localhost:8080";
 
@@ -69,7 +70,7 @@ class EditEmailParametersTest {
 
         instructionsList = Arrays.asList(instruction1, instruction2, instruction3);
 
-        CreateEditRequestDTO dto = new CreateEditRequestDTO();
+        dto = new CreateEditRequestDTO();
         dto.setId(editRequestId);
         dto.setJointlyAgreed(true);
         dto.setStatus(EditRequestStatus.APPROVED);
@@ -80,6 +81,12 @@ class EditEmailParametersTest {
 
         editRequest = new EditRequest();
         editRequest.updateEditRequestFromDto(dto, mockRecording, editInstructionsAsJson);
+    }
+
+    @Test
+    @DisplayName("Cannot create email parameters from null edit request")
+    void cannotCreateEmailParametersFromNullEditRequest() {
+        assertThrows(NotFoundException.class, () -> new EditEmailParameters(null, portalUrl));
     }
 
     @Test
@@ -129,6 +136,27 @@ class EditEmailParametersTest {
     @DisplayName("Cannot create email parameters with null edit instructions")
     void cannotCreateEmailParametersFromNullEditInstructions() {
         editRequest.setEditInstruction(null);
+        assertThrows(BadRequestException.class, () -> new EditEmailParameters(editRequest, portalUrl));
+    }
+
+    @Test
+    @DisplayName("Cannot create email parameters with nonsense edit instructions")
+    void cannotCreateEmailParametersFromNonsenseEditInstructions() {
+        editRequest.updateEditRequestFromDto(dto, mockRecording, "this-is-not-json");
+        assertThrows(BadRequestException.class, () -> new EditEmailParameters(editRequest, portalUrl));
+    }
+
+    @Test
+    @DisplayName("Cannot create email parameters with empty edit instructions")
+    void cannotCreateEmailParametersFromEmptyEditInstructions() {
+        editRequest.updateEditRequestFromDto(dto, mockRecording, "{}");
+        assertThrows(BadRequestException.class, () -> new EditEmailParameters(editRequest, portalUrl));
+    }
+
+    @Test
+    @DisplayName("Cannot create email parameters with empty request edit instructions")
+    void cannotCreateEmailParametersFromEmptyRequestEditInstructions() {
+        editRequest.updateEditRequestFromDto(dto, mockRecording, "{\"requestedInstructions\": []}");
         assertThrows(BadRequestException.class, () -> new EditEmailParameters(editRequest, portalUrl));
     }
 

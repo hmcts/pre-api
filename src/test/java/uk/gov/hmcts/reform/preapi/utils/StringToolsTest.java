@@ -13,7 +13,6 @@ class StringToolsTest {
     void should_parse_and_render_time_as_strings() {
         String parsedTime = StringTools.formatTimeAsString(35);
         assertThat(parsedTime).isEqualTo("00:00:35");
-
     }
 
     @Test
