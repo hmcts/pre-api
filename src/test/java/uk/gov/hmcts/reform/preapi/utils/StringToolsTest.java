@@ -1,10 +1,10 @@
 package uk.gov.hmcts.reform.preapi.utils;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.Assert.assertThrows;
 
 class StringToolsTest {
 
@@ -18,7 +18,7 @@ class StringToolsTest {
     @Test
     @DisplayName("Should complain if time is negative")
     void should_complain_if_time_is_negative() {
-        assertThrows(IllegalArgumentException.class, () -> StringTools.formatTimeAsString(-3));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> StringTools.formatTimeAsString(-3));
     }
 
     @Test

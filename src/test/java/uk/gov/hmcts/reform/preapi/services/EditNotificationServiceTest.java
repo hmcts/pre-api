@@ -232,7 +232,7 @@ class EditNotificationServiceTest {
     }
 
     @Test
-    public void testIfEmailShouldBeSentOnStatusChange() {
+    void testIfEmailShouldBeSentOnStatusChange() {
         Assertions.assertTrue(isNotifiable(EditRequestStatus.REJECTED));
         Assertions.assertTrue(isNotifiable(EditRequestStatus.SUBMITTED));
 

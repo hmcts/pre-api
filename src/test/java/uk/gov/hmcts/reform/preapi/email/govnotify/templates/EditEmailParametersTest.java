@@ -3,6 +3,9 @@ package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -24,7 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -132,24 +135,12 @@ class EditEmailParametersTest {
         assertThrows(BadRequestException.class, () -> new EditEmailParameters(editRequest, portalUrl));
     }
 
-    @Test
-    @DisplayName("Cannot create email parameters with null edit instructions")
-    void cannotCreateEmailParametersFromNullEditInstructions() {
-        editRequest.setEditInstruction(null);
-        assertThrows(BadRequestException.class, () -> new EditEmailParameters(editRequest, portalUrl));
-    }
-
-    @Test
-    @DisplayName("Cannot create email parameters with nonsense edit instructions")
-    void cannotCreateEmailParametersFromNonsenseEditInstructions() {
-        editRequest.updateEditRequestFromDto(dto, mockRecording, "this-is-not-json");
-        assertThrows(BadRequestException.class, () -> new EditEmailParameters(editRequest, portalUrl));
-    }
-
-    @Test
-    @DisplayName("Cannot create email parameters with empty edit instructions")
-    void cannotCreateEmailParametersFromEmptyEditInstructions() {
-        editRequest.updateEditRequestFromDto(dto, mockRecording, "{}");
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"{}", "this-is-not-json"})
+    @DisplayName("Cannot create email parameters with blank edit instructions")
+    void cannotCreateEmailParametersFromNullEditInstructions(String editInstructions) {
+        editRequest.updateEditRequestFromDto(dto, mockRecording, editInstructions);
         assertThrows(BadRequestException.class, () -> new EditEmailParameters(editRequest, portalUrl));
     }
 
@@ -164,8 +155,8 @@ class EditEmailParametersTest {
     @DisplayName("Cannot create email parameters if instructions say not to notify")
     void cannotCreateEmailParametersIfInstructionsSayNotToNotify() {
         EditInstructions instructions = new EditInstructions(
-            instructionsList, new ArrayList<>(),
-            false, false
+                instructionsList, new ArrayList<>(),
+                false, false
         );
         editRequest.setEditInstruction(JsonUtils.toJson(instructions));
 
@@ -189,66 +180,7 @@ class EditEmailParametersTest {
 
         assertThat(editEmailParameters.getJointlyAgreed()).isFalse();
 
-        Map<String, Object> paramsMap = editEmailParameters.getEmailParameters();
-
-        assertThat(paramsMap).isNotEmpty();
-
-        assertThat(paramsMap).containsEntry("rejection_reason", editRequest.getRejectionReason());
-        assertThat(paramsMap).containsEntry("jointly_agreed", "No");
-        assertThat(paramsMap).containsEntry("case_reference", mockCase.getReference());
-        assertThat(paramsMap).containsEntry("court_name", mockCourt.getName());
-        assertThat(paramsMap).containsEntry("witness_name", "Witness Name");
-        assertThat(paramsMap).containsEntry("defendant_names", "Defendant Name");
-        assertThat(paramsMap).containsEntry("edit_count", 3);
-        assertThat(paramsMap).containsEntry("portal_link", "http://localhost:8080");
-
         String expectedSummary = """
-            Edit 1:\s
-            Start time: 00:00:05
-            End time: 00:00:10
-            Time Removed: 00:00:05
-            Reason: first reason
-
-            Edit 2:\s
-            Start time: 00:00:23
-            End time: 00:00:26
-            Time Removed: 00:00:03
-            Reason: second reason
-
-            Edit 3:\s
-            Start time: 00:00:31
-            End time: 00:00:32
-            Time Removed: 00:00:01
-            Reason: third reason
-
-            """;
-        assertThat(paramsMap).containsEntry("edit_summary", expectedSummary);
-    }
-
-    @Test
-    @DisplayName("Should accurately create edit email parameters for JOINTLY_AGREED edit")
-    void shouldAccuratelyCreateEmailParametersForJointlyAgreed() {
-        editRequest.setStatus(EditRequestStatus.SUBMITTED);
-        editRequest.setRejectionReason(null);
-        editRequest.setJointlyAgreed(true);
-
-        EditEmailParameters editEmailParameters = new EditEmailParameters(editRequest, portalUrl);
-
-        assertThat(editEmailParameters.getJointlyAgreed()).isTrue();
-
-        Map<String, Object> paramsMap = editEmailParameters.getEmailParameters();
-
-        assertThat(paramsMap).isNotEmpty();
-        assertThat(paramsMap).containsEntry("rejection_reason", "");
-        assertThat(paramsMap).containsEntry("jointly_agreed", "Yes");
-        assertThat(paramsMap).containsEntry("case_reference", mockCase.getReference());
-        assertThat(paramsMap).containsEntry("court_name", mockCourt.getName());
-        assertThat(paramsMap).containsEntry("witness_name", "Witness Name");
-        assertThat(paramsMap).containsEntry("defendant_names", "Defendant Name");
-        assertThat(paramsMap).containsEntry("edit_count", 3);
-        assertThat(paramsMap).containsEntry("portal_link", "http://localhost:8080");
-        assertThat(paramsMap).containsEntry(
-            "edit_summary", """
                 Edit 1:\s
                 Start time: 00:00:05
                 End time: 00:00:10
@@ -267,8 +199,66 @@ class EditEmailParametersTest {
                 Time Removed: 00:00:01
                 Reason: third reason
 
-                """
-        );
+                """;
+        Map<String, Object> paramsMap = editEmailParameters.getEmailParameters();
+
+        assertThat(paramsMap).containsAllEntriesOf(Map.of(
+                "edit_summary", expectedSummary,
+                "rejection_reason", editRequest.getRejectionReason(),
+                "jointly_agreed", "No",
+                "case_reference", mockCase.getReference(),
+                "court_name", mockCourt.getName(),
+                "witness_name", "Witness Name",
+                "defendant_names", "Defendant Name",
+                "edit_count", 3,
+                "portal_link", "http://localhost:8080"
+        ));
+    }
+
+    @Test
+    @DisplayName("Should accurately create edit email parameters for JOINTLY_AGREED edit")
+    void shouldAccuratelyCreateEmailParametersForJointlyAgreed() {
+        editRequest.setStatus(EditRequestStatus.SUBMITTED);
+        editRequest.setRejectionReason(null);
+        editRequest.setJointlyAgreed(true);
+
+        EditEmailParameters editEmailParameters = new EditEmailParameters(editRequest, portalUrl);
+
+        assertThat(editEmailParameters.getJointlyAgreed()).isTrue();
+
+
+        String expectedSummary = """
+                Edit 1:\s
+                Start time: 00:00:05
+                End time: 00:00:10
+                Time Removed: 00:00:05
+                Reason: first reason
+
+                Edit 2:\s
+                Start time: 00:00:23
+                End time: 00:00:26
+                Time Removed: 00:00:03
+                Reason: second reason
+
+                Edit 3:\s
+                Start time: 00:00:31
+                End time: 00:00:32
+                Time Removed: 00:00:01
+                Reason: third reason
+
+                """;
+        Map<String, Object> paramsMap = editEmailParameters.getEmailParameters();
+        assertThat(paramsMap).containsAllEntriesOf(Map.of(
+                "rejection_reason", "",
+                "jointly_agreed", "Yes",
+                "case_reference", mockCase.getReference(),
+                "court_name", mockCourt.getName(),
+                "witness_name", "Witness Name",
+                "defendant_names", "Defendant Name",
+                "edit_count", 3,
+                "portal_link", "http://localhost:8080",
+                "edit_summary", expectedSummary
+        ));
     }
 
 }
