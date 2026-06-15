@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
+import uk.gov.hmcts.reform.preapi.services.EditNotificationService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -32,12 +33,15 @@ public class EditRequestCrudService {
 
     private final EditRequestRepository editRequestRepository;
     private final IEditingService editingService;
+    private final EditNotificationService editNotificationService;
 
     @Autowired
     public EditRequestCrudService(final EditRequestRepository editRequestRepository,
-                                  final IEditingService editingService) {
+                                  final IEditingService editingService,
+                                  final EditNotificationService editNotificationService) {
         this.editRequestRepository = editRequestRepository;
         this.editingService = editingService;
+        this.editNotificationService = editNotificationService;
     }
 
     public Optional<EditRequest> findByIdIfExists(UUID id) {
@@ -52,7 +56,8 @@ public class EditRequestCrudService {
     public EditRequestDTO findById(UUID id, boolean includeReencodedRecordings) {
         return editRequestRepository
             .findByIdNotLocked(id)
-            .map(editRequest -> new EditRequestDTO(editRequest, true, includeReencodedRecordings))
+            .map(editRequest ->
+                     new EditRequestDTO(editRequest, true, includeReencodedRecordings))
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
     }
 
@@ -91,6 +96,9 @@ public class EditRequestCrudService {
             }
         }
         editRequestRepository.save(request);
+
+        editNotificationService.editRequestStatusWasUpdated(request);
+
         return request;
     }
 
@@ -128,6 +136,12 @@ public class EditRequestCrudService {
         }
 
         editRequestRepository.save(request);
+
+        boolean editStatusWasUpdated = !isUpdate || !existingEditRequest.get().getStatus().equals(dto.getStatus());
+        if (editStatusWasUpdated) {
+            editNotificationService.editRequestStatusWasUpdated(request);
+        }
+
         if (isUpdate) {
             return Pair.of(UpsertResult.UPDATED, request);
         }

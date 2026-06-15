@@ -49,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -67,9 +68,6 @@ class EditRequestServiceTest {
 
     @MockitoBean
     private RecordingService recordingService;
-
-    @MockitoBean
-    private EditNotificationService editNotificationService;
 
     @MockitoBean
     private Recording mockRecording;
@@ -394,82 +392,7 @@ class EditRequestServiceTest {
         );
     }
 
-    @Test
-    @DisplayName("*New* edit request does not trigger email on submission (to review: maybe it should)")
-    void newEditRequestDoesNotTriggerEmailOnSubmission() {
-        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
-        when(dto.getJointlyAgreed()).thenReturn(true);
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
 
-        // Important bit here: CRUD service returns CREATED for new edit request
-        when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
-            .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
-
-        UpsertResult response = underTest.upsert(dto);
-        assertThat(response).isEqualTo(UpsertResult.CREATED);
-
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
-        verify(mockAuth, times(1)).getAppAccess();
-        verify(editRequestCrudService, times(1)).upsert(dto, mockRecording, courtClerkUser);
-        verifyNoInteractions(editNotificationService);
-    }
-
-    @Test
-    @DisplayName("Should trigger request submission jointly agreed email on submission")
-    void upsertOnSubmittedJointlyAgreed() {
-        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
-        when(dto.getJointlyAgreed()).thenReturn(true);
-
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.DRAFT);
-
-        when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
-            .thenReturn(Pair.of(UpsertResult.UPDATED, mockEditRequest));
-
-        UpsertResult response = underTest.upsert(dto);
-        assertThat(response).isEqualTo(UpsertResult.UPDATED);
-
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
-        verify(mockAuth, times(1)).getAppAccess();
-        verify(editRequestCrudService, times(1)).upsert(dto, mockRecording, courtClerkUser);
-        verify(editNotificationService, times(1)).editRequestStatusWasUpdated(mockEditRequest);
-    }
-
-    @Test
-    @DisplayName("Should trigger request submission not jointly agreed email on submission")
-    void upsertOnSubmittedNotJointlyAgreed() {
-        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
-        when(dto.getJointlyAgreed()).thenReturn(false);
-        when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
-            .thenReturn(Pair.of(UpsertResult.UPDATED, mockEditRequest));
-
-        UpsertResult response = underTest.upsert(dto);
-        assertThat(response).isEqualTo(UpsertResult.UPDATED);
-
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
-        verify(mockAuth, times(1)).getAppAccess();
-        verify(editRequestCrudService, times(1)).upsert(dto, mockRecording, courtClerkUser);
-        verify(editNotificationService, times(1)).editRequestStatusWasUpdated(mockEditRequest);
-    }
-
-    @Test
-    @DisplayName("Should trigger request rejection email on edit request rejection")
-    void upsertOnRejected() {
-        when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
-            .thenReturn(Pair.of(UpsertResult.UPDATED, mockEditRequest));
-
-        when(dto.getStatus()).thenReturn(EditRequestStatus.REJECTED);
-        when(dto.getJointlyAgreed()).thenReturn(false);
-
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
-
-        UpsertResult response = underTest.upsert(dto);
-        assertThat(response).isEqualTo(UpsertResult.UPDATED);
-
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecordingId);
-        verify(mockAuth, times(1)).getAppAccess();
-        verify(editRequestCrudService, times(1)).upsert(dto, mockRecording, courtClerkUser);
-        verify(editNotificationService, times(1)).editRequestStatusWasUpdated(mockEditRequest);
-    }
 
     @DisplayName("Should throw an exception if edit instructions have unsafe data")
     @Test
