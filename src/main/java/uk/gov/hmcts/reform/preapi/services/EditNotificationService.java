@@ -34,9 +34,8 @@ public class EditNotificationService {
             return;
         }
 
-        if (editRequest.getStatus() != EditRequestStatus.SUBMITTED
-            && editRequest.getStatus() != EditRequestStatus.REJECTED) {
-            // For edited recordings, notification is sent by RecordingListener instead
+        if (!isNotifiable(editRequest.getStatus())) {
+            // For other statuses e.g. completed edits, notification is sent by RecordingListener instead
             log.info("No notification needed for edit request status {}", editRequest.getStatus().name());
             return;
         }
@@ -46,6 +45,12 @@ public class EditNotificationService {
         } catch (Exception e) {
             log.error("Error sending email on edit request submission: {}", e.getMessage());
         }
+    }
+
+    // An email should be sent to counsel when status becomes...
+    // This can be overridden by e.g. EditInstructions.shouldSendNotifications
+    public static boolean isNotifiable(EditRequestStatus status) {
+        return status == EditRequestStatus.REJECTED || status == EditRequestStatus.SUBMITTED;
     }
 
 }

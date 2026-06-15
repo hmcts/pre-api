@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.services.EditNotificationService.isNotifiable;
 
 @SpringBootTest(classes = EditNotificationService.class)
 class EditNotificationServiceTest {
@@ -227,6 +229,19 @@ class EditNotificationServiceTest {
         verify(emailService, times(1)).sendEmailAboutEditingRequest(paramsCaptor.capture());
         verifyNoMoreInteractions(emailService);
         assertThat(paramsCaptor.getValue()).isEqualTo(mockEditRequest);
+    }
+
+    @Test
+    public void testIfEmailShouldBeSentOnStatusChange() {
+        Assertions.assertTrue(isNotifiable(EditRequestStatus.REJECTED));
+        Assertions.assertTrue(isNotifiable(EditRequestStatus.SUBMITTED));
+
+        Assertions.assertFalse(isNotifiable(EditRequestStatus.DRAFT));
+        Assertions.assertFalse(isNotifiable(EditRequestStatus.APPROVED));
+        Assertions.assertFalse(isNotifiable(EditRequestStatus.PENDING));
+        Assertions.assertFalse(isNotifiable(EditRequestStatus.PROCESSING));
+        Assertions.assertFalse(isNotifiable(EditRequestStatus.COMPLETE));
+        Assertions.assertFalse(isNotifiable(EditRequestStatus.ERROR));
     }
 
 }
