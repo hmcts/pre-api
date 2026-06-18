@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -45,7 +44,7 @@ public class EditRequestPerformService {
         return editRequestCrudService.getNextPendingEditRequest(reencodeOnly);
     }
 
-    public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
+    public void performEdit(EditRequest request) throws InterruptedException {
         UUID newRecordingId = UUID.randomUUID();
         try {
             EditInstructions editInstructions = fromJson(request.getEditInstruction());
@@ -60,7 +59,6 @@ public class EditRequestPerformService {
         }
 
         editRequestCrudService.updateEditRequestStatus(request.getId(), EditRequestStatus.COMPLETE);
-        return recordingService.findById(newRecordingId);
     }
 
     private void ensureSourceRecordingCaseIsOpen(EditRequest request, EditInstructions editInstructions) {

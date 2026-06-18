@@ -12,7 +12,6 @@ import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -186,24 +185,20 @@ class EditRequestPerformServiceTest {
         when(mockCase.getState()).thenReturn(CaseState.CLOSED);
         when(mockEditRequest.getEditInstruction()).thenReturn("{\"forceReencode\":true}");
 
-        RecordingDTO newRecordingDto = new RecordingDTO();
-        newRecordingDto.setParentRecordingId(mockRecording.getId());
-        when(recordingService.findById(any(UUID.class))).thenReturn(newRecordingDto);
+        underTest.performEdit(mockEditRequest);
 
-        RecordingDTO res = underTest.performEdit(mockEditRequest);
-
-        assertThat(res).isNotNull();
         verify(editingService, times(1)).performEdit(any(UUID.class), eq(mockEditRequest));
         verify(assetGenerationService, times(1)).generateAsset(any(UUID.class), eq(mockEditRequest));
         verify(recordingService, times(1)).forceUpsert(any(CreateRecordingDTO.class));
         verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
+        verify(recordingService, never()).findById(any(UUID.class));
         verify(editRequestCrudService, times(1))
             .updateEditRequestStatus(mockEditRequestId, EditRequestStatus.COMPLETE);
     }
 
     // This should probably be an integration test
     @Test
-    @DisplayName("Should perform edit request and return created recording")
+    @DisplayName("Should perform edit request and create recording")
     void performEditSuccess() throws InterruptedException {
         when(assetGenerationService.generateAsset(any(UUID.class), any(EditRequest.class))).thenReturn("filename");
         when(recordingService.getNextVersionNumber(mockRecording.getId())).thenReturn(2);
@@ -215,14 +210,7 @@ class EditRequestPerformServiceTest {
                 + "\"ffmpegInstructions\":null,\"forceReencode\":false,"
                 + "\"sendNotifications\":true}");
 
-
-        RecordingDTO newRecordingDto = new RecordingDTO();
-        newRecordingDto.setParentRecordingId(mockRecording.getId());
-        when(recordingService.findById(any(UUID.class))).thenReturn(newRecordingDto);
-
-        RecordingDTO res = underTest.performEdit(mockEditRequest);
-        assertThat(res).isNotNull();
-        assertThat(res.getParentRecordingId()).isEqualTo(mockRecording.getId());
+        underTest.performEdit(mockEditRequest);
 
         ArgumentCaptor<UUID> newRecIdCaptor = ArgumentCaptor.forClass(UUID.class);
         ArgumentCaptor<EditRequest> saveCaptor = ArgumentCaptor.forClass(EditRequest.class);
@@ -247,7 +235,7 @@ class EditRequestPerformServiceTest {
         JSONAssert.assertEquals(newRecCaptor.getValue().getEditInstructions(),
                                 expectedInstructions, JSONCompareMode.LENIENT);
 
-        verify(recordingService, times(1)).findById(any(UUID.class));
+        verify(recordingService, never()).findById(any(UUID.class));
         verify(recordingService, never()).forceUpsert(any(CreateRecordingDTO.class));
     }
 
