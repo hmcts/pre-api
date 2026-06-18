@@ -432,7 +432,7 @@ class TestingSupportController {
 
     @SneakyThrows
     @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
+    public ResponseEntity<EditRequestDTO> triggerEditRequestProcessing(@PathVariable UUID editId) {
         Role role = roleRepository.findFirstByName("Super User")
             .orElse(createRole("Super User"));
         AppAccess appAccess = createAppAccess(role);
@@ -445,9 +445,7 @@ class TestingSupportController {
         editRequestPerformService.performEdit(editRequest);
         EditRequestDTO request = editRequestService.findById(editId);
 
-        return ResponseEntity.ok(Map.of(
-            "request", request
-        ));
+        return ResponseEntity.ok(request);
     }
 
     @PostMapping(value = "/trigger-task/{taskName}")
