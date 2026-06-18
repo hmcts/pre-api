@@ -442,12 +442,11 @@ class TestingSupportController {
                 List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
 
         EditRequest editRequest = editRequestPerformService.markAsProcessing(editId);
-        RecordingDTO recording = editRequestPerformService.performEdit(editRequest);
+        editRequestPerformService.performEdit(editRequest);
         EditRequestDTO request = editRequestService.findById(editId);
 
         return ResponseEntity.ok(Map.of(
-            "request", request,
-            "recording", recording
+            "request", request
         ));
     }
 
