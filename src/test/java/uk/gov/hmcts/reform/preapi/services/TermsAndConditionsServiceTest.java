@@ -37,7 +37,7 @@ public class TermsAndConditionsServiceTest {
         when(termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.APP))
             .thenReturn(Optional.of(termsAndConditions));
 
-        var model = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP);
+        var model = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
 
         assertThat(model.getId()).isEqualTo(termsAndConditions.getId());
         assertThat(model.getType()).isEqualTo(termsAndConditions.getType());
@@ -56,7 +56,7 @@ public class TermsAndConditionsServiceTest {
         when(termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.PORTAL))
             .thenReturn(Optional.of(termsAndConditions));
 
-        var model = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+        var model = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
 
         assertThat(model.getId()).isEqualTo(termsAndConditions.getId());
         assertThat(model.getType()).isEqualTo(termsAndConditions.getType());
@@ -69,13 +69,13 @@ public class TermsAndConditionsServiceTest {
 
     @Test
     @DisplayName("Should throw exception when there are no terms matching the specified type")
-    public void getLatestTermsAndConditionsNotFound() {
+    public void getLatestTermsAndConditionsByTypeNotFound() {
         when(termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.APP))
             .thenReturn(Optional.empty());
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP)
+            () -> termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP)
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Terms and conditions of type: APP");
 

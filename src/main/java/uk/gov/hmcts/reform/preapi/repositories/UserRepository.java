@@ -59,6 +59,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         AND (:isAppUser = false OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.user = u AND aa.deletedAt IS NULL))
         """
     )
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     Page<User> searchAllBy(
         @Param("name") String name,
         @Param("firstName") String firstName,

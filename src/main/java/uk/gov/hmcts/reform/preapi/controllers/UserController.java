@@ -143,19 +143,7 @@ public class UserController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
     ) {
-        Page<UserDTO> resultPage = userService.findAllBy(
-            params.getName(),
-            params.getFirstName(),
-            params.getLastName(),
-            params.getEmail(),
-            params.getOrganisation(),
-            params.getCourtId(),
-            params.getRoleId(),
-            params.getAccessType(),
-            params.getIncludeDeleted() != null && params.getIncludeDeleted(),
-            params.getAppActive(),
-            pageable
-        );
+        Page<UserDTO> resultPage = userService.findAllBy(params, pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());

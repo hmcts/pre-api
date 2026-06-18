@@ -32,30 +32,30 @@ class TermsAndConditionsServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    void getLatestTermsAndConditionsApp() {
-        var latestAppTerms1 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP);
+    void getLatestTermsAndConditionsByTypeApp() {
+        var latestAppTerms1 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
 
         assertThat(latestAppTerms1.getId()).isEqualTo(termsAndConditionsApp.getId());
 
         var newTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP, "app content 2");
         entityManager.persist(newTerms);
 
-        var latestAppTerms2 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP);
+        var latestAppTerms2 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
         assertThat(latestAppTerms2.getId()).isEqualTo(newTerms.getId());
         assertThat(latestAppTerms2.getCreatedAt()).isAfter(latestAppTerms1.getCreatedAt());
     }
 
     @Test
     @Transactional
-    void getLatestTermsAndConditionsPortal() {
-        var latestPortalTerms1 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+    void getLatestTermsAndConditionsByTypePortal() {
+        var latestPortalTerms1 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
 
         assertThat(latestPortalTerms1.getId()).isEqualTo(termsAndConditionsPortal.getId());
 
         var newTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.PORTAL, "portal content 2");
         entityManager.persist(newTerms);
 
-        var latestPortalTerms2 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+        var latestPortalTerms2 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
         assertThat(latestPortalTerms2.getId()).isEqualTo(newTerms.getId());
         assertThat(latestPortalTerms2.getCreatedAt()).isAfter(latestPortalTerms1.getCreatedAt());
     }

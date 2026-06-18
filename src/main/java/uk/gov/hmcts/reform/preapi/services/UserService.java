@@ -1,12 +1,12 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
@@ -20,63 +20,52 @@ import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
-import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
-import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
-import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
-import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static uk.gov.hmcts.reform.preapi.dto.validators.PortalAppAccessValidator.PORTAL_ROLE_NAME;
+
 @Service
-@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class UserService {
 
-    private final AppAccessRepository appAccessRepository;
+    private final AppAccessService appAccessService;
+    private final PortalAccessService portalAccessService;
     private final CourtRepository courtRepository;
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
-    private final PortalAccessRepository portalAccessRepository;
-    private final AppAccessService appAccessService;
-    private final PortalAccessService portalAccessService;
-    private final TermsAndConditionsRepository termsAndConditionsRepository;
+    private final TermsAndConditionsService termsAndConditionsService;
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
         "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     );
 
     @Autowired
-    public UserService(AppAccessRepository appAccessRepository,
-                       CourtRepository courtRepository,
+    public UserService(CourtRepository courtRepository,
                        RoleRepository roleRepository,
                        UserRepository userRepository,
-                       PortalAccessRepository portalAccessRepository,
                        AppAccessService appAccessService,
                        PortalAccessService portalAccessService,
-                       TermsAndConditionsRepository termsAndConditionsRepository) {
-        this.appAccessRepository = appAccessRepository;
+                       TermsAndConditionsService termsAndConditionsService) {
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
-        this.portalAccessRepository = portalAccessRepository;
         this.appAccessService = appAccessService;
         this.portalAccessService = portalAccessService;
-        this.termsAndConditionsRepository = termsAndConditionsRepository;
+        this.termsAndConditionsService = termsAndConditionsService;
     }
 
     @Transactional()
@@ -85,7 +74,7 @@ public class UserService {
             .map(user ->
                      new UserDTO(
                          user,
-                         getAllLatestTermsAndConditions()
+                         termsAndConditionsService.getAllLatestTermsAndConditions()
                      ))
             .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
@@ -95,8 +84,8 @@ public class UserService {
         return userRepository.findByEmailOrAlternativeEmailIgnoreCaseAndDeletedAtIsNull(email)
             .map(access ->
                      new AccessDTO(
-                            access,
-                            getAllLatestTermsAndConditions()
+                         access,
+                         termsAndConditionsService.getAllLatestTermsAndConditions()
                      ))
             .orElseThrow(() -> new NotFoundException("User: " + email));
     }
@@ -104,48 +93,38 @@ public class UserService {
     @Transactional
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     public Page<UserDTO> findAllBy(
-        String name,
-        String firstName,
-        String lastName,
-        String email,
-        String organisation,
-        UUID court,
-        UUID role,
-        AccessType accessType,
-        boolean includeDeleted,
-        Boolean isAppActive,
+        SearchUsers searchUsers,
         Pageable pageable
     ) {
-        if (court != null && !courtRepository.existsById(court)) {
-            throw new NotFoundException("Court: " + court);
+        if (searchUsers.getCourtId() != null && !courtRepository.existsById(searchUsers.getCourtId())) {
+            throw new NotFoundException("Court: " + searchUsers.getCourtId());
         }
 
-        if (role != null) {
-            var r = roleRepository.findById(role);
-            if (r.isEmpty()) {
-                throw new NotFoundException("Role: " + role);
-            }
-            if (r.get().getName().equals("Level 3") && accessType == null) {
-                role = null;
-                accessType = AccessType.PORTAL;
+        Set<TermsAndConditions> allLatestTermsAndConditions = termsAndConditionsService
+            .getAllLatestTermsAndConditions();
+
+        if (searchUsers.getRoleId() != null) {
+            Role roleFromDb = roleRepository.findById(searchUsers.getRoleId())
+                .orElseThrow(() -> new NotFoundException("Role: " + searchUsers.getRoleId()));
+
+            // Is a portal user
+            if (roleFromDb.getName().equals(PORTAL_ROLE_NAME) && searchUsers.getAccessType() == null) {
+                return userRepository.searchAllBy(
+                    searchUsers.getName(), searchUsers.getFirstName(), searchUsers.getLastName(),
+                    searchUsers.getEmail(), searchUsers.getOrganisation(), searchUsers.getCourtId(),
+                    null, true, false,
+                    searchUsers.getIncludeDeleted(), searchUsers.getAppActive(), pageable
+                ).map(user -> new UserDTO(user, allLatestTermsAndConditions));
             }
         }
-
-        Set<TermsAndConditions> allLatestTermsAndConditions = getAllLatestTermsAndConditions();
 
         return userRepository.searchAllBy(
-            name,
-            firstName,
-            lastName,
-            email,
-            organisation,
-            court,
-            role,
-            accessType == AccessType.PORTAL,
-            accessType == AccessType.APP,
-            includeDeleted,
-            isAppActive,
-            pageable
+            searchUsers.getName(), searchUsers.getFirstName(), searchUsers.getLastName(),
+            searchUsers.getEmail(), searchUsers.getOrganisation(), searchUsers.getCourtId(),
+            searchUsers.getRoleId(),
+            searchUsers.getAccessType() == AccessType.PORTAL,
+            searchUsers.getAccessType() == AccessType.APP,
+            searchUsers.getIncludeDeleted(), searchUsers.getAppActive(), pageable
         ).map(user -> new UserDTO(user, allLatestTermsAndConditions));
     }
 
@@ -163,7 +142,7 @@ public class UserService {
         }
 
         createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId).forEach(id -> {
-            if (!portalAccessRepository.existsById(id)) {
+            if (!portalAccessService.exists(id)) {
                 throw new NotFoundException("Portal Access: " + id);
             }
         });
@@ -207,9 +186,7 @@ public class UserService {
         Optional<User> user = userRepository.findById(createInviteDTO.getUserId());
         if (user.isPresent() && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createInviteDTO.getUserId().toString());
-        } else if (user.isPresent() && portalAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createInviteDTO.getUserId())
-            .isPresent()) {
+        } else if (user.isPresent() && portalAccessService.isNotDeletedPortalUser(createInviteDTO.getUserId())) {
             return UpsertResult.UPDATED;
         }
 
@@ -223,14 +200,12 @@ public class UserService {
         userEntity.setPhone(createInviteDTO.getPhone());
         userRepository.save(userEntity);
 
-        PortalAccess portalAccessEntity = portalAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createInviteDTO.getUserId())
-            .orElse(new PortalAccess());
-
-        portalAccessEntity.setUser(userEntity);
-        portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
-        portalAccessEntity.setInvitedAt(Timestamp.from(Instant.now()));
-        portalAccessRepository.save(portalAccessEntity);
+        portalAccessService.upsertPortalAccessEntity(
+            createInviteDTO.getUserId(),
+            userEntity,
+            AccessStatus.INVITATION_SENT,
+            Timestamp.from(Instant.now())
+        );
 
         return UpsertResult.CREATED;
     }
@@ -241,15 +216,8 @@ public class UserService {
             throw new NotFoundException("User: " + userId);
         }
 
-        portalAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(portalAccess -> portalAccessService.deleteById(portalAccess.getId()));
-
-        appAccessRepository
-            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .stream()
-            .map(AppAccess::getId)
-            .forEach(appAccessService::deleteById);
+        portalAccessService.deleteById(userId);
+        appAccessService.deleteById(userId);
 
         userRepository
             .findById(userId)
@@ -269,29 +237,10 @@ public class UserService {
         entity.setDeletedAt(null);
         userRepository.save(entity);
 
-        appAccessRepository
-            .findAllByUser_IdAndDeletedAtIsNotNull(id)
-            .forEach(a -> {
-                a.setDeletedAt(null);
-                a.setActive(true);
-                appAccessRepository.save(a);
-            });
-
-        portalAccessRepository
-            .findAllByUser_IdAndDeletedAtIsNotNull(id)
-            .forEach(p -> {
-                p.setDeletedAt(null);
-                portalAccessRepository.save(p);
-            });
+        appAccessService.undeleteByUserId(id);
+        portalAccessService.undeleteByUserId(id);
     }
 
-    @Transactional
-    public Set<TermsAndConditions> getAllLatestTermsAndConditions() {
-        return Arrays.stream(TermsAndConditionsType.values())
-            .map(type -> termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(type)
-                .orElse(null))
-            .collect(Collectors.toSet());
-    }
 
     @Transactional(readOnly = true)
     public Optional<User> findByOriginalEmail(String email) {
