@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 import static uk.gov.hmcts.reform.preapi.dto.validators.PortalAppAccessValidator.PORTAL_ROLE_NAME;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class UserService {
 
     private final AppAccessService appAccessService;
@@ -118,14 +119,15 @@ public class UserService {
             }
         }
 
-        return userRepository.searchAllBy(
+        Page<User> returnedFromDB = userRepository.searchAllBy(
             searchUsers.getName(), searchUsers.getFirstName(), searchUsers.getLastName(),
             searchUsers.getEmail(), searchUsers.getOrganisation(), searchUsers.getCourtId(),
             searchUsers.getRoleId(),
             searchUsers.getAccessType() == AccessType.PORTAL,
             searchUsers.getAccessType() == AccessType.APP,
             searchUsers.getIncludeDeleted(), searchUsers.getAppActive(), pageable
-        ).map(user -> new UserDTO(user, allLatestTermsAndConditions));
+        );
+        return returnedFromDB.map(user -> new UserDTO(user, allLatestTermsAndConditions));
     }
 
     @Transactional
@@ -216,8 +218,8 @@ public class UserService {
             throw new NotFoundException("User: " + userId);
         }
 
-        portalAccessService.deleteById(userId);
-        appAccessService.deleteById(userId);
+        portalAccessService.deleteByUserId(userId);
+        appAccessService.deleteByUserId(userId);
 
         userRepository
             .findById(userId)

@@ -1,9 +1,10 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
@@ -21,21 +23,19 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
-import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
-import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
-import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +51,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = UserService.class)
@@ -64,9 +66,6 @@ public class UserServiceTest {
     private static PortalAccess portalAccessEntity2;
 
     @MockitoBean
-    private AppAccessRepository appAccessRepository;
-
-    @MockitoBean
     private RoleRepository roleRepository;
 
     @MockitoBean
@@ -76,42 +75,29 @@ public class UserServiceTest {
     private UserRepository userRepository;
 
     @MockitoBean
-    private PortalAccessRepository portalAccessRepository;
-
-    @MockitoBean
     private AppAccessService appAccessService;
 
     @MockitoBean
     private PortalAccessService portalAccessService;
 
     @MockitoBean
-    private TermsAndConditionsRepository termsAndConditionsRepository;
+    private TermsAndConditionsService termsAndConditionsService;
+
+    private static SearchUsers searchUsers;
 
     @Autowired
     private UserService userService;
 
-    @BeforeAll
-    static void setUp() {
-        userEntity = new User();
-        userEntity.setId(UUID.randomUUID());
-        userEntity.setFirstName("Example");
-        userEntity.setLastName("Person");
-        userEntity.setEmail("example@example.com");
-        userEntity.setOrganisation("Example Org");
+    @BeforeEach
+    void setUp() {
+        userEntity = HelperFactory.createUser("Example", "Person", "example@example.com",
+                                              null, null, "Example Org");
 
-        portalUserEntity = new User();
-        portalUserEntity.setId(UUID.randomUUID());
-        portalUserEntity.setFirstName("Portal");
-        portalUserEntity.setLastName("Person");
-        portalUserEntity.setEmail("portal@example.com");
-        portalUserEntity.setOrganisation("Portal Org");
+        portalUserEntity = HelperFactory.createUser("Portal", "Person", "portal@example.com",
+                                                    null, null, "Portal Org");
 
-        appUserEntity = new User();
-        appUserEntity.setId(UUID.randomUUID());
-        appUserEntity.setFirstName("App");
-        appUserEntity.setLastName("Person");
-        appUserEntity.setEmail("app@example.com");
-        appUserEntity.setOrganisation("App Org");
+        appUserEntity = HelperFactory.createUser("App", "Person", "app@example.com",
+                                                    null, null, "App Org");
 
         var court = new Court();
         court.setId(UUID.randomUUID());
@@ -125,6 +111,9 @@ public class UserServiceTest {
         appAccessEntity.setRole(role);
         appAccessEntity.setActive(true);
         userEntity.setAppAccess(Set.of(appAccessEntity));
+
+        searchUsers = mock(SearchUsers.class);
+        when(searchUsers.getRoleId()).thenReturn(appAccessEntity.getRole().getId());
 
         appAccessEntity2 = new AppAccess();
         appAccessEntity2.setId(UUID.randomUUID());
@@ -143,48 +132,29 @@ public class UserServiceTest {
         portalAccessEntity2.setId(UUID.randomUUID());
         portalAccessEntity2.setUser(portalUserEntity);
         portalUserEntity.setPortalAccess(Set.of(portalAccessEntity2));
-    }
 
-    @BeforeEach
-    void reset() {
-        userEntity.setDeletedAt(null);
-        appAccessEntity.setDeletedAt(null);
-        portalAccessEntity.setDeletedAt(null);
-    }
+        searchUsers = mock(SearchUsers.class);
+        when(searchUsers.getName()).thenReturn(null);
+        when(searchUsers.getFirstName()).thenReturn(null);
+        when(searchUsers.getLastName()).thenReturn(null);
+        when(searchUsers.getEmail()).thenReturn(null);
+        when(searchUsers.getOrganisation()).thenReturn(null);
+        when(searchUsers.getCourtId()).thenReturn(null);
+        when(searchUsers.getRoleId()).thenReturn(null);
+        when(searchUsers.getAccessType()).thenReturn(null);
+        when(searchUsers.getAppActive()).thenReturn(null);
 
-    @DisplayName("Find a user by it's id and return a model")
-    @Test
-    void findUserByIdSuccess() {
-        when(
-            userRepository.findByIdAndDeletedAtIsNull(userEntity.getId())
-        ).thenReturn(Optional.of(userEntity));
+        // Defaults for happy path
+        when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
 
-        var model = userService.findById(userEntity.getId());
-        assertThat(model.getId()).isEqualTo(userEntity.getId());
-        assertThat(model.getFirstName()).isEqualTo(userEntity.getFirstName());
-    }
+        when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
+        when(roleRepository.findById(appAccessEntity.getRole().getId())).thenReturn(Optional.of(role));
 
-    @DisplayName("Find a user by it's id which doesn't exist")
-    @Test
-    void findUserByIdNotFound() {
-        when(
-            userRepository.findByIdAndDeletedAtIsNull(UUID.randomUUID())
-        ).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndDeletedAtIsNull(userEntity.getId())).thenReturn(Optional.of(userEntity));
+        when(userRepository.existsByIdAndDeletedAtIsNull(userEntity.getId())).thenReturn(true);
+        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
 
-        assertThrows(
-            NotFoundException.class,
-            () -> userService.findById(userEntity.getId())
-        );
-
-        verify(userRepository, times(1))
-            .findByIdAndDeletedAtIsNull(userEntity.getId());
-    }
-
-    @DisplayName("Find all users and return a list of models")
-    @Test
-    void findAllUsersSuccess() {
-        when(
-            userRepository.searchAllBy(
+        when(userRepository.searchAllBy(
                 null,
                 null,
                 null,
@@ -197,10 +167,45 @@ public class UserServiceTest {
                 false,
                 null,
                 null
-            )
-        ).thenReturn(new PageImpl<>(List.of(userEntity, portalUserEntity, appUserEntity)));
+            )).thenReturn(new PageImpl<>(List.of(userEntity, portalUserEntity, appUserEntity)));
+    }
 
-        var models = userService.findAllBy(null, null, null, null, null, null, null, null, false, null, null);
+    @AfterEach
+    void reset() {
+        userEntity.setDeletedAt(null);
+        appAccessEntity.setDeletedAt(null);
+        portalAccessEntity.setDeletedAt(null);
+    }
+
+    @DisplayName("Find a user by it's id and return a model")
+    @Test
+    void findUserByIdSuccess() {
+        var model = userService.findById(userEntity.getId());
+        assertThat(model.getId()).isEqualTo(userEntity.getId());
+        assertThat(model.getFirstName()).isEqualTo(userEntity.getFirstName());
+    }
+
+    @DisplayName("Find a user by it's id which doesn't exist")
+    @Test
+    void findUserByIdNotFound() {
+        UUID randomUserId = UUID.randomUUID();
+        when(
+            userRepository.findByIdAndDeletedAtIsNull(randomUserId)
+        ).thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.findById(randomUserId)
+        );
+
+        verify(userRepository, times(1))
+            .findByIdAndDeletedAtIsNull(randomUserId);
+    }
+
+    @DisplayName("Find all users and return a list of models")
+    @Test
+    void findAllUsersSuccess() {
+        var models = userService.findAllBy(searchUsers, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(3);
 
@@ -211,6 +216,8 @@ public class UserServiceTest {
     @Test
     void findAllUsersFirstNameFilterSuccess() {
         // using name param
+        when(searchUsers.getName()).thenReturn(userEntity.getFirstName());
+
         when(
             userRepository.searchAllBy(
                 userEntity.getFirstName(),
@@ -228,16 +235,7 @@ public class UserServiceTest {
             )).thenReturn(new PageImpl<>(List.of(userEntity)));
 
         var models = userService.findAllBy(
-            userEntity.getFirstName(),
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            false,
-            null,
+            searchUsers,
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -253,6 +251,8 @@ public class UserServiceTest {
                                                                                                        .getCourt()
                                                                                                        .getId());
         // using first name param
+        when(searchUsers.getName()).thenReturn(null);
+        when(searchUsers.getFirstName()).thenReturn(userEntity.getFirstName());
         when(
             userRepository.searchAllBy(
                 null,
@@ -269,8 +269,7 @@ public class UserServiceTest {
                 null
             )).thenReturn(new PageImpl<>(List.of(userEntity)));
 
-        var models2 = userService
-            .findAllBy(null, userEntity.getFirstName(), null,null, null, null, null, null, false, null, null);
+        var models2 = userService.findAllBy(searchUsers, null);
         assertThat(models2.isEmpty()).isFalse();
         assertThat(models2.getTotalElements()).isEqualTo(1);
 
@@ -278,16 +277,17 @@ public class UserServiceTest {
         assertThat(model2.getId()).isEqualTo(userEntity.getId());
         assertThat(model2.getFirstName()).isEqualTo(userEntity.getFirstName());
         assertThat(model2.getAppAccess().stream().toList().getFirst().getRole().getId()).isEqualTo(appAccessEntity
-                                                                                                      .getRole()
-                                                                                                      .getId());
-        assertThat(model2.getAppAccess().stream().toList().getFirst().getCourt().getId()).isEqualTo(appAccessEntity
-                                                                                                       .getCourt()
+                                                                                                       .getRole()
                                                                                                        .getId());
+        assertThat(model2.getAppAccess().stream().toList().getFirst().getCourt().getId()).isEqualTo(appAccessEntity
+                                                                                                        .getCourt()
+                                                                                                        .getId());
     }
 
     @Test
     @DisplayName("Find all users when filtered by last name")
     void findAllUsersLastNameFilterSuccess() {
+        when(searchUsers.getLastName()).thenReturn(userEntity.getLastName());
         when(
             userRepository.searchAllBy(
                 null,
@@ -305,7 +305,7 @@ public class UserServiceTest {
             )).thenReturn(new PageImpl<>(List.of(userEntity)));
 
         var models = userService
-            .findAllBy(null, null, userEntity.getLastName(),null, null, null, null, null, false, null, null);
+            .findAllBy(searchUsers, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -313,18 +313,17 @@ public class UserServiceTest {
         assertThat(model.getId()).isEqualTo(userEntity.getId());
         assertThat(model.getLastName()).isEqualTo(userEntity.getLastName());
         assertThat(model.getAppAccess().stream().toList().getFirst().getRole().getId()).isEqualTo(appAccessEntity
-                                                                                                       .getRole()
-                                                                                                       .getId());
+                                                                                                      .getRole()
+                                                                                                      .getId());
         assertThat(model.getAppAccess().stream().toList().getFirst().getCourt().getId()).isEqualTo(appAccessEntity
-                                                                                                        .getCourt()
-                                                                                                        .getId());
+                                                                                                       .getCourt()
+                                                                                                       .getId());
     }
 
     @DisplayName("Find all users when filtered by email")
     @Test
     void findAllUsersEmailFilterSuccess() {
-        when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
-        when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
+        when(searchUsers.getEmail()).thenReturn(userEntity.getEmail());
         when(
             userRepository.searchAllBy(
                 null,
@@ -343,16 +342,7 @@ public class UserServiceTest {
         ).thenReturn(new PageImpl<>(List.of(userEntity)));
 
         var models = userService.findAllBy(
-            null,
-            null,
-            null,
-            userEntity.getEmail(),
-            null,
-            null,
-            null,
-            null,
-            false,
-            null,
+            searchUsers,
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -372,8 +362,7 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by organisation")
     @Test
     void findAllUsersOrganisationFilterSuccess() {
-        when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
-        when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
+        when(searchUsers.getOrganisation()).thenReturn(userEntity.getOrganisation());
         when(
             userRepository.searchAllBy(
                 null,
@@ -392,16 +381,7 @@ public class UserServiceTest {
         ).thenReturn(new PageImpl<>(List.of(userEntity)));
 
         var models = userService.findAllBy(
-            null,
-            null,
-            null,
-            null,
-            userEntity.getOrganisation(),
-            null,
-            null,
-            null,
-            false,
-            null,
+            searchUsers,
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -421,8 +401,7 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by court")
     @Test
     void findAllUsersCourtFilterSuccess() {
-        when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
-        when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
+        when(searchUsers.getCourtId()).thenReturn(appAccessEntity.getCourt().getId());
         when(
             userRepository.searchAllBy(
                 null,
@@ -441,16 +420,7 @@ public class UserServiceTest {
         ).thenReturn(new PageImpl<>(List.of(userEntity, appUserEntity)));
 
         var models = userService.findAllBy(
-            null,
-            null,
-            null,
-            null,
-            null,
-            appAccessEntity.getCourt().getId(),
-            null,
-            null,
-            false,
-            null,
+            searchUsers,
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -483,11 +453,10 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by role")
     @Test
     void findAllUsersRoleFilterSuccess() {
-        when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
-        when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         var role = new Role();
         role.setName("Some Role");
-        when(roleRepository.findById(appAccessEntity.getRole().getId())).thenReturn(Optional.of(role));
+        when(searchUsers.getRoleId()).thenReturn(role.getId());
+        when(roleRepository.findById(role.getId())).thenReturn(Optional.of(role));
         when(
             userRepository.searchAllBy(
                 null,
@@ -496,7 +465,7 @@ public class UserServiceTest {
                 null,
                 null,
                 null,
-                appAccessEntity.getRole().getId(),
+                role.getId(),
                 false,
                 false,
                 false,
@@ -505,19 +474,7 @@ public class UserServiceTest {
             )
         ).thenReturn(new PageImpl<>(List.of(userEntity, appUserEntity)));
 
-        var models = userService.findAllBy(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            appAccessEntity.getRole().getId(),
-            null,
-            false,
-            null,
-            null
-        );
+        var models = userService.findAllBy(searchUsers, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(2);
 
@@ -548,15 +505,16 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by court that doesn't exist")
     @Test
     void findAllUsersCourtFilterNotFound() {
-        UUID courtId = UUID.randomUUID();
-        when(courtRepository.existsById(courtId)).thenReturn(false);
+        UUID randomCourtId = UUID.randomUUID();
+        when(searchUsers.getCourtId()).thenReturn(randomCourtId);
+        when(courtRepository.existsById(randomCourtId)).thenReturn(false);
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null,null, null, courtId, null, null, false, null, null)
+            () -> userService.findAllBy(searchUsers, null)
         );
 
-        verify(courtRepository, times(1)).existsById(courtId);
+        verify(courtRepository, times(1)).existsById(randomCourtId);
         verify(roleRepository, never()).existsById(any());
         verify(userRepository, never()).searchAllBy(
             any(),
@@ -577,17 +535,18 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by role that doesn't exist")
     @Test
     void findAllUsersRoleFilterNotFound() {
+        UUID roleId = UUID.randomUUID();
+        when(searchUsers.getRoleId()).thenReturn(roleId);
+        when(roleRepository.existsById(roleId)).thenReturn(false);
+
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        UUID roleId = UUID.randomUUID();
-        when(roleRepository.existsById(roleId)).thenReturn(false);
-
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null,null, null, null, roleId, null, false, null, null)
+            () -> userService.findAllBy(searchUsers, null)
         );
 
         verify(courtRepository, never()).existsById(any());
@@ -608,46 +567,14 @@ public class UserServiceTest {
         );
     }
 
-    @DisplayName("Delete a user by it's id")
+    @DisplayName("Delete a user by its id")
     @Test
     void deleteUserByIdSuccess() {
-        when(userRepository.existsByIdAndDeletedAtIsNull(userEntity.getId())).thenReturn(true);
-        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
-            .thenReturn(Optional.of(portalAccessEntity));
-        ArrayList<AppAccess> appAccessEntities = new ArrayList<>();
-        appAccessEntities.add(appAccessEntity);
-        when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
-            .thenReturn(appAccessEntities);
-        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
-
         userService.deleteById(userEntity.getId());
 
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
-        verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
-        verify(appAccessRepository, times(1)).findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessService, times(1)).deleteById(appAccessEntity.getId());
-        verify(userRepository, times(1)).saveAndFlush(userEntity);
-    }
-
-    @DisplayName("Delete a user by it's id when user is not attached to portal access or app access")
-    @Test
-    void deleteUserByIdNoAccessSuccess() {
-        ArrayList<AppAccess> emptySet = new ArrayList<>(){};
-        when(userRepository.existsByIdAndDeletedAtIsNull(userEntity.getId())).thenReturn(true);
-        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
-            .thenReturn(Optional.empty());
-        when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
-            .thenReturn(emptySet);
-        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
-
-        userService.deleteById(userEntity.getId());
-
-        verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
-        verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(portalAccessRepository, never()).save(any());
-        verify(appAccessRepository, times(1)).findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessRepository, never()).save(any());
+        verify(portalAccessService, times(1)).deleteByUserId(userEntity.getId());
+        verify(appAccessService, times(1)).deleteByUserId(userEntity.getId());
         verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
 
@@ -663,34 +590,9 @@ public class UserServiceTest {
         );
 
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userId);
-        verify(portalAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(portalAccessRepository, never()).save(any());
-        verify(appAccessRepository, never()).findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessRepository, never()).save(any());
+        verifyNoInteractions(portalAccessService);
+        verifyNoInteractions(appAccessService);
         verify(userRepository, never()).deleteById(userEntity.getId());
-    }
-
-    @DisplayName("Delete a user when App Access entry doesn't exist")
-    @Test
-    void deleteUserWithEmptyAppAccess() {
-        when(userRepository.existsByIdAndDeletedAtIsNull(userEntity.getId())).thenReturn(true);
-        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
-            .thenReturn(Optional.of(portalAccessEntity));
-        ArrayList<AppAccess> emptyAppAccessEntities = new ArrayList<>(){};
-        when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
-            .thenReturn(emptyAppAccessEntities);
-        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
-
-        userService.deleteById(userEntity.getId());
-
-        verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
-        verify(portalAccessRepository, times(1))
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
-        verify(appAccessRepository, times(1))
-            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessService, never()).deleteById(any());
-        verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
 
     @DisplayName("Create a user")
@@ -711,10 +613,8 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).findById(model.getId());
         verify(userRepository, times(1)).saveAndFlush(any());
-        verify(appAccessRepository, never()).deleteById(any());
-        verify(appAccessService, never()).upsert(any());
-        verify(portalAccessRepository, never()).existsById(any());
-        verify(portalAccessService, never()).update(any());
+        verifyNoInteractions(appAccessService);
+        verifyNoInteractions(portalAccessService);
     }
 
     @DisplayName("Update a user")
@@ -755,7 +655,7 @@ public class UserServiceTest {
 
         when(userRepository.findById(model.getId())).thenReturn(Optional.of(entity));
         when(appAccessService.upsert(accessModel)).thenReturn(UpsertResult.CREATED);
-        when(portalAccessRepository.existsById(portalModel.getId())).thenReturn(true);
+        when(portalAccessService.exists(portalModel.getId())).thenReturn(true);
         when(portalAccessService.update(portalModel)).thenReturn(UpsertResult.UPDATED);
 
         assertThat(userService.upsert(model)).isEqualTo(UpsertResult.UPDATED);
@@ -764,7 +664,7 @@ public class UserServiceTest {
         verify(userRepository, times(1)).saveAndFlush(any());
         verify(appAccessService, times(1)).deleteById(accessEntity.getId());
         verify(appAccessService, times(1)).upsert(accessModel);
-        verify(portalAccessRepository, times(1)).existsById(portalModel.getId());
+        verify(portalAccessService, times(1)).exists(portalModel.getId());
         verify(portalAccessService, times(1)).update(portalModel);
     }
 
@@ -806,7 +706,7 @@ public class UserServiceTest {
 
         when(userRepository.findById(model.getId())).thenReturn(Optional.of(entity));
         when(appAccessService.upsert(accessModel)).thenReturn(UpsertResult.CREATED);
-        when(portalAccessRepository.existsById(portalModel.getId())).thenReturn(false);
+        when(portalAccessService.exists(portalModel.getId())).thenReturn(false);
         when(portalAccessService.update(portalModel)).thenReturn(UpsertResult.UPDATED);
 
         var message = assertThrows(
@@ -817,10 +717,9 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).findById(model.getId());
         verify(userRepository, never()).saveAndFlush(any());
-        verify(appAccessRepository, never()).deleteById(accessEntity.getId());
-        verify(appAccessService, never()).upsert(accessModel);
-        verify(portalAccessRepository, times(1)).existsById(portalModel.getId());
-        verify(portalAccessService, never()).update(portalModel);
+        verifyNoInteractions(appAccessService);
+        verify(portalAccessService, times(1)).exists(portalModel.getId());
+        verifyNoMoreInteractions(portalAccessService);
     }
 
     @DisplayName("Should throw resource deleted error when updating a user that has been deleted")
@@ -954,30 +853,14 @@ public class UserServiceTest {
         user.setId(UUID.randomUUID());
         user.setDeletedAt(Timestamp.from(Instant.now()));
 
-        var appAccess = new AppAccess();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setUser(user);
-        appAccess.setDeletedAt(Timestamp.from(Instant.now()));
-        appAccess.setActive(false);
-
-        var portalAccess = new PortalAccess();
-        portalAccess.setId(UUID.randomUUID());
-        portalAccess.setUser(user);
-        portalAccess.setDeletedAt(Timestamp.from(Instant.now()));
-
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(appAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(user.getId())).thenReturn(List.of(appAccess));
-        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(user.getId()))
-            .thenReturn(List.of(portalAccess));
 
         userService.undelete(user.getId());
 
         verify(userRepository, times(1)).findById(user.getId());
         verify(userRepository, times(1)).save(user);
-        verify(appAccessRepository, times(1)).findAllByUser_IdAndDeletedAtIsNotNull(user.getId());
-        verify(appAccessRepository, times(1)).save(appAccess);
-        verify(portalAccessRepository, times(1)).findAllByUser_IdAndDeletedAtIsNotNull(user.getId());
-        verify(portalAccessRepository, times(1)).save(portalAccess);
+        verify(appAccessService, times(1)).undeleteByUserId(user.getId());
+        verify(portalAccessService, times(1)).undeleteByUserId(user.getId());
     }
 
     @DisplayName("Should do nothing when user is not deleted")
@@ -992,8 +875,7 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).findById(user.getId());
         verify(userRepository, never()).save(user);
-        verify(appAccessRepository, never()).save(any());
-        verify(portalAccessRepository, never()).save(any());
+        verifyNoInteractions(appAccessService, portalAccessService);
     }
 
     @DisplayName("Should throw not found exception when user cannot be found")
@@ -1012,28 +894,38 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, never()).save(any());
-        verify(appAccessRepository, never()).save(any());
-        verify(portalAccessRepository, never()).save(any());
+        verifyNoInteractions(appAccessService, portalAccessService);
     }
 
     @DisplayName("Should create a new user and portal access entity on create invite")
     @Test
     void createNewUserFromInvite() {
-        var dto = new CreateInviteDTO();
-        dto.setUserId(UUID.randomUUID());
-        dto.setFirstName("Example");
-        dto.setLastName("Example");
-        dto.setEmail("example@example.com");
+        var invitedUser = new CreateInviteDTO();
+        invitedUser.setUserId(UUID.randomUUID());
+        invitedUser.setFirstName("Example");
+        invitedUser.setLastName("Example");
+        invitedUser.setEmail("example@example.com");
 
-        when(userRepository.findById(dto.getUserId())).thenReturn(Optional.empty());
-        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId()))
-            .thenReturn(Optional.empty());
+        when(userRepository.findById(invitedUser.getUserId())).thenReturn(Optional.empty());
 
-        assertThat(userService.upsert(dto)).isEqualTo(UpsertResult.CREATED);
+        assertThat(userService.upsert(invitedUser)).isEqualTo(UpsertResult.CREATED);
 
-        verify(userRepository, times(1)).findById(dto.getUserId());
-        verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId());
-        verify(portalAccessRepository, times(1)).save(any());
+        verify(userRepository, times(1)).findById(invitedUser.getUserId());
+
+        ArgumentCaptor<UUID> uuidArgumentCaptor = ArgumentCaptor.forClass(UUID.class);
+        ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
+        ArgumentCaptor<AccessStatus> accessStatusArgumentCaptor = ArgumentCaptor.forClass(AccessStatus.class);
+
+        verify(portalAccessService, times(1))
+            .upsertPortalAccessEntity(uuidArgumentCaptor.capture(),
+                                      userArgumentCaptor.capture(),
+                                      accessStatusArgumentCaptor.capture(),
+                                      any());
+        assertThat(uuidArgumentCaptor.getValue()).isEqualTo(invitedUser.getUserId());
+        assertThat(userArgumentCaptor.getValue().getId()).isEqualTo(invitedUser.getUserId());
+        assertThat(accessStatusArgumentCaptor.getValue()).isEqualTo(AccessStatus.INVITATION_SENT);
+
+        verifyNoMoreInteractions(portalAccessService);
     }
 
     @DisplayName("Should fail create a new user and portal access entity on create invite when user has been deleted")
@@ -1049,8 +941,6 @@ public class UserServiceTest {
         user.setDeletedAt(Timestamp.from(Instant.now()));
 
         when(userRepository.findById(dto.getUserId())).thenReturn(Optional.of(user));
-        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId()))
-            .thenReturn(Optional.empty());
 
         assertThrows(
             ResourceInDeletedStateException.class,
@@ -1058,8 +948,7 @@ public class UserServiceTest {
         );
 
         verify(userRepository, times(1)).findById(dto.getUserId());
-        verify(portalAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId());
-        verify(portalAccessRepository, never()).save(any());
+        verifyNoInteractions(portalAccessService);
     }
 
     @DisplayName("Should return updated when invitation has already been sent")
@@ -1072,17 +961,15 @@ public class UserServiceTest {
         dto.setEmail("example@example.com");
 
         var user = new User();
-        var portalAccess = new PortalAccess();
 
         when(userRepository.findById(dto.getUserId())).thenReturn(Optional.of(user));
-        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId()))
-            .thenReturn(Optional.of(portalAccess));
+        when(portalAccessService.isNotDeletedPortalUser(dto.getUserId())).thenReturn(Boolean.TRUE);
 
         assertThat(userService.upsert(dto)).isEqualTo(UpsertResult.UPDATED);
 
         verify(userRepository, times(1)).findById(dto.getUserId());
-        verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId());
-        verify(portalAccessRepository, never()).save(any());
+        verify(portalAccessService, times(1)).isNotDeletedPortalUser(dto.getUserId());
+        verifyNoMoreInteractions(portalAccessService);
     }
 
     @DisplayName("Should find user by original email successfully")
