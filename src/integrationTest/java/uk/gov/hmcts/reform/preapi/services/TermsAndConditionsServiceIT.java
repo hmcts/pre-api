@@ -20,7 +20,8 @@ class TermsAndConditionsServiceIT extends IntegrationTestBase {
 
     @BeforeEach
     public void setUp() {
-        termsAndConditionsApp = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP, "app content");
+        termsAndConditionsApp = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP,
+                                                                       "app content");
         entityManager.persist(termsAndConditionsApp);
 
         termsAndConditionsPortal = HelperFactory.createTermsAndConditions(
@@ -48,14 +49,17 @@ class TermsAndConditionsServiceIT extends IntegrationTestBase {
     @Test
     @Transactional
     void getLatestTermsAndConditionsByTypePortal() {
-        var latestPortalTerms1 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
+        var latestPortalTerms1 = termsAndConditionsService
+            .getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
 
         assertThat(latestPortalTerms1.getId()).isEqualTo(termsAndConditionsPortal.getId());
 
-        var newTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.PORTAL, "portal content 2");
+        var newTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.PORTAL,
+                                                              "portal content 2");
         entityManager.persist(newTerms);
 
-        var latestPortalTerms2 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
+        var latestPortalTerms2 = termsAndConditionsService
+            .getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
         assertThat(latestPortalTerms2.getId()).isEqualTo(newTerms.getId());
         assertThat(latestPortalTerms2.getCreatedAt()).isAfter(latestPortalTerms1.getCreatedAt());
     }
