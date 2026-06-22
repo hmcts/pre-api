@@ -111,7 +111,7 @@ class TermsAndConditionsServiceTest {
 
     @Test
     @DisplayName("Should cope if there are no latest terms and conditions")
-    void handleGracefullyIfNothingReturnedFromDB(){
+    void handleGracefullyIfNothingReturnedFromDB() {
         when(termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.PORTAL))
             .thenReturn(Optional.empty());
         when(termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.APP))

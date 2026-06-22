@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

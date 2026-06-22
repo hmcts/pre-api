@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AppAccessService.class)
-public class AppAccessServiceTest {
+class AppAccessServiceTest {
     @MockitoBean
     private AppAccessRepository appAccessRepository;
 

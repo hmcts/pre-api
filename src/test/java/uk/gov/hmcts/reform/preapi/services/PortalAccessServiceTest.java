@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = PortalAccessService.class)
-public class PortalAccessServiceTest {
+class PortalAccessServiceTest {
     @MockitoBean
     private PortalAccessRepository portalAccessRepository;
 
@@ -40,7 +40,7 @@ public class PortalAccessServiceTest {
 
     @DisplayName("Update a portal access entity")
     @Test
-    public void updateSuccess() {
+    void updateSuccess() {
         var model = new CreatePortalAccessDTO();
         model.setId(UUID.randomUUID());
         model.setStatus(AccessStatus.ACTIVE);
@@ -61,7 +61,7 @@ public class PortalAccessServiceTest {
 
     @DisplayName("Update a portal access entity when portal access does not exist")
     @Test
-    public void updateNotFound() {
+    void updateNotFound() {
         var model = new CreatePortalAccessDTO();
         model.setId(UUID.randomUUID());
         model.setStatus(AccessStatus.ACTIVE);

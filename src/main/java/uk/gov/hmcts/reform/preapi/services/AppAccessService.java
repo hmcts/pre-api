@@ -96,9 +96,9 @@ public class AppAccessService {
         appAccessRepository
             .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
             .forEach(access -> {
-                            access.setActive(false);
-                            access.setDeletedAt(Timestamp.from(Instant.now()));
-                            appAccessRepository.save(access);
+                access.setActive(false);
+                access.setDeletedAt(Timestamp.from(Instant.now()));
+                appAccessRepository.save(access);
             });
     }
 
