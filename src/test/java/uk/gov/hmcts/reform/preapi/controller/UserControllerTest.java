@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -136,12 +137,12 @@ public class UserControllerTest {
         verify(userService, times(1)).findAllBy(paramsCaptor.capture(), any());
 
         SearchUsers parameters = paramsCaptor.getValue();
-        assertThat(parameters.getCourtId()).isEqualTo(null);
-        assertThat(parameters.getRoleId()).isEqualTo(null);
-        assertThat(parameters.getEmail()).isEqualTo(null);
-        assertThat(parameters.getFirstName()).isEqualTo(null);
-        assertThat(parameters.getLastName()).isEqualTo(null);
-        assertThat(parameters.getOrganisation()).isEqualTo(null);
+        assertThat(parameters.getCourtId()).isNull();
+        assertThat(parameters.getRoleId()).isNull();
+        assertThat(parameters.getEmail()).isNull();
+        assertThat(parameters.getFirstName()).isNull();
+        assertThat(parameters.getLastName()).isNull();
+        assertThat(parameters.getOrganisation()).isNull();
         assertThat(parameters.getIncludeDeleted()).isNull();
         assertThat(parameters.getAppActive()).isNull();
         assertThat(parameters.getAccessType()).isNull();
