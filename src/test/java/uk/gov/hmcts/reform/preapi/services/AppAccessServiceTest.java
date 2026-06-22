@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -20,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,9 +29,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AppAccessService.class)
@@ -47,7 +51,7 @@ public class AppAccessServiceTest {
     private RoleRepository roleRepository;
 
     @Autowired
-    private AppAccessService appAccessService;
+    private AppAccessService underTest;
 
     @DisplayName("Create an app access entity")
     @Test
@@ -63,7 +67,7 @@ public class AppAccessServiceTest {
         when(roleRepository.findById(model.getRoleId())).thenReturn(Optional.of(new Role()));
         when(courtRepository.findById(model.getCourtId())).thenReturn(Optional.of(new Court()));
 
-        assertThat(appAccessService.upsert(model)).isEqualTo(UpsertResult.CREATED);
+        assertThat(underTest.upsert(model)).isEqualTo(UpsertResult.CREATED);
 
         verify(appAccessRepository, times(1)).findById(model.getId());
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
@@ -90,7 +94,7 @@ public class AppAccessServiceTest {
         when(roleRepository.findById(model.getRoleId())).thenReturn(Optional.of(new Role()));
         when(courtRepository.findById(model.getCourtId())).thenReturn(Optional.of(new Court()));
 
-        assertThat(appAccessService.upsert(model)).isEqualTo(UpsertResult.UPDATED);
+        assertThat(underTest.upsert(model)).isEqualTo(UpsertResult.UPDATED);
 
         verify(appAccessRepository, times(1)).findById(model.getId());
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
@@ -115,7 +119,7 @@ public class AppAccessServiceTest {
 
         assertThrows(
             ResourceInDeletedStateException.class,
-            () -> appAccessService.upsert(model)
+            () -> underTest.upsert(model)
         );
 
         verify(appAccessRepository, times(1)).findById(model.getId());
@@ -136,7 +140,7 @@ public class AppAccessServiceTest {
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> appAccessService.upsert(model)
+            () -> underTest.upsert(model)
         ).getMessage();
         assertThat(message).isEqualTo("Not found: User: " + model.getUserId());
 
@@ -160,7 +164,7 @@ public class AppAccessServiceTest {
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> appAccessService.upsert(model)
+            () -> underTest.upsert(model)
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Court: " + model.getCourtId());
 
@@ -186,7 +190,7 @@ public class AppAccessServiceTest {
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> appAccessService.upsert(model)
+            () -> underTest.upsert(model)
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Role: " + model.getRoleId());
 
@@ -207,7 +211,7 @@ public class AppAccessServiceTest {
 
         when(appAccessRepository.findById(id)).thenReturn(Optional.of(access));
 
-        appAccessService.deleteById(id);
+        underTest.deleteById(id);
 
         assertThat(access.getDeletedAt()).isNotNull();
         assertFalse(access.isActive());
@@ -234,7 +238,7 @@ public class AppAccessServiceTest {
         when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(new Court()));
         when(roleRepository.findById(dto.getRoleId())).thenReturn(Optional.of(new Role()));
 
-        assertThat(appAccessService.upsert(dto)).isEqualTo(UpsertResult.UPDATED);
+        assertThat(underTest.upsert(dto)).isEqualTo(UpsertResult.UPDATED);
         assertThat(appAccess.isDefaultCourt()).isTrue();
 
         verify(appAccessRepository, times(1)).findById(dto.getId());
@@ -242,5 +246,96 @@ public class AppAccessServiceTest {
         verify(courtRepository, times(1)).findById(dto.getCourtId());
         verify(roleRepository, times(1)).findById(dto.getRoleId());
         verify(appAccessRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("Should delete by user ID")
+    void deleteByUserIdSuccess() {
+        UUID userId = UUID.randomUUID();
+        User user = mock(User.class);
+        when(user.getId()).thenReturn(userId);
+
+        AppAccess access = new AppAccess();
+        access.setId(UUID.randomUUID());
+        access.setActive(true);
+        access.setUser(user);
+
+        when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(List.of(access));
+
+        underTest.deleteByUserId(userId);
+
+        verify(appAccessRepository, times(1))
+            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId);
+
+        ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(1)).save(captor.capture());
+        AppAccess capturedAccess = captor.getValue();
+        assertThat(capturedAccess.getId()).isEqualTo(access.getId());
+        assertThat(capturedAccess.getUser()).isEqualTo(user);
+        assertThat(capturedAccess.getDeletedAt()).isNotNull();
+        assertThat(capturedAccess.isActive()).isFalse();
+
+        verifyNoMoreInteractions(appAccessRepository);
+
+    }
+
+    @Test
+    @DisplayName("Should cope if deleting by a non-existent user")
+    void deleteByNonExistentUser() {
+        when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(any(UUID.class)))
+            .thenReturn(List.of());
+
+        underTest.deleteByUserId(UUID.randomUUID());
+
+        verify(appAccessRepository, times(1))
+            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(any(UUID.class));
+
+        verifyNoMoreInteractions(appAccessRepository);
+    }
+
+    @Test
+    @DisplayName("Should undelete by user ID")
+    void undeleteByUserIdSuccess() {
+        UUID userId = UUID.randomUUID();
+        User user = mock(User.class);
+        when(user.getId()).thenReturn(userId);
+
+        AppAccess access = new AppAccess();
+        access.setId(UUID.randomUUID());
+        access.setActive(false);
+        access.setDeletedAt(Timestamp.from(Instant.now()));
+        access.setUser(user);
+
+        when(appAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(userId))
+            .thenReturn(List.of(access));
+
+        underTest.undeleteByUserId(userId);
+
+        verify(appAccessRepository, times(1))
+            .findAllByUser_IdAndDeletedAtIsNotNull(userId);
+
+        ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getId()).isEqualTo(access.getId());
+        assertThat(captor.getValue().getUser()).isEqualTo(user);
+        assertThat(captor.getValue().getDeletedAt()).isNull();
+        assertThat(captor.getValue().isActive()).isTrue();
+
+        verifyNoMoreInteractions(appAccessRepository);
+    }
+
+    @Test
+    @DisplayName("Should cope if undeleting a non-existent user")
+    void undeleteByNonExistentUser() {
+        when(appAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(any(UUID.class)))
+            .thenReturn(List.of());
+
+        underTest.undeleteByUserId(UUID.randomUUID());
+
+        verify(appAccessRepository, times(1))
+            .findAllByUser_IdAndDeletedAtIsNotNull(any(UUID.class));
+
+        verifyNoMoreInteractions(appAccessRepository);
     }
 }

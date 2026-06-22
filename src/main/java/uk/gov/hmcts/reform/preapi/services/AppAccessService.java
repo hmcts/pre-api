@@ -95,9 +95,11 @@ public class AppAccessService {
     public void deleteByUserId(UUID userId) {
         appAccessRepository
             .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .stream()
-            .map(AppAccess::getId)
-            .forEach(this::deleteById);
+            .forEach(access -> {
+                            access.setActive(false);
+                            access.setDeletedAt(Timestamp.from(Instant.now()));
+                            appAccessRepository.save(access);
+            });
     }
 
     @Transactional

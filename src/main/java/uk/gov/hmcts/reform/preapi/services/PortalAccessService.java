@@ -58,7 +58,11 @@ public class PortalAccessService {
     public void deleteByUserId(UUID userId) {
         portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(portalAccess -> this.deleteById(portalAccess.getId()));
+            .ifPresent(access -> {
+                access.setStatus(AccessStatus.INACTIVE);
+                access.setDeletedAt(Timestamp.from(Instant.now()));
+                portalAccessRepository.save(access);
+            });
     }
 
     @Transactional
