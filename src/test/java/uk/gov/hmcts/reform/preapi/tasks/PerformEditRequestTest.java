@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
-import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -88,8 +87,6 @@ class PerformEditRequestTest {
         when(editRequestService.markAsProcessing(editRequest1.getId())).thenReturn(editRequest1);
         when(editRequestService.markAsProcessing(editRequest2.getId())).thenReturn(editRequest2);
         when(editRequestService.markAsProcessing(editRequest5.getId())).thenReturn(editRequest5);
-        // when request is successful
-        when(editRequestService.performEdit(editRequest1)).thenReturn(new RecordingDTO());
         // when request errors in ffmpeg stage
         doThrow(UnknownServerException.class).when(editRequestService).performEdit(editRequest2);
         // when edit request is locked it should skip
