@@ -96,7 +96,7 @@ public class AuditService {
     }
 
     private AuditDTO toDto(Audit audit) {
-        var createdById = audit.getCreatedBy();
+        UUID createdById = audit.getCreatedBy();
         return createdById == null
             ? new AuditDTO(audit)
             : appAccessRepository.findById(createdById)
