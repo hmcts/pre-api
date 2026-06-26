@@ -14,13 +14,16 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
+import java.net.URI;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PreApiController {
+    public static final String CSV_FILE_TYPE = "text/csv";
+
     protected ResponseEntity<Void> getUpsertResponse(UpsertResult result, UUID id) {
-        var location = ServletUriComponentsBuilder
+        URI location = ServletUriComponentsBuilder
             .fromCurrentRequest()
             .path("")
             .buildAndExpand(id)

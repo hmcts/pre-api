@@ -14,11 +14,11 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = Application.class)
-public class UserTermsAcceptedTest extends IntegrationTestBase {
+class UserTermsAcceptedTest extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void testSaveAndRetrieve() {
+    void testSaveAndRetrieve() {
         var user = HelperFactory.createDefaultTestUser();
         entityManager.persist(user);
         entityManager.flush();

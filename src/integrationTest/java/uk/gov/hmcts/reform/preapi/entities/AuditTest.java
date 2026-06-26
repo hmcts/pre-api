@@ -21,7 +21,7 @@ class AuditTest extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void testSaveAndRetrieveAudit() throws JsonProcessingException {
+    void testSaveAndRetrieveAudit() throws JsonProcessingException {
         Audit audit = new Audit();
         audit.setTableName("TestTable");
         audit.setTableRecordId(UUID.randomUUID());

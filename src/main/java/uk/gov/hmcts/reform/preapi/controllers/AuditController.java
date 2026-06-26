@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -40,6 +41,7 @@ import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_H
 
 @RestController
 @RequestMapping("/audit")
+@SuppressWarnings("PMD.LooseCoupling") //We need HttpHeaders as it is case-insensitive
 public class AuditController {
 
     private final AuditService auditService;
@@ -59,7 +61,7 @@ public class AuditController {
             throw new PathPayloadMismatchException("id", "createAuditDTO.id");
         }
 
-        var userId = headers.getValuesAsList(X_USER_ID_HEADER).isEmpty()
+        UUID userId = headers.getValuesAsList(X_USER_ID_HEADER).isEmpty()
             ? null
             : UUID.fromString(headers.getValuesAsList(X_USER_ID_HEADER).getFirst());
         this.auditService.upsert(createAuditDTO, userId);
@@ -136,7 +138,7 @@ public class AuditController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<AuditDTO> assembler
     ) {
-        var resultPage = auditService.findAll(
+        Page<AuditDTO> resultPage = auditService.findAll(
             params.getAfter() != null ? Timestamp.valueOf(params.getAfter()) : null,
             params.getBefore() != null ? Timestamp.valueOf(params.getBefore()) : null,
             params.getFunctionalArea(),

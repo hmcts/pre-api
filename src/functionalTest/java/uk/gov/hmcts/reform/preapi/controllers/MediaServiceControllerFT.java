@@ -12,7 +12,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MediaServiceControllerFT extends FunctionalTestBase {
+class MediaServiceControllerFT extends FunctionalTestBase {
 
     private static final String VOD_ENDPOINT = "/media-service/vod";
 

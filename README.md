@@ -23,6 +23,7 @@
   * [Running the Smoke Tests](#running-the-smoke-tests)
 * [Developing for the Pre-Recorded Evidence API](#developing-for-the-pre-recorded-evidence-api)
   * [Loading the Local Database with Test Data](#loading-the-local-database-with-test-data)
+  * [Loading the Pull Request (PR) Database with Test Data](#loading-the-pull-request-pr-database-with-test-data)
   * [Run Code Checks and All Non-Functional Tests](#run-code-checks-and-all-non-functional-tests)
   * [How to generate a Power Platform Custom Connector](#how-to-generate-a-power-platform-custom-connector)
   * [Running the Crons](#running-the-crons)
@@ -34,9 +35,12 @@
 
 ### Intro to Pre-Recorded Evidence System
 
-The Pre-Recorded Evidence (PRE) system is a new service that allows the capturing of a video recorded hearing or testimony,
-and allows this recording to be securely shared to advocates, or played back in court. You can learn more about the service
+The Pre-Recorded Evidence (PRE) system is a service from HM Courts and Tribunal Service.
+
+It allows the capturing of a video-recorded hearing or testimony. Recordings can be securely shared to advocates, or played back in court. You can learn more about the service
 [here](https://tools.hmcts.net/confluence/display/S28/Pre-Recorded+Evidence).
+
+If you can access Gov Slack, you can find us [on our Slack channel](https://moj.enterprise.slack.com/archives/C08M18G0KHV). Otherwise, please fill this contact form https://www.gov.uk/contact/govuk and ask for the issue to be referred to the Pre-Recorded Evidence technical team.
 
 ### Purpose of pre-api in the System
 
@@ -328,17 +332,23 @@ You can also run individual test classes or methods by right-clicking on them an
 
 ### Running the Integration Tests
 
-To run integration tests, a docker image is needed for the
-postgres testcontainers database (temp database for testing). This will be done during the
-running of the tests.
+To run integration tests, a docker image is needed for the postgres database (temp database for testing).
+This will be set by ContainerImageNameSubstitutor during the running of the tests.
 
 #### Pre-requisites
-Testcontainers (test helper library) needs the HMCTS postgres image for the test database it sets up. For this to pull
-from HMCTS Azure Container Registry (ACR) you must login to the ACR first:
+Testcontainers (test helper library) needs a postgres image for the test database it sets up. The image used is set
+in ContainerImageNameSubstitutor. If a registry is not set, it pulls the image from Docker Hub.
+
+To pull an image from the HMCTS Azure Container Registry (ACR) instead, you must login to the ACR first:
 
 ```bash
 az login # if not logged in already
-az acr login --name hmctspublic
+
+## (Select DCD-CNP-Prod subscription)
+
+az acr login --name hmctsprod
+
+docker image pull hmctsprod.azurecr.io/imported/postgres:16-alpine
 ```
 
 #### With the Command Line
@@ -447,6 +457,52 @@ docker-compose rm
 
 This clears stopped containers correctly.
 
+### Loading the Pull Request (PR) Database with Test Data
+
+PR database pods are spun up at the same time as the application pod and so are empty when they start.
+To load it with test data you can use the [`load_data_into_pr_db.sh`](docker/database/local/load_data_into_pr_db.sh)
+script.
+
+The script makes use of the same SQL migration files as the local database load script, but it applies them to the PR
+database instead.
+
+#### Prerequisites
+
+- You will need to have the following installed, you can do this with Homebrew:
+  - Azure cli: brew install azure-cli
+  - kubectl: brew install kubectl
+  - kubelogin: brew install Azure/kubelogin/kubelogin
+
+#### Running the script
+
+- Change directory to the script location:
+
+```bash
+cd docker/database/local
+```
+
+- Run the script with the PR number as an argument:
+
+```bash
+bash load_data_into_pr_db.sh [PR_NUMBER e.g. pr-1234]
+```
+
+#### Helpful notes
+
+You can inspect the data to be loaded into the PR database by unzipping the tar file:
+
+```bash
+tar -xzf local_db_data.tar.gz
+```
+
+You can check the data has been loaded correctly by going to the PR URL and using the Swagger UI endpoints:
+`https://pre-api-[PR_NUMBER e.g. pr-1234].dev.platform.hmcts.net/swagger-ui/index.html?urls.primaryName=pre-api`
+(with F5 VPN on)
+
+
+Grab an X-User-Id to use (will only be usable if the script has been run) by unzipping the tar file (mentioned above) and looking in:
+docker/database/local/data/03_users/0314_app_access_202601091542.sql
+
 ### Run Code Checks and All Non-Functional Tests
 
 To run code style/quality checks and all non-functional tests, execute the following command:
@@ -480,6 +536,63 @@ or by source code:
 ```
 TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
 ```
+
+### Perform edit requests
+
+`PerformEditRequest` processes one pending edit request per run.
+
+By default, it only picks up regular edit requests and skips force re-encode requests. Set
+`PERFORM_EDIT_REQUEST_REENCODE_ONLY=true` to switch the same task to only pick up force re-encode requests.
+
+```bash
+TASK_NAME=PerformEditRequest ./gradlew bootRun
+```
+
+```bash
+PERFORM_EDIT_REQUEST_REENCODE_ONLY=true \
+TASK_NAME=PerformEditRequest \
+./gradlew bootRun
+```
+
+### Re-encode recordings from CSV
+
+`ReEncodeRecordingsFromCsv` creates force re-encode edit requests for recordings listed in a CSV file. It sets
+`force_reencode` to `true` and `send_notifications` to `false` on every edit request it creates.
+
+By default, the task will not create another re-encode request for a recording that already has a force re-encode edit
+request. Set `REENCODE_RECORDINGS_FORCE=true` to override that check and submit a new re-encode request anyway.
+Duplicate recording ids within the same CSV run are skipped.
+
+The CSV requires `source_recording_id` and can include an optional `case_reference` column for clearer progress logs:
+
+```csv
+source_recording_id,case_reference
+11111111-1111-1111-1111-111111111111,CASE-123
+22222222-2222-2222-2222-222222222222,CASE-456
+```
+
+For deployments that build the CSV into the application, replace `src/main/resources/re-encode-recordings.csv` before
+building the image and set `REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv`.
+
+Run it by source:
+
+```bash
+REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv \
+TASK_NAME=ReEncodeRecordingsFromCsv \
+./gradlew bootRun
+```
+
+Or by JAR:
+
+```bash
+./gradlew bootJar
+REENCODE_RECORDINGS_CSV_PATH=classpath:re-encode-recordings.csv \
+TASK_NAME=ReEncodeRecordingsFromCsv \
+java -jar build/libs/pre-api.jar run
+```
+
+Filesystem paths are also supported for local runs, for example
+`REENCODE_RECORDINGS_CSV_PATH=/path/to/re-encode-recordings.csv`.
 
 ## Troubleshooting
 
@@ -545,7 +658,26 @@ A connection string is used to connect to App Insights. This is configured to re
 
 Connecting to App Insights locally is possible, although a bit fiddly. The easiest way is to get the connection string from Azure, set it as an environment variable (`APPLICATIONINSIGHTS_CONNECTION_STRING`), and add the Java agent as a VM argument. You'll also need to remove or comment out the connection string line in the config file.
 
+### Fortify
+
+PRE API has been set up with Fortify at https://emea.fortify.com/Applications/43364
+
+It is not yet possible to run Fortify scans remotely against PR branches, but they can be run locally through an IntelliJ plugin.
+
+1. See [user guide](https://www.microfocus.com/documentation/fortify-on-demand/intj-254/)
+
+2. Download: https://emea.fortify.com/Tools/Downloads
+
+3. Restart IntelliJ
+
+4. Tools > OpenText Core Application Security > Start Scan > Static
+
+5. When you get to the auth page, select Identity Provider:
+  * Base URL: https://api.emea.fortify.com
+  * SSO Login URL: See PRE devs channel wiki on Slack
+
+6. Results will be uploaded to [Fortify PRE API](https://emea.fortify.com/Applications/43364)
+
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
-

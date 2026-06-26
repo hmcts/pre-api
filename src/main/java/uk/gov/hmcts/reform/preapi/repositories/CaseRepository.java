@@ -38,6 +38,7 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
 
     Optional<Case> findByIdAndDeletedAtIsNull(UUID id);
 
+    @SuppressWarnings("PMD.MethodNamingConventions")
     List<Case> findAllByReferenceAndCourt_Id(String caseReference, UUID courtId);
 
     List<Case> findAllByReference(String reference);

@@ -37,12 +37,16 @@ public class CourtDTO {
     @Schema(description = "CourtPostcode")
     private String postcode;
 
+    @Schema(description = "CourtGroupEmail")
+    private String groupEmail;
+
     @Schema(description = "CourtRegions")
     private List<RegionDTO> regions; // this was removed??
 
     public CourtDTO(Court courtEntity) {
         this.id = courtEntity.getId();
         this.name = courtEntity.getName();
+        this.groupEmail = courtEntity.getGroupEmail();
         this.courtType = courtEntity.getCourtType();
         this.locationCode = courtEntity.getLocationCode();
         this.county = courtEntity.getCounty();

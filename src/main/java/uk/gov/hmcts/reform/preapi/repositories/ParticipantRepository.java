@@ -8,5 +8,6 @@ import java.util.UUID;
 
 @Repository
 public interface ParticipantRepository extends JpaRepository<Participant, UUID> {
+    @SuppressWarnings("PMD.MethodNamingConventions")
     boolean existsByIdAndCaseId_Id(UUID id, UUID caseId);
 }

@@ -4,6 +4,12 @@ def type = "java"
 def product = "pre"
 def component = "api"
 
+properties([
+  parameters([
+    booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'Deploy to production?')
+  ])
+])
+
 def secrets = [
   'pre-hmctskv-${env}': [
     secret('govnotify-key-test', 'GOV_NOTIFY_API_KEY_TEST'),
@@ -26,6 +32,12 @@ withPipeline(type, product, component) {
   enableSlackNotifications('#pre-builds')
   enableDbMigration('pre-hmctskv')
 
+  def branchName = env.CHANGE_BRANCH ?: env.BRANCH_NAME
+  before('test') {
+    sh "echo 'Validate Swagger'"
+    sh swaggerValidate(branchName)
+  }
+
   afterSuccess('functionalTest:dev') {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
@@ -33,4 +45,24 @@ withPipeline(type, product, component) {
   afterSuccess('functionalTest:stg') {
     steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
   }
+
+  afterSuccess('Publish Helm chart') {
+    if (!params.DEPLOY_TO_PROD) {
+      echo "DEPLOY_TO_PROD not set - skipping production deployment"
+      error("AUTO_ABORT: Production deployment skipped")
+    }
+  }
+}
+
+static String swaggerValidate(String branchName) {
+  def repoName = "pre-api"
+  def swaggerPath = "specs/pre-api.json"
+  def script = 'url="https://raw.githubusercontent.com/hmcts/' + repoName + '/' + branchName + '/' + swaggerPath + '";' +
+    'CHECK=$(curl -X "GET" "https://validator.swagger.io/validator/debug?url=\${url}" --silent);' +
+    'if [[ "\$CHECK" != "{}" ]]; then' +
+    '  echo -e "\\nSorry this is an invalid Swagger:\\n\$CHECK\\n";' +
+    '  exit 1;' +
+    'fi;'
+
+  return script
 }

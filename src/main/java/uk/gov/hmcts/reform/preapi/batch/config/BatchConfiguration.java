@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
+import java.util.List;
 
 @Configuration
 @EnableBatchProcessing
@@ -53,6 +54,7 @@ public class BatchConfiguration implements StepExecutionListener {
     public LoggingService loggingService;
 
     @Autowired
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     public BatchConfiguration(final JobRepository jobRepository,
                               final PlatformTransactionManager transactionManager,
                               final PreProcessor preProcessor,
@@ -97,7 +99,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("preProcessMetadataStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
-                    var pendingRecords = migrationRecordService.getPendingMigrationRecords();
+                    List<MigrationRecord> pendingRecords = migrationRecordService.getPendingMigrationRecords();
 
                     if (pendingRecords.isEmpty()) {
                         loggingService.logInfo("No pending migration records to pre-process.");

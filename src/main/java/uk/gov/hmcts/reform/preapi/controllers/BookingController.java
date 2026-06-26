@@ -31,6 +31,7 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.UpdateBookingCaseDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -174,6 +175,19 @@ public class BookingController extends PreApiController {
         return getUpsertResponse(bookingService.upsert(createBookingDTO), createBookingDTO.getId());
     }
 
+    @PutMapping("/migrate-case/{bookingId}")
+    @Operation(operationId = "migrateToDifferentCaseReference",
+        summary = "Migrate a Booking to a different case reference")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public ResponseEntity<BookingDTO> migrateToDifferentCaseReference(@PathVariable UUID bookingId,
+                                             @Valid @RequestBody UpdateBookingCaseDTO updateBookingCaseDTO) {
+        if (!bookingId.equals(updateBookingCaseDTO.getBookingId())) {
+            throw new PathPayloadMismatchException("bookingId", "updateBookingCaseDTO.bookingId");
+        }
+        bookingService.migrateToNewCaseRef(updateBookingCaseDTO);
+        return ok(bookingService.findById(bookingId));
+    }
+
     @DeleteMapping("/{bookingId}")
     @Operation(operationId = "deleteBooking", summary = "Delete a Booking")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
@@ -198,8 +212,10 @@ public class BookingController extends PreApiController {
                 .getContext().getAuthentication()).getUserId());
         }
 
-        return getUpsertResponse(shareBookingService
-                                     .shareBookingById(createShareBookingDTO), createShareBookingDTO.getId());
+        return getUpsertResponse(
+            shareBookingService
+                .shareBookingById(createShareBookingDTO), createShareBookingDTO.getId()
+        );
     }
 
     @DeleteMapping("/{bookingId}/share/{shareId}")
@@ -230,8 +246,7 @@ public class BookingController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<ShareBookingDTO> assembler
     ) {
-
-        var resultPage = shareBookingService.getShareLogsForBooking(bookingId, pageable);
+        Page<ShareBookingDTO> resultPage = shareBookingService.getShareLogsForBooking(bookingId, pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
@@ -246,7 +261,6 @@ public class BookingController extends PreApiController {
         bookingService.undelete(bookingId);
         return ok().build();
     }
-
 
     private void validateRequestWithBody(UUID bookingId, CreateBookingDTO createBookingDTO) {
         if (!bookingId.equals(createBookingDTO.getId())) {

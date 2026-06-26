@@ -24,7 +24,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.UUID;
 
-public class UserServiceIT extends IntegrationTestBase {
+class UserServiceIT extends IntegrationTestBase {
     private static User userEntity;
     private static User portalUserEntity;
     private static User appUserEntity;
@@ -108,7 +108,7 @@ public class UserServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void searchUsersAsAdmin() {
+    void searchUsersAsAdmin() {
         mockAdminUser();
         userEntity.setDeletedAt(Timestamp.from(Instant.now()));
         entityManager.persist(userEntity);
@@ -155,7 +155,7 @@ public class UserServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void testGetUserByAccessType() {
+    void testGetUserByAccessType() {
         var resultApp = userService.findAllBy(
             null,
             null,
@@ -218,7 +218,7 @@ public class UserServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void deleteUndeleteUserSuccess() {
+    void deleteUndeleteUserSuccess() {
         userService.deleteById(userEntity.getId());
         entityManager.flush();
         entityManager.refresh(userEntity);

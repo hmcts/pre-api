@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
@@ -42,7 +43,7 @@ public class EditReportDTO {
     public EditReportDTO(Recording recordingEntity) {
         createdAt = recordingEntity.getCreatedAt();
         version = recordingEntity.getVersion();
-        var caseEntity = recordingEntity
+        Case caseEntity = recordingEntity
             .getCaptureSession()
             .getBooking()
             .getCaseId();

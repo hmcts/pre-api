@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchMigrationRecords;
 import uk.gov.hmcts.reform.preapi.dto.migration.CreateVfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.dto.migration.VfMigrationRecordDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.tasks.migration.BatchImportMissingMkAssets;
@@ -234,13 +235,16 @@ public class VfMigrationControllerTest {
         createDto.setWitnessName("witness-name");
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
+        when(migrationRecordService.update(any(CreateVfMigrationRecordDTO.class)))
+            .thenThrow(new BadRequestException("Court ID is required"));
+
         mockMvc.perform(put("/vf-migration-records/" + mockId)
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(createDto))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.courtId").value("must not be null"));
+            .andExpect(jsonPath("$.message").value("Court ID is required"));
     }
 
     @Test
@@ -256,13 +260,16 @@ public class VfMigrationControllerTest {
         createDto.setCourtId(UUID.randomUUID());
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
+        when(migrationRecordService.update(any(CreateVfMigrationRecordDTO.class)))
+            .thenThrow(new BadRequestException("URN is required"));
+
         mockMvc.perform(put("/vf-migration-records/" + mockId)
                         .with(csrf())
                         .content(OBJECT_MAPPER.writeValueAsString(createDto))
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.urn").value("must not be null"));
+            .andExpect(jsonPath("$.message").value("URN is required"));
     }
 
     @Test
@@ -441,13 +448,16 @@ public class VfMigrationControllerTest {
         createDto.setCourtId(UUID.randomUUID());
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
+        when(migrationRecordService.update(any(CreateVfMigrationRecordDTO.class)))
+            .thenThrow(new BadRequestException("Defendant name is required"));
+
         mockMvc.perform(put("/vf-migration-records/" + mockId)
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(createDto))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.defendantName").value("must not be empty"));
+            .andExpect(jsonPath("$.message").value("Defendant name is required"));
     }
 
     @Test
@@ -463,13 +473,16 @@ public class VfMigrationControllerTest {
         createDto.setCourtId(UUID.randomUUID());
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
 
+        when(migrationRecordService.update(any(CreateVfMigrationRecordDTO.class)))
+            .thenThrow(new BadRequestException("Witness name is required"));
+
         mockMvc.perform(put("/vf-migration-records/" + mockId)
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(createDto))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.witnessName").value("must not be empty"));
+            .andExpect(jsonPath("$.message").value("Witness name is required"));
     }
 
     @Test
@@ -485,13 +498,16 @@ public class VfMigrationControllerTest {
         createDto.setWitnessName("witness-name");
         createDto.setCourtId(UUID.randomUUID());
 
+        when(migrationRecordService.update(any(CreateVfMigrationRecordDTO.class)))
+            .thenThrow(new BadRequestException("Recording version is required"));
+
         mockMvc.perform(put("/vf-migration-records/" + mockId)
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(createDto))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.recordingVersion").value("must not be null"));
+            .andExpect(jsonPath("$.message").value("Recording version is required"));
     }
 
     @Test

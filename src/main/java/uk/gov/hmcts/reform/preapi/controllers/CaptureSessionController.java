@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
@@ -27,24 +29,38 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.RegistrationService;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
+
+import static java.lang.String.format;
 
 @RestController
 @RequestMapping("/capture-sessions")
 public class CaptureSessionController extends PreApiController {
 
     private final CaptureSessionService captureSessionService;
+    private final RegistrationService registrationService;
+    @Value("${capture-session-registration.processing-timeout-minutes}")
+    private int processingTimeoutMinutes;
 
     @Autowired
-    public CaptureSessionController(CaptureSessionService captureSessionService) {
+    public CaptureSessionController(CaptureSessionService captureSessionService,
+                                    RegistrationService registrationService) {
+        super();
         this.captureSessionService = captureSessionService;
+        this.registrationService = registrationService;
     }
 
     @GetMapping("/{captureSessionId}")
@@ -108,7 +124,7 @@ public class CaptureSessionController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<CaptureSessionDTO> assembler
     ) {
-        var resultPage = captureSessionService.searchBy(
+        Page<CaptureSessionDTO> resultPage = captureSessionService.searchBy(
             params.getCaseReference(),
             params.getBookingId(),
             params.getOrigin(),
@@ -148,6 +164,53 @@ public class CaptureSessionController extends PreApiController {
             captureSessionService.upsert(createCaptureSessionDTO),
             createCaptureSessionDTO.getId()
         );
+    }
+
+    @PutMapping("/trigger-registration/{captureSessionId}")
+    @Operation(operationId = "triggerRegistrationForCaptureSession",
+        summary = "Register a Capture Session that got stuck in PROCESSING state")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> registerCaptureSession(@PathVariable UUID captureSessionId) {
+
+        CaptureSessionDTO inDatabase = captureSessionService.findById(captureSessionId);
+
+        if (inDatabase == null) {
+            throw new NotFoundException(format(
+                "Capture Session with id %s not on the PRE system at all. Typo?",
+                captureSessionId
+            ));
+        }
+
+        if (inDatabase.getStatus() != RecordingStatus.PROCESSING) {
+            throw new ResourceInWrongStateException(
+                format(
+                    "Capture session with ID %s is in an incorrect state for registration: %s",
+                    captureSessionId, inDatabase.getStatus()
+                ));
+        }
+
+        Timestamp timestampAtEndOfWindowOfTolerance = Timestamp.from(inDatabase.getFinishedAt().toInstant()
+                                                                         .plus(
+                                                                             processingTimeoutMinutes,
+                                                                             ChronoUnit.MINUTES
+                                                                         ));
+
+        if (timestampAtEndOfWindowOfTolerance.after(Timestamp.from(Instant.now()))) {
+            String errorMessage = format(
+                "Capture session with ID %s finished processing at %s on %s. "
+                    + "This is within the agreed tolerance window of %s minutes."
+                    + " Please try again after %s.",
+                captureSessionId,
+                DateTimeUtils.formatTime(inDatabase.getFinishedAt()),
+                DateTimeUtils.formatDate(inDatabase.getFinishedAt()),
+                processingTimeoutMinutes,
+                DateTimeUtils.formatTime(timestampAtEndOfWindowOfTolerance)
+            );
+
+            throw new ResourceInWrongStateException(errorMessage);
+        }
+
+        return getUpsertResponse(registrationService.register(captureSessionId), captureSessionId);
     }
 
     @PostMapping("/{captureSessionId}/undelete")

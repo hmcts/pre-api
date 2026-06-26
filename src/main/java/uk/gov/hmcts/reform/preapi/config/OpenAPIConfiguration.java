@@ -27,7 +27,7 @@ public class OpenAPIConfiguration {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
-            .info(new Info().title("PRE API")
+            .info(new Info().title("Pre Recorded Evidence API")
                       .description("PRE API - Used for managing courts, bookings, recordings and permissions.")
                       .version("v0.0.1")
                       .license(new License().name("MIT").url("https://opensource.org/licenses/MIT")))
@@ -39,7 +39,7 @@ public class OpenAPIConfiguration {
     @Bean
     public OperationCustomizer customGlobalHeaders() {
         return (Operation customOperation, HandlerMethod handlerMethod) -> {
-            var serviceAuthorizationHeader = new Parameter()
+            Parameter serviceAuthorizationHeader = new Parameter()
                 .in(ParameterIn.HEADER.toString())
                 .schema(new UUIDSchema())
                 .name(X_USER_ID_HEADER)
@@ -54,7 +54,7 @@ public class OpenAPIConfiguration {
     @Bean
     public OpenApiCustomizer publicApiSecurityRequirement() {
         return openApi -> {
-            var components = openApi.getComponents();
+            Components components = openApi.getComponents();
             if (components == null) {
                 components = new Components();
                 openApi.setComponents(components);

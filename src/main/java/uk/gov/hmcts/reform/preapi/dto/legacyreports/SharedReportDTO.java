@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 
 import java.sql.Timestamp;
@@ -54,7 +55,7 @@ public class SharedReportDTO {
         allocatedToFullName = shareBooking.getSharedWith().getFullName();
         allocatedBy = shareBooking.getSharedBy().getEmail();
         allocatedByFullName = shareBooking.getSharedBy().getFullName();
-        var caseEntity = shareBooking.getBooking().getCaseId();
+        Case caseEntity = shareBooking.getBooking().getCaseId();
         caseReference = caseEntity.getReference();
         court = caseEntity.getCourt().getName();
         regions = Stream.ofNullable(caseEntity.getCourt().getRegions())

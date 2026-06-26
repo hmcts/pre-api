@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,9 @@ import java.util.stream.Collectors;
 @Service
 public class RecordingService {
 
+    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final RecordingRepository recordingRepository;
     private final CaptureSessionRepository captureSessionRepository;
     private final CaptureSessionService captureSessionService;
@@ -50,24 +55,31 @@ public class RecordingService {
     @Setter
     private boolean enableMigratedData;
 
+    @Setter
+    private boolean hideReencodedRecordings;
+
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository,
                             @Lazy CaptureSessionService captureSessionService,
                             AzureFinalStorageService azureFinalStorageService,
-                            @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
+                            @Value("${migration.enableMigratedData:false}") boolean enableMigratedData,
+                            @Value("${feature-flags.hide-reencoded-recordings:true}")
+                            boolean hideReencodedRecordings) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.enableMigratedData = enableMigratedData;
+        this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public RecordingDTO findById(UUID recordingId) {
-        return recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
-            .map(RecordingDTO::new)
+        boolean includeReencodedRecordings = canViewReencodedRecordings();
+        return recordingRepository.findByIdAndDeletedAtIsNull(recordingId, includeReencodedRecordings)
+            .map(recording -> new RecordingDTO(recording, includeReencodedRecordings))
             .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
     }
 
@@ -96,7 +108,8 @@ public class RecordingService {
                                         : null
         );
 
-        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        boolean includeReencodedRecordings = canViewReencodedRecordings(auth);
         params.setAuthorisedBookings(
             auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );
@@ -108,10 +121,11 @@ public class RecordingService {
             .searchAllBy(
                 params,
                 includeDeleted,
-                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
+                enableMigratedData || auth.hasRole(ROLE_SUPER_USER),
+                includeReencodedRecordings,
                 pageable
             )
-            .map(RecordingDTO::new);
+            .map(recording -> new RecordingDTO(recording, includeReencodedRecordings));
     }
 
     @Transactional
@@ -133,6 +147,7 @@ public class RecordingService {
         recordingEntity.setFilename(createRecordingDTO.getFilename());
         recordingEntity.setDuration(createRecordingDTO.getDuration());
         recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
+        recordingEntity.setReencode(isReencodedRecording(createRecordingDTO.getEditInstructions()));
 
         recordingRepository.save(recordingEntity);
 
@@ -141,15 +156,14 @@ public class RecordingService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createRecordingDTO)")
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateRecordingDTO createRecordingDTO) {
-        var recording = recordingRepository.findById(createRecordingDTO.getId());
+        Optional<Recording> recording = recordingRepository.findById(createRecordingDTO.getId());
 
         if (recording.isPresent() && recording.get().isDeleted()) {
             throw new ResourceInDeletedStateException("RecordingDTO", createRecordingDTO.getId().toString());
         }
 
-        var captureSession = captureSessionRepository
+        CaptureSession captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(createRecordingDTO.getCaptureSessionId())
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId()));
 
@@ -163,6 +177,30 @@ public class RecordingService {
         }
 
         return upsert(recording, captureSession, createRecordingDTO);
+    }
+
+    private boolean isReencodedRecording(String editInstructions) {
+        if (editInstructions == null || editInstructions.isBlank()) {
+            return false;
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(editInstructions);
+            return root.path("forceReencode").asBoolean(false)
+                || root.path("editInstructions").path("forceReencode").asBoolean(false);
+        } catch (Exception e) {
+            log.warn("Unable to parse recording edit instructions while checking re-encode visibility marker", e);
+            return false;
+        }
+    }
+
+    private boolean canViewReencodedRecordings() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        return canViewReencodedRecordings(auth);
+    }
+
+    private boolean canViewReencodedRecordings(UserAuthentication auth) {
+        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
     }
 
     @Transactional
@@ -180,7 +218,7 @@ public class RecordingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public void deleteById(UUID recordingId) {
-        var recording = recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
+        Recording recording = recordingRepository.findByIdAndDeletedAtIsNull(recordingId)
             .orElseThrow(() -> new NotFoundException("Recording: " + recordingId));
         recording.setDeleteOperation(true);
         recording.setDeletedAt(Timestamp.from(Instant.now()));
@@ -190,15 +228,26 @@ public class RecordingService {
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void checkIfCaptureSessionHasAssociatedRecordings(CaptureSession captureSession) {
-        if (recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)) {
-            throw new CaptureSessionNotDeletedException();
+        Optional<Recording> recording = recordingRepository.findFirstByCaptureSessionAndDeletedAtIsNull(captureSession);
+        if (recording.isPresent()) {
+            UUID captureSessionId = captureSession.getId();
+            UUID recordingId = recording.get().getId();
+            log.error(
+                "Cannot delete capture session because an associated recording has not been deleted. "
+                    + "captureSessionId={} "
+                    + "recordingId={}",
+                captureSessionId,
+                recordingId
+            );
+            throw new CaptureSessionNotDeletedException(captureSessionId, recordingId);
         }
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #id)")
     public void undelete(UUID id) {
-        var entity = recordingRepository.findById(id).orElseThrow(() -> new NotFoundException("Recording: " + id));
+        Recording entity = recordingRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Recording: " + id));
         captureSessionService.undelete(entity.getCaptureSession().getId());
         if (!entity.isDeleted()) {
             return;

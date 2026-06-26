@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.AuditController;
 import uk.gov.hmcts.reform.preapi.dto.AuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
@@ -61,18 +62,15 @@ class AuditControllerTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private String getPath(UUID auditId) {
-        return "/audit/" + auditId;
-    }
-
     @BeforeAll
-    public static void setUp() {
+    static void setUp() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
     }
 
-    @Test
     @DisplayName("Should create an audit record with 201 response code")
-    public void createAuditEndpointCreated() throws Exception {
+    @Test
+    void createAuditEndpointCreated() throws Exception {
+
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
@@ -81,7 +79,7 @@ class AuditControllerTest {
         var xUserId = UUID.randomUUID();
         when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
 
-        var response = mockMvc.perform(put(getPath(audit.getId()))
+        MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())
                                                  .header(X_USER_ID_HEADER, xUserId)
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
@@ -93,9 +91,10 @@ class AuditControllerTest {
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
 
-    @Test
     @DisplayName("Should create an audit record with 201 response code without x-user-id header")
-    public void createAuditEndpointWithoutXUserIdCreated() throws Exception {
+    @Test
+    void createAuditEndpointWithoutXUserIdCreated() throws Exception {
+
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
@@ -104,7 +103,7 @@ class AuditControllerTest {
         var xUserId = UUID.randomUUID();
         when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
 
-        var response = mockMvc.perform(put(getPath(audit.getId()))
+        MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -115,9 +114,10 @@ class AuditControllerTest {
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
 
-    @Test
     @DisplayName("Should fail to update an audit record as they are immutable")
-    public void updateAuditFailure() throws Exception {
+    @Test
+    void updateAuditFailure() throws Exception {
+
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
@@ -137,9 +137,10 @@ class AuditControllerTest {
                            .value("Data is immutable and cannot be changed. Id: " + audit.getId()));
     }
 
-    @Test
     @DisplayName("Should fail to create an audit record with 400 response code auditId mismatch")
-    public void createAuditEndpointAuditIdMismatch() throws Exception {
+    @Test
+    void createAuditEndpointAuditIdMismatch() throws Exception {
+
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
@@ -147,7 +148,7 @@ class AuditControllerTest {
 
         var xUserId = UUID.randomUUID();
 
-        var response = mockMvc.perform(put(getPath(UUID.randomUUID()))
+        MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
                                                  .with(csrf())
                                                  .header(X_USER_ID_HEADER, xUserId)
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
@@ -160,9 +161,10 @@ class AuditControllerTest {
             .isEqualTo("{\"message\":\"Path id does not match payload property createAuditDTO.id\"}");
     }
 
-    @Test
     @DisplayName("Should fail to create an audit record with 400 response code")
-    public void createAuditEndpointNotAcceptable() throws Exception {
+    @Test
+    void createAuditEndpointNotAcceptable() throws Exception {
+
         mockMvc.perform(put(getPath(UUID.randomUUID())))
             .andExpect(status().is4xxClientError());
     }
@@ -199,7 +201,7 @@ class AuditControllerTest {
             .thenReturn(new PageImpl<>(auditDTOList));
 
         mockMvc.perform(get("/audit?after=" + searchTimestampAfterStr)
-                                              .with(csrf()))
+                            .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$._embedded.auditDTOList").isNotEmpty())
             .andExpect(jsonPath("$._embedded.auditDTOList[0].id").value(auditLogId.toString()));
@@ -359,7 +361,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Should get audit by id")
-    public void getAuditByIdSuccess() throws Exception {
+    void getAuditByIdSuccess() throws Exception {
         UUID auditLogId = UUID.randomUUID();
         var mockAuditDTO = new AuditDTO();
         mockAuditDTO.setId(auditLogId);
@@ -373,7 +375,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Should return 404 when audit not found")
-    public void getAuditByIdNotFound() throws Exception {
+    void getAuditByIdNotFound() throws Exception {
         UUID auditLogId = UUID.randomUUID();
         var mockAuditDTO = new AuditDTO();
         mockAuditDTO.setId(auditLogId);
@@ -384,5 +386,9 @@ class AuditControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Audit: " + auditLogId));
+    }
+
+    private String getPath(UUID auditId) {
+        return "/audit/" + auditId;
     }
 }

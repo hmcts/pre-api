@@ -2,9 +2,11 @@ package uk.gov.hmcts.reform.preapi.exception;
 
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
+import java.io.Serial;
 import java.util.UUID;
 
 public class ResourceInWrongStateException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 6579941126346533851L;
 
     public ResourceInWrongStateException(String className, String id, String currentState, String expectedState) {

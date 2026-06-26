@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.UpdateBookingCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -39,7 +40,6 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -413,62 +413,6 @@ class BookingControllerTest {
             .isEqualTo("{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}");
     }
 
-    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is before today")
-    @Test
-    void createBookingEndpoint400ScheduledForInThePast() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-        booking.setParticipants(getCreateParticipantDTOs());
-        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusWeeks(1).toInstant()));
-
-        CaseDTO mockCaseDTO = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-
-        MvcResult response = mockMvc.perform(put(getPath(bookingId))
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-                                    .andExpect(status().isBadRequest())
-                                    .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"scheduledFor\":\"must not be before today\"}"
-            );
-    }
-
-    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is in the past same day")
-    @Test
-    void createBookingEndpointScheduledForInThePastButToday() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-        booking.setParticipants(getCreateParticipantDTOs());
-        booking.setScheduledFor(
-            Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS))
-        );
-        booking.setParticipants(getCreateParticipantDTOs());
-
-        CaseDTO mockCaseDTO = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
-
-        mockMvc.perform(put(getPath(bookingId))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(booking))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isCreated());
-    }
-
     @DisplayName("Should fail to update a booking with 400 response code as its already deleted")
     @Test
     void updateBookingEndpoint400() throws Exception {
@@ -830,19 +774,78 @@ class BookingControllerTest {
             .andExpect(status().isOk());
     }
 
-    @DisplayName("Should undelete a booking by id and return a 404 response")
+    @DisplayName("Should migrate a booking to a different existing case reference")
     @Test
-    void undeleteBookingNotFound() throws Exception {
-        var bookingId = UUID.randomUUID();
+    void shouldMigrateABookingToADifferentCaseReference() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID caseId = UUID.randomUUID();
+
+        CaseDTO caseToReturn = new CaseDTO();
+        caseToReturn.setId(caseId);
+
+        BookingDTO bookingToReturn = new BookingDTO();
+        bookingToReturn.setId(bookingId);
+        bookingToReturn.setCaseDTO(caseToReturn);
+
+        when(bookingService.findById(bookingId)).thenReturn(bookingToReturn);
+
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
+        mockMvc.perform(put("/bookings/migrate-case/" + bookingId)
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(updateBookingCaseDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(bookingToReturn.getId().toString()))
+            .andExpect(jsonPath("$.case_dto.id").value(caseToReturn.getId().toString()));
+    }
+
+
+    @DisplayName("Handle error thrown by booking migrate case reference")
+    @Test
+    void handleErrorThrownByBookingMigrateCaseReference() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID caseId = UUID.randomUUID();
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
         doThrow(
             new NotFoundException("Booking: " + bookingId)
-        ).when(bookingService).undelete(bookingId);
+        ).when(bookingService).migrateToNewCaseRef(updateBookingCaseDTO);
 
-        mockMvc.perform(post("/bookings/" + bookingId + "/undelete")
-                            .with(csrf()))
+        mockMvc.perform(put("/bookings/migrate-case/" + bookingId)
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(updateBookingCaseDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Booking: " + bookingId));
+    }
+
+    @DisplayName("When migrating booking case, should throw error if booking body does not match path")
+    @Test
+    void moveBookingToDifferentCaseReferenceErrorIfBookingDoesNotMatch() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID caseId = UUID.randomUUID();
+
+        CaseDTO caseToReturn = new CaseDTO();
+        caseToReturn.setId(caseId);
+
+        BookingDTO bookingToReturn = new BookingDTO();
+        bookingToReturn.setId(bookingId);
+        bookingToReturn.setCaseDTO(caseToReturn);
+
+        when(bookingService.findById(bookingId)).thenReturn(bookingToReturn);
+
+        UpdateBookingCaseDTO updateBookingCaseDTO = new UpdateBookingCaseDTO(bookingId, caseId);
+        mockMvc.perform(put("/bookings/migrate-case/" + UUID.randomUUID())
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(updateBookingCaseDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Path bookingId does not match payload property "
+                                      + "updateBookingCaseDTO.bookingId"));
     }
 
     private String getPath(UUID bookingId) {

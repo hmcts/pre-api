@@ -1,14 +1,15 @@
 package uk.gov.hmcts.reform.preapi.dto.base;
 
-
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.SanitizedStringConstraint;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.util.UUID;
@@ -17,15 +18,18 @@ import java.util.UUID;
 @NoArgsConstructor
 @Schema(description = "BaseUserDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@SuppressWarnings("common-java:DuplicatedBlocks")
 public class BaseUserDTO {
     @Schema(description = "UserId")
     @NotNull
     protected UUID id;
 
+    @SanitizedStringConstraint
     @Schema(description = "UserFirstName")
     @NotBlank
     protected String firstName;
 
+    @SanitizedStringConstraint
     @Schema(description = "UserLastName")
     @NotBlank
     protected String lastName;
@@ -35,17 +39,25 @@ public class BaseUserDTO {
     @Email
     protected String email;
 
+    @Schema(description = "AlternativeEmail")
+    @Size(max = 100)
+    @Email
+    protected String alternativeEmail;
+
+    @SanitizedStringConstraint
     @Schema(description = "UserPhoneNumber")
     protected String phoneNumber;
 
+    @SanitizedStringConstraint
     @Schema(description = "UserOrganisation")
     protected String organisation;
 
     public BaseUserDTO(User user) {
         id = user.getId();
+        email = user.getEmail();
+        alternativeEmail = user.getAlternativeEmail();
         firstName = user.getFirstName();
         lastName = user.getLastName();
-        email = user.getEmail();
         phoneNumber = user.getPhone();
         organisation = user.getOrganisation();
     }

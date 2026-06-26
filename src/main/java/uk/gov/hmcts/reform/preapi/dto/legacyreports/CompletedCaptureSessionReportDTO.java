@@ -7,6 +7,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -58,16 +61,16 @@ public class CompletedCaptureSessionReportDTO {
     private Set<RegionDTO> regions;
 
     public CompletedCaptureSessionReportDTO(Recording recording) {
-        var captureSession = recording.getCaptureSession();
+        CaptureSession captureSession = recording.getCaptureSession();
 
         startedAt = captureSession.getStartedAt();
         finishedAt = captureSession.getFinishedAt();
         duration = recording.getDuration();
 
-        var booking = captureSession.getBooking();
+        Booking booking = captureSession.getBooking();
         scheduledFor = booking.getScheduledFor();
 
-        var caseEntity = booking.getCaseId();
+        Case caseEntity = booking.getCaseId();
         caseReference = caseEntity.getReference();
         countDefendants = (int) booking
             .getParticipants()
