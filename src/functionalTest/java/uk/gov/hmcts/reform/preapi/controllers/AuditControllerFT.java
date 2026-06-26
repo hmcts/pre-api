@@ -22,10 +22,7 @@ class AuditControllerFT extends FunctionalTestBase {
     @DisplayName("Should fail to update an audit record as they are immutable")
     @Test
     void updateAuditFailure() throws JsonProcessingException {
-        var audit = new CreateAuditDTO();
-        audit.setId(UUID.randomUUID());
-        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
-        audit.setSource(AuditLogSource.AUTO);
+        var audit = createCreateAuditDTO();
         TestingSupportRoles authenticatedAs = TestingSupportRoles.SUPER_USER;
 
         var success = putAudit(audit, authenticatedAs);
@@ -48,19 +45,13 @@ class AuditControllerFT extends FunctionalTestBase {
     @DisplayName("Should sort by created at desc")
     @Test
     void getAuditLogsSortBy() throws JsonProcessingException {
-        var audit1 = new CreateAuditDTO();
-        audit1.setId(UUID.randomUUID());
-        audit1.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test1\"}"));
-        audit1.setSource(AuditLogSource.AUTO);
+        var audit1 = createCreateAuditDTO();
         TestingSupportRoles authenticatedAs = TestingSupportRoles.SUPER_USER;
 
         var success1 = putAudit(audit1, authenticatedAs);
         assertResponseCode(success1, 201);
 
-        var audit2 = new CreateAuditDTO();
-        audit2.setId(UUID.randomUUID());
-        audit2.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test2\"}"));
-        audit2.setSource(AuditLogSource.AUTO);
+        var audit2 = createCreateAuditDTO();
 
         var success2 = putAudit(audit2, authenticatedAs);
         assertResponseCode(success2, 201);
@@ -93,10 +84,7 @@ class AuditControllerFT extends FunctionalTestBase {
     @DisplayName("Should put audit successfully as anonymous user")
     @Test
     void putAuditSuccessfullyAsAnonymousUser() throws JsonProcessingException {
-        CreateAuditDTO audit = new CreateAuditDTO();
-        audit.setId(UUID.randomUUID());
-        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test1\"}"));
-        audit.setSource(AuditLogSource.AUTO);
+        CreateAuditDTO audit = createCreateAuditDTO();
 
         Response response = putAudit(audit, null);
         assertResponseCode(response, 201);
@@ -105,13 +93,18 @@ class AuditControllerFT extends FunctionalTestBase {
     @DisplayName("Should put audit successfully as authenticated user")
     @Test
     void putAuditSuccessfullyAsAuthenticatedUser() throws JsonProcessingException {
-        CreateAuditDTO audit = new CreateAuditDTO();
-        audit.setId(UUID.randomUUID());
-        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test1\"}"));
-        audit.setSource(AuditLogSource.AUTO);
+        CreateAuditDTO audit = createCreateAuditDTO();
         TestingSupportRoles authenticatedAs = TestingSupportRoles.SUPER_USER;
 
         Response response = putAudit(audit, authenticatedAs);
         assertResponseCode(response, 201);
+    }
+
+    private CreateAuditDTO createCreateAuditDTO() throws JsonProcessingException {
+        var audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
+        audit.setSource(AuditLogSource.AUTO);
+        return audit;
     }
 }
