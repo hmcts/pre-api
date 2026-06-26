@@ -177,13 +177,13 @@ public class XUserIdFilterTest {
     void doFilterWithGetRequiringAuthButPutDoesNotRequireAuth() throws Exception {
         var requestUri = "/audit";
         var request = mock(MockHttpServletRequest.class);
-        var id = UUID.randomUUID();
-        var response = mock(MockHttpServletResponse.class);
-        var filterChain = mock(MockFilterChain.class);
 
         when(request.getRequestURI()).thenReturn(requestUri);
         when(request.getServletPath()).thenReturn(requestUri);
         when(request.getPathInfo()).thenReturn(requestUri);
+
+        var response = mock(MockHttpServletResponse.class);
+        var filterChain = mock(MockFilterChain.class);
 
         // PUT
         when(request.getMethod()).thenReturn("PUT");
@@ -195,6 +195,7 @@ public class XUserIdFilterTest {
         verify(filterChain, times(1)).doFilter(request, response);
 
         // GET
+        var id = UUID.randomUUID();
         when(request.getMethod()).thenReturn("GET");
         when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
         filter.doFilter(request, response, filterChain);
