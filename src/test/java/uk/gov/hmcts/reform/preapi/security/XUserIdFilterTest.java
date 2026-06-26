@@ -171,4 +171,37 @@ public class XUserIdFilterTest {
         verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(filterChain, times(2)).doFilter(request, response);
     }
+
+    @DisplayName("Should require auth for GET but not for PUT")
+    @Test
+    void doFilterWithGetRequiringAuthButPutDoesNotRequireAuth() throws Exception {
+        var requestUri = "/audit";
+        var request = mock(MockHttpServletRequest.class);
+        var id = UUID.randomUUID();
+        var response = mock(MockHttpServletResponse.class);
+        var filterChain = mock(MockFilterChain.class);
+
+        when(request.getRequestURI()).thenReturn(requestUri);
+        when(request.getServletPath()).thenReturn(requestUri);
+        when(request.getPathInfo()).thenReturn(requestUri);
+
+        // PUT
+        when(request.getMethod()).thenReturn("PUT");
+        filter.doFilter(request, response, filterChain);
+
+        verify(request, never()).getHeader(X_USER_ID_HEADER);
+        verify(userAuthenticationService, never()).loadAppUserById(any());
+        verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, times(1)).doFilter(request, response);
+
+        // GET
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
+        filter.doFilter(request, response, filterChain);
+
+        verify(request, times(1)).getHeader(X_USER_ID_HEADER);
+        verify(userAuthenticationService, times(1)).loadAppUserById(id.toString());
+        verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, times(2)).doFilter(request, response);
+    }
 }

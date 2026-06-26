@@ -32,7 +32,6 @@ public class SecurityConfig {
         "/prometheus",
         "/users/by-email/**",
         "/reports/**",
-        "/audit/**",
         "/b2c/**",
         "/error",
         "/app-terms-and-conditions/latest",

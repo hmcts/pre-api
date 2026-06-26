@@ -26,21 +26,22 @@ class AuditControllerFT extends FunctionalTestBase {
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
         audit.setSource(AuditLogSource.AUTO);
+        TestingSupportRoles authenticatedAs = TestingSupportRoles.SUPER_USER;
 
-        var success = putAudit(audit);
+        var success = putAudit(audit, authenticatedAs);
         assertResponseCode(success, 201);
 
-        var error = putAudit(audit);
+        var error = putAudit(audit, authenticatedAs);
         assertResponseCode(error, 400);
         assertThat(error.body().jsonPath().getString("message"))
             .isEqualTo("Data is immutable and cannot be changed. Id: " + audit.getId());
     }
 
-    private Response putAudit(CreateAuditDTO dto) throws JsonProcessingException {
+    private Response putAudit(CreateAuditDTO dto, TestingSupportRoles authenticatedAs) throws JsonProcessingException {
         return doPutRequest(
             AUDIT_ENDPOINT + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
+            authenticatedAs
         );
     }
 
@@ -51,8 +52,9 @@ class AuditControllerFT extends FunctionalTestBase {
         audit1.setId(UUID.randomUUID());
         audit1.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test1\"}"));
         audit1.setSource(AuditLogSource.AUTO);
+        TestingSupportRoles authenticatedAs = TestingSupportRoles.SUPER_USER;
 
-        var success1 = putAudit(audit1);
+        var success1 = putAudit(audit1, authenticatedAs);
         assertResponseCode(success1, 201);
 
         var audit2 = new CreateAuditDTO();
@@ -60,7 +62,7 @@ class AuditControllerFT extends FunctionalTestBase {
         audit2.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test2\"}"));
         audit2.setSource(AuditLogSource.AUTO);
 
-        var success2 = putAudit(audit2);
+        var success2 = putAudit(audit2, authenticatedAs);
         assertResponseCode(success2, 201);
 
         var getAuditLogs1 = doGetRequest("/audit", TestingSupportRoles.SUPER_USER);
@@ -79,12 +81,37 @@ class AuditControllerFT extends FunctionalTestBase {
     @NullSource
     @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
     @DisplayName("Unauthorised use of endpoints should return 403 (or 401 for null authorisation)")
-    void unauthorisedRequestsReturn403Or401(TestingSupportRoles testingSupportRole) throws JsonProcessingException {
+    void unauthorisedRequestsReturn403Or401(TestingSupportRoles testingSupportRole) {
         var getAuditLogsResponse = doGetRequest("/audit", testingSupportRole);
         if (testingSupportRole != null) {
             assertResponseCode(getAuditLogsResponse, 403);
         } else {
             assertResponseCode(getAuditLogsResponse, 401);
         }
+    }
+
+    @DisplayName("Should put audit successfully as anonymous user")
+    @Test
+    void putAuditSuccessfullyAsAnonymousUser() throws JsonProcessingException {
+        CreateAuditDTO audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test1\"}"));
+        audit.setSource(AuditLogSource.AUTO);
+
+        Response response = putAudit(audit, null);
+        assertResponseCode(response, 201);
+    }
+
+    @DisplayName("Should put audit successfully as authenticated user")
+    @Test
+    void putAuditSuccessfullyAsAuthenticatedUser() throws JsonProcessingException {
+        CreateAuditDTO audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test1\"}"));
+        audit.setSource(AuditLogSource.AUTO);
+        TestingSupportRoles authenticatedAs = TestingSupportRoles.SUPER_USER;
+
+        Response response = putAudit(audit, authenticatedAs);
+        assertResponseCode(response, 201);
     }
 }
