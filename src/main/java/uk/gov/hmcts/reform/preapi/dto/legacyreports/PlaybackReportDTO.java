@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
@@ -16,7 +18,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 @Data
 @NoArgsConstructor
@@ -46,15 +47,15 @@ public class PlaybackReportDTO {
     @Schema(description = "PlaybackReportRecordingId")
     private UUID recordingId;
 
-    public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
+    public PlaybackReportDTO(Audit audit, User user, Recording recording) {
         playbackAt = audit.getCreatedAt();
         if (user != null) {
             userFullName = user.getFullName();
             userEmail = user.getEmail();
         }
         if (recording != null) {
-            var caseEntity = recording.getCaptureSession().getBooking().getCaseId();
-            var courtEntity = caseEntity.getCourt();
+            Case caseEntity = recording.getCaptureSession().getBooking().getCaseId();
+            Court courtEntity = caseEntity.getCourt();
             court = courtEntity.getName();
             caseReference = caseEntity.getReference();
             regions = Stream.ofNullable(caseEntity.getCourt().getRegions())

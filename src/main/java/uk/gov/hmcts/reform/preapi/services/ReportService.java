@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTOV2;
@@ -13,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -21,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -31,13 +35,18 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class ReportService {
 
     private final CaptureSessionRepository captureSessionRepository;
@@ -47,6 +56,9 @@ public class ReportService {
     private final UserRepository userRepository;
     private final AppAccessRepository appAccessRepository;
     private final PortalAccessRepository portalAccessRepository;
+    private final boolean hideReencodedRecordings;
+
+    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
 
     @Autowired
     public ReportService(CaptureSessionRepository captureSessionRepository,
@@ -55,7 +67,9 @@ public class ReportService {
                          AuditRepository auditRepository,
                          UserRepository userRepository,
                          AppAccessRepository appAccessRepository,
-                         PortalAccessRepository portalAccessRepository) {
+                         PortalAccessRepository portalAccessRepository,
+                         @Value("${feature-flags.hide-reencoded-recordings:true}")
+                         boolean hideReencodedRecordings) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.shareBookingRepository = shareBookingRepository;
@@ -63,6 +77,7 @@ public class ReportService {
         this.userRepository = userRepository;
         this.appAccessRepository = appAccessRepository;
         this.portalAccessRepository = portalAccessRepository;
+        this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
     @Transactional
@@ -77,7 +92,7 @@ public class ReportService {
     @Transactional
     public List<RecordingsPerCaseReportDTOV2> reportRecordingsPerCase() {
         return recordingRepository
-            .countRecordingsPerCase()
+            .countRecordingsPerCase(canViewReencodedRecordings())
             .stream()
             .map(data -> new RecordingsPerCaseReportDTOV2((Case) data[0], ((Long) data[1]).intValue()))
             .toList();
@@ -88,6 +103,7 @@ public class ReportService {
         return recordingRepository
             .findAllByParentRecordingIsNotNull()
             .stream()
+            .filter(this::canViewRecording)
             .sorted(Comparator.comparing(Recording::getCreatedAt))
             .map(EditReportDTOV2::new)
             .collect(Collectors.toList());
@@ -124,7 +140,7 @@ public class ReportService {
             .findAllAccessAttempts()
             .stream()
             .map(a -> {
-                var args = toPlaybackReport(a);
+                PlaybackReportArgsRecord args = toPlaybackReport(a);
                 return new UserRecordingPlaybackReportDTOV2(args.audit(), args.user(), args.recording());
             })
             .toList();
@@ -133,21 +149,80 @@ public class ReportService {
     @Transactional
     public List<PlaybackReportDTOV2> reportPlayback(AuditLogSource source) {
         if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
-            final var activityPlay = "Play";
-            final var functionalAreaVideoPlayer = "Video Player";
-            final var functionalAreaViewRecordings = "View Recordings";
+            final String activityPlay = "Play";
+            final String functionalAreaVideoPlayer = "Video Player";
+            final String functionalAreaViewRecordings = "View Recordings";
 
-            return auditRepository
+            // Fetch the audits
+            final List<Audit> audits = auditRepository
                 .findBySourceAndFunctionalAreaAndActivity(
                     source,
                     source == AuditLogSource.PORTAL
                         ? functionalAreaVideoPlayer
                         : functionalAreaViewRecordings,
                     activityPlay
-                )
+                );
+
+            // Collect all unique createdBy IDs
+            final List<UUID> createdByIds = audits.stream()
+                .map(Audit::getCreatedBy)
+                .filter(Objects::nonNull)
+                .toList();
+
+            // Batch fetch all possible entities for those IDs
+            final List<User> users = userRepository.findAllById(createdByIds);
+            final List<AppAccess> appAccesses = appAccessRepository.findAllById(createdByIds);
+            final List<PortalAccess> portalAccesses = portalAccessRepository.findAllById(createdByIds);
+
+            // Build sets for fast type checking
+            final Set<UUID> userIdSet = users
                 .stream()
+                .map(User::getId).collect(Collectors.toSet());
+            final Set<UUID> appAccessIdSet = appAccesses
+                .stream()
+                .map(AppAccess::getId)
+                .collect(Collectors.toSet());
+            final Set<UUID> portalAccessIdSet = portalAccesses
+                .stream()
+                .map(PortalAccess::getId)
+                .collect(Collectors.toSet());
+
+            // Build lookup maps
+            final Map<UUID, User> userMap = users
+                .stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+            final Map<UUID, AppAccess> appAccessMap = appAccesses
+                .stream()
+                .collect(Collectors.toMap(AppAccess::getId, a -> a));
+            final Map<UUID, PortalAccess> portalAccessMap = portalAccesses
+                .stream()
+                .collect(Collectors.toMap(PortalAccess::getId, p -> p));
+
+            // Collect all unique recording IDs from audits
+            final List<UUID> recordingIds = audits.stream()
+                .map(this::getRecordingIDForAudit)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+            // Batch fetch all referenced recordings
+            final List<Recording> recordings = recordingRepository.findAllById(recordingIds);
+            final Map<UUID, Recording> recordingMap =
+                recordings.stream()
+                    .filter(this::canViewRecording)
+                    .collect(Collectors.toMap(Recording::getId, r -> r));
+
+            return audits.stream()
                 .map(a -> {
-                    var args = toPlaybackReport(a);
+                    final PlaybackReportArgsRecord args = toPlaybackReport(
+                        a,
+                        userIdSet,
+                        appAccessIdSet,
+                        portalAccessIdSet,
+                        userMap,
+                        appAccessMap,
+                        portalAccessMap,
+                        recordingMap);
                     return new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
                 })
                 .toList();
@@ -161,6 +236,7 @@ public class ReportService {
         return recordingRepository
             .findAllCompletedCaptureSessionsWithRecordings()
             .stream()
+            .filter(this::canViewRecording)
             .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
             .map(CompletedCaptureSessionReportDTOV2::new)
             .collect(Collectors.toList());
@@ -181,6 +257,7 @@ public class ReportService {
         return recordingRepository
             .findAllByParentRecordingIsNull()
             .stream()
+            .filter(this::canViewRecording)
             .map(this::getParticipantsForRecording)
             .flatMap(List::stream)
             .toList();
@@ -197,17 +274,9 @@ public class ReportService {
     }
 
     private PlaybackReportArgsRecord toPlaybackReport(Audit audit) {
-        var auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
-        UUID recordingId = null;
-        if (auditDetails) {
-            if (audit.getAuditDetails().hasNonNull("recordingId")) {
-                recordingId = UUID.fromString(audit.getAuditDetails().get("recordingId").asText());
-            } else if (audit.getAuditDetails().hasNonNull("recordinguid")) {
-                recordingId = UUID.fromString(audit.getAuditDetails().get("recordinguid").asText());
-            }
-        }
+        UUID recordingId = getRecordingIDForAudit(audit);
 
-        var user = audit.getCreatedBy() != null
+        User user = audit.getCreatedBy() != null
             ? userRepository.findById(audit.getCreatedBy())
                             .orElse(appAccessRepository.findById(audit.getCreatedBy())
                                                        .map(AppAccess::getUser)
@@ -216,11 +285,100 @@ public class ReportService {
                                                                                      .orElse(null)))
             : null;
 
-        var recording = recordingId != null
+        Recording recording = recordingId != null
             ? recordingRepository.findById(recordingId).orElse(null)
             : null;
 
+        return new PlaybackReportArgsRecord(audit, user, canViewRecording(recording) ? recording : null);
+    }
+
+    private PlaybackReportArgsRecord toPlaybackReport(
+        Audit audit,
+        Set<UUID> userIdSet,
+        Set<UUID> appAccessIdSet,
+        Set<UUID> portalAccessIdSet,
+        Map<UUID, User> userMap,
+        Map<UUID, AppAccess> appAccessMap,
+        Map<UUID, PortalAccess> portalAccessMap,
+        Map<UUID, Recording> recordingMap) {
+        UUID recordingId = getRecordingIDForAudit(audit);
+
+        User user = getCreatedByUserForAudit(
+            audit,
+            userIdSet,
+            appAccessIdSet,
+            portalAccessIdSet,
+            userMap,
+            appAccessMap,
+            portalAccessMap);
+
+        Recording recording = recordingId != null ? recordingMap.get(recordingId) : null;
+
         return new PlaybackReportArgsRecord(audit, user, recording);
+    }
+
+    private UUID getRecordingIDForAudit(Audit audit) {
+        boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
+
+        if (!auditDetails) {
+            return null;
+        }
+
+        if (audit.getAuditDetails().hasNonNull("recordingId")) {
+            return UUID.fromString(audit.getAuditDetails().get("recordingId").asText());
+        }
+
+        if (audit.getAuditDetails().hasNonNull("recordinguid")) {
+            return UUID.fromString(audit.getAuditDetails().get("recordinguid").asText());
+        }
+
+        return null;
+    }
+
+    private boolean canViewRecording(Recording recording) {
+        return recording == null
+            || !hideReencodedRecordings
+            || !recording.isReencode()
+            || getAuthentication() != null && getAuthentication().hasRole(ROLE_SUPER_USER);
+    }
+
+    private boolean canViewReencodedRecordings() {
+        UserAuthentication auth = getAuthentication();
+        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
+    }
+
+    private UserAuthentication getAuthentication() {
+        return SecurityContextHolder.getContext().getAuthentication() instanceof UserAuthentication auth ? auth : null;
+    }
+
+    private User getCreatedByUserForAudit(
+        Audit audit,
+        Set<UUID> userIdSet,
+        Set<UUID> appAccessIdSet,
+        Set<UUID> portalAccessIdSet,
+        Map<UUID, User> userMap,
+        Map<UUID, AppAccess> appAccessMap,
+        Map<UUID, PortalAccess> portalAccessMap
+    ) {
+        UUID createdBy = audit.getCreatedBy();
+
+        if (createdBy == null) {
+            return null;
+        }
+
+        if (userIdSet.contains(createdBy)) {
+            return userMap.get(createdBy);
+        }
+
+        if (appAccessIdSet.contains(createdBy)) {
+            return appAccessMap.get(createdBy).getUser();
+        }
+
+        if (portalAccessIdSet.contains(createdBy)) {
+            return portalAccessMap.get(createdBy).getUser();
+        }
+
+        return null;
     }
 
     @Transactional
@@ -236,4 +394,13 @@ public class ReportService {
                                                          access.getLastAccess()))
             .toList();
     }
+
+    @Transactional
+    public List<UserAccessReportDTO> reportUserFullAccess() {
+        return this.appAccessRepository.findAll()
+            .stream()
+            .map(UserAccessReportDTO::new)
+            .toList();
+    }
+
 }

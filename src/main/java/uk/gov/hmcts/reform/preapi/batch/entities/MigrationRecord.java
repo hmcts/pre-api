@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Getter
@@ -119,8 +120,8 @@ public class MigrationRecord extends BaseEntity implements IArchiveData {
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        HashMap<String, Object> details = new HashMap<>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("archiveId", archiveId);
         details.put("status", status);
         details.put("archiveName", archiveName);

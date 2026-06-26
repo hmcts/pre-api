@@ -6,12 +6,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Data
@@ -53,17 +56,17 @@ public class CompletedCaptureSessionReportDTOV2 extends BaseReportDTO {
 
     public CompletedCaptureSessionReportDTOV2(Recording recording) {
         super(recording.getCaptureSession().getBooking().getCaseId());
-        var captureSession = recording.getCaptureSession();
+        CaptureSession captureSession = recording.getCaptureSession();
         status = captureSession.getStatus();
 
         recordingDate = DateTimeUtils.formatDate(captureSession.getStartedAt());
         recordingTime = DateTimeUtils.formatTime(captureSession.getStartedAt());
         finishTime = DateTimeUtils.formatTime(captureSession.getFinishedAt());
         timezone = DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt());
-        var booking = captureSession.getBooking();
+        Booking booking = captureSession.getBooking();
         scheduledDate = DateTimeUtils.formatDate(captureSession.getBooking().getScheduledFor());
 
-        var defendants = booking.getParticipants()
+        List<Participant> defendants = booking.getParticipants()
             .stream()
             .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
             .toList();
@@ -72,7 +75,7 @@ public class CompletedCaptureSessionReportDTOV2 extends BaseReportDTO {
             .collect(Collectors.joining(", "));
         defendant = defendants.size();
 
-        var witnesses = booking.getParticipants()
+        List<Participant> witnesses = booking.getParticipants()
             .stream()
             .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
             .toList();

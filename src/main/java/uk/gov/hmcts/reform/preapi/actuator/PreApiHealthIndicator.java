@@ -8,6 +8,7 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.media.MediaKindAccountsClient;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStorageAccounts;
 
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,8 @@ public class PreApiHealthIndicator implements HealthIndicator {
 
     public final MediaKindAccountsClient mediaKindAccountsClient;
 
+    private static final String MEDIA_KIND = "MediaKind";
+
     @Autowired
     public PreApiHealthIndicator(@Lazy MediaKindAccountsClient mediaKindAccountsClient) {
         this.mediaKindAccountsClient = mediaKindAccountsClient;
@@ -36,11 +39,11 @@ public class PreApiHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        if (!mediaService.equals("MediaKind")) {
+        if (!MEDIA_KIND.equals(mediaService)) {
             return Health.up().build();
         }
         try {
-            var details = checkMediaKindConnections();
+            Map<String, Boolean> details = checkMediaKindConnections();
             return Health.up().withDetail("mediakindConnections", details).build();
         } catch (Exception e) {
             log.error("Encountered an error when attempting to check MK storage account connections: {}",
@@ -51,7 +54,7 @@ public class PreApiHealthIndicator implements HealthIndicator {
     }
 
     private Map<String, Boolean> checkMediaKindConnections() {
-        var storageAccounts = mediaKindAccountsClient.getStorageAccounts();
+        MkStorageAccounts storageAccounts = mediaKindAccountsClient.getStorageAccounts();
         if (storageAccounts.getItems().isEmpty()) {
             log.error("MediaKind does not have any storage account connections");
             return Map.of(
@@ -60,7 +63,7 @@ public class PreApiHealthIndicator implements HealthIndicator {
             );
         }
 
-        var expectedStorageAccounts = List.of(ingestStorageAccountName, finalStorageAccountName);
+        List<String> expectedStorageAccounts = List.of(ingestStorageAccountName, finalStorageAccountName);
         return expectedStorageAccounts
             .stream()
             .map(storageAccount ->

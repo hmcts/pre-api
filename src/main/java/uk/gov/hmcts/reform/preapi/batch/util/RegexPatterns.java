@@ -83,7 +83,6 @@ public final class RegexPatterns {
 
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
 
-
     public static final Map<String, Pattern> TEST_PATTERNS = Map.ofEntries(
         Map.entry("Digit Only Extension", DIGIT_ONLY_EXT_PATTERN),
         Map.entry("Digit Only No Ext", DIGIT_ONLY_NO_EXT_PATTERN),
@@ -103,16 +102,6 @@ public final class RegexPatterns {
         Map.entry("VMR with date pattern", VMR_WITH_DATE_PATTERN),
         Map.entry("Snow morning pattern",SNOW_MORNING_CHECKS_PATTERN)
     );
-
-    private static Pattern buildTestKeywordsPattern() {
-        Set<String> keywords = Constants.TEST_KEYWORDS;
-
-        String keywordRegex = keywords.stream()
-            .map(Pattern::quote)
-            .collect(Collectors.joining("|"));
-
-        return Pattern.compile(".*(" + keywordRegex + ").*", Pattern.CASE_INSENSITIVE);
-    }
 
     // =========================
     // Common Pattern Components
@@ -385,22 +374,32 @@ public final class RegexPatterns {
     // );
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.ofEntries(
-        Map.entry("Standard", RegexPatterns.STANDARD_PATTERN),
-        Map.entry("StandardWithNumbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS_PREFIX),
-        Map.entry("SpecificT", RegexPatterns.SPECIFIC_T_PATTERN),
-        Map.entry("SpecialCase", RegexPatterns.SPECIAL_CASE_PATTERN),
-        Map.entry("DoubleURN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN),
-        Map.entry("DoubleExhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN),
-        Map.entry("Prefix", RegexPatterns.PREFIX_PATTERN),
-        Map.entry("Post", RegexPatterns.POST_URN_PREFIX_PATTERN),
-        Map.entry("Flexible", RegexPatterns.FLEXIBLE_PATTERN),
-        Map.entry("ExtraId", RegexPatterns.URN_EXTRA_ID_PATTERN),
-        Map.entry("DotsInName", RegexPatterns.DOTS_IN_NAME_PATTERN),
-        Map.entry("DotWitness", RegexPatterns.DOUBLE_URN_DOT_WITNESS_PATTERN),
-        Map.entry("PlusInName", RegexPatterns.PLUS_IN_NAME_PATTERN),
-        Map.entry("NoUrnPattern", RegexPatterns.NO_URN_PATTERN),
-        Map.entry("NoExhibitPattern", RegexPatterns.NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
-        Map.entry("PrefixInExhibit", RegexPatterns.PREFIX_IN_EXHIBIT_POSITION_PATTERN),
-        Map.entry("DoubeDatePattern", RegexPatterns.DOUBLE_DATE_PATTERN)
+        Map.entry("Standard", STANDARD_PATTERN),
+        Map.entry("StandardWithNumbers", STANDARD_PATTERN_WITH_NUMBERS_PREFIX),
+        Map.entry("SpecificT", SPECIFIC_T_PATTERN),
+        Map.entry("SpecialCase", SPECIAL_CASE_PATTERN),
+        Map.entry("DoubleURN", DOUBLE_URN_NO_EXHIBIT_PATTERN),
+        Map.entry("DoubleExhibit", DOUBLE_EXHIBIT_NO_URN_PATTERN),
+        Map.entry("Prefix", PREFIX_PATTERN),
+        Map.entry("Post", POST_URN_PREFIX_PATTERN),
+        Map.entry("Flexible", FLEXIBLE_PATTERN),
+        Map.entry("ExtraId", URN_EXTRA_ID_PATTERN),
+        Map.entry("DotsInName", DOTS_IN_NAME_PATTERN),
+        Map.entry("DotWitness", DOUBLE_URN_DOT_WITNESS_PATTERN),
+        Map.entry("PlusInName", PLUS_IN_NAME_PATTERN),
+        Map.entry("NoUrnPattern", NO_URN_PATTERN),
+        Map.entry("NoExhibitPattern", NO_EXHIBIT_DOT_SEPARATOR_PATTERN),
+        Map.entry("PrefixInExhibit", PREFIX_IN_EXHIBIT_POSITION_PATTERN),
+        Map.entry("DoubeDatePattern", DOUBLE_DATE_PATTERN)
     );
+
+    private static Pattern buildTestKeywordsPattern() {
+        Set<String> keywords = Constants.TEST_KEYWORDS;
+
+        String keywordRegex = keywords.stream()
+            .map(Pattern::quote)
+            .collect(Collectors.joining("|"));
+
+        return Pattern.compile(".*(" + keywordRegex + ").*", Pattern.CASE_INSENSITIVE);
+    }
 }

@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Getter
@@ -39,8 +40,8 @@ public class EncodeJob extends CreatedModifiedAtEntity {
     private EncodeTransform transform;
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("captureSessionId", captureSession.getId());
         details.put("recordingId", recordingId);
         details.put("jobName", jobName);

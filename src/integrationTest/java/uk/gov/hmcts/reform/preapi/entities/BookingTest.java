@@ -32,7 +32,7 @@ class BookingTest {
 
     @Test
     @Transactional
-    public void testSaveAndRetrieveBooking() {
+    void testSaveAndRetrieveBooking() {
         var booking = setupBooking();
         entityManager.flush();
 
@@ -48,7 +48,7 @@ class BookingTest {
 
     @Test
     @Transactional
-    public void testAuditNoParticipants() {
+    void testAuditNoParticipants() {
         var booking = setupBooking();
         entityManager.flush();
 
@@ -64,7 +64,7 @@ class BookingTest {
 
     @Test
     @Transactional
-    public void testAuditWithParticipants() {
+    void testAuditWithParticipants() {
         Timestamp now = new Timestamp(System.currentTimeMillis());
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", null);
         entityManager.persist(court);
@@ -108,7 +108,6 @@ class BookingTest {
 
         audit.get().getAuditDetails().get("participants")
             .forEach(node -> {
-                System.out.println(node);
                 assertThat(node.asText()).isIn(List.of(
                     participant1.getId().toString(), participant2.getId().toString()));
             });

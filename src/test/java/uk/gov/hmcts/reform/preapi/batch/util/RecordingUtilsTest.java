@@ -3,6 +3,8 @@ package uk.gov.hmcts.reform.preapi.batch.util;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RecordingUtilsTest {
@@ -55,5 +57,48 @@ public class RecordingUtilsTest {
         assertThat(RecordingUtils.compareVersionStrings(null, "1")).isLessThan(0);
         assertThat(RecordingUtils.compareVersionStrings("junk", "1")).isLessThan(0);
         assertThat(RecordingUtils.compareVersionStrings("1.a", "1.0")).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("parseDatePatternToLocalDateTime parses yyMMdd format")
+    void parseDatePatternToLocalDateTimeYyMmDd() {
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime("250101"))
+            .hasValue(LocalDateTime.of(2025, 1, 1, 12, 0));
+    }
+
+    @Test
+    @DisplayName("parseDatePatternToLocalDateTime parses dd-MM-yyyy format")
+    void parseDatePatternToLocalDateTimeDdMmYyyy() {
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime("01-01-2025"))
+            .hasValue(LocalDateTime.of(2025, 1, 1, 12, 0));
+    }
+
+    @Test
+    @DisplayName("parseDatePatternToLocalDateTime parses dd.MM.yyyy format")
+    void parseDatePatternToLocalDateTimeDdDotMmYyyy() {
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime("01.01.2025"))
+            .hasValue(LocalDateTime.of(2025, 1, 1, 12, 0));
+    }
+
+    @Test
+    @DisplayName("parseDatePatternToLocalDateTime parses dd-MM-yyyy-HHMM format with time")
+    void parseDatePatternToLocalDateTimeWithTime() {
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime("01-01-2025-1430"))
+            .hasValue(LocalDateTime.of(2025, 1, 1, 14, 30));
+    }
+
+    @Test
+    @DisplayName("parseDatePatternToLocalDateTime returns empty for null or blank")
+    void parseDatePatternToLocalDateTimeEmptyForNullOrBlank() {
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime(null)).isEmpty();
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime("")).isEmpty();
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime("   ")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("parseDatePatternToLocalDateTime returns empty for unparseable format")
+    void parseDatePatternToLocalDateTimeEmptyForInvalid() {
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime("invalid")).isEmpty();
+        assertThat(RecordingUtils.parseDatePatternToLocalDateTime("2025-01-01")).isEmpty();
     }
 }

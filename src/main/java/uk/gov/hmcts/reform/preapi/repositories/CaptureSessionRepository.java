@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
@@ -17,7 +18,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@SuppressWarnings("PMD.MethodNamingConventions")
 public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
 
@@ -51,6 +51,7 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         )
         """
     )
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     Page<CaptureSession> searchCaptureSessionsBy(
         @Param("caseReference") String caseReference,
         @Param("bookingId") UUID bookingId,
@@ -83,4 +84,12 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         """
     )
     List<CaptureSession> findAllPastIncompleteCaptureSessions(@Param("scheduledBefore") Timestamp scheduledBefore);
+
+    @SuppressWarnings("PMD.MethodNamingConventions")
+    List<CaptureSession> findAllByDeletedAtIsNullAndStartedAtBetweenAndStatusAndBooking_CaseId_State(
+        Timestamp startedAtAfter,
+        Timestamp startedAtBefore,
+        RecordingStatus status,
+        CaseState caseState
+    );
 }

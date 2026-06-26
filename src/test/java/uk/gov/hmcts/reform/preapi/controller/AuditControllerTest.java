@@ -59,18 +59,15 @@ class AuditControllerTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private String getPath(UUID auditId) {
-        return "/audit/" + auditId;
-    }
-
     @BeforeAll
-    public static void setUp() {
+    static void setUp() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
     }
 
-    @Test
     @DisplayName("Should create an audit record with 201 response code")
-    public void createAuditEndpointCreated() throws Exception {
+    @Test
+    void createAuditEndpointCreated() throws Exception {
+
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
@@ -79,7 +76,7 @@ class AuditControllerTest {
         var xUserId = UUID.randomUUID();
         when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
 
-        var response = mockMvc.perform(put(getPath(audit.getId()))
+        MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())
                                                  .header(X_USER_ID_HEADER, xUserId)
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
@@ -91,9 +88,10 @@ class AuditControllerTest {
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
 
-    @Test
     @DisplayName("Should create an audit record with 201 response code without x-user-id header")
-    public void createAuditEndpointWithoutXUserIdCreated() throws Exception {
+    @Test
+    void createAuditEndpointWithoutXUserIdCreated() throws Exception {
+
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
@@ -102,7 +100,7 @@ class AuditControllerTest {
         var xUserId = UUID.randomUUID();
         when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
 
-        var response = mockMvc.perform(put(getPath(audit.getId()))
+        MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -113,9 +111,10 @@ class AuditControllerTest {
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
 
-    @Test
     @DisplayName("Should fail to update an audit record as they are immutable")
-    public void updateAuditFailure() throws Exception {
+    @Test
+    void updateAuditFailure() throws Exception {
+
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
@@ -135,9 +134,10 @@ class AuditControllerTest {
                            .value("Data is immutable and cannot be changed. Id: " + audit.getId()));
     }
 
-    @Test
     @DisplayName("Should fail to create an audit record with 400 response code auditId mismatch")
-    public void createAuditEndpointAuditIdMismatch() throws Exception {
+    @Test
+    void createAuditEndpointAuditIdMismatch() throws Exception {
+
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
@@ -145,12 +145,12 @@ class AuditControllerTest {
 
         var xUserId = UUID.randomUUID();
 
-        var response = mockMvc.perform(put(getPath(UUID.randomUUID()))
-                                                 .with(csrf())
-                                                 .header(X_USER_ID_HEADER, xUserId)
-                                                 .content(OBJECT_MAPPER.writeValueAsString(audit))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+        MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
+                            .with(csrf())
+                            .header(X_USER_ID_HEADER, xUserId)
+                            .content(OBJECT_MAPPER.writeValueAsString(audit))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is4xxClientError())
             .andReturn();
 
@@ -158,9 +158,10 @@ class AuditControllerTest {
             .isEqualTo("{\"message\":\"Path id does not match payload property createAuditDTO.id\"}");
     }
 
-    @Test
     @DisplayName("Should fail to create an audit record with 400 response code")
-    public void createAuditEndpointNotAcceptable() throws Exception {
+    @Test
+    void createAuditEndpointNotAcceptable() throws Exception {
+
         mockMvc.perform(put(getPath(UUID.randomUUID())))
             .andExpect(status().is4xxClientError());
     }
@@ -353,5 +354,9 @@ class AuditControllerTest {
         mockMvc.perform(get("/audit?page=5"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Requested page {5} is out of range. Max page is {1}"));
+    }
+
+    private String getPath(UUID auditId) {
+        return "/audit/" + auditId;
     }
 }

@@ -12,6 +12,7 @@ module "pre-api-exception-alert" {
 union exceptions, traces
 | where severityLevel >= 3
 | where cloud_RoleInstance startswith "pre-api-java" or cloud_RoleInstance startswith "pre-api-cron"
+| where not(cloud_RoleInstance startswith "pre-api-cron-re-encode-recordings-job" and type has "uk.gov.hmcts.reform.preapi.exception.NotFoundException")
 EOF
 
   frequency_in_minutes       = "15"

@@ -18,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 @Service
 public class AuditService {
@@ -36,12 +35,12 @@ public class AuditService {
         this.portalAccessRepository = portalAccessRepository;
     }
 
-    public UpsertResult upsert(CreateAuditDTO createAuditDTO, @Nullable UUID createdBy) {
+    public UpsertResult upsert(CreateAuditDTO createAuditDTO, UUID createdBy) {
         if (auditRepository.existsById(createAuditDTO.getId())) {
             throw new ImmutableDataException(createAuditDTO.getId().toString());
         }
 
-        var audit = new Audit();
+        Audit audit = new Audit();
         audit.setId(createAuditDTO.getId());
         audit.setAuditDetails(createAuditDTO.getAuditDetails());
         audit.setActivity(createAuditDTO.getActivity());

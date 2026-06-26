@@ -96,7 +96,17 @@ public class PostMigrationItemReader {
             var alreadySharedEmails = booking.getShares() == null ? new HashSet<String>() 
                 : booking.getShares().stream()
                 .filter(share -> share.getDeletedAt() == null && share.getSharedWithUser() != null)
-                .map(share -> share.getSharedWithUser().getEmail().toLowerCase())
+                .flatMap(share -> {
+                    var emails = new HashSet<String>();
+                    var user = share.getSharedWithUser();
+                    if (user.getEmail() != null && !user.getEmail().isBlank()) {
+                        emails.add(user.getEmail().toLowerCase());
+                    }
+                    if (user.getAlternativeEmail() != null && !user.getAlternativeEmail().isBlank()) {
+                        emails.add(user.getAlternativeEmail().toLowerCase());
+                    }
+                    return emails.stream();
+                })
                 .collect(Collectors.toCollection(HashSet::new));
 
             for (String[] user : matchedUsers) {

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.MediaType;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
@@ -48,7 +49,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @SpringBootTest(classes = { Application.class }, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
+@SuppressWarnings({"PMD.JUnit5TestShouldBePackagePrivate", "PMD.GodClass"})
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
     protected static final String COURTS_ENDPOINT = "/courts";
@@ -62,6 +63,10 @@ public class FunctionalTestBase {
     protected static final String LOCATION_HEADER = "Location";
     protected static final String LEGACY_REPORTS_ENDPOINT = "/reports";
     protected static final String REPORTS_ENDPOINT = "/reports-v2";
+
+    protected static final Map<String, String> MULTIPART_HEADERS =
+        Map.of("Content-Type", MediaType.MULTIPART_FORM_DATA_VALUE);
+
 
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -149,6 +154,22 @@ public class FunctionalTestBase {
             .relaxedHTTPSValidation()
             .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
             .body(body)
+            .when()
+            .put(path)
+            .thenReturn();
+    }
+
+    protected Response doPutRequest(final String path, final TestingSupportRoles authenticatedAs) {
+        return doPutRequestNoBody(path, authenticatedAs);
+    }
+
+    protected Response doPutRequestNoBody(
+        final String path,
+        final TestingSupportRoles authenticatedAs
+    ) {
+        return given()
+            .relaxedHTTPSValidation()
+            .headers(getRequestHeaders(null, authenticatedAs))
             .when()
             .put(path)
             .thenReturn();

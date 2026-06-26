@@ -14,6 +14,7 @@ public class EmailVerification extends BaseTemplate {
         );
     }
 
+    @Override
     public String getTemplateId() {
         return "24de8c44-06af-4489-9e83-134b48894d36";
     }

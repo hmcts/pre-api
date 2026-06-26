@@ -10,6 +10,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.util.MultiValueMap;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,9 +20,11 @@ import uk.gov.hmcts.reform.preapi.dto.B2CErrorDTO;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
-@ControllerAdvice
 @Slf4j
+@ControllerAdvice
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ShortVariable", "PMD.TooManyMethods"})
 public class GlobalControllerExceptionHandler {
 
     private static final String MESSAGE = "message";
@@ -71,10 +75,10 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> onMethodArgumentNotValidException(final MethodArgumentNotValidException e)
         throws JsonProcessingException {
 
-        var error = new HashMap<String, String>();
-        HttpHeaders responseHeaders = new HttpHeaders();
+        Map<String, String> error = new HashMap<>();
+        MultiValueMap<String, String> responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        for (var fieldError : e.getBindingResult().getFieldErrors()) {
+        for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
             error.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
 
@@ -238,13 +242,13 @@ public class GlobalControllerExceptionHandler {
         throws JsonProcessingException {
         log.error("B2C Controller exception: {}", e.getMessage());
 
-        var error = new B2CErrorDTO();
-        var cause = e.getCause() != null ? e.getCause() : e;
+        B2CErrorDTO error = new B2CErrorDTO();
+        Throwable cause = e.getCause() != null ? e.getCause() : e;
         error.setUserMessage(cause.getMessage());
         // https://learn.microsoft.com/en-us/azure/active-directory-b2c/restful-technical-profile#returning-validation-error-message
         error.setStatus(HttpStatus.CONFLICT.value()); // Has to be 409...
 
-        HttpHeaders responseHeaders = new HttpHeaders();
+        MultiValueMap<String, String> responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
         return new ResponseEntity<>(
             new ObjectMapper().writeValueAsString(error),
@@ -256,8 +260,8 @@ public class GlobalControllerExceptionHandler {
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 
-        HashMap<String, String> error = new HashMap<>();
-        HttpHeaders responseHeaders = new HttpHeaders();
+        Map<String, String> error = new HashMap<>();
+        MultiValueMap<String, String> responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
         error.put(MESSAGE, message);
         return new ResponseEntity<>(

@@ -17,7 +17,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AuditControllerFT extends FunctionalTestBase {
+class AuditControllerFT extends FunctionalTestBase {
 
     @DisplayName("Should fail to update an audit record as they are immutable")
     @Test

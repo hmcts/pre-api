@@ -100,6 +100,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         }
     }
 
+    @SuppressWarnings("PMD.CognitiveComplexity")
     private MigratedItemGroup processRecording(MigrationRecord migrationRecord) {
         String archiveId = migrationRecord.getArchiveId();
         String archiveName = migrationRecord.getArchiveName();
@@ -246,9 +247,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return null;
         }
 
-        ExtractedMetadata extractedData = (ExtractedMetadata) extractionResult.getData();
-
-        return extractedData;
+        return (ExtractedMetadata) extractionResult.getData();
     }
 
     private ProcessedRecording transformData(ExtractedMetadata extractedData) {
@@ -257,7 +256,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logError("Failed to transform archive: %s", extractedData.getSanitizedArchiveName());
             return null;
         }
-        
+
         loggingService.logDebug("Transformed data: %s", result.getData());
         return result.getData();
     }
@@ -351,7 +350,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             fileName,
             migrationRecord.getFileSizeMb(),
             migrationRecord.getArchiveId(),
-            migrationRecord.getArchiveName()
+            migrationRecord.getArchiveName(),
+            migrationRecord.getCreatedAt()
         );
     }
 
@@ -378,6 +378,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     // Notifications
     // =========================
+    @SuppressWarnings("PMD.CognitiveComplexity")
     private void checkAndCreateNotifyItem(ProcessedRecording recording) {
         if (!recording.isPreferred()) {
             return;
@@ -425,7 +426,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
 
-    
+
 
 }
 

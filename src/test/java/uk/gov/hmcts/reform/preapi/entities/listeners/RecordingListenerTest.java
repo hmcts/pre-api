@@ -148,6 +148,81 @@ public class RecordingListenerTest {
         verify(govNotify, times(1)).recordingEdited(any(User.class), eq(caseEntity));
     }
 
+    @DisplayName("On Recording Created Edited Recording Notifications Disabled")
+    @Test
+    void onRecordingCreatedEditedRecordingNotificationsDisabled() {
+        var booking = mock(Booking.class);
+        var caseEntity = mock(Case.class);
+        var share = createShare();
+        share.setBooking(booking);
+        when(caseEntity.getId()).thenReturn(UUID.randomUUID());
+        when(booking.getCaseId()).thenReturn(caseEntity);
+        when(booking.getShares()).thenReturn(Set.of(share));
+        var captureSession = mock(CaptureSession.class);
+        when(booking.getCaptureSessions()).thenReturn(Set.of(captureSession));
+        when(captureSession.getBooking()).thenReturn(booking);
+        when(captureSession.getStatus()).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+        var recording = new Recording();
+        recording.setCaptureSession(captureSession);
+        recording.setVersion(2);
+        recording.setEditInstruction("""
+            {
+                "editRequestId": "05b6adb4-b1f4-46b6-b58f-2862696268e4",
+                "editInstructions": {
+                    "requestedInstructions": [],
+                    "ffmpegInstructions": [],
+                    "forceReencode": false,
+                    "sendNotifications": false
+                }
+            }
+            """);
+
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        var govNotify = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
+
+        recordingListener.onRecordingCreated(recording);
+
+        verify(govNotify, never()).recordingEdited(any(User.class), eq(caseEntity));
+    }
+
+    @DisplayName("On Recording Created Edited Recording Notifications Default To Enabled")
+    @Test
+    void onRecordingCreatedEditedRecordingNotificationsDefaultEnabled() {
+        var booking = mock(Booking.class);
+        var caseEntity = mock(Case.class);
+        var share = createShare();
+        share.setBooking(booking);
+        when(caseEntity.getId()).thenReturn(UUID.randomUUID());
+        when(booking.getCaseId()).thenReturn(caseEntity);
+        when(booking.getShares()).thenReturn(Set.of(share));
+        var captureSession = mock(CaptureSession.class);
+        when(booking.getCaptureSessions()).thenReturn(Set.of(captureSession));
+        when(captureSession.getBooking()).thenReturn(booking);
+        when(captureSession.getStatus()).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+        var recording = new Recording();
+        recording.setCaptureSession(captureSession);
+        recording.setVersion(2);
+        recording.setEditInstruction("""
+            {
+                "editRequestId": "05b6adb4-b1f4-46b6-b58f-2862696268e4",
+                "editInstructions": {
+                    "requestedInstructions": [],
+                    "ffmpegInstructions": [],
+                    "forceReencode": false
+                }
+            }
+            """);
+
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        var govNotify = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
+
+        recordingListener.onRecordingCreated(recording);
+
+        verify(govNotify, times(1)).recordingEdited(any(User.class), eq(caseEntity));
+    }
+
     @DisplayName("On Recording Created Email Service Enabled but shares marked deleted")
     @Test
     void onRecordingCreatedEmailServiceEnabledShareMarkedDeleted() {

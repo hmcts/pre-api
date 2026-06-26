@@ -18,6 +18,7 @@ public class CasePendingClosure extends BaseTemplate {
         );
     }
 
+    @Override
     public String getTemplateId() {
         return "5322ba5c-f4c4-4d1b-807c-16f56f0d8d0c";
     }

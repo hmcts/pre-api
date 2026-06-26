@@ -6,6 +6,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -34,10 +35,9 @@ import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import javax.annotation.Nullable;
 
-@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 @UtilityClass
+@SuppressWarnings({"checkstyle:HideUtilityClassConstructor", "PMD.CouplingBetweenObjects"})
 public class HelperFactory {
     public static User createDefaultTestUser() {
         return createUser("Test", "User", "example@example.com", new Timestamp(System.currentTimeMillis()), null, null);
@@ -47,11 +47,13 @@ public class HelperFactory {
                                   String lastName,
                                   String email,
                                   Timestamp deletedAt,
-                                  @Nullable String phone,
-                                  @Nullable String organisation) { //NOPMD - suppressed UseObjectForClearerAPI
+                                  String phone,
+                                  String organisation) { //NOPMD - suppressed UseObjectForClearerAPI
         User user = new User();
+        user.setId(UUID.randomUUID());
         user.setFirstName(firstName);
         user.setLastName(lastName);
+        user.setFullName(firstName + " " + lastName);
         user.setEmail(email);
         user.setDeletedAt(deletedAt);
         user.setPhone(phone);
@@ -59,7 +61,7 @@ public class HelperFactory {
         return user;
     }
 
-    public static Court createCourt(CourtType courtType, String name, @Nullable String locationCode) {
+    public static Court createCourt(CourtType courtType, String name, String locationCode) {
         Court court = new Court();
         court.setCourtType(courtType);
         court.setName(name);
@@ -78,7 +80,7 @@ public class HelperFactory {
                                             Role role,
                                             boolean active,
                                             Timestamp deletedAt,
-                                            @Nullable Timestamp lastAccess, boolean isDefaultCourt) {
+                                            Timestamp lastAccess, boolean isDefaultCourt) {
         AppAccess appAccess = new AppAccess();
         appAccess.setUser(user);
         appAccess.setCourt(court);
@@ -88,6 +90,22 @@ public class HelperFactory {
         appAccess.setDeletedAt(deletedAt);
         appAccess.setDefaultCourt(isDefaultCourt);
         return appAccess;
+    }
+
+    public static UserAccessReportDTO createUserAccessReportDTO(String randomPrefix) {
+        User user = createDefaultTestUser();
+        user.setAlternativeEmail(randomPrefix.replace(" ", "-") + "alt@email.co.uk");
+        Court court = createCourt(CourtType.CROWN, randomPrefix + "court name", null);
+        Role role = createRole(randomPrefix + "role");
+        AppAccess appAccess = new AppAccess();
+        appAccess.setUser(user);
+        appAccess.setCourt(court);
+        appAccess.setRole(role);
+        appAccess.setLastAccess(new Timestamp(System.currentTimeMillis()));
+        appAccess.setActive(true);
+        appAccess.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+        appAccess.setDefaultCourt(false);
+        return new UserAccessReportDTO(appAccess);
     }
 
     public static PortalAccess createPortalAccess(User user,
@@ -124,7 +142,7 @@ public class HelperFactory {
     public static Booking createBooking(Case testingCase,
                                         Timestamp scheduledFor,
                                         Timestamp deletedAt,
-                                        @Nullable Set<Participant> participants) {
+                                        Set<Participant> participants) {
         Booking booking = new Booking();
         booking.setCaseId(testingCase);
         booking.setScheduledFor(scheduledFor);
@@ -136,14 +154,14 @@ public class HelperFactory {
     public static CaptureSession createCaptureSession(//NOPMD - suppressed ExcessiveParameterList
                                                       Booking booking,
                                                       RecordingOrigin origin,
-                                                      @Nullable String ingestAddress,
-                                                      @Nullable String liveOutputUrl,
-                                                      @Nullable Timestamp startedAt,
-                                                      @Nullable User startedBy,
-                                                      @Nullable Timestamp finishedAt,
-                                                      @Nullable User finishedBy,
-                                                      @Nullable RecordingStatus status,
-                                                      @Nullable Timestamp deletedAt) {
+                                                      String ingestAddress,
+                                                      String liveOutputUrl,
+                                                      Timestamp startedAt,
+                                                      User startedBy,
+                                                      Timestamp finishedAt,
+                                                      User finishedBy,
+                                                      RecordingStatus status,
+                                                      Timestamp deletedAt) {
         CaptureSession captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
@@ -182,10 +200,10 @@ public class HelperFactory {
     }
 
     public static Recording createRecording(CaptureSession captureSession,
-                                            @Nullable Recording parentRecording,
+                                            Recording parentRecording,
                                             int version,
                                             String filename,
-                                            @Nullable Timestamp deletedAt) {
+                                            Timestamp deletedAt) {
         var recording = new Recording();
         recording.setCaptureSession(captureSession);
         recording.setParentRecording(parentRecording);
@@ -226,20 +244,29 @@ public class HelperFactory {
         return termsAccepted;
     }
 
-    public static EditRequest createEditRequest(Recording sourceRecording,
+    public static EditRequest createEditRequest(UUID id,
+                                                Recording sourceRecording,
                                                 String editInstructions,
                                                 EditRequestStatus status,
                                                 User createdBy,
-                                                @Nullable Timestamp startedAt,
-                                                @Nullable Timestamp finishedAt) {
+                                                Timestamp startedAt,
+                                                Timestamp finishedAt,
+                                                Boolean jointlyAgreed,
+                                                String rejectionReason,
+                                                Timestamp approvedAt,
+                                                String approvedBy) {
         var editRequest = new EditRequest();
-        editRequest.setId(UUID.randomUUID());
+        editRequest.setId(id);
         editRequest.setSourceRecording(sourceRecording);
         editRequest.setEditInstruction(editInstructions);
         editRequest.setStatus(status);
         editRequest.setCreatedBy(createdBy);
         editRequest.setStartedAt(startedAt);
         editRequest.setFinishedAt(finishedAt);
+        editRequest.setJointlyAgreed(jointlyAgreed);
+        editRequest.setRejectionReason(rejectionReason);
+        editRequest.setApprovedAt(approvedAt);
+        editRequest.setApprovedBy(approvedBy);
         return editRequest;
     }
 

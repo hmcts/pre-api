@@ -62,7 +62,7 @@ public class ResolvedJobConfig {
             .<MigrationRecord, MigratedItemGroup>chunk(BatchConfiguration.CHUNK_SIZE, transactionManager)
             .reader(resolvedMigrationRecordReader)
             .processor(processor)
-            .writer(coreSteps.getDryRunFlag() ? coreSteps.noOpWriter() : writer)
+            .writer(coreSteps.isDryRun() ? coreSteps.noOpWriter() : writer)
             .faultTolerant()
             .skipLimit(BatchConfiguration.SKIP_LIMIT)
             .skip(Exception.class)

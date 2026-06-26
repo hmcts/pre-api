@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.entities.UserTermsAccepted;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
@@ -43,14 +45,14 @@ public class UserTermsAcceptedService {
      */
     @Transactional
     public void acceptTermsAndConditions(UUID termsId) {
-        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
-        var user = userRepository.findById(userId)
+        UUID userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+        User user = userRepository.findById(userId)
             // this will not happen
             .orElseThrow(() -> new NotFoundException("User: " + userId));
-        var termsAndConditions = termsAndConditionsRepository.findById(termsId)
+        TermsAndConditions termsAndConditions = termsAndConditionsRepository.findById(termsId)
             .orElseThrow(() -> new NotFoundException("TermsAndConditions: " + termsId));
 
-        var accepted = new UserTermsAccepted();
+        UserTermsAccepted accepted = new UserTermsAccepted();
         accepted.setId(UUID.randomUUID());
         accepted.setUser(user);
         accepted.setTermsAndConditions(termsAndConditions);

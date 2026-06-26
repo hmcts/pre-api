@@ -23,36 +23,37 @@ import java.util.Map;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.AvoidSynchronizedAtMethodLevel")
 public class LoggingService {
     @Getter
-    private boolean debugEnabled = false;
+    private boolean debugEnabled;
 
-    @Value("${migration.loggingFile:}") 
+    @Value("${migration.loggingFile:}")
     private String configuredPath;
 
     private volatile boolean fileLoggingEnabled = false;
     private Path logPath;
 
     @Setter
-    private int totalMigrated = 0;
+    private int totalMigrated;
 
     @Setter
-    private int totalInvited = 0;
+    private int totalInvited;
 
     @Setter
     private int totalRecords;
 
     @Getter
-    private int processedRecords = 0;
+    private int processedRecords;
 
     @Getter
-    private int totalFailed = 0;
+    private int totalFailed;
 
     protected LocalDateTime startTime;
     protected final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
     private int handled = 0;
-    private static final int LOG_EVERY_N = 10; 
+    private static final int LOG_EVERY_N = 10;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -87,7 +88,7 @@ public class LoggingService {
 
     public synchronized void log(String level, String message) {
         if (!fileLoggingEnabled) {
-            return; 
+            return;
         }
 
         String timestamp = LocalDateTime.now().format(FORMATTER);
@@ -156,7 +157,7 @@ public class LoggingService {
 
     public synchronized void startRun(String label, int total) {
         this.totalRecords = Math.max(total, 0);
-        this.processedRecords = 0; 
+        this.processedRecords = 0;
         this.startTime = LocalDateTime.now();
         logInfo("Found %,d %s to process", totalRecords, label == null ? "items" : label);
     }
@@ -203,7 +204,7 @@ public class LoggingService {
             startTime = LocalDateTime.now();
         }
 
-        var endTime = LocalDateTime.now();
+        LocalDateTime endTime = LocalDateTime.now();
         Duration duration = Duration.between(startTime, endTime);
         long seconds = duration.getSeconds();
 

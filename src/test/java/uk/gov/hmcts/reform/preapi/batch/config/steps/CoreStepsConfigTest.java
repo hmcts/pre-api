@@ -19,12 +19,16 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,6 +47,8 @@ class CoreStepsConfigTest {
     private MigrationWriter itemWriter;
     @Mock
     private LoggingService loggingService;
+    @Mock
+    private AzureVodafoneStorageService azureVodafoneStorageService;
 
     @BeforeEach
     void setup() {
@@ -51,6 +57,7 @@ class CoreStepsConfigTest {
         this.migrationTrackerService = mock(MigrationTrackerService.class);
         this.itemWriter = mock(MigrationWriter.class);
         this.loggingService = mock(LoggingService.class);
+        this.azureVodafoneStorageService = mock(AzureVodafoneStorageService.class);
 
         PlatformTransactionManager transactionManager = new ResourcelessTransactionManager();
 
@@ -60,14 +67,15 @@ class CoreStepsConfigTest {
             itemProcessor,
             migrationTrackerService,
             itemWriter,
-            loggingService
+            loggingService,
+            azureVodafoneStorageService
         );
     }
 
     @Test
     void getDryRunFlagShouldReturnFalseWhenNoContext() {
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
     }
 
 
@@ -111,7 +119,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isTrue();
+        assertThat(stepsConfig.isDryRun()).isTrue();
 
         JobSynchronizationManager.close();
     }
@@ -201,7 +209,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -214,7 +222,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -234,7 +242,7 @@ class CoreStepsConfigTest {
             );
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).contains("Failed to create reader for file:");
-            verify(loggingService).logError("Failed to create reader for file: {}test.csv" 
+            verify(loggingService).logError("Failed to create reader for file: {}test.csv"
                 + new IOException("Test exception"));
         }
     }
@@ -288,7 +296,7 @@ class CoreStepsConfigTest {
             new String[]{"field1", "field2"},
             String.class,
             false,
-            false  
+            false
         );
 
         assertThat(step).isNotNull();
@@ -308,8 +316,8 @@ class CoreStepsConfigTest {
             mockResource,
             new String[]{"field1", "field2"},
             String.class,
-            false, 
-            true   
+            false,
+            true
         );
 
         assertThat(step).isNotNull();
@@ -352,7 +360,7 @@ class CoreStepsConfigTest {
             );
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).contains("Failed to create reader for file:");
-            verify(loggingService).logError("Failed to create reader for file: {}null" 
+            verify(loggingService).logError("Failed to create reader for file: {}null"
                 + new IOException("Test exception"));
         }
     }
@@ -380,7 +388,7 @@ class CoreStepsConfigTest {
     void noOpWriterShouldAcceptAnyItems() {
         ItemWriter<Object> writer = stepsConfig.noOpWriter();
         assertThat(writer).isNotNull();
-        
+
         assertThatCode(() -> writer.write(null)).doesNotThrowAnyException();
         assertThatCode(() -> writer.write(Chunk.of())).doesNotThrowAnyException();
         assertThatCode(() -> writer.write(Chunk.of("test"))).doesNotThrowAnyException();
@@ -395,7 +403,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -409,7 +417,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThatCode(() -> stepsConfig.getDryRunFlag()).doesNotThrowAnyException();
+        assertThatCode(() -> stepsConfig.isDryRun()).doesNotThrowAnyException();
 
         JobSynchronizationManager.close();
     }
@@ -529,7 +537,7 @@ class CoreStepsConfigTest {
     @Test
     void getDryRunFlagShouldReturnFalseWhenJobContextIsNull() {
         JobSynchronizationManager.close();
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
     }
 
     @Test
@@ -537,7 +545,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, null);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -551,7 +559,7 @@ class CoreStepsConfigTest {
         JobExecution jobExecution = new JobExecution(1L, params);
         JobSynchronizationManager.register(jobExecution);
 
-        assertThat(stepsConfig.getDryRunFlag()).isFalse();
+        assertThat(stepsConfig.isDryRun()).isFalse();
 
         JobSynchronizationManager.close();
     }
@@ -560,7 +568,7 @@ class CoreStepsConfigTest {
     void noOpWriterShouldHandleNullChunk() {
         ItemWriter<Object> writer = stepsConfig.noOpWriter();
         assertThat(writer).isNotNull();
-        
+
         assertThatCode(() -> writer.write(null)).doesNotThrowAnyException();
     }
 
@@ -568,7 +576,7 @@ class CoreStepsConfigTest {
     void noOpWriterShouldHandleEmptyChunk() {
         ItemWriter<Object> writer = stepsConfig.noOpWriter();
         assertThat(writer).isNotNull();
-        
+
         assertThatCode(() -> writer.write(Chunk.of())).doesNotThrowAnyException();
     }
 
@@ -576,7 +584,7 @@ class CoreStepsConfigTest {
     void noOpWriterShouldHandleChunkWithItems() {
         ItemWriter<Object> writer = stepsConfig.noOpWriter();
         assertThat(writer).isNotNull();
-        
+
         assertThatCode(() -> writer.write(Chunk.of("test1", "test2"))).doesNotThrowAnyException();
     }
 
@@ -592,6 +600,115 @@ class CoreStepsConfigTest {
         Step step = stepsConfig.createChannelUserStep();
         assertThat(step).isNotNull();
         assertThat(step.getName()).isEqualTo("channelUserStep");
+    }
+
+    @Test
+    void createChannelUserStep_shouldHandleLocalCsv() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, true);
+
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+    }
+
+    @Test
+    void createChannelUserStep_shouldHandleAzureBlob() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, false);
+
+        Field containerNameField = CoreStepsConfig.class.getDeclaredField("containerName");
+        containerNameField.setAccessible(true);
+        containerNameField.set(stepsConfig, "test-container");
+
+        var mockResource = mock(org.springframework.core.io.InputStreamResource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("channel_name,channel_user,channel_user_email\ncase1,user,email".getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(anyString(), anyString())).thenReturn(mockResource);
+
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+        verify(azureVodafoneStorageService).fetchSingleXmlBlob(anyString(), anyString());
+    }
+
+    @Test
+    void createChannelUserStep_shouldFallbackToClasspathWhenAzureBlobNotFound() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, false);
+
+        Field containerNameField = CoreStepsConfig.class.getDeclaredField("containerName");
+        containerNameField.setAccessible(true);
+        containerNameField.set(stepsConfig, "test-container");
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(anyString(), anyString())).thenReturn(null);
+
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+        verify(loggingService).logWarning("Channel User CSV not found in Azure, falling back to classpath");
+    }
+
+    @Test
+    void createChannelUserStep_shouldFallbackToClasspathWhenLocalFileNotFound() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, true);
+
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+        verify(loggingService).logInfo(eq("Reading Channel User CSV from local file: {}"), anyString());
+    }
+
+    @Test
+    void createChannelUserStep_shouldHandleAzureBlobSuccessfully() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, false);
+
+        Field containerNameField = CoreStepsConfig.class.getDeclaredField("containerName");
+        containerNameField.setAccessible(true);
+        containerNameField.set(stepsConfig, "test-container");
+
+        var mockResource = mock(org.springframework.core.io.InputStreamResource.class);
+        when(mockResource.exists()).thenReturn(true);
+        when(mockResource.getInputStream()).thenReturn(
+            new ByteArrayInputStream("channel_name,channel_user,channel_user_email\ncase1,user,email".getBytes())
+        );
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(anyString(), anyString())).thenReturn(mockResource);
+
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        assertThat(step.getName()).isEqualTo("channelUserStep");
+        verify(azureVodafoneStorageService).fetchSingleXmlBlob(anyString(), anyString());
+        verify(loggingService).logInfo(
+            eq("Reading Channel User CSV from Azure blob: {}/{}"),
+            eq("test-container"),
+            anyString()
+        );
+    }
+
+    @Test
+    void createChannelUserStep_shouldLogErrorAndThrowWhenIOExceptionOccurs() throws Exception {
+        Field useLocalCsvField = CoreStepsConfig.class.getDeclaredField("useLocalCsv");
+        useLocalCsvField.setAccessible(true);
+        useLocalCsvField.setBoolean(stepsConfig, false);
+
+        Field containerNameField = CoreStepsConfig.class.getDeclaredField("containerName");
+        containerNameField.setAccessible(true);
+        containerNameField.set(stepsConfig, "test-container");
+
+        when(azureVodafoneStorageService.fetchSingleXmlBlob(anyString(), anyString())).thenReturn(null);
+        
+        Step step = stepsConfig.createChannelUserStep();
+        assertThat(step).isNotNull();
+        verify(loggingService).logWarning("Channel User CSV not found in Azure, falling back to classpath");
     }
 
     @Test

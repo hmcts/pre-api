@@ -26,12 +26,18 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -52,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -74,6 +81,12 @@ public class EntityCreationServiceTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private BookingRepository bookingRepository;
+
+    @MockitoBean
+    private CaptureSessionRepository captureSessionRepository;
 
     @MockitoBean
     private PortalAccessRepository portalAccessRepository;
@@ -182,7 +195,7 @@ public class EntityCreationServiceTest {
         when(migrationRecordService.findByArchiveId(archiveId.toString()))
             .thenReturn(Optional.of(copyRecord));
         when(migrationRecordService.getOrigFromCopy(copyRecord))
-            .thenReturn(Optional.of(new MigrationRecord())); 
+            .thenReturn(Optional.of(new MigrationRecord()));
 
         ProcessedRecording recording = ProcessedRecording.builder()
             .archiveId(archiveId.toString())
@@ -201,12 +214,18 @@ public class EntityCreationServiceTest {
     public void createBookingShouldUseExistingBookingIdForCopy() {
         UUID archiveId = UUID.randomUUID();
         UUID existingBookingId = UUID.randomUUID();
-        
+        Timestamp originalScheduledFor = Timestamp.from(Instant.now().minus(Duration.ofDays(30)));
+
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId(archiveId.toString());
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setBookingId(existingBookingId);
+
+        Booking existingBooking = new Booking();
+        existingBooking.setScheduledFor(originalScheduledFor);
+        when(bookingRepository.findByIdAndDeletedAtIsNull(existingBookingId))
+            .thenReturn(Optional.of(existingBooking));
 
         when(migrationRecordService.findByArchiveId(archiveId.toString()))
             .thenReturn(Optional.of(copyRecord));
@@ -224,11 +243,11 @@ public class EntityCreationServiceTest {
         caseDTO.setParticipants(Set.of());
 
         CreateBookingDTO result = entityCreationService.createBooking(recording, caseDTO, "key");
-        
+
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(existingBookingId);
         assertThat(result.getCaseId()).isEqualTo(caseDTO.getId());
-        assertThat(result.getScheduledFor()).isEqualTo(recording.getRecordingTimestamp());
+        assertThat(result.getScheduledFor()).isEqualTo(originalScheduledFor);
     }
 
     @Test
@@ -288,10 +307,10 @@ public class EntityCreationServiceTest {
     public void createCaptureSessionShouldUseExistingCaptureSessionIdForCopy() {
         UUID archiveId = UUID.randomUUID();
         UUID existingCaptureSessionId = UUID.randomUUID();
-        
+
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId(archiveId.toString());
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setCaptureSessionId(existingCaptureSessionId);
 
@@ -300,11 +319,22 @@ public class EntityCreationServiceTest {
         when(migrationRecordService.getOrigFromCopy(copyRecord))
             .thenReturn(Optional.of(origRecord));
 
-        BaseUserDTO user = new UserDTO();
-        user.setId(UUID.randomUUID());
-        AccessDTO accessDTO = new AccessDTO();
-        accessDTO.setUser(user);
-        when(userService.findByEmail(VODAFONE_EMAIL)).thenReturn(accessDTO);
+        Timestamp originalStartedAt = Timestamp.from(Instant.now().minus(Duration.ofDays(30)));
+        Timestamp originalFinishedAt = Timestamp.from(Instant.now().minus(Duration.ofDays(29)));
+        UUID originalStartedByUserId = UUID.randomUUID();
+
+        CaptureSession existingCaptureSession = new CaptureSession();
+        existingCaptureSession.setStartedAt(originalStartedAt);
+        existingCaptureSession.setFinishedAt(originalFinishedAt);
+        User startedBy = new User();
+        startedBy.setId(originalStartedByUserId);
+        existingCaptureSession.setStartedByUser(startedBy);
+        User finishedBy = new User();
+        UUID originalFinishedByUserId = UUID.randomUUID();
+        finishedBy.setId(originalFinishedByUserId);
+        existingCaptureSession.setFinishedByUser(finishedBy);
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(existingCaptureSessionId))
+            .thenReturn(Optional.of(existingCaptureSession));
 
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .archiveId(archiveId.toString())
@@ -316,12 +346,14 @@ public class EntityCreationServiceTest {
         booking.setId(UUID.randomUUID());
 
         CreateCaptureSessionDTO result = entityCreationService.createCaptureSession(processedRecording, booking);
-        
+
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(existingCaptureSessionId);
         assertThat(result.getBookingId()).isEqualTo(booking.getId());
-        assertThat(result.getStartedAt()).isEqualTo(processedRecording.getRecordingTimestamp());
-        assertThat(result.getStartedByUserId()).isEqualTo(user.getId());
+        assertThat(result.getStartedAt()).isEqualTo(originalStartedAt);
+        assertThat(result.getStartedByUserId()).isEqualTo(originalStartedByUserId);
+        assertThat(result.getFinishedAt()).isEqualTo(originalFinishedAt);
+        assertThat(result.getFinishedByUserId()).isEqualTo(originalFinishedByUserId);
         assertThat(result.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
     }
@@ -460,7 +492,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should filter participants by witness or defendant name")
     public void createBookingShouldFilterParticipants() {
-        
+
         CreateParticipantDTO witness = new CreateParticipantDTO();
         witness.setId(UUID.randomUUID());
         witness.setFirstName("John");
@@ -709,7 +741,7 @@ public class EntityCreationServiceTest {
             existingUserId.toString()
         ))
             .thenReturn("share-key");
-        
+
         when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
             .thenReturn(Optional.empty());
 
@@ -754,7 +786,7 @@ public class EntityCreationServiceTest {
             existingUserId.toString()
         ))
             .thenReturn("share-key");
-        
+
         when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
             .thenReturn(Optional.of(new PortalAccess()));
 
@@ -771,7 +803,7 @@ public class EntityCreationServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.getInvites()).isEmpty(); 
+        assertThat(result.getInvites()).isEmpty();
         assertThat(result.getShareBookings()).hasSize(1);
         assertThat(result.getShareBookings().get(0).getSharedWithUser()).isEqualTo(existingUserId);
 
@@ -942,7 +974,7 @@ public class EntityCreationServiceTest {
     @DisplayName("Should handle exception when getting user by email")
     void getUserByEmailShouldHandleException() {
         String email = "error@example.com";
-        
+
         when(userService.findByEmail(email)).thenThrow(new RuntimeException("Service error"));
 
         UUID result = entityCreationService.getUserByEmail(email);
@@ -955,7 +987,7 @@ public class EntityCreationServiceTest {
     @DisplayName("Should handle exception in userHasPortalAccess and return false")
     void userHasPortalAccessShouldHandleExceptionAndReturnFalse() throws Exception {
         String userId = "invalid-uuid";
-        
+
         Method method = EntityCreationService.class.getDeclaredMethod("userHasPortalAccess", String.class);
         method.setAccessible(true);
 
@@ -963,8 +995,8 @@ public class EntityCreationServiceTest {
 
         assertThat(result).isFalse();
         verify(loggingService, times(1)).logWarning(
-            eq("Could not check portal access for user: %s - %s"), 
-            eq(userId), 
+            eq("Could not check portal access for user: %s - %s"),
+            eq(userId),
             any(String.class)
         );
     }
@@ -1022,7 +1054,7 @@ public class EntityCreationServiceTest {
     void createRecordingShouldReturnNullForCopyWhenOrigHasNoRecordingId() {
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId("COPY123");
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setArchiveId("ORIG123");
         origRecord.setRecordingId(null); // No recording ID
@@ -1052,10 +1084,10 @@ public class EntityCreationServiceTest {
     @DisplayName("Should create COPY recording with parent recording ID when all conditions met")
     void createRecordingShouldCreateCopyWithParentRecordingId() {
         UUID parentRecordingId = UUID.randomUUID();
-        
+
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setArchiveId("COPY123");
-        
+
         MigrationRecord origRecord = new MigrationRecord();
         origRecord.setArchiveId("ORIG123");
         origRecord.setRecordingId(parentRecordingId);
@@ -1228,8 +1260,8 @@ public class EntityCreationServiceTest {
     @DisplayName("Should handle empty trimmed participant names")
     void createParticipantsShouldIgnoreEmptyTrimmedNames() {
         ProcessedRecording recording = ProcessedRecording.builder()
-            .witnessFirstName("   ") 
-            .defendantLastName("") 
+            .witnessFirstName("   ")
+            .defendantLastName("")
             .build();
 
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(recording);
@@ -1240,7 +1272,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should create participant with null firstName using default name")
     void createParticipantShouldUseDefaultNameForNullFirstName() throws Exception {
-        Method method = EntityCreationService.class.getDeclaredMethod("createParticipant", 
+        Method method = EntityCreationService.class.getDeclaredMethod("createParticipant",
             ParticipantType.class, String.class, String.class);
         method.setAccessible(true);
 
@@ -1256,7 +1288,7 @@ public class EntityCreationServiceTest {
     @Test
     @DisplayName("Should create participant with null lastName using default name")
     void createParticipantShouldUseDefaultNameForNullLastName() throws Exception {
-        Method method = EntityCreationService.class.getDeclaredMethod("createParticipant", 
+        Method method = EntityCreationService.class.getDeclaredMethod("createParticipant",
             ParticipantType.class, String.class, String.class);
         method.setAccessible(true);
 
@@ -1274,7 +1306,7 @@ public class EntityCreationServiceTest {
     @DisplayName("Should create share booking with participants mapping")
     void createShareBookingAndInviteIfNotExistsShouldMapParticipants() {
         setVodafoneEmail();
-        
+
         // Create a booking with participants
         BookingDTO booking = new BookingDTO();
         booking.setId(UUID.randomUUID());
@@ -1282,20 +1314,20 @@ public class EntityCreationServiceTest {
 
         CaseDTO caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
-        
+
         // Create participants for the case
         ParticipantDTO participant1 = new ParticipantDTO();
         participant1.setId(UUID.randomUUID());
         participant1.setFirstName("John");
         participant1.setLastName("Doe");
         participant1.setParticipantType(ParticipantType.WITNESS);
-        
+
         ParticipantDTO participant2 = new ParticipantDTO();
         participant2.setId(UUID.randomUUID());
         participant2.setFirstName("Jane");
         participant2.setLastName("Smith");
         participant2.setParticipantType(ParticipantType.DEFENDANT);
-        
+
         caseDTO.setParticipants(List.of(participant1, participant2));
         booking.setCaseDTO(caseDTO);
 
@@ -1317,12 +1349,12 @@ public class EntityCreationServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getShareBookings()).hasSize(1);
-        
+
         CreateShareBookingDTO shareBooking = result.getShareBookings().get(0);
         assertThat(shareBooking.getBookingId()).isEqualTo(booking.getId());
         assertThat(shareBooking.getSharedWithUser()).isNotNull();
         assertThat(shareBooking.getSharedByUser()).isEqualTo(vodafoneUserId);
-        
+
         verify(cacheService).saveShareBooking(eq("share-key"), any(CreateShareBookingDTO.class));
     }
 
@@ -1348,5 +1380,149 @@ public class EntityCreationServiceTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Test
+    @DisplayName("createShareBookingAndInviteIfNotExists should skip inactive user")
+    void createShareBookingAndInviteIfNotExistsShouldSkipInactiveUser() {
+        setVodafoneEmail();
+
+        UUID existingUserId = UUID.randomUUID();
+
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "inactive@example.com", String.class))
+            .thenReturn(existingUserId.toString());
+
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(existingUserId);
+        userDTO.setEmail("inactive@example.com");
+        userDTO.setDeletedAt(null);
+        when(userService.findById(existingUserId)).thenReturn(userDTO);
+        BookingDTO booking = createTestBooking();
+
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setStatus(AccessStatus.INACTIVE);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
+            .thenReturn(Optional.of(portalAccess));
+
+        PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "inactive@example.com",
+            "Inactive",
+            "User"
+        );
+
+        assertThat(result).isNull();
+        verify(cacheService, never()).saveShareBooking(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("createShareBookingAndInviteIfNotExists should skip user with deleted portal access")
+    void createShareBookingAndInviteIfNotExistsShouldSkipUserWithDeletedPortalAccess() {
+        setVodafoneEmail();
+
+        UUID existingUserId = UUID.randomUUID();
+
+        when(cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, "deletedaccess@example.com", String.class))
+            .thenReturn(existingUserId.toString());
+
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(existingUserId);
+        userDTO.setEmail("deletedaccess@example.com");
+        userDTO.setDeletedAt(null);
+        BookingDTO booking = createTestBooking();
+        when(userService.findById(existingUserId)).thenReturn(userDTO);
+
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(existingUserId))
+            .thenReturn(Optional.empty());
+        PortalAccess deletedAccess = new PortalAccess();
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(existingUserId))
+            .thenReturn(List.of(deletedAccess));
+
+        PostMigratedItemGroup result = entityCreationService.createShareBookingAndInviteIfNotExists(
+            booking,
+            "deletedaccess@example.com",
+            "Deleted",
+            "Access"
+        );
+
+        assertThat(result).isNull();
+        verify(cacheService, never()).saveShareBooking(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("userHasPortalAccess should return false for inactive status")
+    void userHasPortalAccessShouldReturnFalseForInactiveStatus() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("userHasPortalAccess", String.class);
+        method.setAccessible(true);
+
+        UUID userId = UUID.randomUUID();
+        PortalAccess portalAccess =
+            new PortalAccess();
+        portalAccess.setStatus(AccessStatus.INACTIVE);
+
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.of(portalAccess));
+
+        boolean result = (boolean) method.invoke(entityCreationService, userId.toString());
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("userHasPortalAccess should return true for active status")
+    void userHasPortalAccessShouldReturnTrueForActiveStatus() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("userHasPortalAccess", String.class);
+        method.setAccessible(true);
+
+        UUID userId = UUID.randomUUID();
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setStatus(AccessStatus.ACTIVE);
+
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.of(portalAccess));
+
+        boolean result = (boolean) method.invoke(entityCreationService, userId.toString());
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("userHasPortalAccess should return false when portal access is empty")
+    void userHasPortalAccessShouldReturnFalseWhenEmpty() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("userHasPortalAccess", String.class);
+        method.setAccessible(true);
+
+        UUID userId = UUID.randomUUID();
+
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+
+        boolean result = (boolean) method.invoke(entityCreationService, userId.toString());
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("isOrigRecordingPersisted should return false when orig has no recording ID")
+    void isOrigRecordingPersistedShouldReturnFalseWhenOrigHasNoRecordingId() throws Exception {
+        Method method = EntityCreationService.class.getDeclaredMethod("isOrigRecordingPersisted", String.class);
+        method.setAccessible(true);
+
+        String archiveId = "COPY123";
+        MigrationRecord copyRecord = new MigrationRecord();
+        copyRecord.setArchiveId(archiveId);
+
+        MigrationRecord origRecord = new MigrationRecord();
+        origRecord.setArchiveId("ORIG123");
+        origRecord.setRecordingId(null);
+
+        when(migrationRecordService.findByArchiveId(archiveId))
+            .thenReturn(Optional.of(copyRecord));
+        when(migrationRecordService.getOrigFromCopy(copyRecord))
+            .thenReturn(Optional.of(origRecord));
+
+        boolean result = (boolean) method.invoke(entityCreationService, archiveId);
+
+        assertThat(result).isFalse();
     }
 }
