@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -130,7 +131,7 @@ public class AuditController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<AuditDTO> assembler
     ) {
-        var resultPage = auditService.findAll(
+        Page<AuditDTO> resultPage = auditService.findAll(
             params.getAfter() != null ? Timestamp.valueOf(params.getAfter()) : null,
             params.getBefore() != null ? Timestamp.valueOf(params.getBefore()) : null,
             params.getFunctionalArea(),

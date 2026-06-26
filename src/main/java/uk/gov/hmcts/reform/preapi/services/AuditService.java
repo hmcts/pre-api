@@ -70,7 +70,7 @@ public class AuditService {
         return auditRepository
             .searchAll(after, before, functionalArea, source, userName, courtId, caseReference, pageable)
             .map(audit -> {
-                var createdById = audit.getCreatedBy();
+                UUID createdById = audit.getCreatedBy();
                 if (createdById == null) {
                     return new AuditDTO(audit);
                 }
