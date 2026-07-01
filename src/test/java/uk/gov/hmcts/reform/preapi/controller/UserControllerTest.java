@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -14,6 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
@@ -40,9 +42,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -115,22 +114,16 @@ public class UserControllerTest {
             .andExpect(jsonPath("$.message").value("Not found: User: " + userId));
     }
 
-    @DisplayName("Should return a list of users with 200 response code")
+    @DisplayName("Should return a list of users with 200 response code with empty params")
     @Test
     void getUsersSuccess() throws Exception {
         var userId = UUID.randomUUID();
         var mockCourt = new UserDTO();
         mockCourt.setId(userId);
         var userList = new PageImpl<>(List.of(mockCourt));
+
         when(userService.findAllBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            eq(false),
-            isNull(),
+            any(),
             any()
         )).thenReturn(userList);
 
@@ -139,17 +132,19 @@ public class UserControllerTest {
             .andExpect(jsonPath("$._embedded.userDTOList").isNotEmpty())
             .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
 
-        verify(userService, times(1)).findAllBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            eq(false),
-            isNull(),
-            any()
-        );
+        ArgumentCaptor<SearchUsers> paramsCaptor = ArgumentCaptor.forClass(SearchUsers.class);
+        verify(userService, times(1)).findAllBy(paramsCaptor.capture(), any());
+
+        SearchUsers parameters = paramsCaptor.getValue();
+        assertThat(parameters.getCourtId()).isNull();
+        assertThat(parameters.getRoleId()).isNull();
+        assertThat(parameters.getEmail()).isNull();
+        assertThat(parameters.getFirstName()).isNull();
+        assertThat(parameters.getLastName()).isNull();
+        assertThat(parameters.getOrganisation()).isNull();
+        assertThat(parameters.getIncludeDeleted()).isNull();
+        assertThat(parameters.getAppActive()).isNull();
+        assertThat(parameters.getAccessType()).isNull();
     }
 
     @DisplayName("Should return a 404 when searching by a court that doesn't exist")
@@ -158,7 +153,10 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), isNull(), any());
+            .findAllBy(
+                any(),
+                any()
+            );
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -172,7 +170,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), eq(roleId), any(), eq(false), any(), any());
+            .findAllBy(any(), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -210,7 +208,7 @@ public class UserControllerTest {
     @Test
     void createUserCreated() throws Exception {
         var userId = UUID.randomUUID();
-        var user =  new CreateUserDTO();
+        var user = new CreateUserDTO();
         user.setId(userId);
         user.setFirstName("Example");
         user.setLastName("Person");
@@ -238,7 +236,7 @@ public class UserControllerTest {
     @Test
     void updateUserNoContent() throws Exception {
         var userId = UUID.randomUUID();
-        var user =  new CreateUserDTO();
+        var user = new CreateUserDTO();
         user.setId(userId);
         user.setFirstName("Example");
         user.setLastName("Person");
@@ -266,7 +264,7 @@ public class UserControllerTest {
     @Test
     void createUserIdMismatch() throws Exception {
         var userId = UUID.randomUUID();
-        var user =  new CreateUserDTO();
+        var user = new CreateUserDTO();
         user.setId(userId);
         user.setFirstName("Example");
         user.setLastName("Person");
@@ -913,21 +911,13 @@ public class UserControllerTest {
             .andExpect(jsonPath("$.message").value("Not found: User: " + userEmail));
     }
 
-    @DisplayName("Should set include deleted param to false if not set")
+    @DisplayName("Should pass through params as they are set")
     @Test
     public void testGetCasesIncludeDeletedNotSet() throws Exception {
         when(userService.findAllBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            anyBoolean(),
-            isNull(),
+            any(),
             any()
-        ))
-            .thenReturn(new PageImpl<>(List.of()));
+        )).thenReturn(new PageImpl<>(List.of()));
 
         mockMvc.perform(get("/users")
                             .with(csrf())
@@ -935,22 +925,22 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
+        ArgumentCaptor<SearchUsers> searchUsersCaptor = ArgumentCaptor.forClass(SearchUsers.class);
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), isNull(), any());
+            .findAllBy(
+                searchUsersCaptor.capture(),
+                any()
+            );
+        assertThat(searchUsersCaptor.getValue().getIncludeDeleted()).isNull();
     }
 
     @DisplayName("Should set include deleted param to false when set to false")
     @Test
     public void testGetCasesIncludeDeletedFalse() throws Exception {
+        SearchUsers searchUsers = mock(SearchUsers.class);
+        when(searchUsers.getIncludeDeleted()).thenReturn(false);
         when(userService.findAllBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            anyBoolean(),
-            isNull(),
+            any(),
             any()
         )).thenReturn(new PageImpl<>(List.of()));
 
@@ -961,22 +951,17 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
+        ArgumentCaptor<SearchUsers> searchUsersCaptor = ArgumentCaptor.forClass(SearchUsers.class);
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), isNull(), any());
+            .findAllBy(searchUsersCaptor.capture(), any());
+        assertThat(searchUsersCaptor.getValue().getIncludeDeleted()).isFalse();
     }
 
     @DisplayName("Should set include deleted param to true when set to true")
     @Test
     public void testGetCasesIncludeDeletedTrue() throws Exception {
         when(userService.findAllBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            anyBoolean(),
-            isNull(),
+            any(),
             any()
         )).thenReturn(new PageImpl<>(List.of()));
 
@@ -987,8 +972,14 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
+        ArgumentCaptor<SearchUsers> searchUsersCaptor = ArgumentCaptor.forClass(SearchUsers.class);
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), isNull(), any());
+            .findAllBy(
+                searchUsersCaptor.capture(),
+                any()
+            );
+
+        assertThat(searchUsersCaptor.getValue().getIncludeDeleted()).isTrue();
     }
 
     @DisplayName("Should undelete a user by id and return a 200 response")

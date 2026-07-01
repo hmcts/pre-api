@@ -78,6 +78,16 @@ public class UserController extends PreApiController {
         schema = @Schema(implementation = String.class)
     )
     @Parameter(
+        name = "firstName",
+        description = "The first name of the user to search by",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
+        name = "lastName",
+        description = "The last name of the user to search by",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
         name = "email",
         description = "The email of the user to search by",
         example = "example@example.com",
@@ -133,17 +143,7 @@ public class UserController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
     ) {
-        Page<UserDTO> resultPage = userService.findAllBy(
-            params.getName(),
-            params.getEmail(),
-            params.getOrganisation(),
-            params.getCourtId(),
-            params.getRoleId(),
-            params.getAccessType(),
-            params.getIncludeDeleted() != null && params.getIncludeDeleted(),
-            params.getAppActive(),
-            pageable
-        );
+        Page<UserDTO> resultPage = userService.findAllBy(params, pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());

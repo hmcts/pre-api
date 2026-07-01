@@ -80,7 +80,7 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should return lowercase combined string from non-null parameters")
     void generateRecordingGroupKeyShouldReturnLowercaseCombinedString() {
-        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0);
         String result = MigrationRecordService.generateRecordingGroupKey(
             "URN123", "EXHIBIT1", "John", "Doe", "241211",createTime);
 
@@ -90,7 +90,7 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should handle null values by replacing with empty strings")
     void generateRecordingGroupKeyShouldHandleNullValues() {
-        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0);
         String result = MigrationRecordService.generateRecordingGroupKey(
             null, "EXHIBIT1", null, "Doe","241211", createTime);
 
@@ -100,7 +100,7 @@ public class MigrationRecordServiceTest {
     @Test
     @DisplayName("Should trim leading and trailing whitespace")
     void generateRecordingGroupKeyShouldTrimWhitespace() {
-        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0); 
+        LocalDateTime createTime = LocalDateTime.of(2024, 12, 11, 10, 0);
         String result = MigrationRecordService.generateRecordingGroupKey(" URN123 ", " EXHIBIT1 ",
             " John ", " Doe ","241211", createTime);
 
@@ -1451,7 +1451,7 @@ public class MigrationRecordServiceTest {
     void updateIgnoredRecordWithNullCourtId() {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
-        dto.setCourtId(null); 
+        dto.setCourtId(null);
         dto.setUrn("updated-urn");
         dto.setDefendantName("updated-defendant");
         dto.setWitnessName("updated-witness");
@@ -1479,7 +1479,7 @@ public class MigrationRecordServiceTest {
         dto.setId(UUID.randomUUID());
         dto.setCourtId(UUID.randomUUID());
         dto.setUrn(null);
-        dto.setDefendantName(""); 
+        dto.setDefendantName("");
         dto.setWitnessName(null);
         dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
         dto.setStatus(VfMigrationStatus.FAILED);
@@ -1514,7 +1514,7 @@ public class MigrationRecordServiceTest {
         dto.setUrn("URN1234567");
         dto.setDefendantName("defendant-name");
         dto.setWitnessName("witness-name");
-        dto.setRecordingVersion(null); 
+        dto.setRecordingVersion(null);
         dto.setRecordingVersionNumber(null);
         dto.setStatus(VfMigrationStatus.FAILED);
 
@@ -1522,8 +1522,8 @@ public class MigrationRecordServiceTest {
         court.setName("Test Court");
 
         final MigrationRecord migrationRecord = createMigrationRecord();
-        migrationRecord.setStatus(VfMigrationStatus.IGNORED); 
-        migrationRecord.setRecordingVersion("INVALID_VERSION"); 
+        migrationRecord.setStatus(VfMigrationStatus.IGNORED);
+        migrationRecord.setRecordingVersion("INVALID_VERSION");
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
         when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
@@ -1548,7 +1548,7 @@ public class MigrationRecordServiceTest {
         dto.setStatus(VfMigrationStatus.FAILED);
 
         final MigrationRecord migrationRecord = createMigrationRecord();
-        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
 
@@ -1589,14 +1589,14 @@ public class MigrationRecordServiceTest {
         final CreateVfMigrationRecordDTO dto = new CreateVfMigrationRecordDTO();
         dto.setId(UUID.randomUUID());
         dto.setCourtId(UUID.randomUUID());
-        dto.setUrn("   "); 
+        dto.setUrn("   ");
         dto.setDefendantName("defendant-name");
         dto.setWitnessName("witness-name");
         dto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
         dto.setStatus(VfMigrationStatus.FAILED);
 
         final MigrationRecord migrationRecord = createMigrationRecord();
-        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
 
@@ -1620,7 +1620,7 @@ public class MigrationRecordServiceTest {
         dto.setStatus(VfMigrationStatus.FAILED);
 
         final MigrationRecord migrationRecord = createMigrationRecord();
-        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
 
@@ -1668,7 +1668,7 @@ public class MigrationRecordServiceTest {
         dto.setStatus(VfMigrationStatus.FAILED);
 
         final MigrationRecord migrationRecord = createMigrationRecord();
-        migrationRecord.setStatus(VfMigrationStatus.PENDING); 
+        migrationRecord.setStatus(VfMigrationStatus.PENDING);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
 
@@ -1688,7 +1688,7 @@ public class MigrationRecordServiceTest {
         dto.setUrn("URN1234567");
         dto.setDefendantName("defendant-name");
         dto.setWitnessName("witness-name");
-        dto.setRecordingVersion(null); 
+        dto.setRecordingVersion(null);
         dto.setStatus(VfMigrationStatus.FAILED);
 
         final Court court = new Court();
@@ -1696,7 +1696,7 @@ public class MigrationRecordServiceTest {
 
         final MigrationRecord migrationRecord = createMigrationRecord();
         migrationRecord.setStatus(VfMigrationStatus.IGNORED);
-        migrationRecord.setRecordingVersion(null); 
+        migrationRecord.setRecordingVersion(null);
 
         when(migrationRecordRepository.findById(dto.getId())).thenReturn(Optional.of(migrationRecord));
         when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(court));
@@ -1777,7 +1777,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord orig1 = new MigrationRecord();
         orig1.setId(UUID.randomUUID());
         orig1.setRecordingVersion("ORIG");
@@ -1786,7 +1786,7 @@ public class MigrationRecordServiceTest {
         orig1.setIsPreferred(false);
         orig1.setArchiveName("test1.raw");
         orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
-        
+
         MigrationRecord orig2 = new MigrationRecord();
         orig2.setId(UUID.randomUUID());
         orig2.setRecordingVersion("ORIG");
@@ -1795,15 +1795,15 @@ public class MigrationRecordServiceTest {
         orig2.setIsPreferred(true);
         orig2.setArchiveName("test2.mp4");
         orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
-        
+
         List<MigrationRecord> groupRecords = List.of(orig1, orig2);
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertTrue(result.isPresent());
-        assertThat(result.get()).isEqualTo(orig2); 
+        assertThat(result.get()).isEqualTo(orig2);
     }
 
     @Test
@@ -1812,7 +1812,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord orig1 = new MigrationRecord();
         orig1.setId(UUID.randomUUID());
         orig1.setRecordingVersion("ORIG");
@@ -1821,7 +1821,7 @@ public class MigrationRecordServiceTest {
         orig1.setIsPreferred(false);
         orig1.setArchiveName("test1.raw");
         orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
-        
+
         MigrationRecord orig2 = new MigrationRecord();
         orig2.setId(UUID.randomUUID());
         orig2.setRecordingVersion("ORIG");
@@ -1830,15 +1830,15 @@ public class MigrationRecordServiceTest {
         orig2.setIsPreferred(false);
         orig2.setArchiveName("test2.mp4");
         orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
-        
+
         List<MigrationRecord> groupRecords = List.of(orig1, orig2);
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertTrue(result.isPresent());
-        assertThat(result.get()).isEqualTo(orig2); 
+        assertThat(result.get()).isEqualTo(orig2);
     }
 
     @Test
@@ -1847,7 +1847,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord orig1 = new MigrationRecord();
         orig1.setId(UUID.randomUUID());
         orig1.setRecordingVersion("ORIG");
@@ -1856,7 +1856,7 @@ public class MigrationRecordServiceTest {
         orig1.setIsPreferred(false);
         orig1.setArchiveName("test1.raw");
         orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
-        
+
         MigrationRecord orig2 = new MigrationRecord();
         orig2.setId(UUID.randomUUID());
         orig2.setRecordingVersion("ORIG");
@@ -1865,13 +1865,13 @@ public class MigrationRecordServiceTest {
         orig2.setIsPreferred(false);
         orig2.setArchiveName("test2.raw");
         orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
-        
+
         List<MigrationRecord> groupRecords = List.of(orig1, orig2);
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertTrue(result.isPresent());
         assertThat(result.get()).isEqualTo(orig1);
     }
@@ -1882,19 +1882,19 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord copyRecord = new MigrationRecord();
         copyRecord.setId(UUID.randomUUID());
         copyRecord.setRecordingVersion("COPY");
         copyRecord.setStatus(VfMigrationStatus.SUCCESS);
         copyRecord.setRecordingId(UUID.randomUUID());
-        
+
         List<MigrationRecord> groupRecords = List.of(copyRecord);
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertTrue(result.isEmpty());
     }
 
@@ -1904,19 +1904,19 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord orig = new MigrationRecord();
         orig.setId(UUID.randomUUID());
         orig.setRecordingVersion("ORIG");
         orig.setStatus(VfMigrationStatus.SUCCESS);
         orig.setRecordingId(null);
-        
+
         List<MigrationRecord> groupRecords = List.of(orig);
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertTrue(result.isEmpty());
     }
 
@@ -1949,7 +1949,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord orig1 = new MigrationRecord();
         orig1.setId(UUID.randomUUID());
         orig1.setRecordingVersion("ORIG");
@@ -1958,7 +1958,7 @@ public class MigrationRecordServiceTest {
         orig1.setIsPreferred(false);
         orig1.setArchiveName("test1.raw");
         orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
-        
+
         MigrationRecord orig2 = new MigrationRecord();
         orig2.setId(UUID.randomUUID());
         orig2.setRecordingVersion("ORIG");
@@ -1967,13 +1967,13 @@ public class MigrationRecordServiceTest {
         orig2.setIsPreferred(false);
         orig2.setArchiveName("test2.mp4");
         orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
-        
+
         List<MigrationRecord> groupRecords = List.of(orig1, orig2);
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertTrue(result.isPresent());
         assertThat(result.get()).isEqualTo(orig2);
     }
@@ -1984,7 +1984,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord orig1 = new MigrationRecord();
         orig1.setId(UUID.randomUUID());
         orig1.setRecordingVersion("ORIG");
@@ -1993,7 +1993,7 @@ public class MigrationRecordServiceTest {
         orig1.setIsPreferred(false);
         orig1.setArchiveName("test1.mp4");
         orig1.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(50)));
-        
+
         MigrationRecord orig2 = new MigrationRecord();
         orig2.setId(UUID.randomUUID());
         orig2.setRecordingVersion("ORIG");
@@ -2002,15 +2002,15 @@ public class MigrationRecordServiceTest {
         orig2.setIsPreferred(true);
         orig2.setArchiveName("test2.raw");
         orig2.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(100)));
-        
+
         List<MigrationRecord> groupRecords = List.of(orig1, orig2);
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(groupRecords);
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertTrue(result.isPresent());
-        assertThat(result.get()).isEqualTo(orig2); 
+        assertThat(result.get()).isEqualTo(orig2);
     }
 
     @Test
@@ -2019,11 +2019,11 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(List.of());
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertFalse(result.isPresent());
     }
 
@@ -2033,7 +2033,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord orig = new MigrationRecord();
         orig.setId(UUID.randomUUID());
         orig.setRecordingVersion("ORIG");
@@ -2042,11 +2042,11 @@ public class MigrationRecordServiceTest {
         orig.setIsPreferred(true);
         orig.setArchiveName("test.mp4");
         orig.setCreatedAt(Timestamp.from(Instant.now()));
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(List.of(orig));
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertFalse(result.isPresent());
     }
 
@@ -2056,7 +2056,7 @@ public class MigrationRecordServiceTest {
         MigrationRecord copy = new MigrationRecord();
         copy.setParentTempId(null);
         copy.setRecordingGroupKey("test-group");
-        
+
         MigrationRecord orig = new MigrationRecord();
         orig.setId(UUID.randomUUID());
         orig.setRecordingVersion("ORIG");
@@ -2065,11 +2065,11 @@ public class MigrationRecordServiceTest {
         orig.setIsPreferred(true);
         orig.setArchiveName("test.mp4");
         orig.setCreatedAt(Timestamp.from(Instant.now()));
-        
+
         when(migrationRecordRepository.findByRecordingGroupKey("test-group")).thenReturn(List.of(orig));
-        
+
         Optional<MigrationRecord> result = migrationRecordService.getOrigFromCopy(copy);
-        
+
         assertFalse(result.isPresent());
     }
 

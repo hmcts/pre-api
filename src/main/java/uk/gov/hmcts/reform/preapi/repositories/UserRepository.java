@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -44,6 +43,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                 ELSE 0
             END = 1
         )
+        AND (:firstName IS NULL OR u.firstName ILIKE %:firstName%)
+        AND (:lastName IS NULL OR u.lastName ILIKE %:lastName%)
         AND (:organisation IS NULL OR u.organisation ILIKE %:organisation%)
         AND (CAST(:courtId as uuid) IS NULL OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.court.id = :courtId))
         AND (CAST(:roleId as uuid) IS NULL OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.role.id = :roleId))
@@ -58,8 +59,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         AND (:isAppUser = false OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.user = u AND aa.deletedAt IS NULL))
         """
     )
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     Page<User> searchAllBy(
         @Param("name") String name,
+        @Param("firstName") String firstName,
+        @Param("lastName") String lastName,
         @Param("email") String email,
         @Param("organisation") String organisation,
         @Param("courtId") UUID courtId,

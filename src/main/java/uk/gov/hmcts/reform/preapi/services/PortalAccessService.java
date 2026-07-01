@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -51,6 +52,51 @@ public class PortalAccessService {
                     access.setDeletedAt(Timestamp.from(Instant.now()));
                     portalAccessRepository.save(access);
                 });
+    }
+
+    @Transactional
+    public void deleteByUserId(UUID userId) {
+        portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+            .ifPresent(access -> {
+                access.setStatus(AccessStatus.INACTIVE);
+                access.setDeletedAt(Timestamp.from(Instant.now()));
+                portalAccessRepository.save(access);
+            });
+    }
+
+    @Transactional
+    public void undeleteByUserId(UUID userId) {
+        portalAccessRepository
+            .findAllByUser_IdAndDeletedAtIsNotNull(userId)
+            .forEach(p -> {
+                p.setDeletedAt(null);
+                portalAccessRepository.save(p);
+            });
+    }
+
+    public Boolean exists(UUID id) {
+        return portalAccessRepository.existsById(id);
+    }
+
+    public Boolean isNotDeletedPortalUser(UUID userId) {
+        return portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+            .isPresent();
+    }
+
+    public void upsertPortalAccessEntity(UUID id,
+                                         User userEntity,
+                                         AccessStatus accessStatus,
+                                         Timestamp timestamp) {
+        PortalAccess portalAccessEntity = portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(id)
+            .orElse(new PortalAccess());
+
+        portalAccessEntity.setUser(userEntity);
+        portalAccessEntity.setStatus(accessStatus);
+        portalAccessEntity.setInvitedAt(timestamp);
+        portalAccessRepository.save(portalAccessEntity);
     }
 
     private AccessStatus getNewStatus(CreatePortalAccessDTO dto) {

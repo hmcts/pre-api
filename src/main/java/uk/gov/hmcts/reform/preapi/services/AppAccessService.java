@@ -90,4 +90,26 @@ public class AppAccessService {
                     appAccessRepository.save(access);
                 });
     }
+
+    @Transactional
+    public void deleteByUserId(UUID userId) {
+        appAccessRepository
+            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+            .forEach(access -> {
+                access.setActive(false);
+                access.setDeletedAt(Timestamp.from(Instant.now()));
+                appAccessRepository.save(access);
+            });
+    }
+
+    @Transactional
+    public void undeleteByUserId(UUID userId) {
+        appAccessRepository
+            .findAllByUser_IdAndDeletedAtIsNotNull(userId)
+            .forEach(a -> {
+                a.setDeletedAt(null);
+                a.setActive(true);
+                appAccessRepository.save(a);
+            });
+    }
 }

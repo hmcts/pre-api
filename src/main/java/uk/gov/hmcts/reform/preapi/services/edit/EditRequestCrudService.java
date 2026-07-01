@@ -142,7 +142,7 @@ public class EditRequestCrudService {
 
         return editRequestRepository.findSourceRecordingIdsWithForceReencodeRequests(sourceRecordingIds);
     }
-  
+
     private UpsertResult handleEmptyInstructions(CreateEditRequestDTO dto,
                                                  Optional<EditRequest> existingEditRequest,
                                                  boolean isUpdate) {
