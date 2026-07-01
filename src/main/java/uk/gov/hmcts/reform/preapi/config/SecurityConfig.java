@@ -61,7 +61,32 @@ public class SecurityConfig {
     @SuppressWarnings("PMD.SignatureDeclareThrowsException")
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers(
+                    "/testing-support/**",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/v3/api-docs",
+                    "/health/**",
+                    "/health",
+                    "/info",
+                    "/prometheus",
+                    "/users/by-email/**",
+                    "/reports/**",
+                    "/audit/**",
+                    "/b2c/**",
+                    "/error",
+                    "/app-terms-and-conditions/latest",
+                    "/portal-terms-and-conditions/latest",
+                    "/invites",
+                    "/invites/redeem",
+                    "/batch",
+                    "/batch/fetch-xml",
+                    "/batch/process-migration",
+                    "/batch/post-migration-tasks",
+                    "/batch/migrate-exclusions"
+                )
+            )
             .authorizeHttpRequests(authorize ->
                                        authorize
                                            .requestMatchers(HttpMethod.GET, PERMITTED_URIS_GET_ONLY).permitAll()
