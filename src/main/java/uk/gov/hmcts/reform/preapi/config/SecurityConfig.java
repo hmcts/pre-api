@@ -61,7 +61,9 @@ public class SecurityConfig {
     @SuppressWarnings("PMD.SignatureDeclareThrowsException")
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/v3/api-docs/**", "/swagger-ui/**")
+            )
             .authorizeHttpRequests(authorize ->
                                        authorize
                                            .requestMatchers(HttpMethod.GET, PERMITTED_URIS_GET_ONLY).permitAll()
