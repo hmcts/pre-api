@@ -47,7 +47,6 @@ public class EditRequestService {
     private final EditRequestCrudService editRequestCrudService;
     private final RecordingRepository recordingRepository;
     private final RecordingService recordingService;
-    private final EditNotificationService editNotificationService;
     private final boolean hideReencodedRecordings;
 
     private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
@@ -56,13 +55,11 @@ public class EditRequestService {
     public EditRequestService(final EditRequestCrudService editRequestCrudService,
                               final RecordingRepository recordingRepository,
                               final RecordingService recordingService,
-                              final EditNotificationService editNotificationService,
                               @Value("${feature-flags.hide-reencoded-recordings:true}")
                               final boolean hideReencodedRecordings) {
         this.editRequestCrudService = editRequestCrudService;
         this.recordingRepository = recordingRepository;
         this.recordingService = recordingService;
-        this.editNotificationService = editNotificationService;
         this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
@@ -118,7 +115,7 @@ public class EditRequestService {
         User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
         Pair<UpsertResult, EditRequest> result = editRequestCrudService.upsert(dto, sourceRecording, user);
-        notifyOnUpdatedRequest(dto, result);
+
         return result.getFirst();
     }
 
@@ -164,19 +161,6 @@ public class EditRequestService {
         }
 
         return sourceRecording;
-    }
-
-    private void notifyOnUpdatedRequest(CreateEditRequestDTO dto, Pair<UpsertResult, EditRequest> upserted) {
-        if (!upserted.getFirst().equals(UpsertResult.UPDATED)) {
-            return;
-        }
-
-        if (dto.getStatus() == EditRequestStatus.SUBMITTED) {
-            editNotificationService.onEditRequestSubmitted(upserted.getSecond());
-            return;
-        }
-
-        editNotificationService.onEditRequestRejected(upserted.getSecond());
     }
 
     private boolean canViewReencodedRecordings() {
