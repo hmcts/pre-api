@@ -2,15 +2,8 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.opencsv.CSVParser;
-import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
-import lombok.Cleanup;
 import lombok.Setter;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,20 +16,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
-import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.VisibleRecording;
+import uk.gov.hmcts.reform.preapi.entities.RecordingVisibility;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
-import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
-import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -46,29 +34,19 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
-import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader.createReader;
 
 @Slf4j
 @Service
@@ -338,27 +316,43 @@ public class RecordingService {
     }
 
     public List<UUID> getVisibleRecordingsList(boolean visible) {
-        return recordingRepository.getVisibleRecordingsList(visible);
+        if (visible) {
+            return recordingRepository.findAllByVisibility(RecordingVisibilityStatus.VISIBLE);
+        }
+        return recordingRepository.findAllByVisibility(RecordingVisibilityStatus.INVISIBLE);
     }
 
     @Transactional
-    public List<VisibleRecording> updateVisibleRecordingsList(MultipartFile visibilityData) {
-        List<VisibleRecording> visibilityInputList = parseCsv(visibilityData);
+    public List<RecordingVisibility> updateVisibleRecordingsList(MultipartFile visibilityData) {
+        List<RecordingVisibility> visibilityInputList = parseCsv(visibilityData);
 
         visibilityInputList.forEach(recordingVisibility -> {
-            if (recordingVisibility.getVisible() == null || recordingVisibility.getVisible().isBlank()) {
-                recordingRepository.resetRecordingVisilibity(recordingVisibility.getRecordingId());
+            if (recordingVisibility.getVisibility() == null || recordingVisibility.getVisibility().isBlank()) {
+                recordingRepository.setRecordingVisilibity(
+                    recordingVisibility.getRecordingId(),
+                    RecordingVisibilityStatus.DEFAULT.name()
+                );
                 return;
             }
-            String trimmedVisibleValue = recordingVisibility.getVisible().trim();
-            if (trimmedVisibleValue.equalsIgnoreCase("true")
-                || trimmedVisibleValue.equalsIgnoreCase("yes")){
-                recordingRepository.setRecordingVisilibity(recordingVisibility.getRecordingId(), true);
-            }
 
-            if (trimmedVisibleValue.equalsIgnoreCase("false")
-                || trimmedVisibleValue.equalsIgnoreCase("no")){
-                recordingRepository.setRecordingVisilibity(recordingVisibility.getRecordingId(), false);
+            switch (recordingVisibility.getVisibility().trim()) {
+                case "default":
+                    recordingRepository.setRecordingVisilibity(
+                        recordingVisibility.getRecordingId(),
+                        RecordingVisibilityStatus.DEFAULT.name());
+                case "true":
+                case "yes":
+                case "visible":
+                    recordingRepository.setRecordingVisilibity(
+                        recordingVisibility.getRecordingId(),
+                        RecordingVisibilityStatus.VISIBLE.name());
+                    break;
+                case "false":
+                case "no":
+                case "invisible":
+                    recordingRepository.setRecordingVisilibity(
+                        recordingVisibility.getRecordingId(),
+                        RecordingVisibilityStatus.INVISIBLE.name());
             }
         });
 
@@ -367,17 +361,19 @@ public class RecordingService {
 
     @Transactional
     public List<UUID> resetVisibleRecordingsList(List<UUID> recordingIds) {
-        recordingIds.forEach(recordingRepository::resetRecordingVisilibity);
+        recordingIds.forEach(id ->
+                                 recordingRepository.setRecordingVisilibity(id,
+                                                                            RecordingVisibilityStatus.DEFAULT.name()));
         return recordingIds;
     }
 
-    private List<VisibleRecording> parseCsv(MultipartFile file) {
+    private List<RecordingVisibility> parseCsv(MultipartFile file) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
             file.getInputStream(),
             StandardCharsets.UTF_8
         ))) {
-            return new CsvToBeanBuilder<VisibleRecording>(reader)
-                .withType(VisibleRecording.class)
+            return new CsvToBeanBuilder<RecordingVisibility>(reader)
+                .withType(RecordingVisibility.class)
                 .withIgnoreLeadingWhiteSpace(true)
                 .withIgnoreEmptyLine(true)
                 .build()

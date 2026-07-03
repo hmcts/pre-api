@@ -30,10 +30,8 @@ import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.VisibleRecording;
+import uk.gov.hmcts.reform.preapi.entities.RecordingVisibility;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -64,7 +62,7 @@ public class RecordingController extends PreApiController {
         return ResponseEntity.ok(recordingService.findById(recordingId));
     }
 
-    @GetMapping("/visible")
+    @GetMapping("/visibility")
 //    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
     @Parameter(
         name = "visible",
@@ -77,9 +75,9 @@ public class RecordingController extends PreApiController {
         return ResponseEntity.ok(recordingService.getVisibleRecordingsList(visible));
     }
 
-    @PutMapping(value = "/visible", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/visibility", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 //    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
-    public ResponseEntity<List<VisibleRecording>>
+    public ResponseEntity<List<RecordingVisibility>>
     updateRecordingsVisibility(@RequestParam("file") MultipartFile file) {
         String fileType = file.getContentType();
         if (fileType == null || !fileType.equals(CSV_FILE_TYPE)) {
@@ -93,7 +91,7 @@ public class RecordingController extends PreApiController {
         return ResponseEntity.ok(recordingService.updateVisibleRecordingsList(file));
     }
 
-    @PutMapping("/visible/reset")
+    @PutMapping("/visibility/reset")
 //    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
     @Operation(operationId = "recordingVisibility",
         summary = "Reset visibility of recordings to default")

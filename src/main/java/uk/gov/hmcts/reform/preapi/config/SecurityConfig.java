@@ -23,7 +23,7 @@ public class SecurityConfig {
 
     public static final String[] PERMITTED_URIS_ALL_REQUESTS = {
         // Temp for testing
-        "/recordings/visible/**",
+        "/recordings/visibility/**",
         "/testing-support/**",
         "/swagger-ui/**",
         "/v3/api-docs/**",

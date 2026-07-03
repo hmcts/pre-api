@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 
 import java.util.Collection;
 import java.util.List;
@@ -34,32 +35,24 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     );
 
     @Query("""
-        SELECT r.visible FROM Recording r
-        WHERE r.id = :recordingId AND r.visible IS NOT NULL
+        SELECT r.visibility FROM Recording r
+        WHERE r.id = :recordingId AND r.visibility IS NOT NULL
         """)
     boolean isRecordingVisibleByException(UUID recordingId);
 
     @Query("""
         SELECT DISTINCT r.id FROM Recording r
-        WHERE r.visible IS NOT NULL AND r.visible = :visible
+        WHERE r.visibility IS NOT NULL AND r.visibility = :visibility
         """)
-    List<UUID> getVisibleRecordingsList(boolean visible);
+    List<UUID> findAllByVisibility(RecordingVisibilityStatus visibility);
 
     @Modifying
     @Query("""
         UPDATE Recording r
-        SET r.visible = :visible
+        SET r.visibility = :visibility
         WHERE r.id = :recordingId
         """)
-    void setRecordingVisilibity(UUID recordingId, boolean visible);
-
-    @Modifying
-    @Query("""
-        UPDATE Recording r
-        SET r.visible = null
-        WHERE r.id = :recordingId
-        """)
-    void resetRecordingVisilibity(UUID recordingId);
+    void setRecordingVisilibity(UUID recordingId, String visibility);
 
     @Query(
         """

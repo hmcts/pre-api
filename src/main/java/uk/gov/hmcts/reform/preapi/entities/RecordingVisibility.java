@@ -8,10 +8,11 @@ import java.util.UUID;
 
 @Getter
 @Setter
-public class VisibleRecording {
+public class RecordingVisibility {
+
     @CsvBindByName(column = "recording_id")
     public UUID recordingId;
 
     @CsvBindByName(column = "visible")
-    public String visible;
+    public String visibility;
 }

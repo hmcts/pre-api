@@ -1,1 +1,7 @@
-ALTER TABLE public.recordings ADD COLUMN visible boolean default null;
+CREATE TYPE public.RECORDING_VISIBILITY AS ENUM (
+  'DEFAULT',
+  'VISIBLE',
+  'INVISIBLE'
+  );
+
+ALTER TABLE public.recordings ADD COLUMN visibility RECORDING_VISIBILITY default 'DEFAULT';

@@ -1,10 +1,11 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-import com.opencsv.bean.CsvBindByName;
 import io.hypersistence.utils.hibernate.type.interval.PostgreSQLIntervalType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -21,13 +22,13 @@ import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import uk.gov.hmcts.reform.preapi.entities.listeners.RecordingListener;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -86,9 +87,11 @@ public class Recording extends BaseEntity implements ISoftDeletable {
         return deletedAt != null;
     }
 
-    @Column(name = "visible")
-    @ColumnDefault("true")
-    public boolean visible = true;
+    @ColumnDefault("DEFAULT")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", nullable = false, columnDefinition = "RECORDING_VISIBILITY")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    public RecordingVisibilityStatus visibility;
 
     @Override
     public Map<String, Object> getDetailsForAudit() {
