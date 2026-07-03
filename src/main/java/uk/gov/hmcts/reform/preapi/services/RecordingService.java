@@ -350,13 +350,14 @@ public class RecordingService {
                 recordingRepository.resetRecordingVisilibity(recordingVisibility.getRecordingId());
                 return;
             }
-            if (recordingVisibility.getVisible().equalsIgnoreCase("true")
-                || recordingVisibility.getVisible().equalsIgnoreCase("yes")){
+            String trimmedVisibleValue = recordingVisibility.getVisible().trim();
+            if (trimmedVisibleValue.equalsIgnoreCase("true")
+                || trimmedVisibleValue.equalsIgnoreCase("yes")){
                 recordingRepository.setRecordingVisilibity(recordingVisibility.getRecordingId(), true);
             }
 
-            if (recordingVisibility.getVisible().equalsIgnoreCase("false")
-                || recordingVisibility.getVisible().equalsIgnoreCase("no")){
+            if (trimmedVisibleValue.equalsIgnoreCase("false")
+                || trimmedVisibleValue.equalsIgnoreCase("no")){
                 recordingRepository.setRecordingVisilibity(recordingVisibility.getRecordingId(), false);
             }
         });
