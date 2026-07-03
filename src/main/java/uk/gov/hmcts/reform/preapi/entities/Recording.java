@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
+import com.opencsv.bean.CsvBindByName;
 import io.hypersistence.utils.hibernate.type.interval.PostgreSQLIntervalType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,6 +13,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
@@ -25,6 +27,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -82,6 +85,10 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     public boolean isDeleted() {
         return deletedAt != null;
     }
+
+    @Column(name = "visible")
+    @ColumnDefault("true")
+    public boolean visible = true;
 
     @Override
     public Map<String, Object> getDetailsForAudit() {

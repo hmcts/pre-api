@@ -216,6 +216,7 @@ public class AuthorisationService {
 
     public boolean canViewReencodedRecording(UserAuthentication authentication, Recording recording) {
         return !hideReencodedRecordings
+            || recordingRepository.isRecordingVisibleByException(recording.getId())
             || !recording.isReencode()
             || authentication.hasRole(ROLE_SUPER_USER);
     }

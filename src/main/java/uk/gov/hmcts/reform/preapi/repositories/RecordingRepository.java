@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -31,6 +32,34 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         @Param("id") UUID id,
         @Param("includeReencodedRecordings") boolean includeReencodedRecordings
     );
+
+    @Query("""
+        SELECT r.visible FROM Recording r
+        WHERE r.id = :recordingId AND r.visible != NULL
+        """)
+    boolean isRecordingVisibleByException(UUID recordingId);
+
+    @Query("""
+        SELECT DISTINCT r.id FROM Recording r
+        WHERE r.visible != NULL AND r.visible = :visible
+        """)
+    List<UUID> getVisibleRecordingsList(boolean visible);
+
+    @Modifying
+    @Query("""
+        UPDATE Recording r
+        SET r.visible = :visible
+        WHERE r.id = :recordingId
+        """)
+    void setRecordingVisilibity(UUID recordingId, boolean visible);
+
+    @Modifying
+    @Query("""
+        UPDATE Recording r
+        SET r.visible = null
+        WHERE r.id = :recordingId
+        """)
+    void resetRecordingVisilibity(UUID recordingId);
 
     @Query(
         """

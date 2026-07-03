@@ -2,7 +2,15 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.opencsv.CSVParser;
+import com.opencsv.bean.CsvToBean;
+import com.opencsv.bean.CsvToBeanBuilder;
+import lombok.Cleanup;
 import lombok.Setter;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,31 +22,53 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.VisibleRecording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader.createReader;
 
 @Slf4j
 @Service
@@ -86,9 +116,9 @@ public class RecordingService {
     @Transactional
     @PreAuthorize(
         """
-        (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
-        and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
-        """
+            (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
+            and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
+            """
     )
     public Page<RecordingDTO> findAll(
         SearchRecordings params,
@@ -96,16 +126,16 @@ public class RecordingService {
         Pageable pageable
     ) {
         params.setStartedAtFrom(params.getStartedAt() != null
-                                       ? Timestamp.from(params.getStartedAt().toInstant())
-                                       : null
+                                    ? Timestamp.from(params.getStartedAt().toInstant())
+                                    : null
         );
 
         params.setStartedAtUntil(params.getStartedAtFrom() != null
-                                        ? Timestamp.from(params
-                                                             .getStartedAtFrom()
-                                                             .toInstant()
-                                                             .plus(86399, ChronoUnit.SECONDS))
-                                        : null
+                                     ? Timestamp.from(params
+                                                          .getStartedAtFrom()
+                                                          .toInstant()
+                                                          .plus(86399, ChronoUnit.SECONDS))
+                                     : null
         );
 
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
@@ -305,6 +335,56 @@ public class RecordingService {
         return recordingRepository.findAllOriginVodafoneNoDuration().stream()
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
+    }
+
+    public List<UUID> getVisibleRecordingsList(boolean visible) {
+        return recordingRepository.getVisibleRecordingsList(visible);
+    }
+
+    @Transactional
+    public List<VisibleRecording> updateVisibleRecordingsList(MultipartFile visibilityData) {
+        List<VisibleRecording> visibilityInputList = parseCsv(visibilityData);
+
+        visibilityInputList.forEach(recordingVisibility -> {
+            if (recordingVisibility.getVisible() == null || recordingVisibility.getVisible().isBlank()) {
+                recordingRepository.resetRecordingVisilibity(recordingVisibility.getRecordingId());
+                return;
+            }
+            if (recordingVisibility.getVisible().equalsIgnoreCase("true")
+                || recordingVisibility.getVisible().equalsIgnoreCase("yes")){
+                recordingRepository.setRecordingVisilibity(recordingVisibility.getRecordingId(), true);
+            }
+
+            if (recordingVisibility.getVisible().equalsIgnoreCase("false")
+                || recordingVisibility.getVisible().equalsIgnoreCase("no")){
+                recordingRepository.setRecordingVisilibity(recordingVisibility.getRecordingId(), false);
+            }
+        });
+
+        return visibilityInputList;
+    }
+
+    @Transactional
+    public List<UUID> resetVisibleRecordingsList(List<UUID> recordingIds) {
+        recordingIds.forEach(recordingRepository::resetRecordingVisilibity);
+        return recordingIds;
+    }
+
+    private List<VisibleRecording> parseCsv(MultipartFile file) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+            file.getInputStream(),
+            StandardCharsets.UTF_8
+        ))) {
+            return new CsvToBeanBuilder<VisibleRecording>(reader)
+                .withType(VisibleRecording.class)
+                .withIgnoreLeadingWhiteSpace(true)
+                .withIgnoreEmptyLine(true)
+                .build()
+                .parse();
+        } catch (Exception e) {
+            log.error("Error when reading CSV file: {} ", e.getMessage());
+            throw new UnknownServerException("Uploaded CSV file incorrectly formatted", e);
+        }
     }
 
 }
