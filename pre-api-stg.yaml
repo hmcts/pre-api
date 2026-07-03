@@ -2354,6 +2354,14 @@ definitions:
         format: uuid
         type: string
     type: object
+  RecordingVisibility:
+    properties:
+      recordingId:
+        format: uuid
+        type: string
+      visibility:
+        type: string
+    type: object
   RecordingsPerCaseReportDTO:
     description: RecordingsPerCaseReportDTO
     properties:
@@ -2777,14 +2785,6 @@ definitions:
     required:
       - email
       - verification_code
-    type: object
-  VisibleRecording:
-    properties:
-      recordingId:
-        format: uuid
-        type: string
-      visible:
-        type: string
     type: object
 externalDocs:
   description: README
@@ -4466,7 +4466,7 @@ paths:
       summary: Search all Recordings
       tags:
         - recording-controller
-  /recordings/visible:
+  /recordings/visibility:
     get:
       operationId: recordingVisibility
       parameters:
@@ -4520,11 +4520,11 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/VisibleRecording'
+              $ref: '#/definitions/RecordingVisibility'
             type: array
       tags:
         - recording-controller
-  /recordings/visible/reset:
+  /recordings/visibility/reset:
     put:
       consumes:
         - application/json
