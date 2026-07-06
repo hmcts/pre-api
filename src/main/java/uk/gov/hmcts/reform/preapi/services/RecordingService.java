@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.entities.RecordingVisibility;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -47,6 +48,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static java.lang.String.format;
 
 @Slf4j
 @Service
@@ -316,14 +319,22 @@ public class RecordingService {
     }
 
     public RecordingVisibilityStatus getRecordingVisibility(UUID recordingId) {
-        return recordingRepository.getRecordingVisibilityById(recordingId);
+        Optional<Recording> recording = recordingRepository.findByIdAndDeletedAtIsNull(
+            recordingId,
+            true
+        );
+        if (recording.isPresent()) {
+            return recording.get().getVisibility();
+        }
+
+        return RecordingVisibilityStatus.DEFAULT;
     }
 
-    public List<UUID> getVisibleRecordingsList(boolean visible) {
-        if (visible) {
-            return recordingRepository.findAllByVisibility(RecordingVisibilityStatus.VISIBLE);
-        }
-        return recordingRepository.findAllByVisibility(RecordingVisibilityStatus.INVISIBLE);
+    public List<UUID> getVisibleRecordingsList(RecordingVisibilityStatus visible) {
+        return recordingRepository.getByVisibilityIs(visible)
+            .stream()
+            .map(Recording::getId)
+            .collect(Collectors.toList());
     }
 
     @Transactional
@@ -331,32 +342,35 @@ public class RecordingService {
         List<RecordingVisibility> visibilityInputList = parseCsv(visibilityData);
 
         visibilityInputList.forEach(recordingVisibility -> {
+            Recording recording = recordingRepository.findByIdAndDeletedAtIsNull(
+                    recordingVisibility.getRecordingId(), true)
+                .orElseThrow(() -> new BadRequestException(format(
+                    "Did not find recording with id %s. May have been deleted.",
+                    recordingVisibility.getRecordingId()
+                )));
+
             if (recordingVisibility.getVisibility() == null || recordingVisibility.getVisibility().isBlank()) {
-                recordingRepository.setRecordingVisilibity(
-                    recordingVisibility.getRecordingId(),
-                    RecordingVisibilityStatus.DEFAULT.name()
-                );
+                recording.setVisibility(RecordingVisibilityStatus.DEFAULT);
+                recordingRepository.save(recording);
                 return;
             }
 
             switch (recordingVisibility.getVisibility().trim()) {
                 case "default":
-                    recordingRepository.setRecordingVisilibity(
-                        recordingVisibility.getRecordingId(),
-                        RecordingVisibilityStatus.DEFAULT.name());
+                    recording.setVisibility(RecordingVisibilityStatus.DEFAULT);
+                    recordingRepository.save(recording);
+                    return;
                 case "true":
                 case "yes":
                 case "visible":
-                    recordingRepository.setRecordingVisilibity(
-                        recordingVisibility.getRecordingId(),
-                        RecordingVisibilityStatus.VISIBLE.name());
-                    break;
+                    recording.setVisibility(RecordingVisibilityStatus.VISIBLE);
+                    recordingRepository.save(recording);
+                    return;
                 case "false":
                 case "no":
                 case "invisible":
-                    recordingRepository.setRecordingVisilibity(
-                        recordingVisibility.getRecordingId(),
-                        RecordingVisibilityStatus.INVISIBLE.name());
+                    recording.setVisibility(RecordingVisibilityStatus.INVISIBLE);
+                    recordingRepository.save(recording);
             }
         });
 
@@ -365,9 +379,17 @@ public class RecordingService {
 
     @Transactional
     public List<UUID> resetVisibleRecordingsList(List<UUID> recordingIds) {
-        recordingIds.forEach(id ->
-                                 recordingRepository.setRecordingVisilibity(id,
-                                                                            RecordingVisibilityStatus.DEFAULT.name()));
+        recordingIds.forEach(id -> {
+            Recording recording = recordingRepository.findByIdAndDeletedAtIsNull(
+                    id, true)
+                .orElseThrow(() -> new BadRequestException(format(
+                    "Did not find recording with id %s. May have been deleted.",
+                    id
+                )));
+
+            recording.setVisibility(RecordingVisibilityStatus.DEFAULT);
+            recordingRepository.save(recording);
+        });
         return recordingIds;
     }
 

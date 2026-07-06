@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.RecordingVisibility;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -62,21 +63,31 @@ public class RecordingController extends PreApiController {
         return ResponseEntity.ok(recordingService.findById(recordingId));
     }
 
+
+    @GetMapping("/{recordingId}/visibility")
+    @Operation(operationId = "getRecordingVisibilityById", summary = "Get a Recording Visibility by Id")
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
+    public ResponseEntity<String> getRecordingVisibilityById(
+        @PathVariable UUID recordingId
+    ) {
+        return ResponseEntity.ok(recordingService.getRecordingVisibility(recordingId).name());
+    }
+
     @GetMapping("/visibility")
-//    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     @Parameter(
         name = "visible",
         description = "Get a list of recordings that are visible/invisible by exception",
-        schema = @Schema(implementation = Boolean.class),
-        example = "true")
+        schema = @Schema(implementation = RecordingVisibilityStatus.class),
+        example = "VISIBLE")
     @Operation(operationId = "recordingVisibility",
         summary = "Get recordings that are (in)visible by exception")
-    public ResponseEntity<List<UUID>> getVisibleRecordingsList(boolean visible) {
+    public ResponseEntity<List<UUID>> getVisibleRecordingsList(RecordingVisibilityStatus visible) {
         return ResponseEntity.ok(recordingService.getVisibleRecordingsList(visible));
     }
 
     @PutMapping(value = "/visibility", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<RecordingVisibility>>
     updateRecordingsVisibility(@RequestParam("file") MultipartFile file) {
         String fileType = file.getContentType();
@@ -92,7 +103,7 @@ public class RecordingController extends PreApiController {
     }
 
     @PutMapping("/visibility/reset")
-//    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     @Operation(operationId = "recordingVisibility",
         summary = "Reset visibility of recordings to default")
     public ResponseEntity<List<UUID>> getVisibleRecordingsList(@RequestBody List<UUID> recordingIds) {

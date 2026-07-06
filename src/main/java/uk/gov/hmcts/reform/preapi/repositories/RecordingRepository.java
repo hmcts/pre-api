@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -34,25 +33,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         @Param("includeReencodedRecordings") boolean includeReencodedRecordings
     );
 
-    @Query("""
-        SELECT r.visibility FROM Recording r
-        WHERE r.id = :recordingId AND r.visibility IS NOT NULL
-        """)
-    RecordingVisibilityStatus getRecordingVisibilityById(UUID recordingId);
-
-    @Query("""
-        SELECT DISTINCT r.id FROM Recording r
-        WHERE r.visibility IS NOT NULL AND r.visibility = :visibility
-        """)
-    List<UUID> findAllByVisibility(RecordingVisibilityStatus visibility);
-
-    @Modifying
-    @Query("""
-        UPDATE Recording r
-        SET r.visibility = :visibility
-        WHERE r.id = :recordingId
-        """)
-    void setRecordingVisilibity(UUID recordingId, String visibility);
+    List<Recording> getByVisibilityIs(RecordingVisibilityStatus visibility);
 
     @Query(
         """
@@ -128,6 +109,8 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         @Param("includeReencodedRecordings") boolean includeReencodedRecordings,
         Pageable pageable
     );
+
+    boolean existsByIdIsAndVisibilityIs(UUID recordingId, RecordingVisibilityStatus recordingVisibilityStatus);
 
     boolean existsByIdAndDeletedAtIsNull(UUID id);
 

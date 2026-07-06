@@ -22,8 +22,6 @@ public class SecurityConfig {
     private final UserAuthenticationService userAuthenticationService;
 
     public static final String[] PERMITTED_URIS_ALL_REQUESTS = {
-        // Temp for testing
-        "/recordings/visibility/**",
         "/testing-support/**",
         "/swagger-ui/**",
         "/v3/api-docs/**",
