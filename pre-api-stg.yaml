@@ -4471,11 +4471,15 @@ paths:
       operationId: recordingVisibility
       parameters:
         - description: Get a list of recordings that are visible/invisible by exception
+          enum:
+            - DEFAULT
+            - VISIBLE
+            - INVISIBLE
           in: query
           name: visible
           required: true
-          type: boolean
-          x-example: true
+          type: string
+          x-example: VISIBLE
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -4653,6 +4657,32 @@ paths:
         '200':
           description: OK
       summary: Revert deletion of a recording
+      tags:
+        - recording-controller
+  '/recordings/{recordingId}/visibility':
+    get:
+      operationId: getRecordingVisibilityById
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+      summary: Get a Recording Visibility by Id
       tags:
         - recording-controller
   /reports-v2/capture-sessions-concurrent:
