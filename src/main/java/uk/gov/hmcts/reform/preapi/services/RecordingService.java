@@ -315,6 +315,10 @@ public class RecordingService {
             .collect(Collectors.toList());
     }
 
+    public RecordingVisibilityStatus getRecordingVisibility(UUID recordingId) {
+        return recordingRepository.getRecordingVisibilityById(recordingId);
+    }
+
     public List<UUID> getVisibleRecordingsList(boolean visible) {
         if (visible) {
             return recordingRepository.findAllByVisibility(RecordingVisibilityStatus.VISIBLE);

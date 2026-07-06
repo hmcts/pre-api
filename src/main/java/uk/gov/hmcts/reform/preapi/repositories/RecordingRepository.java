@@ -38,7 +38,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         SELECT r.visibility FROM Recording r
         WHERE r.id = :recordingId AND r.visibility IS NOT NULL
         """)
-    boolean isRecordingVisibleByException(UUID recordingId);
+    RecordingVisibilityStatus getRecordingVisibilityById(UUID recordingId);
 
     @Query("""
         SELECT DISTINCT r.id FROM Recording r
