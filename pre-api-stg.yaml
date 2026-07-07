@@ -1922,6 +1922,9 @@ definitions:
       description:
         description: LiveEventDescription
         type: string
+      displayed_rtmps_link:
+        description: DisplayedRtmpsLink
+        type: string
       id:
         description: LiveEventId
         type: string
