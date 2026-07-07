@@ -41,6 +41,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -407,7 +408,7 @@ public class CaptureSessionService {
             captureSessionId).orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
 
         String courtPrefix = captureSession.getBooking().getCaseId().getCourt().getName()
-            .substring(0, 3).toUpperCase();
+            .substring(0, 3).toUpperCase(Locale.UK);
         String caseRef = captureSession.getBooking().getCaseId().getReference();
 
         return format("%s/%s-%s", captureSession.getIngestAddress(), courtPrefix, caseRef);
