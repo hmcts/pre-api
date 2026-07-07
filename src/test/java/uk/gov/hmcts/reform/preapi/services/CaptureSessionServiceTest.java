@@ -1012,4 +1012,32 @@ public class CaptureSessionServiceTest {
 
         verify(captureSessionRepository, times(1)).save(captureSession);
     }
+
+    @Test
+    @DisplayName("Should calculate RTMPS link with suffix")
+    void shouldCalculateRTMPsLinkWithSuffix() {
+        Court court = mock(Court.class);
+        when(court.getName()).thenReturn("Mock Crown Court");
+
+        Case mockCase = mock(Case.class);
+        when(mockCase.getReference()).thenReturn("TEST12345AB");
+        when(mockCase.getCourt()).thenReturn(court);
+
+        Booking booking = mock(Booking.class);
+        when(booking.getCaseId()).thenReturn(mockCase);
+
+        UUID captureSessionId = UUID.randomUUID();
+        CaptureSession captureSession = mock(CaptureSession.class);
+        when(captureSession.getId()).thenReturn(captureSessionId);
+        when(captureSession.getBooking()).thenReturn(booking);
+        when(captureSession.getIngestAddress()).thenReturn("rtmps://original-address");
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
+            .thenReturn(Optional.of(captureSession));
+
+        String rtmpsLinkWithSuffix = captureSessionService.getRtmpsLinkWithSuffix(captureSessionId);
+
+        assertThat(rtmpsLinkWithSuffix)
+            .isEqualTo("rtmps://original-address/MOC-TEST12345AB");
+    }
 }

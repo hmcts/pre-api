@@ -410,6 +410,6 @@ public class CaptureSessionService {
             .substring(0, 3).toUpperCase();
         String caseRef = captureSession.getBooking().getCaseId().getReference();
 
-        return format("%s/%s-%s", captureSession.getId(), courtPrefix, caseRef);
+        return format("%s/%s-%s", captureSession.getIngestAddress(), courtPrefix, caseRef);
     }
 }
