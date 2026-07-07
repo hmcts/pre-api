@@ -65,7 +65,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(MediaServiceController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@TestPropertySource(properties = {"feature-flags.enable-enhanced-processing=true"})
+@TestPropertySource(properties = {
+    "feature-flags.enable-enhanced-processing=true",
+    "mediakind.rtmpsSuffixEnabled=true"
+})
 public class MediaServiceControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -165,7 +168,8 @@ public class MediaServiceControllerTest {
     @DisplayName("Should return 200 and a live event")
     void getLiveEventSuccess() throws Exception {
         var name = UUID.randomUUID().toString();
-        var liveEvent = HelperFactory.createLiveEvent(name, "description", "Stopped", "rtmps://example.com");
+        var liveEvent = HelperFactory
+            .createLiveEvent(name, "description", "Stopped", "rtmps://example.com");
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
 
@@ -204,6 +208,7 @@ public class MediaServiceControllerTest {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
         when(captureSessionService.findByLiveEventId(name)).thenReturn(dto);
+        when(captureSessionService.getRtmpsLinkWithSuffix(id)).thenReturn("rtmps://example.com/suffix-here");
 
         mockMvc.perform(get("/media-service/live-events/" + name))
             .andExpect(status().isOk())
@@ -211,10 +216,14 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.name").value(name))
             .andExpect(jsonPath("$.description").value("description"))
             .andExpect(jsonPath("$.resource_state").value("Running"))
-            .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"));
+            .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"))
+            .andExpect(jsonPath("$.displayed_rtmps_link")
+                           .value("rtmps://example.com/suffix-here"));
 
         verify(captureSessionService, times(1)).findByLiveEventId(name);
-        verify(captureSessionService, times(1)).startCaptureSession(id, RecordingStatus.STANDBY, "rtmps://example.com");
+        verify(captureSessionService, times(1))
+            .startCaptureSession(id, RecordingStatus.STANDBY, "rtmps://example.com");
+        verify(captureSessionService, times(1)).getRtmpsLinkWithSuffix(id);
     }
 
     @Test

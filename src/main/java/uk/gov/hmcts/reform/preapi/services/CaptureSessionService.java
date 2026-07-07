@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import com.microsoft.applicationinsights.TelemetryClient;
+import jakarta.validation.constraints.NotNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import static java.lang.String.format;
 
 @Slf4j
 @Service
@@ -397,5 +400,16 @@ public class CaptureSessionService {
         audit.setFunctionalArea("API");
         audit.setAuditDetails(null);
         return audit;
+    }
+
+    public String getRtmpsLinkWithSuffix(@NotNull(message = "id is required") UUID captureSessionId) {
+        CaptureSession captureSession = captureSessionRepository.findByIdAndDeletedAtIsNull(
+            captureSessionId).orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
+
+        String courtPrefix = captureSession.getBooking().getCaseId().getCourt().getName()
+            .substring(0, 3).toUpperCase();
+        String caseRef = captureSession.getBooking().getCaseId().getReference();
+
+        return format("%s/%s-%s", captureSession.getId(), courtPrefix, caseRef);
     }
 }
