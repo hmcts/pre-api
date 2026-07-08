@@ -4,6 +4,8 @@ import io.hypersistence.utils.hibernate.type.interval.PostgreSQLIntervalType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -12,6 +14,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
@@ -19,6 +22,7 @@ import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import uk.gov.hmcts.reform.preapi.entities.listeners.RecordingListener;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -82,6 +86,12 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     public boolean isDeleted() {
         return deletedAt != null;
     }
+
+    @ColumnDefault("DEFAULT")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", nullable = false, columnDefinition = "RECORDING_VISIBILITY")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    public RecordingVisibilityStatus visibility;
 
     @Override
     public Map<String, Object> getDetailsForAudit() {

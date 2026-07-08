@@ -2354,6 +2354,14 @@ definitions:
         format: uuid
         type: string
     type: object
+  RecordingVisibility:
+    properties:
+      recordingId:
+        format: uuid
+        type: string
+      visibility:
+        type: string
+    type: object
   RecordingsPerCaseReportDTO:
     description: RecordingsPerCaseReportDTO
     properties:
@@ -4458,6 +4466,102 @@ paths:
       summary: Search all Recordings
       tags:
         - recording-controller
+  /recordings/visibility:
+    get:
+      operationId: recordingVisibility
+      parameters:
+        - description: Get a list of recordings that are visible/invisible by exception
+          enum:
+            - DEFAULT
+            - VISIBLE
+            - INVISIBLE
+          in: query
+          name: visible
+          required: true
+          type: string
+          x-example: VISIBLE
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              format: uuid
+              type: string
+            type: array
+      summary: Get recordings that are (in)visible by exception
+      tags:
+        - recording-controller
+    put:
+      consumes:
+        - multipart/form-data
+      operationId: updateRecordingsVisibility
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - format: binary
+          in: formData
+          name: file
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingVisibility'
+            type: array
+      tags:
+        - recording-controller
+  /recordings/visibility/reset:
+    put:
+      consumes:
+        - application/json
+      operationId: recordingVisibility_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            items:
+              format: uuid
+              type: string
+            type: array
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              format: uuid
+              type: string
+            type: array
+      summary: Reset visibility of recordings to default
+      tags:
+        - recording-controller
   '/recordings/{recordingId}':
     delete:
       operationId: deleteRecording
@@ -4553,6 +4657,32 @@ paths:
         '200':
           description: OK
       summary: Revert deletion of a recording
+      tags:
+        - recording-controller
+  '/recordings/{recordingId}/visibility':
+    get:
+      operationId: getRecordingVisibilityById
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+      summary: Get a Recording Visibility by Id
       tags:
         - recording-controller
   /reports-v2/capture-sessions-concurrent:

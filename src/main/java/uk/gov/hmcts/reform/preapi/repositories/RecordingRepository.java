@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 
 import java.util.Collection;
 import java.util.List;
@@ -31,6 +32,8 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         @Param("id") UUID id,
         @Param("includeReencodedRecordings") boolean includeReencodedRecordings
     );
+
+    List<Recording> getByVisibilityIs(RecordingVisibilityStatus visibility);
 
     @Query(
         """
@@ -106,6 +109,8 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         @Param("includeReencodedRecordings") boolean includeReencodedRecordings,
         Pageable pageable
     );
+
+    boolean existsByIdIsAndVisibilityIs(UUID recordingId, RecordingVisibilityStatus recordingVisibilityStatus);
 
     boolean existsByIdAndDeletedAtIsNull(UUID id);
 

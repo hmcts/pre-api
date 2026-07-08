@@ -13,6 +13,7 @@ import org.springframework.data.web.SortDefault;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,15 +24,22 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.RecordingVisibility;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
+import uk.gov.hmcts.reform.preapi.exception.UnsupportedMediaTypeException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -53,6 +61,53 @@ public class RecordingController extends PreApiController {
         @PathVariable UUID recordingId
     ) {
         return ResponseEntity.ok(recordingService.findById(recordingId));
+    }
+
+
+    @GetMapping("/{recordingId}/visibility")
+    @Operation(operationId = "getRecordingVisibilityById", summary = "Get a Recording Visibility by Id")
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
+    public ResponseEntity<String> getRecordingVisibilityById(
+        @PathVariable UUID recordingId
+    ) {
+        return ResponseEntity.ok(recordingService.getRecordingVisibility(recordingId).name());
+    }
+
+    @GetMapping("/visibility")
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
+    @Parameter(
+        name = "visible",
+        description = "Get a list of recordings that are visible/invisible by exception",
+        schema = @Schema(implementation = RecordingVisibilityStatus.class),
+        example = "VISIBLE")
+    @Operation(operationId = "recordingVisibility",
+        summary = "Get recordings that are (in)visible by exception")
+    public ResponseEntity<List<UUID>> getVisibleRecordingsList(RecordingVisibilityStatus visible) {
+        return ResponseEntity.ok(recordingService.getVisibleRecordingsList(visible));
+    }
+
+    @PutMapping(value = "/visibility", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
+    public ResponseEntity<List<RecordingVisibility>>
+    updateRecordingsVisibility(@RequestParam("file") MultipartFile file) {
+        String fileType = file.getContentType();
+        if (fileType == null || !fileType.equals(CSV_FILE_TYPE)) {
+            throw new UnsupportedMediaTypeException("Unsupported media type: Only CSV files are supported");
+        }
+
+        if (file.isEmpty()) {
+            throw new BadRequestException("File must not be empty");
+        }
+
+        return ResponseEntity.ok(recordingService.updateVisibleRecordingsList(file));
+    }
+
+    @PutMapping("/visibility/reset")
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
+    @Operation(operationId = "recordingVisibility",
+        summary = "Reset visibility of recordings to default")
+    public ResponseEntity<List<UUID>> getVisibleRecordingsList(@RequestBody List<UUID> recordingIds) {
+        return ResponseEntity.ok(recordingService.resetVisibleRecordingsList(recordingIds));
     }
 
     @GetMapping

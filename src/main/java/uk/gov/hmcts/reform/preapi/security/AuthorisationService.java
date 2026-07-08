@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -216,6 +217,7 @@ public class AuthorisationService {
 
     public boolean canViewReencodedRecording(UserAuthentication authentication, Recording recording) {
         return !hideReencodedRecordings
+            || recordingRepository.existsByIdIsAndVisibilityIs(recording.getId(), RecordingVisibilityStatus.VISIBLE)
             || !recording.isReencode()
             || authentication.hasRole(ROLE_SUPER_USER);
     }

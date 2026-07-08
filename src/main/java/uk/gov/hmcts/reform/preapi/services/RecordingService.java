@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,22 +15,30 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.RecordingVisibility;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingVisibilityStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.CaptureSessionNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -39,6 +48,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static java.lang.String.format;
 
 @Slf4j
 @Service
@@ -86,9 +97,9 @@ public class RecordingService {
     @Transactional
     @PreAuthorize(
         """
-        (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
-        and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
-        """
+            (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
+            and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
+            """
     )
     public Page<RecordingDTO> findAll(
         SearchRecordings params,
@@ -96,16 +107,16 @@ public class RecordingService {
         Pageable pageable
     ) {
         params.setStartedAtFrom(params.getStartedAt() != null
-                                       ? Timestamp.from(params.getStartedAt().toInstant())
-                                       : null
+                                    ? Timestamp.from(params.getStartedAt().toInstant())
+                                    : null
         );
 
         params.setStartedAtUntil(params.getStartedAtFrom() != null
-                                        ? Timestamp.from(params
-                                                             .getStartedAtFrom()
-                                                             .toInstant()
-                                                             .plus(86399, ChronoUnit.SECONDS))
-                                        : null
+                                     ? Timestamp.from(params
+                                                          .getStartedAtFrom()
+                                                          .toInstant()
+                                                          .plus(86399, ChronoUnit.SECONDS))
+                                     : null
         );
 
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
@@ -305,6 +316,98 @@ public class RecordingService {
         return recordingRepository.findAllOriginVodafoneNoDuration().stream()
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
+    }
+
+    public RecordingVisibilityStatus getRecordingVisibility(UUID recordingId) {
+        Optional<Recording> recording = recordingRepository.findByIdAndDeletedAtIsNull(
+            recordingId,
+            true
+        );
+        if (recording.isPresent()) {
+            return recording.get().getVisibility();
+        }
+
+        return RecordingVisibilityStatus.DEFAULT;
+    }
+
+    public List<UUID> getVisibleRecordingsList(RecordingVisibilityStatus visible) {
+        return recordingRepository.getByVisibilityIs(visible)
+            .stream()
+            .map(Recording::getId)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<RecordingVisibility> updateVisibleRecordingsList(MultipartFile visibilityData) {
+        List<RecordingVisibility> visibilityInputList = parseCsv(visibilityData);
+
+        visibilityInputList.forEach(recordingVisibility -> {
+            Recording recording = recordingRepository.findByIdAndDeletedAtIsNull(
+                    recordingVisibility.getRecordingId(), true)
+                .orElseThrow(() -> new BadRequestException(format(
+                    "Did not find recording with id %s. May have been deleted.",
+                    recordingVisibility.getRecordingId()
+                )));
+
+            if (recordingVisibility.getVisibility() == null || recordingVisibility.getVisibility().isBlank()) {
+                recording.setVisibility(RecordingVisibilityStatus.DEFAULT);
+                recordingRepository.save(recording);
+                return;
+            }
+
+            switch (recordingVisibility.getVisibility().trim()) {
+                case "default":
+                    recording.setVisibility(RecordingVisibilityStatus.DEFAULT);
+                    recordingRepository.save(recording);
+                    return;
+                case "true":
+                case "yes":
+                case "visible":
+                    recording.setVisibility(RecordingVisibilityStatus.VISIBLE);
+                    recordingRepository.save(recording);
+                    return;
+                case "false":
+                case "no":
+                case "invisible":
+                    recording.setVisibility(RecordingVisibilityStatus.INVISIBLE);
+                    recordingRepository.save(recording);
+            }
+        });
+
+        return visibilityInputList;
+    }
+
+    @Transactional
+    public List<UUID> resetVisibleRecordingsList(List<UUID> recordingIds) {
+        recordingIds.forEach(id -> {
+            Recording recording = recordingRepository.findByIdAndDeletedAtIsNull(
+                    id, true)
+                .orElseThrow(() -> new BadRequestException(format(
+                    "Did not find recording with id %s. May have been deleted.",
+                    id
+                )));
+
+            recording.setVisibility(RecordingVisibilityStatus.DEFAULT);
+            recordingRepository.save(recording);
+        });
+        return recordingIds;
+    }
+
+    private List<RecordingVisibility> parseCsv(MultipartFile file) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+            file.getInputStream(),
+            StandardCharsets.UTF_8
+        ))) {
+            return new CsvToBeanBuilder<RecordingVisibility>(reader)
+                .withType(RecordingVisibility.class)
+                .withIgnoreLeadingWhiteSpace(true)
+                .withIgnoreEmptyLine(true)
+                .build()
+                .parse();
+        } catch (Exception e) {
+            log.error("Error when reading CSV file: {} ", e.getMessage());
+            throw new UnknownServerException("Uploaded CSV file incorrectly formatted", e);
+        }
     }
 
 }
