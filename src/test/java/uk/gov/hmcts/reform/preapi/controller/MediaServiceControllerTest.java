@@ -65,7 +65,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(MediaServiceController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@TestPropertySource(properties = {"feature-flags.enable-enhanced-processing=true"})
+@TestPropertySource(properties = {
+    "feature-flags.enable-enhanced-processing=true",
+    "mediakind.rtmpsSuffixEnabled=true"
+})
 public class MediaServiceControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -198,17 +201,26 @@ public class MediaServiceControllerTest {
     @Test
     @DisplayName("Should update corresponding capture session if status is initialising")
     void getLiveEventUpdateCaptureSessionStart() throws Exception {
-        var id = UUID.randomUUID();
-        var name = id.toString().replace("-", "");
-        var dto = new CaptureSessionDTO();
+        UUID id = UUID.randomUUID();
+        String name = id.toString().replace("-", "");
+        CaptureSessionDTO dto = new CaptureSessionDTO();
         dto.setId(id);
         dto.setStatus(RecordingStatus.INITIALISING);
+
+        String inputRtmpLink = "rtmps://example.com";
+        String displayRtmpsLinkFromCaptureSession = "RTMPS link to display on Power Platform";
+        dto.setIngestAddress(inputRtmpLink);
+        dto.setDisplayedRtmpsLink(displayRtmpsLinkFromCaptureSession);
+
         var liveEvent = HelperFactory.createLiveEvent(name, "description", "Running",
-                                                      "rtmps://example.com");
+                                                      inputRtmpLink);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
         when(captureSessionService.findByLiveEventId(name)).thenReturn(dto);
+
+        when(captureSessionService.startCaptureSession(id, RecordingStatus.STANDBY, inputRtmpLink))
+            .thenReturn(dto);
 
         mockMvc.perform(get("/media-service/live-events/" + name))
             .andExpect(status().isOk())
@@ -216,11 +228,12 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.name").value(name))
             .andExpect(jsonPath("$.description").value("description"))
             .andExpect(jsonPath("$.resource_state").value("Running"))
-            .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"));
+            .andExpect(jsonPath("$.input_rtmp").value(inputRtmpLink))
+            .andExpect(jsonPath("$.displayed_rtmps_link").value(displayRtmpsLinkFromCaptureSession));
 
         verify(captureSessionService, times(1)).findByLiveEventId(name);
         verify(captureSessionService, times(1)).startCaptureSession(id, RecordingStatus.STANDBY,
-                                                                    "rtmps://example.com");
+                                                                    inputRtmpLink);
     }
 
     @Test
@@ -264,8 +277,7 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$[0].name").value("name"))
             .andExpect(jsonPath("$[0].description").value("description"))
             .andExpect(jsonPath("$[0].resource_state").value("Stopped"))
-            .andExpect(jsonPath("$[0].input_rtmp").value("rtmps://example.com"))
-            .andExpect(jsonPath("$[0].displayed_rtmps_link").value("rtmps://example.com"));
+            .andExpect(jsonPath("$[0].input_rtmp").value("rtmps://example.com"));
     }
 
     @Test

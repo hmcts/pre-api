@@ -134,7 +134,7 @@ public class CaptureSessionServiceTest {
         assertThat(model.getOrigin()).isEqualTo(captureSession.getOrigin());
         assertThat(model.getIngestAddress()).isEqualTo(captureSession.getIngestAddress());
         assertThat(model.getDisplayedRtmpsLink())
-            .isEqualTo(captureSession.getLiveOutputUrl());
+            .isEqualTo("example ingest address/FOO-12345678");
         assertThat(model.getLiveOutputUrl()).isEqualTo(captureSession.getLiveOutputUrl());
         assertThat(model.getStartedAt()).isEqualTo(captureSession.getStartedAt());
         assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
@@ -913,6 +913,7 @@ public class CaptureSessionServiceTest {
     void findAllPastIncompleteCaptureSessions() {
         Court court = new Court();
         court.setId(UUID.randomUUID());
+        court.setName("Court");
         Case aCase = new Case();
         aCase.setId(UUID.randomUUID());
         aCase.setCourt(court);

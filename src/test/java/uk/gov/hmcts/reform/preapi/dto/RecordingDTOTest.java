@@ -165,7 +165,8 @@ public class RecordingDTOTest {
     public void testParticipantSorting() {
         var recording = new Recording();
         recording.setId(UUID.randomUUID());
-        var aCase = HelperFactory.createCase(new Court(), "1234567890", false, null);
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Court name", "000");
+        var aCase = HelperFactory.createCase(court, "1234567890", false, null);
         var booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null);
         var captureSession = HelperFactory.createCaptureSession(
             booking,
