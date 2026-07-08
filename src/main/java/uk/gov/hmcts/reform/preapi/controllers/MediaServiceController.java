@@ -150,6 +150,10 @@ public class MediaServiceController extends PreApiController {
                     );
                     data.setDisplayedRtmpsLink(result.getDisplayedRtmpsLink());
                 }
+                if (captureSession.getStatus() == RecordingStatus.STANDBY
+                    || captureSession.getStatus() == RecordingStatus.RECORDING) {
+                    data.setDisplayedRtmpsLink(captureSession.getDisplayedRtmpsLink());
+                }
             } catch (NotFoundException e) {
                 log.info("Capture session for live event {} not found", liveEventName);
             }
