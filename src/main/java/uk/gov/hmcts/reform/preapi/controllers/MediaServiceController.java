@@ -150,6 +150,7 @@ public class MediaServiceController extends PreApiController {
                     );
                     data.setDisplayedRtmpsLink(result.getDisplayedRtmpsLink());
                 }
+                log.info("About to override RTMPS link");
                 if (captureSession.getStatus() == RecordingStatus.STANDBY
                     || captureSession.getStatus() == RecordingStatus.RECORDING) {
                     data.setDisplayedRtmpsLink(captureSession.getDisplayedRtmpsLink());
