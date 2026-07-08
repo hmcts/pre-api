@@ -233,6 +233,9 @@ definitions:
         description: CaptureSessionDeletedAt
         format: date-time
         type: string
+      displayed_rtmps_link:
+        description: CreateCaptureSessionDisplayedRtmpsLink
+        type: string
       finished_at:
         description: CreateCaptureSessionFinishedAt
         format: date-time
@@ -1323,6 +1326,9 @@ definitions:
         description: CaptureSessionDeletedAt
         format: date-time
         type: string
+      displayed_rtmps_link:
+        description: CreateCaptureSessionDisplayedRtmpsLink
+        type: string
       finished_at:
         description: CreateCaptureSessionFinishedAt
         format: date-time
@@ -1921,6 +1927,9 @@ definitions:
     properties:
       description:
         description: LiveEventDescription
+        type: string
+      displayed_rtmps_link:
+        description: DisplayedRtmpsLink
         type: string
       id:
         description: LiveEventId

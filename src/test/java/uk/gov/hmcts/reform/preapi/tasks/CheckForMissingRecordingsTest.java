@@ -305,7 +305,7 @@ public class CheckForMissingRecordingsTest {
         RecordingDTO recording = new RecordingDTO();
         recording.setId(UUID.randomUUID());
         recording.setDuration(Duration.of(duration, ChronoUnit.MINUTES));
-        recording.setCaptureSession(new CaptureSessionDTO(captureSession));
+        recording.setCaptureSession(new CaptureSessionDTO(captureSession, true));
         return recording;
     }
 

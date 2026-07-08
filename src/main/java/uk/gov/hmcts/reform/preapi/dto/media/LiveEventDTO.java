@@ -34,6 +34,9 @@ public class LiveEventDTO {
     @Schema(description = "LiveEventInputRtmp")
     private String inputRtmp;
 
+    @Schema(description = "DisplayedRtmpsLink")
+    private String displayedRtmpsLink;
+
     public LiveEventDTO(MkLiveEvent liveEvent) {
         id = liveEvent.getId();
         name = liveEvent.getName();
@@ -48,5 +51,6 @@ public class LiveEventDTO {
             .findFirst()
             .map(LiveEventEndpoint::url)
             .orElse(null);
+        displayedRtmpsLink = inputRtmp; // default unless overridden
     }
 }

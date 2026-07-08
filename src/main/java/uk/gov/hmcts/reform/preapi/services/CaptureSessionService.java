@@ -57,6 +57,8 @@ public class CaptureSessionService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final AuditService auditService;
 
+    private final boolean rtmpsSuffixEnabled;
+
     @Setter
     private boolean enableMigratedData;
 
@@ -70,6 +72,8 @@ public class CaptureSessionService {
                                  @Lazy BookingService bookingService,
                                  AzureFinalStorageService azureFinalStorageService,
                                  AuditService auditService,
+                                 @Value("${mediakind.rtmpsSuffixEnabled:false}")
+                                     boolean rtmpsSuffixEnabled,
                                  @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
@@ -79,6 +83,7 @@ public class CaptureSessionService {
         this.azureFinalStorageService = azureFinalStorageService;
         this.auditService = auditService;
         this.enableMigratedData = enableMigratedData;
+        this.rtmpsSuffixEnabled = rtmpsSuffixEnabled;
     }
 
     @Transactional
@@ -88,9 +93,12 @@ public class CaptureSessionService {
                 Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
                 Long.parseUnsignedLong(liveEventId.substring(16), 16)
             );
-            return this.findById(liveEventUUID);
+            return captureSessionRepository
+                .findByIdAndDeletedAtIsNull(liveEventUUID)
+                .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled))
+                .orElseThrow(() -> new NotFoundException("CaptureSession: " + liveEventUUID));
         } catch (Exception e) {
-            throw (NotFoundException) new NotFoundException("CaptureSession: " + liveEventId).initCause(e);
+            throw new NotFoundException("CaptureSession: " + liveEventId, e);
         }
     }
 
@@ -99,7 +107,7 @@ public class CaptureSessionService {
     public CaptureSessionDTO findById(UUID id) {
         return captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
-            .map(CaptureSessionDTO::new)
+            .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled))
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + id));
     }
 
@@ -135,7 +143,7 @@ public class CaptureSessionService {
                 enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
-            .map(CaptureSessionDTO::new);
+            .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled));
     }
 
     @Transactional
@@ -284,7 +292,7 @@ public class CaptureSessionService {
         captureSession.setIngestAddress(ingestAddress);
 
         captureSessionRepository.save(captureSession);
-        return new CaptureSessionDTO(captureSession);
+        return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
@@ -329,7 +337,7 @@ public class CaptureSessionService {
             }
         }
         captureSessionRepository.saveAndFlush(captureSession);
-        return new CaptureSessionDTO(captureSession);
+        return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
     }
 
     @Transactional
@@ -344,13 +352,13 @@ public class CaptureSessionService {
         telemetry.trackEvent(properties.toString());
 
         captureSessionRepository.save(captureSession);
-        return new CaptureSessionDTO(captureSession);
+        return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
     }
 
     @Transactional
     public List<CaptureSessionDTO> findAllPastIncompleteCaptureSessions() {
         return captureSessionRepository.findAllPastIncompleteCaptureSessions(Timestamp.from(Instant.now())).stream()
-            .map(CaptureSessionDTO::new)
+            .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled))
             .toList();
     }
 

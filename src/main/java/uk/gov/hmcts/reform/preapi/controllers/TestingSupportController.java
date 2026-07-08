@@ -427,7 +427,7 @@ class TestingSupportController {
         booking.setScheduledFor(Timestamp.from(booking.getScheduledFor().toInstant().minusSeconds(31536000)));
         bookingRepository.save(booking);
 
-        return ResponseEntity.ok(new BookingDTO(booking));
+        return ResponseEntity.ok(new BookingDTO(booking, true));
     }
 
     @SneakyThrows
