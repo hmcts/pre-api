@@ -98,8 +98,8 @@ class BookingServiceTest {
         var bookingEntity2 = new Booking();
         bookingEntity2.setId(UUID.randomUUID());
         bookingEntity2.setCaseId(caseEntity);
-        var bookingModel1 = new BookingDTO(bookingEntity1);
-        var bookingModel2 = new BookingDTO(bookingEntity2);
+        var bookingModel1 = new BookingDTO(bookingEntity1, true);
+        var bookingModel2 = new BookingDTO(bookingEntity2, true);
 
         when(bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseEntity.getId(), null))
             .thenReturn(new PageImpl<>(List.of(bookingEntity1, bookingEntity2)));
@@ -126,8 +126,8 @@ class BookingServiceTest {
         var bookingEntity2 = new Booking();
         bookingEntity2.setId(UUID.randomUUID());
         bookingEntity2.setCaseId(caseEntity2);
-        var bookingModel1 = new BookingDTO(bookingEntity1);
-        var bookingModel2 = new BookingDTO(bookingEntity2);
+        var bookingModel1 = new BookingDTO(bookingEntity1, true);
+        var bookingModel2 = new BookingDTO(bookingEntity2, true);
 
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -169,7 +169,7 @@ class BookingServiceTest {
         var courtEntity = new Court();
         caseEntity.setCourt(courtEntity);
         bookingEntity.setCaseId(caseEntity);
-        var bookingModel = new BookingDTO(bookingEntity);
+        var bookingModel = new BookingDTO(bookingEntity, true);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
         when(recordingRepository.searchAllBy(null, false, false, false, null))

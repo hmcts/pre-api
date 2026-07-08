@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import com.microsoft.applicationinsights.TelemetryClient;
-import jakarta.validation.constraints.NotNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,12 +40,9 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-
-import static java.lang.String.format;
 
 @Slf4j
 @Service
@@ -61,6 +57,8 @@ public class CaptureSessionService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final AuditService auditService;
 
+    private final boolean rtmpsSuffixEnabled;
+
     @Setter
     private boolean enableMigratedData;
 
@@ -74,6 +72,8 @@ public class CaptureSessionService {
                                  @Lazy BookingService bookingService,
                                  AzureFinalStorageService azureFinalStorageService,
                                  AuditService auditService,
+                                 @Value("${mediakind.rtmpsSuffixEnabled:false}")
+                                     boolean rtmpsSuffixEnabled,
                                  @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
@@ -83,6 +83,7 @@ public class CaptureSessionService {
         this.azureFinalStorageService = azureFinalStorageService;
         this.auditService = auditService;
         this.enableMigratedData = enableMigratedData;
+        this.rtmpsSuffixEnabled = rtmpsSuffixEnabled;
     }
 
     @Transactional
@@ -92,9 +93,12 @@ public class CaptureSessionService {
                 Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
                 Long.parseUnsignedLong(liveEventId.substring(16), 16)
             );
-            return this.findById(liveEventUUID);
+            return captureSessionRepository
+                .findByIdAndDeletedAtIsNull(liveEventUUID)
+                .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled))
+                .orElseThrow(() -> new NotFoundException("CaptureSession: " + liveEventUUID));
         } catch (Exception e) {
-            throw (NotFoundException) new NotFoundException("CaptureSession: " + liveEventId).initCause(e);
+            throw new NotFoundException("CaptureSession: " + liveEventId, e);
         }
     }
 
@@ -103,7 +107,7 @@ public class CaptureSessionService {
     public CaptureSessionDTO findById(UUID id) {
         return captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
-            .map(CaptureSessionDTO::new)
+            .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled))
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + id));
     }
 
@@ -139,7 +143,7 @@ public class CaptureSessionService {
                 enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
-            .map(CaptureSessionDTO::new);
+            .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled));
     }
 
     @Transactional
@@ -288,7 +292,7 @@ public class CaptureSessionService {
         captureSession.setIngestAddress(ingestAddress);
 
         captureSessionRepository.save(captureSession);
-        return new CaptureSessionDTO(captureSession);
+        return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
@@ -333,7 +337,7 @@ public class CaptureSessionService {
             }
         }
         captureSessionRepository.saveAndFlush(captureSession);
-        return new CaptureSessionDTO(captureSession);
+        return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
     }
 
     @Transactional
@@ -348,13 +352,13 @@ public class CaptureSessionService {
         telemetry.trackEvent(properties.toString());
 
         captureSessionRepository.save(captureSession);
-        return new CaptureSessionDTO(captureSession);
+        return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
     }
 
     @Transactional
     public List<CaptureSessionDTO> findAllPastIncompleteCaptureSessions() {
         return captureSessionRepository.findAllPastIncompleteCaptureSessions(Timestamp.from(Instant.now())).stream()
-            .map(CaptureSessionDTO::new)
+            .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled))
             .toList();
     }
 
@@ -401,16 +405,5 @@ public class CaptureSessionService {
         audit.setFunctionalArea("API");
         audit.setAuditDetails(null);
         return audit;
-    }
-
-    public String getRtmpsLinkWithSuffix(@NotNull(message = "id is required") UUID captureSessionId) {
-        CaptureSession captureSession = captureSessionRepository.findByIdAndDeletedAtIsNull(
-            captureSessionId).orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
-
-        String courtPrefix = captureSession.getBooking().getCaseId().getCourt().getName()
-            .substring(0, 3).toUpperCase(Locale.UK);
-        String caseRef = captureSession.getBooking().getCaseId().getReference();
-
-        return format("%s/%s-%s", captureSession.getIngestAddress(), courtPrefix, caseRef);
     }
 }

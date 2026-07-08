@@ -115,7 +115,7 @@ public class RecordingDTOTest {
         hiddenRecording.setReencode(true);
         recordingEntity.setRecordings(Set.of(hiddenRecording));
 
-        var model = new RecordingDTO(recordingEntity, false);
+        var model = new RecordingDTO(recordingEntity, false, true);
 
         assertThat(model.getTotalVersionCount()).isEqualTo(1);
     }
@@ -154,7 +154,7 @@ public class RecordingDTOTest {
         regularRequest.setModifiedAt(Timestamp.from(Instant.now().plusSeconds(1)));
         recordingEntity.setEditRequests(Set.of(forceReencodeRequest, regularRequest));
 
-        var model = new RecordingDTO(recordingEntity, false);
+        var model = new RecordingDTO(recordingEntity, false, true);
 
         assertThat(model.getEditRequests()).hasSize(1);
         assertThat(model.getEditRequests().getFirst().getId()).isEqualTo(regularRequest.getId());

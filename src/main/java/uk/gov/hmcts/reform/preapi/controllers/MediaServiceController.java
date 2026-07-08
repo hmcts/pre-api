@@ -69,7 +69,6 @@ public class MediaServiceController extends PreApiController {
     private final EncodeJobService encodeJobService;
 
     private final boolean enableEnhancedProcessing;
-    private final boolean rtmpsSuffixEnabled;
 
     private final TelemetryClient telemetry = new TelemetryClient();
 
@@ -80,8 +79,6 @@ public class MediaServiceController extends PreApiController {
                                   AzureFinalStorageService azureFinalStorageService,
                                   AzureIngestStorageService azureIngestStorageService,
                                   EncodeJobService encodeJobService,
-                                  @Value("${mediakind.rtmpsSuffixEnabled:}")
-                                      Boolean rtmpsSuffixEnabled,
                                   @Value("${feature-flags.enable-enhanced-processing:}")
                                       Boolean enableEnhancedProcessing) {
         super();
@@ -91,7 +88,6 @@ public class MediaServiceController extends PreApiController {
         this.azureFinalStorageService = azureFinalStorageService;
         this.azureIngestStorageService = azureIngestStorageService;
         this.encodeJobService = encodeJobService;
-        this.rtmpsSuffixEnabled = rtmpsSuffixEnabled;
         this.enableEnhancedProcessing = enableEnhancedProcessing;
     }
 
@@ -147,14 +143,12 @@ public class MediaServiceController extends PreApiController {
             try {
                 CaptureSessionDTO captureSession = captureSessionService.findByLiveEventId(liveEventName);
                 if (captureSession.getStatus() == RecordingStatus.INITIALISING) {
-                    captureSessionService.startCaptureSession(
+                    CaptureSessionDTO result = captureSessionService.startCaptureSession(
                         captureSession.getId(),
                         RecordingStatus.STANDBY,
                         data.getInputRtmp()
                     );
-                }
-                if (rtmpsSuffixEnabled) {
-                    data.setDisplayedRtmpsLink(captureSessionService.getRtmpsLinkWithSuffix(captureSession.getId()));
+                    data.setDisplayedRtmpsLink(result.getDisplayedRtmpsLink());
                 }
             } catch (NotFoundException e) {
                 log.info("Capture session for live event {} not found", liveEventName);
