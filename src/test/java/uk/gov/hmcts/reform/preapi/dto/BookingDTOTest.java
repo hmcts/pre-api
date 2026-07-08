@@ -21,7 +21,7 @@ public class BookingDTOTest {
     @Test
     public void testParticipantSorting() {
         var bookingEntity = createBookingEntity();
-        var bookingDTO = new BookingDTO(bookingEntity);
+        var bookingDTO = new BookingDTO(bookingEntity, true);
 
         var participants = bookingDTO.getParticipants();
         assertEquals("AAA", participants.get(0).getFirstName());
@@ -33,7 +33,7 @@ public class BookingDTOTest {
     @Test
     public void testCaptureSessionSorting() {
         var bookingEntity = createBookingEntity();
-        var bookingDTO = new BookingDTO(bookingEntity);
+        var bookingDTO = new BookingDTO(bookingEntity, true);
 
         var captureSessions = bookingDTO.getCaptureSessions();
         assertEquals(UUID.fromString("11111111-1111-1111-1111-111111111111"), captureSessions.get(0).getId());
@@ -45,7 +45,7 @@ public class BookingDTOTest {
     @Test
     public void testShareBookingSorting() {
         var bookingEntity = createBookingEntity();
-        var bookingDTO = new BookingDTO(bookingEntity);
+        var bookingDTO = new BookingDTO(bookingEntity, true);
 
         var shares = bookingDTO.getShares();
         assertEquals("AAA", shares.get(0).getSharedWithUser().getFirstName());

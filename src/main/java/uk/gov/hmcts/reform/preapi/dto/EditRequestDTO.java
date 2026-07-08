@@ -90,7 +90,12 @@ public class EditRequestDTO {
                           boolean includeReencodedRecordings) {
         this.id = editRequest.getId();
         if (includeSourceRecording) {
-            this.sourceRecording = new RecordingDTO(editRequest.getSourceRecording(), includeReencodedRecordings);
+            this.sourceRecording = new RecordingDTO(
+                editRequest.getSourceRecording(),
+                includeReencodedRecordings,
+                // RTMPS Suffix enabled: can always be true for edits as no longer actively recording
+                true
+            );
         }
         this.editInstruction = fromJson(editRequest.getEditInstruction());
         this.status = editRequest.getStatus();

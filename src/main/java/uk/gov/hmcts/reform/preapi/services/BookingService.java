@@ -53,6 +53,8 @@ public class BookingService {
     private final ShareBookingService shareBookingService;
     private final CaseService caseService;
 
+
+    private final boolean rtmpsSuffixEnabled;
     private final boolean enableMigratedData;
 
     @Autowired
@@ -62,6 +64,8 @@ public class BookingService {
                           final CaptureSessionService captureSessionService,
                           final ShareBookingService shareBookingService,
                           @Lazy CaseService caseService,
+                          @Value("${mediakind.rtmpsSuffixEnabled:false}")
+                              boolean rtmpsSuffixEnabled,
                           @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
@@ -69,6 +73,7 @@ public class BookingService {
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
         this.caseService = caseService;
+        this.rtmpsSuffixEnabled = rtmpsSuffixEnabled;
         this.enableMigratedData = enableMigratedData;
     }
 
@@ -76,14 +81,14 @@ public class BookingService {
     @Transactional
     public BookingDTO findById(UUID id) {
         return bookingRepository.findByIdAndDeletedAtIsNull(id)
-            .map(BookingDTO::new)
+            .map(b -> new BookingDTO(b, rtmpsSuffixEnabled))
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
     }
 
     @Transactional
     public Page<BookingDTO> findAllByCaseId(UUID caseId, Pageable pageable) {
         return bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseId, pageable)
-            .map(BookingDTO::new);
+            .map(b -> new BookingDTO(b, rtmpsSuffixEnabled));
     }
 
     @Transactional
@@ -124,7 +129,7 @@ public class BookingService {
                 enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
-            .map(BookingDTO::new);
+            .map(b -> new BookingDTO(b, rtmpsSuffixEnabled));
     }
 
     @Transactional
@@ -249,7 +254,7 @@ public class BookingService {
     public List<BookingDTO> findAllPastBookings() {
         return bookingRepository.findAllPastUnusedBookings(Timestamp.from(Instant.now()))
             .stream()
-            .map(BookingDTO::new)
+            .map(b -> new BookingDTO(b, rtmpsSuffixEnabled))
             .toList();
     }
 
