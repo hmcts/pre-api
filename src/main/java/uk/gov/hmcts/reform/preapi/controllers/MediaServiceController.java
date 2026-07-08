@@ -143,12 +143,15 @@ public class MediaServiceController extends PreApiController {
             try {
                 CaptureSessionDTO captureSession = captureSessionService.findByLiveEventId(liveEventName);
                 if (captureSession.getStatus() == RecordingStatus.INITIALISING) {
-                    CaptureSessionDTO result = captureSessionService.startCaptureSession(
+                    captureSessionService.startCaptureSession(
                         captureSession.getId(),
                         RecordingStatus.STANDBY,
                         data.getInputRtmp()
                     );
-                    data.setDisplayedRtmpsLink(result.getDisplayedRtmpsLink());
+                }
+                if (captureSession.getStatus() == RecordingStatus.STANDBY
+                    || captureSession.getStatus() == RecordingStatus.RECORDING) {
+                    data.setDisplayedRtmpsLink(captureSession.getDisplayedRtmpsLink());
                 }
             } catch (NotFoundException e) {
                 log.info("Capture session for live event {} not found", liveEventName);
