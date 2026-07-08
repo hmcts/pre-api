@@ -143,12 +143,14 @@ public class MediaServiceController extends PreApiController {
             try {
                 CaptureSessionDTO captureSession = captureSessionService.findByLiveEventId(liveEventName);
                 if (captureSession.getStatus() == RecordingStatus.INITIALISING) {
-                    captureSessionService.startCaptureSession(
+                    CaptureSessionDTO result = captureSessionService.startCaptureSession(
                         captureSession.getId(),
                         RecordingStatus.STANDBY,
                         data.getInputRtmp()
                     );
+                    data.setDisplayedRtmpsLink(result.getDisplayedRtmpsLink());
                 }
+                log.info("About to override RTMPS link");
                 if (captureSession.getStatus() == RecordingStatus.STANDBY
                     || captureSession.getStatus() == RecordingStatus.RECORDING) {
                     data.setDisplayedRtmpsLink(captureSession.getDisplayedRtmpsLink());
