@@ -31,6 +31,7 @@ java:
     MEDIA_KIND_STREAMING_ENDPOINT_ADVANCED_SETTINGS_NAME: ap-jitp-hmcts-disable-edge-buffer
     MEDIA_KIND_VOD_STREAMING_ENDPOINT: vod
     MEDIA_KIND_LIVE_STREAMING_ENDPOINT: live
+    RTMPS_SUFFIX_ENABLED: true
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}

@@ -110,6 +110,7 @@ mediakind:
   liveStreamingEndpoint: ${MEDIA_KIND_LIVE_STREAMING_ENDPOINT:default-live}
   location: ${MEDIA_KIND_LOCATION:uksouth-4}
   streaming-endpoint-advanced-settings-name: ${MEDIA_KIND_STREAMING_ENDPOINT_ADVANCED_SETTINGS_NAME:}
+  rtmpsSuffixEnabled: ${RTMPS_SUFFIX_ENABLED:false}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 

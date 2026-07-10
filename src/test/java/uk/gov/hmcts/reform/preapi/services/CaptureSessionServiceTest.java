@@ -4,11 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
@@ -56,6 +59,9 @@ import static org.mockito.Mockito.when;
 
 @Slf4j
 @SpringBootTest(classes = CaptureSessionService.class)
+@TestPropertySource(properties = {
+    "mediakind.rtmpsSuffixEnabled=true"
+})
 public class CaptureSessionServiceTest {
     @MockitoBean
     private RecordingService recordingService;
@@ -127,6 +133,8 @@ public class CaptureSessionServiceTest {
         assertThat(model.getBookingId()).isEqualTo(booking.getId());
         assertThat(model.getOrigin()).isEqualTo(captureSession.getOrigin());
         assertThat(model.getIngestAddress()).isEqualTo(captureSession.getIngestAddress());
+        assertThat(model.getDisplayedRtmpsLink())
+            .isEqualTo("example ingest address/FOO-12345678");
         assertThat(model.getLiveOutputUrl()).isEqualTo(captureSession.getLiveOutputUrl());
         assertThat(model.getStartedAt()).isEqualTo(captureSession.getStartedAt());
         assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
@@ -666,7 +674,7 @@ public class CaptureSessionServiceTest {
                                                                 bookingService,
                                                                 azureFinalStorageService,
                                                                 auditService,
-                                                                true);
+                                                                true, true);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),
@@ -905,6 +913,7 @@ public class CaptureSessionServiceTest {
     void findAllPastIncompleteCaptureSessions() {
         Court court = new Court();
         court.setId(UUID.randomUUID());
+        court.setName("Court");
         Case aCase = new Case();
         aCase.setId(UUID.randomUUID());
         aCase.setCourt(court);
@@ -1011,5 +1020,72 @@ public class CaptureSessionServiceTest {
         assertThat(result).isEqualTo(captureSession);
 
         verify(captureSessionRepository, times(1)).save(captureSession);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("RTMPS link should/should not have suffix if flag is true/false")
+    void shouldCalculateRTMPsLinkWithSuffix(boolean rtmpsSuffixEnabled) {
+
+        Court court = mock(Court.class);
+        UUID courtId = UUID.randomUUID();
+        when(court.getId()).thenReturn(courtId);
+        when(court.getName()).thenReturn("Mock Crown Court");
+
+        UserAuthentication mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        var mockAppAccess = mock(AppAccess.class);
+        when(mockAuth.getAppAccess()).thenReturn(mockAppAccess);
+        when(mockAuth.isAdmin()).thenReturn(false);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.isPortalUser()).thenReturn(false);
+        when(mockAuth.getCourtId()).thenReturn(courtId);
+
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        Case mockCase = mock(Case.class);
+        when(mockCase.getReference()).thenReturn("TEST12345AB");
+        when(mockCase.getCourt()).thenReturn(court);
+
+        Booking booking = mock(Booking.class);
+        when(booking.getCaseId()).thenReturn(mockCase);
+
+        String ingestUrl = "rtmps://original-address";
+
+        UUID captureSessionId = UUID.randomUUID();
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking, RecordingOrigin.PRE, ingestUrl, "live-output",
+            Timestamp.from(Instant.now()),
+            user, null, null,
+            RecordingStatus.INITIALISING, null
+        );
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
+            .thenReturn(Optional.of(captureSession));
+
+        CaptureSessionService captureSessionServiceWithFlag = new CaptureSessionService(recordingService,
+                                                                                        captureSessionRepository,
+                                                                                        bookingRepository,
+                                                                                        userRepository,
+                                                                                        bookingService,
+                                                                                        azureFinalStorageService,
+                                                                                        auditService,
+                                                                                        rtmpsSuffixEnabled,
+                                                                                        true);
+
+        CaptureSessionDTO result = captureSessionServiceWithFlag.startCaptureSession(
+            captureSessionId,
+            RecordingStatus.STANDBY,
+            "rtmps://original-address"
+        );
+
+        assertThat(result.getIngestAddress()).isEqualTo("rtmps://original-address");
+
+        if (rtmpsSuffixEnabled) {
+            assertThat(result.getDisplayedRtmpsLink())
+                .isEqualTo("rtmps://original-address/MOC-TEST12345AB");
+        } else {
+            assertThat(result.getDisplayedRtmpsLink()).isEqualTo(result.getIngestAddress());
+        }
     }
 }
