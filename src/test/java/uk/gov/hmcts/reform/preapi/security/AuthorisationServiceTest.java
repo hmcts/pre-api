@@ -3,10 +3,14 @@ package uk.gov.hmcts.reform.preapi.security;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -35,6 +39,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -385,6 +390,7 @@ public class AuthorisationServiceTest {
         var recording = new Recording();
         recording.setId(recordingId);
         var captureSession = new CaptureSession();
+        captureSession.setOrigin(RecordingOrigin.PRE);
         recording.setCaptureSession(captureSession);
 
         when(authenticationUser.isAdmin()).thenReturn(false);
@@ -393,19 +399,165 @@ public class AuthorisationServiceTest {
         assertTrue(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
     }
 
-    @DisplayName("Should not grant access to hidden re-encoded recording when user is not super user")
+    @ParameterizedTest
+    @MethodSource("provideArgsForTestingRecording")
+    @DisplayName("Should (not) grant access to hidden re-encoded recording depending on user role and config flag")
+    void hasRecordingAccessHiddenReencodedRecordingNotSuperUser(
+        boolean shouldBeVisible,
+        RecordingOrigin recordingOrigin,
+        TestingSupportRoles userRole,
+        boolean recordingWasReEncoded,
+        boolean hideReencodedRecordingsFlag) {
+        UUID recordingId = UUID.randomUUID();
+        Recording recording = new Recording();
+        recording.setId(recordingId);
+        recording.setReencode(recordingWasReEncoded);
+
+        CaptureSession captureSession = new CaptureSession();
+        captureSession.setOrigin(recordingOrigin);
+        recording.setCaptureSession(captureSession);
+
+        boolean userIsSuperUser = userRole.equals(TestingSupportRoles.SUPER_USER);
+        when(authenticationUser.isAdmin()).thenReturn(userIsSuperUser);
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(userIsSuperUser);
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+
+        AuthorisationService authorisationServiceHideReencodedRecordings = new AuthorisationService(
+            bookingRepository,
+            caseRepository,
+            participantRepository,
+            captureSessionRepository,
+            recordingRepository,
+            editRequestRepository,
+            true,
+            hideReencodedRecordingsFlag
+        );
+
+        if (shouldBeVisible) {
+            assertTrue(authorisationServiceHideReencodedRecordings.hasRecordingAccess(authenticationUser, recordingId));
+        } else {
+            assertFalse(authorisationServiceHideReencodedRecordings.hasRecordingAccess(
+                authenticationUser,
+                recordingId
+            ));
+        }
+    }
+
+    private static Stream<Arguments> provideArgsForTestingRecording() {
+//        Arg 1: boolean shouldBeVisible
+//        Arg 4: boolean recordingWasReEncoded
+//        Arg 5: boolean reencodedHidden
+
+        return Stream.of(
+            // PRE origin, any user, any recording: should be visible because PRE
+            Arguments.of(true, RecordingOrigin.PRE, TestingSupportRoles.LEVEL_1, false, false),
+
+            // PRE origin, normal user, re-encoded recording, hidden flag --> visible for PRE, or invisible for VF
+            Arguments.of(true, RecordingOrigin.PRE, TestingSupportRoles.LEVEL_1, true, true),
+            Arguments.of(false, RecordingOrigin.VODAFONE, TestingSupportRoles.LEVEL_1, true, true),
+
+            // Vodafone, re-encoded recording, hidden flag is true --> visible for superuser only
+            Arguments.of(true, RecordingOrigin.VODAFONE, TestingSupportRoles.SUPER_USER, true, true),
+
+            // Vodafone, *original* recording, hidden flag is true --> visible for Level 1 user
+            Arguments.of(true, RecordingOrigin.VODAFONE, TestingSupportRoles.LEVEL_1, false, true),
+
+            // Vodafone, original recording, hidden flag is false --> *not* visible for Level 1 user
+            Arguments.of(false, RecordingOrigin.VODAFONE, TestingSupportRoles.LEVEL_1, false, false),
+
+            // Vodafone, re-encoded recording, hidden flag is false --> visible for Level 1 user
+            Arguments.of(true, RecordingOrigin.VODAFONE, TestingSupportRoles.LEVEL_1, true, false)
+        );
+    }
+
+    @DisplayName("Should grant access to hidden re-encoded recording when user is not super user if flag is false")
     @Test
-    void hasRecordingAccessHiddenReencodedRecordingNotSuperUser() {
+    void hasRecordingAccessHiddenReencodedRecordingNotSuperUserFlagIsFalse() {
         var recordingId = UUID.randomUUID();
         var recording = new Recording();
         recording.setId(recordingId);
         recording.setReencode(true);
 
+        var captureSession = new CaptureSession();
+        captureSession.setOrigin(RecordingOrigin.VODAFONE);
+        recording.setCaptureSession(captureSession);
+
         when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
         when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
 
-        assertFalse(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
+        AuthorisationService authorisationServiceShowHiddenRecordings = new AuthorisationService(
+            bookingRepository,
+            caseRepository,
+            participantRepository,
+            captureSessionRepository,
+            recordingRepository,
+            editRequestRepository,
+            true,
+            false
+        );
+
+        assertTrue(authorisationServiceShowHiddenRecordings.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
+    @DisplayName("Should not show original VF recording if hidden flag is false when user is not super user")
+    @Test
+    void shouldNotShowOriginalVfRecordingIfHiddenFlagIsFalse() {
+        var recordingId = UUID.randomUUID();
+        var recording = new Recording();
+        recording.setId(recordingId);
+        recording.setReencode(false);
+
+        CaptureSession captureSession = new CaptureSession();
+        captureSession.setOrigin(RecordingOrigin.VODAFONE);
+        recording.setCaptureSession(captureSession);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+
+        AuthorisationService authorisationServiceShowHiddenRecordings = new AuthorisationService(
+            bookingRepository,
+            caseRepository,
+            participantRepository,
+            captureSessionRepository,
+            recordingRepository,
+            editRequestRepository,
+            true,
+            false
+        );
+
+        assertFalse(authorisationServiceShowHiddenRecordings.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
+    @DisplayName("Should show original VF recording if hidden flag is false when user is super user")
+    @Test
+    void shouldShowOriginalVfRecordingIfHiddenFlagIsFalseWhenUserIsSuperUser() {
+        var recordingId = UUID.randomUUID();
+        var recording = new Recording();
+        recording.setId(recordingId);
+        recording.setReencode(false);
+
+        CaptureSession captureSession = new CaptureSession();
+        captureSession.setOrigin(RecordingOrigin.VODAFONE);
+        recording.setCaptureSession(captureSession);
+
+        when(authenticationUser.isAdmin()).thenReturn(true);
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+
+        AuthorisationService authorisationServiceShowHiddenRecordings = new AuthorisationService(
+            bookingRepository,
+            caseRepository,
+            participantRepository,
+            captureSessionRepository,
+            recordingRepository,
+            editRequestRepository,
+            true,
+            false
+        );
+
+        assertTrue(authorisationServiceShowHiddenRecordings.hasRecordingAccess(authenticationUser, recordingId));
     }
 
     @DisplayName("Should grant access to hidden re-encoded recording when user is super user")

@@ -120,10 +120,10 @@ public class AuthorisationService {
         }
 
         if (enableMigratedData && authentication.isAdmin()) {
-            return canViewReencodedRecording(authentication, entity);
+            return canViewRecording(authentication, entity);
         }
 
-        return canViewReencodedRecording(authentication, entity)
+        return canViewRecording(authentication, entity)
             && hasCaptureSessionAccess(authentication, entity.getCaptureSession().getId());
     }
 
@@ -214,10 +214,20 @@ public class AuthorisationService {
         return enableMigratedData || authentication.hasRole(ROLE_SUPER_USER);
     }
 
-    public boolean canViewReencodedRecording(UserAuthentication authentication, Recording recording) {
-        return !hideReencodedRecordings
-            || !recording.isReencode()
-            || authentication.hasRole(ROLE_SUPER_USER);
+    public boolean canViewRecording(UserAuthentication authentication, Recording recording) {
+        if (authentication.hasRole(ROLE_SUPER_USER)) {
+            return true;
+        }
+
+        if (recording.getCaptureSession().getOrigin() != RecordingOrigin.VODAFONE) {
+            return true;
+        }
+
+        if (hideReencodedRecordings) {
+            return !recording.isReencode();
+        } else {
+            return recording.isReencode();
+        }
     }
 
     public boolean isVodafoneData(Case caseEntity) {
