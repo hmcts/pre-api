@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-@SuppressWarnings("PMD.CouplingBetweenObjects")
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
 public class AuthorisationService {
     private final BookingRepository bookingRepository;
     private final CaseRepository caseRepository;
@@ -215,19 +215,12 @@ public class AuthorisationService {
     }
 
     public boolean canViewRecording(UserAuthentication authentication, Recording recording) {
-        if (authentication.hasRole(ROLE_SUPER_USER)) {
+        if (authentication.hasRole(ROLE_SUPER_USER)
+            || recording.getCaptureSession().getOrigin() != RecordingOrigin.VODAFONE) {
             return true;
         }
 
-        if (recording.getCaptureSession().getOrigin() != RecordingOrigin.VODAFONE) {
-            return true;
-        }
-
-        if (hideReencodedRecordings) {
-            return !recording.isReencode();
-        } else {
-            return recording.isReencode();
-        }
+        return hideReencodedRecordings ^ recording.isReencode();
     }
 
     public boolean isVodafoneData(Case caseEntity) {

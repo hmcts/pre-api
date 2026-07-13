@@ -444,9 +444,9 @@ public class AuthorisationServiceTest {
     }
 
     private static Stream<Arguments> provideArgsForTestingRecording() {
-//        Arg 1: boolean shouldBeVisible
-//        Arg 4: boolean recordingWasReEncoded
-//        Arg 5: boolean reencodedHidden
+        // Arg 1: boolean shouldBeVisible
+        // Arg 4: boolean recordingWasReEncoded
+        // Arg 5: boolean reencodedHidden
 
         return Stream.of(
             // PRE origin, any user, any recording: should be visible because PRE
