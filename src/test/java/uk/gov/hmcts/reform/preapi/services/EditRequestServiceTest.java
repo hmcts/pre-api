@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.security.AuthorisationService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.edit.EditRequestCrudService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -69,6 +70,9 @@ class EditRequestServiceTest {
 
     @MockitoBean
     private EditNotificationService editNotificationService;
+
+    @MockitoBean
+    private AuthorisationService authorisationService;
 
     @MockitoBean
     private Recording mockRecording;
@@ -176,7 +180,7 @@ class EditRequestServiceTest {
 
         when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
             .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
-        when(editRequestCrudService.findById(mockEditRequestId, false)).thenReturn(editRequestDTO);
+        when(editRequestCrudService.findById(mockEditRequestId)).thenReturn(editRequestDTO);
         when(editRequestDTO.getId()).thenReturn(mockEditRequestId);
         when(editRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
         when(editRequestDTO.getCreatedBy()).thenReturn(courtClerkUser.getId().toString());
@@ -341,7 +345,7 @@ class EditRequestServiceTest {
         when(editRequestCrudService.upsert(any(), any(), any()))
             .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
         when(editRequestCrudService.findByIdIfExists(any())).thenReturn(Optional.of(returnedByDb));
-        when(editRequestCrudService.findById(any(UUID.class), anyBoolean())).thenReturn(editRequestDTO);
+        when(editRequestCrudService.findById(any(UUID.class))).thenReturn(editRequestDTO);
 
         EditRequestDTO upsert = underTest.upsert(mockRecordingId, file);
         assertThat(upsert).isEqualTo(editRequestDTO);

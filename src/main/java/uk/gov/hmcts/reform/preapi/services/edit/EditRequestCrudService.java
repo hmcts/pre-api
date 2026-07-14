@@ -46,13 +46,9 @@ public class EditRequestCrudService {
     }
 
     public EditRequestDTO findById(UUID id) {
-        return findById(id, true);
-    }
-
-    public EditRequestDTO findById(UUID id, boolean includeReencodedRecordings) {
         return editRequestRepository
             .findByIdNotLocked(id)
-            .map(editRequest -> new EditRequestDTO(editRequest, true, includeReencodedRecordings))
+            .map(editRequest -> new EditRequestDTO(editRequest, true, true))
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
     }
 
@@ -142,7 +138,7 @@ public class EditRequestCrudService {
 
         return editRequestRepository.findSourceRecordingIdsWithForceReencodeRequests(sourceRecordingIds);
     }
-  
+
     private UpsertResult handleEmptyInstructions(CreateEditRequestDTO dto,
                                                  Optional<EditRequest> existingEditRequest,
                                                  boolean isUpdate) {

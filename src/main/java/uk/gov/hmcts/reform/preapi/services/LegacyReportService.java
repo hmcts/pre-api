@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.AuthorisationService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.Comparator;
@@ -47,9 +47,7 @@ public class LegacyReportService {
     private final UserRepository userRepository;
     private final AppAccessRepository appAccessRepository;
     private final PortalAccessRepository portalAccessRepository;
-    private final boolean hideReencodedRecordings;
-
-    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
+    private final AuthorisationService authorisationService;
 
     @Autowired
     public LegacyReportService(CaptureSessionRepository captureSessionRepository,
@@ -59,8 +57,7 @@ public class LegacyReportService {
                                UserRepository userRepository,
                                AppAccessRepository appAccessRepository,
                                PortalAccessRepository portalAccessRepository,
-                               @Value("${feature-flags.hide-reencoded-recordings:true}")
-                               boolean hideReencodedRecordings) {
+                               AuthorisationService authorisationService) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.shareBookingRepository = shareBookingRepository;
@@ -68,7 +65,7 @@ public class LegacyReportService {
         this.userRepository = userRepository;
         this.appAccessRepository = appAccessRepository;
         this.portalAccessRepository = portalAccessRepository;
-        this.hideReencodedRecordings = hideReencodedRecordings;
+        this.authorisationService = authorisationService;
     }
 
     @Transactional
@@ -82,8 +79,9 @@ public class LegacyReportService {
 
     @Transactional
     public List<RecordingsPerCaseReportDTO> reportRecordingsPerCase() {
+        boolean includeReencodedRecordings = authorisationService.canViewReencodedRecordings();
         return recordingRepository
-            .countRecordingsPerCase(canViewReencodedRecordings())
+            .countRecordingsPerCase(includeReencodedRecordings)
             .stream()
             .map(data -> new RecordingsPerCaseReportDTO((Case) data[0], ((Long) data[1]).intValue()))
             .toList();
@@ -91,10 +89,11 @@ public class LegacyReportService {
 
     @Transactional
     public List<EditReportDTO> reportEdits() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         return recordingRepository
             .findAllByParentRecordingIsNotNull()
             .stream()
-            .filter(this::canViewRecording)
+            .filter(rec -> authorisationService.canViewRecording(auth, rec))
             .sorted(Comparator.comparing(Recording::getCreatedAt))
             .map(EditReportDTO::new)
             .collect(Collectors.toList());
@@ -156,10 +155,11 @@ public class LegacyReportService {
 
     @Transactional
     public List<CompletedCaptureSessionReportDTO> reportCompletedCaptureSessions() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         return recordingRepository
             .findAllByParentRecordingIsNull()
             .stream()
-            .filter(this::canViewRecording)
+            .filter(rec -> authorisationService.canViewRecording(auth, rec))
             .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
             .map(CompletedCaptureSessionReportDTO::new)
             .collect(Collectors.toList());
@@ -187,6 +187,8 @@ public class LegacyReportService {
             }
         }
 
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+
         return new PlaybackReportDTO(
             audit,
             audit.getCreatedBy() != null
@@ -199,24 +201,11 @@ public class LegacyReportService {
                                         .orElse(null)))
                 : null,
             recordingId != null
-                ? recordingRepository.findById(recordingId).filter(this::canViewRecording).orElse(null)
+                ? recordingRepository.findById(recordingId)
+                .filter(rec -> authorisationService.canViewRecording(auth, rec))
+                .orElse(null)
                 : null
         );
     }
 
-    private boolean canViewRecording(Recording recording) {
-        return recording == null
-            || !hideReencodedRecordings
-            || !recording.isReencode()
-            || getAuthentication() != null && getAuthentication().hasRole(ROLE_SUPER_USER);
-    }
-
-    private boolean canViewReencodedRecordings() {
-        UserAuthentication auth = getAuthentication();
-        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
-    }
-
-    private UserAuthentication getAuthentication() {
-        return SecurityContextHolder.getContext().getAuthentication() instanceof UserAuthentication auth ? auth : null;
-    }
 }

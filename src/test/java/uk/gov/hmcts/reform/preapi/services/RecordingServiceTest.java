@@ -29,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.security.AuthorisationService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
@@ -68,6 +69,9 @@ class RecordingServiceTest {
 
     @MockitoBean
     private CaptureSessionService captureSessionService;
+
+    @MockitoBean
+    private AuthorisationService authorisationService;
 
     @MockitoBean
     private GovNotify govNotify;
@@ -135,6 +139,7 @@ class RecordingServiceTest {
         recordingEntity.setReencode(true);
         when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId(), true))
             .thenReturn(Optional.of(recordingEntity));
+        when(authorisationService.canViewReencodedRecordings()).thenReturn(true);
 
         var model = recordingService.findById(recordingEntity.getId());
 
@@ -203,6 +208,8 @@ class RecordingServiceTest {
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(authorisationService.canViewReencodedRecordings()).thenReturn(true);
 
         recordingService.findAll(params, false, null);
 

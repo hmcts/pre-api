@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -32,6 +33,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.AuthorisationService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
@@ -60,6 +62,7 @@ public class LegacyReportServiceTest {
     private static Case caseEntity;
     private static Booking bookingEntity;
     private static Audit auditEntity;
+    private static UserAuthentication mockAuth;
 
     @MockitoBean
     private CaptureSessionRepository captureSessionRepository;
@@ -81,6 +84,9 @@ public class LegacyReportServiceTest {
 
     @MockitoBean
     private PortalAccessRepository portalAccessRepository;
+
+    @MockitoBean
+    private AuthorisationService authorisationService;
 
     @Autowired
     private LegacyReportService reportService;
@@ -138,6 +144,12 @@ public class LegacyReportServiceTest {
         auditEntity.setCreatedBy(null);
         auditEntity.setAuditDetails(null);
         bookingEntity.setParticipants(Set.of());
+
+        mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.hasRole(TestingSupportRoles.LEVEL_1.name())).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(authorisationService.canViewRecording(mockAuth, recordingEntity)).thenReturn(true);
     }
 
     @DisplayName("Find all capture sessions and return a list of models as a report when capture session is incomplete")
@@ -231,6 +243,7 @@ public class LegacyReportServiceTest {
         recording2.setCreatedAt(Timestamp.from(Instant.MIN));
         recording2.setCaptureSession(captureSessionEntity);
 
+        when(authorisationService.canViewRecording(any(), any())).thenReturn(true);
         when(recordingRepository.findAllByParentRecordingIsNotNull()).thenReturn(List.of(recording2, recordingEntity));
 
         var report = reportService.reportEdits();
@@ -277,14 +290,15 @@ public class LegacyReportServiceTest {
     @Test
     @DisplayName("Find all edited recordings includes re-encoded recordings for super users")
     void reportEditsIncludesReencodedRecordingsForSuperUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+        var superUserAuth = mock(UserAuthentication.class);
+        when(superUserAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(superUserAuth);
 
         recordingEntity.setVersion(2);
         recordingEntity.setReencode(true);
 
         when(recordingRepository.findAllByParentRecordingIsNotNull()).thenReturn(List.of(recordingEntity));
+        when(authorisationService.canViewRecording(superUserAuth, recordingEntity)).thenReturn(true);
 
         var report = reportService.reportEdits();
 
@@ -299,6 +313,7 @@ public class LegacyReportServiceTest {
         when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
+        when(authorisationService.canViewReencodedRecordings()).thenReturn(true);
         when(recordingRepository.countRecordingsPerCase(true)).thenReturn(List.of());
 
         var report = reportService.reportRecordingsPerCase();

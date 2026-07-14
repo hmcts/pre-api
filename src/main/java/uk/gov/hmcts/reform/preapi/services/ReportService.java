@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,12 +34,14 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.AuthorisationService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -56,9 +57,7 @@ public class ReportService {
     private final UserRepository userRepository;
     private final AppAccessRepository appAccessRepository;
     private final PortalAccessRepository portalAccessRepository;
-    private final boolean hideReencodedRecordings;
-
-    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
+    private final AuthorisationService authorisationService;
 
     @Autowired
     public ReportService(CaptureSessionRepository captureSessionRepository,
@@ -68,8 +67,7 @@ public class ReportService {
                          UserRepository userRepository,
                          AppAccessRepository appAccessRepository,
                          PortalAccessRepository portalAccessRepository,
-                         @Value("${feature-flags.hide-reencoded-recordings:true}")
-                         boolean hideReencodedRecordings) {
+                         AuthorisationService authorisationService) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.shareBookingRepository = shareBookingRepository;
@@ -77,7 +75,7 @@ public class ReportService {
         this.userRepository = userRepository;
         this.appAccessRepository = appAccessRepository;
         this.portalAccessRepository = portalAccessRepository;
-        this.hideReencodedRecordings = hideReencodedRecordings;
+        this.authorisationService = authorisationService;
     }
 
     @Transactional
@@ -91,8 +89,9 @@ public class ReportService {
 
     @Transactional
     public List<RecordingsPerCaseReportDTOV2> reportRecordingsPerCase() {
+        boolean includeReencodedRecordings = authorisationService.canViewReencodedRecordings();
         return recordingRepository
-            .countRecordingsPerCase(canViewReencodedRecordings())
+            .countRecordingsPerCase(includeReencodedRecordings)
             .stream()
             .map(data -> new RecordingsPerCaseReportDTOV2((Case) data[0], ((Long) data[1]).intValue()))
             .toList();
@@ -100,10 +99,11 @@ public class ReportService {
 
     @Transactional
     public List<EditReportDTOV2> reportEdits() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         return recordingRepository
             .findAllByParentRecordingIsNotNull()
             .stream()
-            .filter(this::canViewRecording)
+            .filter(rec -> authorisationService.canViewRecording(auth, rec))
             .sorted(Comparator.comparing(Recording::getCreatedAt))
             .map(EditReportDTOV2::new)
             .collect(Collectors.toList());
@@ -149,6 +149,7 @@ public class ReportService {
     @Transactional
     public List<PlaybackReportDTOV2> reportPlayback(AuditLogSource source) {
         if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
+            final UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
             final String activityPlay = "Play";
             final String functionalAreaVideoPlayer = "Video Player";
             final String functionalAreaViewRecordings = "View Recordings";
@@ -209,7 +210,7 @@ public class ReportService {
             final List<Recording> recordings = recordingRepository.findAllById(recordingIds);
             final Map<UUID, Recording> recordingMap =
                 recordings.stream()
-                    .filter(this::canViewRecording)
+                    .filter(rec -> authorisationService.canViewRecording(auth, rec))
                     .collect(Collectors.toMap(Recording::getId, r -> r));
 
             return audits.stream()
@@ -233,10 +234,11 @@ public class ReportService {
 
     @Transactional
     public List<CompletedCaptureSessionReportDTOV2> reportCompletedCaptureSessions() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         return recordingRepository
             .findAllCompletedCaptureSessionsWithRecordings()
             .stream()
-            .filter(this::canViewRecording)
+            .filter(rec -> authorisationService.canViewRecording(auth, rec))
             .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
             .map(CompletedCaptureSessionReportDTOV2::new)
             .collect(Collectors.toList());
@@ -254,10 +256,11 @@ public class ReportService {
 
     @Transactional
     public List<RecordingParticipantsReportDTO> reportRecordingParticipants() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         return recordingRepository
             .findAllByParentRecordingIsNull()
             .stream()
-            .filter(this::canViewRecording)
+            .filter(rec -> authorisationService.canViewRecording(auth, rec))
             .map(this::getParticipantsForRecording)
             .flatMap(List::stream)
             .toList();
@@ -285,11 +288,18 @@ public class ReportService {
                                                                                      .orElse(null)))
             : null;
 
-        Recording recording = recordingId != null
-            ? recordingRepository.findById(recordingId).orElse(null)
-            : null;
+        if (recordingId != null) {
+            Optional<Recording> recording = recordingRepository.findById(recordingId);
+            if (recording.isPresent()) {
+                UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+                boolean canView = authorisationService.canViewRecording(auth, recording.get());
+                if (canView) {
+                    return new PlaybackReportArgsRecord(audit, user, recording.get());
+                }
+            }
+        }
 
-        return new PlaybackReportArgsRecord(audit, user, canViewRecording(recording) ? recording : null);
+        return new PlaybackReportArgsRecord(audit, user, null);
     }
 
     private PlaybackReportArgsRecord toPlaybackReport(
@@ -333,22 +343,6 @@ public class ReportService {
         }
 
         return null;
-    }
-
-    private boolean canViewRecording(Recording recording) {
-        return recording == null
-            || !hideReencodedRecordings
-            || !recording.isReencode()
-            || getAuthentication() != null && getAuthentication().hasRole(ROLE_SUPER_USER);
-    }
-
-    private boolean canViewReencodedRecordings() {
-        UserAuthentication auth = getAuthentication();
-        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
-    }
-
-    private UserAuthentication getAuthentication() {
-        return SecurityContextHolder.getContext().getAuthentication() instanceof UserAuthentication auth ? auth : null;
     }
 
     private User getCreatedByUserForAudit(

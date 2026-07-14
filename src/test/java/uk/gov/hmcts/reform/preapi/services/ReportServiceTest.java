@@ -5,6 +5,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,6 +37,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.AuthorisationService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
@@ -91,6 +94,11 @@ public class ReportServiceTest {
     @Autowired
     private ReportService reportService;
 
+    @MockitoBean
+    private AuthorisationService authorisationService;
+
+    private UserAuthentication userAuthentication;
+
     @BeforeAll
     static void setUp() {
         regionEntity = new Region();
@@ -145,6 +153,10 @@ public class ReportServiceTest {
         auditEntity.setCreatedBy(null);
         auditEntity.setAuditDetails(null);
         bookingEntity.setParticipants(Set.of());
+
+        userAuthentication = mock(UserAuthentication.class);
+        SecurityContextHolder.getContext().setAuthentication(userAuthentication);
+        when(authorisationService.canViewRecording(userAuthentication, recordingEntity)).thenReturn(true);
     }
 
     @DisplayName("Find all capture sessions and return a list of models as a report when capture session is incomplete")
@@ -234,6 +246,7 @@ public class ReportServiceTest {
         recording2.setCaptureSession(captureSessionEntity);
 
         when(recordingRepository.findAllByParentRecordingIsNotNull()).thenReturn(List.of(recording2, recordingEntity));
+        when(authorisationService.canViewRecording(userAuthentication, recording2)).thenReturn(true);
 
         var report = reportService.reportEdits();
 
@@ -250,7 +263,7 @@ public class ReportServiceTest {
     }
 
     @Test
-    @DisplayName("Find all edited recordings hides re-encoded recordings for non super users")
+    @DisplayName("Find all edited recordings hides re-encoded recordings when auth service disallows it")
     void reportEditsHidesReencodedRecordingsForNonSuperUser() {
         recordingEntity.setVersion(2);
         var reencodedRecording = new Recording();
@@ -263,6 +276,9 @@ public class ReportServiceTest {
         when(recordingRepository.findAllByParentRecordingIsNotNull())
             .thenReturn(List.of(recordingEntity, reencodedRecording));
 
+        when(authorisationService.canViewRecording(userAuthentication, recordingEntity)).thenReturn(true);
+        when(authorisationService.canViewRecording(userAuthentication, reencodedRecording)).thenReturn(false);
+
         var report = reportService.reportEdits();
 
         assertThat(report.size()).isEqualTo(1);
@@ -270,16 +286,13 @@ public class ReportServiceTest {
     }
 
     @Test
-    @DisplayName("Find all edited recordings includes re-encoded recordings for super users")
+    @DisplayName("Find all edited recordings includes re-encoded recordings when auth service allows it")
     void reportEditsIncludesReencodedRecordingsForSuperUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-
         recordingEntity.setVersion(2);
         recordingEntity.setReencode(true);
 
         when(recordingRepository.findAllByParentRecordingIsNotNull()).thenReturn(List.of(recordingEntity));
+        when(authorisationService.canViewRecording(userAuthentication, recordingEntity)).thenReturn(true);
 
         var report = reportService.reportEdits();
 
@@ -287,19 +300,17 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getVersion()).isEqualTo(recordingEntity.getVersion());
     }
 
-    @Test
-    @DisplayName("Find counts for recordings includes re-encoded recordings for super users")
-    void reportRecordingsPerCaseIncludesReencodedForSuperUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("Find counts for recordings includes re-encoded recordings if authorisation service enables it")
+    void reportRecordingsPerCaseIncludesReencodedForSuperUser(boolean includeReencodedRecordings) {
+        when(authorisationService.canViewReencodedRecordings()).thenReturn(includeReencodedRecordings);
 
-        when(recordingRepository.countRecordingsPerCase(true)).thenReturn(List.of());
+        reportService.reportRecordingsPerCase();
 
-        var report = reportService.reportRecordingsPerCase();
-
-        assertThat(report.size()).isEqualTo(0);
-        verify(recordingRepository, times(1)).countRecordingsPerCase(true);
+        // Should match whatever is returned from auth service
+        verify(recordingRepository, times(1))
+            .countRecordingsPerCase(includeReencodedRecordings);
     }
 
     @DisplayName("Find shared bookings and return report list")

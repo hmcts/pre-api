@@ -5,7 +5,6 @@ import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Pair;
@@ -28,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.security.AuthorisationService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.edit.EditRequestCrudService;
 import uk.gov.hmcts.reform.preapi.utils.InputSanitizerUtils;
@@ -43,40 +43,37 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class EditRequestService {
     private final EditRequestCrudService editRequestCrudService;
     private final RecordingRepository recordingRepository;
     private final RecordingService recordingService;
     private final EditNotificationService editNotificationService;
-    private final boolean hideReencodedRecordings;
-
-    private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
+    private final AuthorisationService authorisationService;
 
     @Autowired
     public EditRequestService(final EditRequestCrudService editRequestCrudService,
                               final RecordingRepository recordingRepository,
                               final RecordingService recordingService,
                               final EditNotificationService editNotificationService,
-                              @Value("${feature-flags.hide-reencoded-recordings:true}")
-                              final boolean hideReencodedRecordings) {
+                              final AuthorisationService authorisationService) {
         this.editRequestCrudService = editRequestCrudService;
         this.recordingRepository = recordingRepository;
         this.recordingService = recordingService;
         this.editNotificationService = editNotificationService;
-        this.hideReencodedRecordings = hideReencodedRecordings;
+        this.authorisationService = authorisationService;
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasEditRequestAccess(authentication, #id)")
     public EditRequestDTO findById(UUID id) {
-        boolean includeReencodedRecordings = canViewReencodedRecordings();
-        return editRequestCrudService.findById(id, includeReencodedRecordings);
+        return editRequestCrudService.findById(id);
     }
 
     @Transactional
     public Page<EditRequestDTO> findAll(@NotNull SearchEditRequests params, Pageable pageable) {
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        boolean includeReencodedRecordings = canViewReencodedRecordings(auth);
+        boolean includeReencodedRecordings = authorisationService.canViewReencodedRecordings();
         params.setAuthorisedBookings(auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings());
         params.setAuthorisedCourt(auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId());
 
@@ -148,7 +145,7 @@ public class EditRequestService {
 
         upsert(dto);
 
-        return editRequestCrudService.findById(id, canViewReencodedRecordings());
+        return editRequestCrudService.findById(id);
     }
 
     private Recording getSourceRecording(UUID sourceRecordingId) {
@@ -177,15 +174,6 @@ public class EditRequestService {
         }
 
         editNotificationService.onEditRequestRejected(upserted.getSecond());
-    }
-
-    private boolean canViewReencodedRecordings() {
-        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        return canViewReencodedRecordings(auth);
-    }
-
-    private boolean canViewReencodedRecordings(UserAuthentication auth) {
-        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {

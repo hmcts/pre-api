@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.security.AuthorisationService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
@@ -51,14 +52,12 @@ public class RecordingService {
     private final CaptureSessionRepository captureSessionRepository;
     private final CaptureSessionService captureSessionService;
     private final AzureFinalStorageService azureFinalStorageService;
+    private final AuthorisationService authorisationService;
 
     @Setter
     private boolean enableMigratedData;
 
     private final boolean rtmpsSuffixEnabled;
-
-    @Setter
-    private boolean hideReencodedRecordings;
 
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
@@ -68,21 +67,20 @@ public class RecordingService {
                             @Value("${migration.enableMigratedData:false}") boolean enableMigratedData,
                             @Value("${mediakind.rtmpsSuffixEnabled:false}")
                                 boolean rtmpsSuffixEnabled,
-                            @Value("${feature-flags.hide-reencoded-recordings:true}")
-                            boolean hideReencodedRecordings) {
+                            AuthorisationService authorisationService) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.enableMigratedData = enableMigratedData;
         this.rtmpsSuffixEnabled = rtmpsSuffixEnabled;
-        this.hideReencodedRecordings = hideReencodedRecordings;
+        this.authorisationService = authorisationService;
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public RecordingDTO findById(UUID recordingId) {
-        boolean includeReencodedRecordings = canViewReencodedRecordings();
+        boolean includeReencodedRecordings = authorisationService.canViewReencodedRecordings();
         return recordingRepository.findByIdAndDeletedAtIsNull(recordingId, includeReencodedRecordings)
             .map(recording -> new RecordingDTO(recording, includeReencodedRecordings, rtmpsSuffixEnabled))
             .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
@@ -114,7 +112,7 @@ public class RecordingService {
         );
 
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        boolean includeReencodedRecordings = canViewReencodedRecordings(auth);
+        boolean includeReencodedRecordings = authorisationService.canViewReencodedRecordings();
         params.setAuthorisedBookings(
             auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );
@@ -197,15 +195,6 @@ public class RecordingService {
             log.warn("Unable to parse recording edit instructions while checking re-encode visibility marker", e);
             return false;
         }
-    }
-
-    private boolean canViewReencodedRecordings() {
-        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        return canViewReencodedRecordings(auth);
-    }
-
-    private boolean canViewReencodedRecordings(UserAuthentication auth) {
-        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
     }
 
     @Transactional

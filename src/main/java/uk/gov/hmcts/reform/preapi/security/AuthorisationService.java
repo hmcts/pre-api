@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -30,7 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass", "PMD.TooManyMethods"})
 public class AuthorisationService {
     private final BookingRepository bookingRepository;
     private final CaseRepository caseRepository;
@@ -215,7 +216,7 @@ public class AuthorisationService {
     }
 
     public boolean canViewRecording(UserAuthentication authentication, Recording recording) {
-        if (authentication.hasRole(ROLE_SUPER_USER)
+        if (authentication != null && authentication.hasRole(ROLE_SUPER_USER)
             || recording.getCaptureSession().getOrigin() != RecordingOrigin.VODAFONE) {
             return true;
         }
@@ -226,6 +227,11 @@ public class AuthorisationService {
         }
 
         return hideReencodedRecordings ^ recording.isReencode();
+    }
+
+    public boolean canViewReencodedRecordings() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        return !hideReencodedRecordings || auth != null && auth.hasRole(ROLE_SUPER_USER);
     }
 
     public boolean isVodafoneData(Case caseEntity) {
