@@ -466,7 +466,7 @@ public class AuthorisationServiceTest {
             // Vodafone, re-encoded recording, hidden flag is false --> visible for Level 1 user
             Arguments.of(true, RecordingOrigin.VODAFONE, TestingSupportRoles.LEVEL_1, true, false)
 
-            // For original VF recording when hidden flag is false --> see separate test below
+        // For original VF recording when hidden flag is false --> see separate test below
         );
     }
 
