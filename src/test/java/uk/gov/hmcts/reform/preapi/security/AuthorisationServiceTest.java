@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -462,14 +463,87 @@ public class AuthorisationServiceTest {
             // Vodafone, *original* recording, hidden flag is true --> visible for Level 1 user
             Arguments.of(true, RecordingOrigin.VODAFONE, TestingSupportRoles.LEVEL_1, false, true),
 
-            // Vodafone, original recording, hidden flag is false --> *not* visible for Level 1 user
-            Arguments.of(false, RecordingOrigin.VODAFONE, TestingSupportRoles.LEVEL_1, false, false),
-
             // Vodafone, re-encoded recording, hidden flag is false --> visible for Level 1 user
             Arguments.of(true, RecordingOrigin.VODAFONE, TestingSupportRoles.LEVEL_1, true, false)
+
+            // For original VF recording when hidden flag is false --> see separate test below
         );
     }
-    
+
+    @DisplayName("When hidden flag is false, original recordings should be visible "
+        + "when a re-encoded alternative does not exist")
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void originalRecordingIsVisibleWhenAReencodedRecordingDoesNotExist(boolean hideReencodedRecordingsFlag) {
+        CaptureSession captureSession = new CaptureSession();
+        captureSession.setOrigin(RecordingOrigin.VODAFONE);
+
+        UUID originalRecordingId = UUID.randomUUID();
+        Recording originalRecording = new Recording();
+        originalRecording.setId(originalRecordingId);
+        originalRecording.setReencode(false);
+        originalRecording.setCaptureSession(captureSession);
+
+        UUID reencodedRecordingId = UUID.randomUUID();
+        Recording reencodedRecording = new Recording();
+        reencodedRecording.setId(reencodedRecordingId);
+        reencodedRecording.setReencode(true);
+        reencodedRecording.setCaptureSession(captureSession);
+        reencodedRecording.setParentRecording(originalRecording);
+
+        CaptureSession secondCaptureSession = new CaptureSession();
+        secondCaptureSession.setOrigin(RecordingOrigin.VODAFONE);
+
+        UUID anotherOriginalRecordingId = UUID.randomUUID();
+        Recording anotherOriginalRec = new Recording();
+        anotherOriginalRec.setId(anotherOriginalRecordingId);
+        anotherOriginalRec.setReencode(false);
+        anotherOriginalRec.setCaptureSession(secondCaptureSession);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+        when(recordingRepository.findById(originalRecordingId)).thenReturn(Optional.of(originalRecording));
+        when(recordingRepository.findById(reencodedRecordingId)).thenReturn(Optional.of(reencodedRecording));
+        when(recordingRepository.findById(anotherOriginalRecordingId)).thenReturn(Optional.of(anotherOriginalRec));
+
+        when(recordingRepository.existsByParentRecordingIdIsAndReencodeIs(originalRecordingId, true))
+            .thenReturn(true);
+        when(recordingRepository.existsByParentRecordingIdIsAndReencodeIs(reencodedRecordingId, true))
+            .thenReturn(false);
+        when(recordingRepository.existsByParentRecordingIdIsAndReencodeIs(anotherOriginalRecordingId, true))
+            .thenReturn(false);
+
+        AuthorisationService authorisationServiceHideReencodedRecordings = new AuthorisationService(
+            bookingRepository,
+            caseRepository,
+            participantRepository,
+            captureSessionRepository,
+            recordingRepository,
+            editRequestRepository,
+            true,
+            hideReencodedRecordingsFlag
+        );
+
+        if (hideReencodedRecordingsFlag) {
+            // show originals only
+            assertTrue(authorisationServiceHideReencodedRecordings
+                           .hasRecordingAccess(authenticationUser, originalRecordingId));
+            assertFalse(authorisationServiceHideReencodedRecordings
+                            .hasRecordingAccess(authenticationUser, reencodedRecordingId));
+            assertTrue(authorisationServiceHideReencodedRecordings
+                           .hasRecordingAccess(authenticationUser, anotherOriginalRecordingId));
+        } else {
+            // show re-encoded, and originals where re-encoded does not exist
+            assertFalse(authorisationServiceHideReencodedRecordings
+                            .hasRecordingAccess(authenticationUser, originalRecordingId));
+            assertTrue(authorisationServiceHideReencodedRecordings
+                           .hasRecordingAccess(authenticationUser, reencodedRecordingId));
+            assertTrue(authorisationService
+                           .hasRecordingAccess(authenticationUser, anotherOriginalRecordingId));
+        }
+    }
+
+
     @DisplayName("Should not grant access to recording when capture session access is not granted")
     @Test
     void hasRecordingAccessCaptureSessionAccessNotGranted() {
