@@ -423,16 +423,8 @@ public class AuthorisationServiceTest {
         when(authenticationUser.hasRole("ROLE_SUPER_USER")).thenReturn(userIsSuperUser);
         when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
 
-        AuthorisationService authorisationServiceHideReencodedRecordings = new AuthorisationService(
-            bookingRepository,
-            caseRepository,
-            participantRepository,
-            captureSessionRepository,
-            recordingRepository,
-            editRequestRepository,
-            true,
-            hideReencodedRecordingsFlag
-        );
+        AuthorisationService authorisationServiceHideReencodedRecordings = createAuthServiceWithHiddenFlag(
+            hideReencodedRecordingsFlag);
 
         if (shouldBeVisible) {
             assertTrue(authorisationServiceHideReencodedRecordings.hasRecordingAccess(authenticationUser, recordingId));
@@ -513,32 +505,23 @@ public class AuthorisationServiceTest {
         when(recordingRepository.existsByParentRecordingIdIsAndReencodeIs(anotherOriginalRecordingId, true))
             .thenReturn(false);
 
-        AuthorisationService authorisationServiceHideReencodedRecordings = new AuthorisationService(
-            bookingRepository,
-            caseRepository,
-            participantRepository,
-            captureSessionRepository,
-            recordingRepository,
-            editRequestRepository,
-            true,
-            hideReencodedRecordingsFlag
-        );
+        AuthorisationService authServiceWithFlag = createAuthServiceWithHiddenFlag(false);
 
         if (hideReencodedRecordingsFlag) {
             // show originals only
-            assertTrue(authorisationServiceHideReencodedRecordings
+            assertTrue(authServiceWithFlag
                            .hasRecordingAccess(authenticationUser, originalRecordingId));
-            assertFalse(authorisationServiceHideReencodedRecordings
+            assertFalse(authServiceWithFlag
                             .hasRecordingAccess(authenticationUser, reencodedRecordingId));
-            assertTrue(authorisationServiceHideReencodedRecordings
+            assertTrue(authServiceWithFlag
                            .hasRecordingAccess(authenticationUser, anotherOriginalRecordingId));
         } else {
             // show re-encoded, and originals where re-encoded does not exist
-            assertFalse(authorisationServiceHideReencodedRecordings
+            assertFalse(authServiceWithFlag
                             .hasRecordingAccess(authenticationUser, originalRecordingId));
-            assertTrue(authorisationServiceHideReencodedRecordings
+            assertTrue(authServiceWithFlag
                            .hasRecordingAccess(authenticationUser, reencodedRecordingId));
-            assertTrue(authorisationService
+            assertTrue(authServiceWithFlag
                            .hasRecordingAccess(authenticationUser, anotherOriginalRecordingId));
         }
     }
@@ -1199,4 +1182,18 @@ public class AuthorisationServiceTest {
             true
         );
     }
+
+    private AuthorisationService createAuthServiceWithHiddenFlag(boolean hideReencodedRecordingsFlag) {
+        return new AuthorisationService(
+            bookingRepository,
+            caseRepository,
+            participantRepository,
+            captureSessionRepository,
+            recordingRepository,
+            editRequestRepository,
+            true,
+            hideReencodedRecordingsFlag
+        );
+    }
+
 }
