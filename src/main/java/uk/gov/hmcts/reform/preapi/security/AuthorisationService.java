@@ -221,7 +221,7 @@ public class AuthorisationService {
         }
 
         if (!hideReencodedRecordings && !recording.isReencode()) {
-            // Show originals if no re-encoded recording exists
+            // Show original recording if no re-encoded version exists
             return !recordingRepository.existsByParentRecordingIdIsAndReencodeIs(recording.getId(), true);
         }
 
