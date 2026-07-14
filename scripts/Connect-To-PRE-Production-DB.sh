@@ -4,7 +4,7 @@ BASTION_HOST=bastion-prod.platform.hmcts.net
 POSTGRES_HOST=pre-db-prod.postgres.database.azure.com
 POSTGRES_HOST_PORT=5432
 
-CLIENT_PORT=5441
+CLIENT_PORT=5440
 
 echo "Checking Azure login..."
 retVal=0
