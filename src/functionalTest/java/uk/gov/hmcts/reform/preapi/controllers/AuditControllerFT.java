@@ -34,14 +34,6 @@ class AuditControllerFT extends FunctionalTestBase {
             .isEqualTo("Data is immutable and cannot be changed. Id: " + audit.getId());
     }
 
-    private Response putAudit(CreateAuditDTO dto, TestingSupportRoles authenticatedAs) throws JsonProcessingException {
-        return doPutRequest(
-            AUDIT_ENDPOINT + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            authenticatedAs
-        );
-    }
-
     @DisplayName("Should sort by created at desc")
     @Test
     void getAuditLogsSortBy() throws JsonProcessingException {
@@ -98,6 +90,31 @@ class AuditControllerFT extends FunctionalTestBase {
 
         Response response = putAudit(audit, authenticatedAs);
         assertResponseCode(response, 201);
+    }
+
+    @Test
+    @DisplayName("Should return 404 when trying to get a non-existent audit record")
+    void getNonExistentAudit() {
+        var getAuditResponse = doGetRequest(AUDIT_ENDPOINT + UUID.randomUUID(), TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getAuditResponse, 404);
+    }
+
+    @Test
+    @DisplayName("Should return 200 when getting a valid audit record")
+    void getAuditById() {
+        var getAudits = doGetRequest("/testing-support/latest-audits", TestingSupportRoles.SUPER_USER);
+        var auditId = getAudits.jsonPath().getUUID("_embedded.auditList[0].id");
+
+        var getAuditResponse = doGetRequest(AUDIT_ENDPOINT + auditId, TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getAuditResponse, 200);
+    }
+
+    private Response putAudit(CreateAuditDTO dto, TestingSupportRoles authenticatedAs) throws JsonProcessingException {
+        return doPutRequest(
+            AUDIT_ENDPOINT + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            authenticatedAs
+        );
     }
 
     private CreateAuditDTO createCreateAuditDTO() throws JsonProcessingException {
