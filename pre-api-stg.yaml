@@ -103,6 +103,51 @@ definitions:
         description: AssetStorageAccountName
         type: string
     type: object
+  AuditDTO:
+    description: AuditDTO
+    properties:
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      created_at:
+        description: AuditCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        $ref: '#/definitions/BaseUserDTO'
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - created_at
+      - created_by
+      - id
+      - source
+    type: object
   BaseAppAccessDTO:
     description: BaseAppAccessDTO
     properties:
@@ -2977,6 +3022,31 @@ paths:
       tags:
         - audit-controller
   '/audit/{id}':
+    get:
+      operationId: getAudit
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/AuditDTO'
+      summary: Get an Audit Entry
+      tags:
+        - audit-controller
     put:
       consumes:
         - application/json
