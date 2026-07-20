@@ -52,6 +52,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = RecordingService.class)
@@ -828,5 +829,20 @@ class RecordingServiceTest {
         assertThat(results).hasSize(1);
         assertThat(results.getFirst().getId()).isEqualTo(recordingEntity.getId());
         verify(recordingRepository, times(1)).findAllOriginVodafoneNoDuration();
+    }
+
+    @Test
+    @DisplayName("Check if re-encoded recording exists")
+    void checkIfReEncodedRecordingExists() {
+        UUID recordingId = UUID.randomUUID();
+        when(recordingRepository.existsByDeletedAtIsNullAndParentRecordingIdIsAndReencodeIs(recordingId, true))
+            .thenReturn(true);
+
+        recordingService.reencodedVersionExists(recordingId);
+
+        verify(recordingRepository, times(1))
+            .existsByDeletedAtIsNullAndParentRecordingIdIsAndReencodeIs(recordingId, true);
+
+        verifyNoMoreInteractions(recordingRepository);
     }
 }

@@ -312,4 +312,9 @@ public class RecordingService {
             .collect(Collectors.toList());
     }
 
+    @Transactional
+    public boolean reencodedVersionExists(UUID recordingId) {
+        return recordingRepository.existsByDeletedAtIsNullAndParentRecordingIdIsAndReencodeIs(recordingId, true);
+    }
+
 }
