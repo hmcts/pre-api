@@ -80,12 +80,6 @@ class DeleteOriginalVodafoneRecordingsTest {
     @Test
     @DisplayName("Delete original VF recordings where re-encoded version exists")
     void deleteVFWhereReEncodedVersionExists() {
-        DeleteOriginalVodafoneRecordings underTest = new DeleteOriginalVodafoneRecordings(recordingService,
-                                                                                          userService,
-                                                                                          userAuthenticationService,
-                                                                                          CRON_USER_EMAIL,
-                                                                                          "false");
-
         RecordingDTO preRecording = new RecordingDTO();
         preRecording.setId(preRecordingId);
 
@@ -96,6 +90,12 @@ class DeleteOriginalVodafoneRecordingsTest {
         reencodedRecording.setId(recordingWithReencodedVersion);
 
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(vfRecording, reencodedRecording));
+
+        DeleteOriginalVodafoneRecordings underTest = new DeleteOriginalVodafoneRecordings(recordingService,
+                                                                                          userService,
+                                                                                          userAuthenticationService,
+                                                                                          CRON_USER_EMAIL,
+                                                                                          "false");
 
         underTest.run();
 
