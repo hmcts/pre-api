@@ -29,11 +29,11 @@ public class DeleteOriginalVodafoneRecordings extends RobotUserTask {
 
     @Override
     public void run() {
-        signInRobotUser();
         if (hideReencodedRecordings) {
             log.info("Re-encoded recordings are hidden. Quitting...");
             return;
         }
+        signInRobotUser();
 
         List<RecordingDTO> allVodafoneRecordings = recordingService.findAllVodafoneRecordings();
 
