@@ -210,4 +210,20 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Recording> findAllOriginVodafoneNoDuration();
+
+    @Query("""
+        SELECT r FROM Recording r
+        WHERE r.captureSession.origin = 'VODAFONE'
+        AND r.deletedAt IS NULL
+        AND r.id in
+                (SELECT reencoded.parentRecording.id FROM Recording reencoded
+                        where r.captureSession.origin = 'VODAFONE'
+                                AND r.deletedAt IS NULL
+                                        AND r.reencode = true
+                        )
+        """
+    )
+    List<Recording> findVodafoneOriginalRecordingsWhereReencodedVersionExists();
+
+    List<Recording> findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue();
 }

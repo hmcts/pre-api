@@ -231,6 +231,34 @@ public class RecordingService {
         recordingRepository.saveAndFlush(recording);
     }
 
+    @Transactional
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public void deleteOriginalWhereReencodedVersionExists() {
+        recordingRepository.findVodafoneOriginalRecordingsWhereReencodedVersionExists()
+            .forEach(recording -> {
+                recording.setVfOriginalNowReencoded(Boolean.TRUE);
+                recording.setDeletedAt(Timestamp.from(Instant.now()));
+                recording.setDeleted(Boolean.TRUE);
+                recordingRepository.save(recording);
+            });
+
+        recordingRepository.flush();
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public void undeleteOriginalWhereReencodedVersionExists() {
+        recordingRepository.findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue()
+            .forEach(recording -> {
+                // Leave originalVfRecording flag set - doesn't need to be reset
+                recording.setDeletedAt(null);
+                recording.setDeleted(Boolean.FALSE);
+                recordingRepository.save(recording);
+            });
+
+        recordingRepository.flush();
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void checkIfCaptureSessionHasAssociatedRecordings(CaptureSession captureSession) {
         Optional<Recording> recording = recordingRepository.findFirstByCaptureSessionAndDeletedAtIsNull(captureSession);
@@ -303,7 +331,6 @@ public class RecordingService {
             .toList();
     }
 
-
     @Transactional
     public List<RecordingDTO> findAllVodafoneRecordings() {
         // return recordingRepository.findAllOriginVodafone().stream()
@@ -311,10 +338,4 @@ public class RecordingService {
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
-
-    @Transactional
-    public boolean reencodedVersionExists(UUID recordingId) {
-        return recordingRepository.existsByDeletedAtIsNullAndParentRecordingIdIsAndReencodeIs(recordingId, true);
-    }
-
 }

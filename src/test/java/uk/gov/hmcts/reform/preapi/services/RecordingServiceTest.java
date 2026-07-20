@@ -1,9 +1,11 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
@@ -832,16 +834,56 @@ class RecordingServiceTest {
     }
 
     @Test
-    @DisplayName("Check if re-encoded recording exists")
-    void checkIfReEncodedRecordingExists() {
-        UUID recordingId = UUID.randomUUID();
-        when(recordingRepository.existsByDeletedAtIsNullAndParentRecordingIdIsAndReencodeIs(recordingId, true))
-            .thenReturn(true);
+    @DisplayName("Undelete VF originals")
+    void undeleteVFOriginals() {
+        Recording vfOriginalWithReencodedVersion = new Recording();
+        vfOriginalWithReencodedVersion.setId(UUID.randomUUID());
+        vfOriginalWithReencodedVersion.setDeleted(Boolean.TRUE);
+        vfOriginalWithReencodedVersion.setDeletedAt(Timestamp.from(Instant.now()));
+        vfOriginalWithReencodedVersion.setVfOriginalNowReencoded(Boolean.TRUE);
 
-        recordingService.reencodedVersionExists(recordingId);
+        when(recordingRepository.findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue())
+            .thenReturn(List.of(vfOriginalWithReencodedVersion));
+
+        recordingService.undeleteOriginalWhereReencodedVersionExists();
 
         verify(recordingRepository, times(1))
-            .existsByDeletedAtIsNullAndParentRecordingIdIsAndReencodeIs(recordingId, true);
+            .findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue();
+
+        ArgumentCaptor<Recording> captor = ArgumentCaptor.forClass(Recording.class);
+        verify(recordingRepository, times(1)).save(captor.capture());
+
+        Recording savedRecording = captor.getValue();
+        assertThat(savedRecording.getId()).isEqualTo(vfOriginalWithReencodedVersion.getId());
+        assertThat(savedRecording.isDeleted()).isFalse();
+        assertThat(savedRecording.isVfOriginalNowReencoded()).isTrue();
+
+        verify(recordingRepository, times(1)).flush();
+
+        verifyNoMoreInteractions(recordingRepository);
+    }
+
+    @Test
+    @DisplayName("Delete original VF recordings where re-encoded version exists")
+    void deleteVFWhereReEncodedVersionExists() {
+        Recording vfOriginalWithReencodedVersion = new Recording();
+        vfOriginalWithReencodedVersion.setId(UUID.randomUUID());
+
+        when(recordingRepository.findVodafoneOriginalRecordingsWhereReencodedVersionExists())
+            .thenReturn(List.of(vfOriginalWithReencodedVersion));
+
+        recordingService.deleteOriginalWhereReencodedVersionExists();
+
+        verify(recordingRepository, times(1))
+            .findVodafoneOriginalRecordingsWhereReencodedVersionExists();
+
+        ArgumentCaptor<Recording> captor = ArgumentCaptor.forClass(Recording.class);
+        verify(recordingRepository, times(1)).save(captor.capture());
+        Recording capturedRecording = captor.getValue();
+        Assertions.assertThat(capturedRecording.isDeleted()).isTrue();
+        Assertions.assertThat(capturedRecording.isVfOriginalNowReencoded()).isTrue();
+
+        verify(recordingRepository, times(1)).flush();
 
         verifyNoMoreInteractions(recordingRepository);
     }
