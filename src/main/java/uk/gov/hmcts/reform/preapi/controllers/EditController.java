@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -123,7 +124,7 @@ public class EditController extends PreApiController {
         }
 
         editRequestService.upsert(createEditRequestDTO);
-        return ResponseEntity.ok().build();
+        return getUpsertResponse(UpsertResult.UPDATED, id);
     }
 
     @DeleteMapping("/{id}")
@@ -137,7 +138,7 @@ public class EditController extends PreApiController {
         }
 
         editRequestService.delete(deleteEditRequestDTO);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return getUpsertResponse(UpsertResult.UPDATED, id);
     }
 
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")

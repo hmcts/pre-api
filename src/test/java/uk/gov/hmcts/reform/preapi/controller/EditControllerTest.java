@@ -265,14 +265,14 @@ public class EditControllerTest {
                             .content(OBJECT_MAPPER.writeValueAsString(dto))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated())
+            .andExpect(status().isNoContent())
             .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
 
         verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
     }
 
     @Test
-    @DisplayName("Should return 201 when successfully created reencode edit request")
+    @DisplayName("Should return 204 when successfully created reencode edit request")
     void upsertReencodeEditRequestCreated() throws Exception {
         var dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
@@ -285,7 +285,7 @@ public class EditControllerTest {
                             .content(OBJECT_MAPPER.writeValueAsString(dto))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated())
+            .andExpect(status().isNoContent())
             .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
 
         verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
@@ -315,7 +315,7 @@ public class EditControllerTest {
                             .content(OBJECT_MAPPER.writeValueAsString(dto))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated())
+            .andExpect(status().isNoContent())
             .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
 
         verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
@@ -361,7 +361,7 @@ public class EditControllerTest {
                             .content(OBJECT_MAPPER.writeValueAsString(dto))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isOk());
+            .andExpect(status().isNoContent());
 
         verify(editRequestService, times(1)).delete(any(CreateEditRequestDTO.class));
     }
