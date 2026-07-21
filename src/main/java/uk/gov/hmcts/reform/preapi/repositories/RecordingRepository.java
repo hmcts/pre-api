@@ -113,8 +113,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
 
     List<Recording> findAllByParentRecordingIsNull();
 
-    boolean existsByDeletedAtIsNullAndParentRecordingIdIsAndReencodeIs(UUID id, boolean reencode);
-
     boolean existsByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
 
     Optional<Recording> findFirstByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
