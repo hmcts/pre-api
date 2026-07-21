@@ -592,26 +592,30 @@ class RecordingServiceIT extends IntegrationTestBase {
             preSampleCaptureSession, null, 1,
             "", null
         );
+        preRecording.setDuration(Duration.ofHours(1));
         entityManager.persist(preRecording);
 
         Recording vfOriginal1 = HelperFactory.createRecording(
             vfCaptureSessionReencoded, null, 1,
             "", null
         );
+        vfOriginal1.setDuration(Duration.ofMinutes(13));
         entityManager.persist(vfOriginal1);
+
 
         Recording reencodedVf1 = HelperFactory.createRecording(
             vfCaptureSessionReencoded, vfOriginal1, 2,
             "", null
         );
+        reencodedVf1.setDuration(Duration.ofMinutes(13));
         entityManager.persist(reencodedVf1);
 
         Recording vfOriginal2 = HelperFactory.createRecording(
             vfCaptureSessionNoReencode, null, 1,
             "", null
         );
+        vfOriginal2.setDuration(Duration.ofMinutes(13));
         entityManager.persist(vfOriginal2);
-
         entityManager.flush();
 
         // Pre-test check
