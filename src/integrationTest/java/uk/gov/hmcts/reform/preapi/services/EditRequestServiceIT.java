@@ -13,12 +13,12 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -150,6 +150,7 @@ public class EditRequestServiceIT extends IntegrationTestBase {
     @Transactional
     public void upsertWithEmptyInstructionsShouldDeleteEditRequest() {
         var recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
+        recording.setDuration(Duration.ofHours(1));
         entityManager.persist(recording);
 
         when(azureFinalStorageService.getRecordingDuration(recording.getId())).thenReturn(recording.getDuration());
@@ -160,7 +161,7 @@ public class EditRequestServiceIT extends IntegrationTestBase {
             editRequestId,
             recording,
             "{\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]}",
-            EditRequestStatus.PENDING,
+            EditRequestStatus.DRAFT,
             user,
             null,
             null,
@@ -180,10 +181,10 @@ public class EditRequestServiceIT extends IntegrationTestBase {
         CreateEditRequestDTO upsertRequest = new CreateEditRequestDTO();
         upsertRequest.setSourceRecordingId(recording.getId());
         upsertRequest.setId(editRequestId);
+        upsertRequest.setStatus(EditRequestStatus.DRAFT);
         upsertRequest.setEditInstructions(new ArrayList<>()); // Intentionally empty
 
-        UpsertResult upsertResult = editRequestService.upsert(upsertRequest);
-        assertThat(upsertResult).isEqualTo(UpsertResult.UPDATED);
+        editRequestService.upsert(upsertRequest);
 
         var requests2 = editRequestService.findAll(paramsForExistingEditRequest, Pageable.unpaged()).toList();
         assertThat(requests2).isEmpty();

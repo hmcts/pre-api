@@ -260,8 +260,6 @@ public class EditControllerTest {
                                             .build()));
         dto.setStatus(EditRequestStatus.DRAFT);
 
-        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
-
         mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(dto))
@@ -281,8 +279,6 @@ public class EditControllerTest {
         dto.setSourceRecordingId(UUID.randomUUID());
         dto.setForceReencode(true);
         dto.setStatus(EditRequestStatus.DRAFT);
-
-        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
 
         mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
                             .with(csrf())
@@ -360,8 +356,6 @@ public class EditControllerTest {
                                             .build()));
         dto.setStatus(EditRequestStatus.DRAFT);
 
-        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.CREATED);
-
         mockMvc.perform(delete(TEST_URL + "/edits/" + dto.getId())
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(dto))
@@ -407,8 +401,6 @@ public class EditControllerTest {
                                             .endOfCut("00:00:01")
                                             .build()));
         dto.setStatus(EditRequestStatus.DRAFT);
-
-        when(editRequestService.upsert(any(CreateEditRequestDTO.class))).thenReturn(UpsertResult.UPDATED);
 
         mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
                             .with(csrf())

@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.util.Pair;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,7 +21,6 @@ import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
@@ -108,15 +106,13 @@ public class EditRequestService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
-    public UpsertResult upsert(CreateEditRequestDTO dto) {
+    public void upsert(CreateEditRequestDTO dto) {
         Recording sourceRecording = getSourceRecording(dto.getSourceRecordingId());
 
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
         User user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
-        Pair<UpsertResult, EditRequest> result = editRequestCrudService.upsert(dto, sourceRecording, user);
-
-        return result.getFirst();
+        editRequestCrudService.upsert(dto, sourceRecording, user);
     }
 
     @Transactional

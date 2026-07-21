@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 
 import java.util.List;
 
+import static java.lang.String.format;
 import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
 
 @Slf4j
@@ -31,7 +32,7 @@ public final class EditRequestValidator {
 
     static void validateEditMode(CreateEditRequestDTO dto) {
         log.debug("Validating edit request {}", dto);
-        if (dto.isForceReencode() && dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
+        if (dto.isForceReencode() && editInstructionsAreEmpty(dto)) {
             throw new BadRequestException(
                 "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
         }
@@ -76,7 +77,7 @@ public final class EditRequestValidator {
     }
 
     static void checkThatEditsDoNotCutAnEntireRecording(final List<EditCutInstructionDTO> instructions,
-                                                                  final long recordingDuration) {
+                                                        final long recordingDuration) {
         if (instructions.size() == SINGLETON_LIST_SIZE) {
             EditCutInstructionDTO firstInstruction = instructions.getFirst();
             if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
@@ -106,7 +107,7 @@ public final class EditRequestValidator {
     }
 
     static void validateEditInstruction(final EditCutInstructionDTO instruction,
-                                                  final long recordingDuration) {
+                                        final long recordingDuration) {
         if (instruction.getStart() == instruction.getEnd()) {
             throw new BadRequestException(
                 "Invalid instruction: Instruction with 0 second duration invalid: Start("
@@ -132,5 +133,23 @@ public final class EditRequestValidator {
                                               + formatTime(recordingDuration)
                                               + ")");
         }
+    }
+
+    public static void extraValidationForExistingEditRequest(EditRequest existingEditRequest,
+                                                             CreateEditRequestDTO dto) {
+        if (existingEditRequest.getStatus() != EditRequestStatus.DRAFT) {
+            EditInstructions existing = EditInstructions.fromJson(existingEditRequest.getEditInstruction());
+            if (!dto.getEditInstructions().equals(existing)) {
+                throw new BadRequestException(format(
+                    "Cannot alter edit request instructions after submission: edit request %s has status %s",
+                    existingEditRequest.getId(),
+                    existingEditRequest.getStatus().toString()
+                ));
+            }
+        }
+    }
+
+    public static boolean editInstructionsAreEmpty(CreateEditRequestDTO dto) {
+        return (dto.getEditInstructions() == null || dto.getEditInstructions().isEmpty());
     }
 }

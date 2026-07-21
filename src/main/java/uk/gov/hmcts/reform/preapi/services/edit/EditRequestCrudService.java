@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
@@ -15,8 +14,6 @@ import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
-import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.services.EditNotificationService;
@@ -26,6 +23,8 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+
+import static uk.gov.hmcts.reform.preapi.services.edit.EditRequestValidator.editInstructionsAreEmpty;
 
 @Slf4j
 @Service
@@ -115,14 +114,25 @@ public class EditRequestCrudService {
     }
 
     @Transactional
-    public @NotNull Pair<UpsertResult, EditRequest> upsert(CreateEditRequestDTO dto,
-                                                           Recording sourceRecording, User user) {
+    public @NotNull EditRequest upsert(CreateEditRequestDTO dto, Recording sourceRecording, User user) {
         EditRequestValidator.validateEditMode(dto);
         Optional<EditRequest> existingEditRequest = findByIdIfExists(dto.getId());
         boolean isUpdate = existingEditRequest.isPresent();
-        UpsertResult emptyInstructionResult = handleEmptyInstructions(dto, existingEditRequest, isUpdate);
-        if (emptyInstructionResult != null) {
-            return Pair.of(emptyInstructionResult, existingEditRequest.orElse(new EditRequest()));
+
+        if (isUpdate) {
+            EditRequestValidator.extraValidationForExistingEditRequest(existingEditRequest.get(), dto);
+
+            // If is draft and is update and edit instructions are empty: then delete
+            if (dto.getStatus().equals(EditRequestStatus.DRAFT)
+                && editInstructionsAreEmpty(dto)
+                && !dto.isForceReencode()) {
+                log.info(
+                    "Deleting edit request {} for source recording {} as edit instructions are empty",
+                    existingEditRequest.orElseThrow().getId(), dto.getSourceRecordingId()
+                );
+                editRequestRepository.delete(existingEditRequest.orElseThrow());
+                return existingEditRequest.orElseThrow();
+            }
         }
 
         EditRequest request = editingService.prepareEditRequestToCreateOrUpdate(
@@ -142,10 +152,7 @@ public class EditRequestCrudService {
             editNotificationService.editRequestStatusWasUpdated(request);
         }
 
-        if (isUpdate) {
-            return Pair.of(UpsertResult.UPDATED, request);
-        }
-        return Pair.of(UpsertResult.CREATED, request);
+        return request;
     }
 
     @Transactional
@@ -155,26 +162,6 @@ public class EditRequestCrudService {
         }
 
         return editRequestRepository.findSourceRecordingIdsWithForceReencodeRequests(sourceRecordingIds);
-    }
-  
-    private UpsertResult handleEmptyInstructions(CreateEditRequestDTO dto,
-                                                 Optional<EditRequest> existingEditRequest,
-                                                 boolean isUpdate) {
-        if (dto.isForceReencode() || dto.getEditInstructions() != null && !dto.getEditInstructions().isEmpty()) {
-            return null;
-        }
-
-        if (!isUpdate) {
-            throw new BadRequestException("Invalid Instruction: Cannot create an edit request with empty"
-                                              + " instructions");
-        }
-
-        log.info(
-            "Deleting edit request {} for source recording {} as edit instructions are empty",
-            existingEditRequest.orElseThrow().getId(), dto.getSourceRecordingId()
-        );
-        delete(dto);
-        return UpsertResult.UPDATED;
     }
 
 

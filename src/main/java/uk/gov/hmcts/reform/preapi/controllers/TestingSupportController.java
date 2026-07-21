@@ -600,6 +600,7 @@ class TestingSupportController {
         Court court = new Court();
         court.setId(UUID.randomUUID());
         court.setName("Foo Court");
+        court.setGroupEmail("foo_court@email.com");
         court.setCourtType(CourtType.CROWN);
         court.setLocationCode(UUID.randomUUID().toString().replace("-", "").substring(0, 20));
         courtRepository.save(court);

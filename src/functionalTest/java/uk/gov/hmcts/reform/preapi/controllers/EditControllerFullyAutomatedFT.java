@@ -3,10 +3,10 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.assertj.core.api.Assertions;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
@@ -21,17 +21,16 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
-import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
-import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
+import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 // I split this out to capture the first half of the editing process, which doesn't yet have any tests
@@ -41,14 +40,8 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
     @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
 
-    @MockitoBean
-    private RecordingRepository recordingRepository;
-
     private UUID recordingId;
     private RecordingDTO recordingDTO;
-
-
-    @MockitoBean
     private Recording recording;
 
     @MockitoBean
@@ -68,8 +61,13 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
     void setUp() {
         CreateRecordingResponse recordingDetails = createRecording();
         recordingId = recordingDetails.recordingId();
-        when(recording.getId()).thenReturn(recordingId);
-        when(recording.getCaptureSession()).thenReturn(captureSession);
+        recording = new Recording();
+        recording.setId(recordingId);
+        recording.setCaptureSession(captureSession);
+        recording.setDuration(Duration.ofMinutes(30));
+        recording.setVersion(1);
+        recording.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        recording.setFilename("Test_filename.mp4");
 
         when(captureSession.getId()).thenReturn(recordingDetails.captureSessionId());
         when(captureSession.getBooking()).thenReturn(booking);
@@ -80,14 +78,6 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
         when(legalCase.getCourt()).thenReturn(mockCourt);
         when(mockCourt.getGroupEmail()).thenReturn("mock@email.com");
 
-        when(recordingRepository.findAll()).thenReturn(List.of(recording));
-        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
-        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingId)).thenReturn(Optional.of(recording));
-        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingId, true))
-            .thenReturn(Optional.of(recording));
-        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingId, false))
-            .thenReturn(Optional.of(recording));
-
         recordingDTO = assertRecordingExists(recordingDetails.recordingId(), true)
             .as(RecordingDTO.class);
 
@@ -95,65 +85,138 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
             .thenReturn(recordingDTO.getFilename());
         when(azureFinalStorageService.getRecordingDuration(recordingDetails.recordingId()))
             .thenReturn(recordingDTO.getDuration());
-
-
     }
 
     @Test
     @DisplayName("Should create a DRAFT edit request, update it and submit it, receiving a notification")
     void editRequestSuccess() throws JsonProcessingException {
         CreateEditRequestDTO createEditRequestDTO = new CreateEditRequestDTO();
-        createEditRequestDTO.setId(UUID.randomUUID());
+        UUID createEditRequestId = UUID.randomUUID();
+        createEditRequestDTO.setId(createEditRequestId);
         createEditRequestDTO.setStatus(EditRequestStatus.DRAFT);
         createEditRequestDTO.setSourceRecordingId(recordingId);
 
         // Create as DRAFT
-        Response firstResponse = doPutRequest(
-            EDIT_ENDPOINT + "/" + createEditRequestDTO.getId(),
-            OBJECT_MAPPER.writeValueAsString(createEditRequestDTO),
-            TestingSupportRoles.SUPER_USER
-        );
-
-        EditRequestDTO editRequestDTO = OBJECT_MAPPER.readValue(firstResponse.body().asString(), EditRequestDTO.class);
-
-        Assertions.assertThat(editRequestDTO.getStatus()).isEqualTo(EditRequestStatus.DRAFT);
-        Assertions.assertThat(editRequestDTO.getEditInstruction()).isNull();
-        Assertions.assertThat(editRequestDTO.getSourceRecording()).isEqualTo(recordingDTO);
+        Response createdAsDraft = upsertEditRequestAndGetResponse(createEditRequestId, createEditRequestDTO);
+        assertResponseCode(createdAsDraft, 200);
+        Assertions.assertThat(createdAsDraft.jsonPath().getString("id"))
+            .isEqualTo(createEditRequestId.toString());
+        Assertions.assertThat(createdAsDraft.jsonPath().getString("status"))
+            .isEqualTo(EditRequestStatus.DRAFT.name());
+        Assertions.assertThat(createdAsDraft.jsonPath().getString("source_recording.id"))
+            .isEqualTo(createEditRequestDTO.getSourceRecordingId().toString());
+        Assertions.assertThat(createdAsDraft.jsonPath().getList("edit_instruction.requestedInstructions"))
+            .isEmpty();
 
         // Update as DRAFT
         List<EditCutInstructionDTO> editInstructions = List.of(EditCutInstructionDTO.builder()
-                                                                   .startOfCut("00:00:00")
-                                                                   .endOfCut("00:00:01")
+                                                                   .startOfCut("00:00:02")
+                                                                   .endOfCut("00:00:03")
                                                                    .build());
         createEditRequestDTO.setEditInstructions(editInstructions);
 
-        Response secondResponse = doPutRequest(
-            EDIT_ENDPOINT + "/" + recordingId,
-            OBJECT_MAPPER.writeValueAsString(createEditRequestDTO),
-            TestingSupportRoles.SUPER_USER
-        );
+        Response updatedAsDraft = upsertEditRequestAndGetResponse(createEditRequestId, createEditRequestDTO);
+        assertResponseCode(updatedAsDraft, 200);
+        Assertions.assertThat(updatedAsDraft.jsonPath().getString("id"))
+            .isEqualTo(createEditRequestId.toString());
+        Assertions.assertThat(updatedAsDraft.jsonPath().getString("status"))
+            .isEqualTo(EditRequestStatus.DRAFT.name());
+        Assertions.assertThat(updatedAsDraft.jsonPath().getString("source_recording.id"))
+            .isEqualTo(createEditRequestDTO.getSourceRecordingId().toString());
 
-        EditRequestDTO updatedDraft = OBJECT_MAPPER.readValue(firstResponse.body().asString(), EditRequestDTO.class);
-
-        Assertions.assertThat(updatedDraft.getStatus()).isEqualTo(EditRequestStatus.DRAFT);
-        Assertions.assertThat(updatedDraft.getEditInstruction().getRequestedInstructions())
-            .isEqualTo(editInstructions);
-        Assertions.assertThat(updatedDraft.getSourceRecording()).isEqualTo(recordingDTO);
+        Assertions.assertThat(updatedAsDraft.jsonPath().getList("edit_instruction.requestedInstructions"))
+            .size().isEqualTo(editInstructions.size());
+        Assertions.assertThat(updatedAsDraft.jsonPath()
+                                  .getInt("edit_instruction.requestedInstructions[0].start"))
+            .isEqualTo(2);
+        Assertions.assertThat(updatedAsDraft.jsonPath()
+                                  .getInt("edit_instruction.requestedInstructions[0].end"))
+            .isEqualTo(3);
 
         // Submit
         createEditRequestDTO.setStatus(EditRequestStatus.SUBMITTED);
-        Response thirdResponse = doPutRequest(
-            EDIT_ENDPOINT + "/" + recordingId,
+        createEditRequestDTO.setJointlyAgreed(true);
+        Response submitted = upsertEditRequestAndGetResponse(createEditRequestId, createEditRequestDTO);
+        assertResponseCode(submitted, 200);
+        Assertions.assertThat(submitted.jsonPath().getString("id"))
+            .isEqualTo(createEditRequestId.toString());
+        Assertions.assertThat(submitted.jsonPath().getString("status"))
+            .isEqualTo(EditRequestStatus.SUBMITTED.name());
+
+        // Attempt to update edit instructions after submission should fail
+        List<EditCutInstructionDTO> updatedEditInstructions = List.of(EditCutInstructionDTO.builder()
+                                                                          .startOfCut("00:00:06")
+                                                                          .endOfCut("00:00:07")
+                                                                          .build());
+        createEditRequestDTO.setEditInstructions(updatedEditInstructions);
+
+        Response resubmittedWithChangedInstructions = doPutRequest(
+            EDIT_ENDPOINT + "/" + createEditRequestId,
             OBJECT_MAPPER.writeValueAsString(createEditRequestDTO),
             TestingSupportRoles.SUPER_USER
         );
+        assertResponseCode(resubmittedWithChangedInstructions, 400);
+        Assertions.assertThat(resubmittedWithChangedInstructions.jsonPath().getString("message"))
+            .isEqualTo(format(
+                "Cannot alter edit request instructions after submission: "
+                    + "edit request %s has status %s",
+                createEditRequestDTO.getId(), createEditRequestDTO.getStatus().toString()
+            ));
 
-        EditRequestDTO submitted = OBJECT_MAPPER.readValue(firstResponse.body().asString(), EditRequestDTO.class);
+        // ...but should be allowed to update status with original instructions
+        createEditRequestDTO.setStatus(EditRequestStatus.DRAFT);
+        createEditRequestDTO.setEditInstructions(editInstructions);
 
-        Assertions.assertThat(submitted.getStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
-        Assertions.assertThat(submitted.getEditInstruction().getRequestedInstructions())
-            .isEqualTo(editInstructions);
-        Assertions.assertThat(submitted.getSourceRecording()).isEqualTo(recordingDTO);
+        Response setBackToDraft = upsertEditRequestAndGetResponse(createEditRequestId, createEditRequestDTO);
+
+        assertResponseCode(setBackToDraft, 200);
+        Assertions.assertThat(setBackToDraft.jsonPath().getString("id"))
+            .isEqualTo(createEditRequestId.toString());
+        Assertions.assertThat(setBackToDraft.jsonPath().getString("status"))
+            .isEqualTo(EditRequestStatus.DRAFT.name());
+        Assertions.assertThat(updatedAsDraft.jsonPath().getList("edit_instruction.requestedInstructions"))
+            .size().isEqualTo(editInstructions.size());
+        Assertions.assertThat(updatedAsDraft.jsonPath()
+                                  .getInt("edit_instruction.requestedInstructions[0].start"))
+            .isEqualTo(2);
+        Assertions.assertThat(updatedAsDraft.jsonPath()
+                                  .getInt("edit_instruction.requestedInstructions[0].end"))
+            .isEqualTo(3);
+
+
+        // ...and then we're allowed to edit it again
+        createEditRequestDTO.setEditInstructions(updatedEditInstructions);
+
+        Response updateEditInstructions = upsertEditRequestAndGetResponse(createEditRequestId, createEditRequestDTO);
+        assertResponseCode(updateEditInstructions, 200);
+        Assertions.assertThat(updateEditInstructions.jsonPath().getString("id"))
+            .isEqualTo(createEditRequestId.toString());
+        Assertions.assertThat(updateEditInstructions.jsonPath().getString("status"))
+            .isEqualTo(EditRequestStatus.DRAFT.name());
+        Assertions.assertThat(updateEditInstructions.jsonPath().getList("edit_instruction.requestedInstructions"))
+            .size().isEqualTo(editInstructions.size());
+        Assertions.assertThat(updateEditInstructions.jsonPath()
+                                  .getInt("edit_instruction.requestedInstructions[0].start"))
+            .isEqualTo(6);
+        Assertions.assertThat(updateEditInstructions.jsonPath()
+                                  .getInt("edit_instruction.requestedInstructions[0].end"))
+            .isEqualTo(7);
+    }
+
+    private @NotNull Response upsertEditRequestAndGetResponse(UUID createEditRequestId,
+                                                              CreateEditRequestDTO createEditRequestDTO)
+        throws JsonProcessingException {
+        Response putResponse = doPutRequest(
+            EDIT_ENDPOINT + "/" + createEditRequestId,
+            OBJECT_MAPPER.writeValueAsString(createEditRequestDTO),
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(putResponse, 200);
+
+        return doGetRequest(
+            EDIT_ENDPOINT + "/" + createEditRequestId,
+            TestingSupportRoles.SUPER_USER
+        );
     }
 
     @Test
@@ -170,19 +233,25 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
         createEditRequestDTO.setEditInstructions(editInstructions);
         createEditRequestDTO.setJointlyAgreed(true);
 
-
-        when(recordingRepository.findByIdAndDeletedAtIsNull(editRequestId)).thenReturn(Optional.of(recording));
-
         // Submit
         createEditRequestDTO.setStatus(EditRequestStatus.SUBMITTED);
         String requestBody = OBJECT_MAPPER.writeValueAsString(createEditRequestDTO);
+
+        // Fails on message com.fasterxml.jackson.databind.exc.MismatchedInputException:
+        // No content to map due to end-of-input
         Response firstResponse = doPutRequest(
             EDIT_ENDPOINT + "/" + editRequestId,
             requestBody,
             TestingSupportRoles.SUPER_USER
         );
 
-        EditRequestDTO submitted = OBJECT_MAPPER.readValue(firstResponse.body().asString(), EditRequestDTO.class);
+        assertResponseCode(firstResponse, 201);
+
+        String firstResponseBody = firstResponse.body().asString();
+
+        Assertions.assertThat(firstResponseBody).isNotBlank();
+
+        EditRequestDTO submitted = OBJECT_MAPPER.readValue(firstResponseBody, EditRequestDTO.class);
 
         Assertions.assertThat(submitted.getStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
         Assertions.assertThat(submitted.getEditInstruction().getRequestedInstructions())

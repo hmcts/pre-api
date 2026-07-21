@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.util.Pair;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
@@ -20,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
@@ -196,10 +194,9 @@ class EditRequestCrudServiceTest {
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
 
 
-        Pair<UpsertResult, EditRequest> response = underTest.upsert(dto, mockRecording, mockUser);
-        assertThat(response.getFirst()).isEqualTo(UpsertResult.CREATED);
-        assertThat(response.getSecond().getStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
-        assertThat(response.getSecond().getId()).isEqualTo(dto.getId());
+        EditRequest response = underTest.upsert(dto, mockRecording, mockUser);
+        assertThat(response.getStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
+        assertThat(response.getId()).isEqualTo(dto.getId());
 
         verify(editRequestRepository, times(1)).findByIdNotLocked(dto.getId());
         verify(editRequestRepository, times(1)).save(any(EditRequest.class));
@@ -298,10 +295,9 @@ class EditRequestCrudServiceTest {
             .thenReturn(Optional.of(mockEditRequest));
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(mockEditRequest));
 
-        Pair<UpsertResult, EditRequest> result = underTest.upsert(dto, mockRecording, mockUser);
-        assertThat(result.getFirst()).isEqualTo(UpsertResult.UPDATED);
+        EditRequest result = underTest.upsert(dto, mockRecording, mockUser);
 
-        verify(editRequestRepository, times(1)).delete(result.getSecond());
+        verify(editRequestRepository, times(1)).delete(result);
         verifyNoInteractions(editNotificationService);
     }
 
@@ -324,7 +320,7 @@ class EditRequestCrudServiceTest {
 
     @Test
     @DisplayName("Should ignore attempt to delete non-existent edit request")
-    void deleteNonExistentEditRequestSuccess() throws Exception {
+    void deleteNonExistentEditRequestSuccess() {
         when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
         when(editRequestRepository.findById(dto.getSourceRecordingId()))
             .thenReturn(Optional.empty());

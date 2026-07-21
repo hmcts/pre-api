@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 
@@ -219,6 +220,19 @@ public class FfmpegService implements IEditingService {
                 shouldSendNotifications(dto)));
             request.updateEditRequestFromDto(dto, sourceRecording, newEditInstruction);
             return request;
+        }
+
+        if (EditRequestValidator.editInstructionsAreEmpty(dto)) {
+            if (dto.getStatus() == EditRequestStatus.DRAFT) {
+                String newEditInstruction = toJson(new EditInstructions(
+                    List.of(), List.of(), false,
+                    shouldSendNotifications(dto)));
+                request.updateEditRequestFromDto(dto, sourceRecording, newEditInstruction);
+                return request;
+            } else {
+                throw new IllegalArgumentException("Invalid edit request: instructions may only be empty for DRAFT"
+                                                       + " edit requests or forced re-encodes");
+            }
         }
 
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;

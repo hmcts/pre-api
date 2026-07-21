@@ -122,7 +122,8 @@ public class EditController extends PreApiController {
             throw new PathPayloadMismatchException("editRequestId", "createEditRequestDTO.id");
         }
 
-        return getUpsertResponse(editRequestService.upsert(createEditRequestDTO), id);
+        editRequestService.upsert(createEditRequestDTO);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")

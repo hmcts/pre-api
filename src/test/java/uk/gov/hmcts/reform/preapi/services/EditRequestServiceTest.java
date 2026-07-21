@@ -7,7 +7,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.util.Pair;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,7 +26,6 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
@@ -172,7 +170,7 @@ class EditRequestServiceTest {
         when(mockEditRequest.getEditInstruction()).thenReturn("{}");
 
         when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
-            .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
+            .thenReturn(mockEditRequest);
         when(editRequestCrudService.findById(mockEditRequestId, false)).thenReturn(editRequestDTO);
         when(editRequestDTO.getId()).thenReturn(mockEditRequestId);
         when(editRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
@@ -204,10 +202,9 @@ class EditRequestServiceTest {
         when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecording.getId()))
             .thenReturn(Optional.of(mockRecording));
         when(editRequestCrudService.upsert(dto, mockRecording, courtClerkUser))
-            .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
+            .thenReturn(mockEditRequest);
 
-        UpsertResult response = underTest.upsert(dto);
-        assertThat(response).isEqualTo(UpsertResult.CREATED);
+        underTest.upsert(dto);
 
         verify(recordingService, times(1)).syncRecordingMetadataWithStorage(mockRecording.getId());
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(mockRecording.getId());
@@ -335,8 +332,6 @@ class EditRequestServiceTest {
         EditRequest returnedByDb = new EditRequest();
         returnedByDb.setCreatedBy(courtClerkUser);
 
-        when(editRequestCrudService.upsert(any(), any(), any()))
-            .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
         when(editRequestCrudService.findByIdIfExists(any())).thenReturn(Optional.of(returnedByDb));
         when(editRequestCrudService.findById(any(UUID.class), anyBoolean())).thenReturn(editRequestDTO);
 
