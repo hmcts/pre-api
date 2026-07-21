@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
@@ -836,6 +837,10 @@ class RecordingServiceTest {
     @Test
     @DisplayName("Undelete VF originals")
     void undeleteVFOriginals() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
         Recording vfOriginalWithReencodedVersion = new Recording();
         vfOriginalWithReencodedVersion.setId(UUID.randomUUID());
         vfOriginalWithReencodedVersion.setDeleted(Boolean.TRUE);
@@ -866,6 +871,10 @@ class RecordingServiceTest {
     @Test
     @DisplayName("Delete original VF recordings where re-encoded version exists")
     void deleteVFWhereReEncodedVersionExists() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
         Recording vfOriginalWithReencodedVersion = new Recording();
         vfOriginalWithReencodedVersion.setId(UUID.randomUUID());
 
@@ -886,5 +895,23 @@ class RecordingServiceTest {
         verify(recordingRepository, times(1)).flush();
 
         verifyNoMoreInteractions(recordingRepository);
+    }
+
+    @Test
+    @DisplayName("Need to be admin user to delete/undelete VF originals")
+    void needToBeAdminUserToDelete() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        assertThrows(
+            AccessDeniedException.class,
+            () ->  recordingService.undeleteOriginalWhereReencodedVersionExists()
+        );
+
+        assertThrows(
+            AccessDeniedException.class,
+            () ->  recordingService.deleteOriginalWhereReencodedVersionExists()
+        );
     }
 }
