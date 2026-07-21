@@ -638,6 +638,30 @@ class RecordingServiceIT extends IntegrationTestBase {
 
     }
 
+
+    @Test
+    @Transactional
+    @DisplayName("Non-admin user cannot mark VF original recordings as deleted/not deleted")
+    void nonAdminUserCannotMarkVfOriginalRecordingsAsDeleted() {
+        mockNonAdminUser();
+
+        String message = Assertions.assertThrows(
+            AccessDeniedException.class,
+            () -> recordingService.deleteOriginalWhereReencodedVersionExists()
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("User does not have sufficient privileges to delete original recordings");
+
+        String message2 = Assertions.assertThrows(
+            AccessDeniedException.class,
+            () ->  recordingService.undeleteOriginalWhereReencodedVersionExists()
+        ).getMessage();
+
+        assertThat(message2)
+            .isEqualTo("User does not have sufficient privileges to undelete original recordings");
+    }
+
     private Recording createSampleOriginalRecording(RecordingOrigin recordingOrigin) {
         CaptureSession sampleCaptureSession = persistSampleCourtCaseBookingCaptureSession(
             recordingOrigin

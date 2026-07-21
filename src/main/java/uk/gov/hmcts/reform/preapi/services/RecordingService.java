@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -232,8 +233,12 @@ public class RecordingService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public void deleteOriginalWhereReencodedVersionExists() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        if (!auth.isAdmin()) {
+            throw new AccessDeniedException("User does not have sufficient privileges to delete original recordings");
+        }
+
         recordingRepository.findVodafoneOriginalRecordingsWhereReencodedVersionExists()
             .forEach(recording -> {
                 recording.setVfOriginalNowReencoded(Boolean.TRUE);
@@ -246,8 +251,12 @@ public class RecordingService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public void undeleteOriginalWhereReencodedVersionExists() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        if (!auth.isAdmin()) {
+            throw new AccessDeniedException("User does not have sufficient privileges to undelete original recordings");
+        }
+
         recordingRepository.findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue()
             .forEach(recording -> {
                 // Leave originalVfRecording flag set - doesn't need to be reset
