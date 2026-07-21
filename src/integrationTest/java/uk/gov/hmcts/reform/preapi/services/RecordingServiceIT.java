@@ -576,47 +576,13 @@ class RecordingServiceIT extends IntegrationTestBase {
         mockAdminUser();
 
         // Set up
-        CaptureSession preSampleCaptureSession = persistSampleCourtCaseBookingCaptureSession(
-            RecordingOrigin.PRE
-        );
+        Recording preRecording = createSampleOriginalRecording(RecordingOrigin.PRE);
 
-        CaptureSession vfCaptureSessionReencoded = persistSampleCourtCaseBookingCaptureSession(
-            RecordingOrigin.VODAFONE
-        );
+        Recording vfOriginal1 = createSampleOriginalRecording(RecordingOrigin.VODAFONE);
 
-        CaptureSession vfCaptureSessionNoReencode = persistSampleCourtCaseBookingCaptureSession(
-            RecordingOrigin.VODAFONE
-        );
+        Recording vfOriginal2 = createSampleOriginalRecording(RecordingOrigin.VODAFONE);
 
-        Recording preRecording = HelperFactory.createRecording(
-            preSampleCaptureSession, null, 1,
-            "", null
-        );
-        preRecording.setDuration(Duration.ofHours(1));
-        entityManager.persist(preRecording);
-
-        Recording vfOriginal1 = HelperFactory.createRecording(
-            vfCaptureSessionReencoded, null, 1,
-            "", null
-        );
-        vfOriginal1.setDuration(Duration.ofMinutes(13));
-        entityManager.persist(vfOriginal1);
-
-
-        Recording reencodedVf1 = HelperFactory.createRecording(
-            vfCaptureSessionReencoded, vfOriginal1, 2,
-            "", null
-        );
-        reencodedVf1.setDuration(Duration.ofMinutes(13));
-        entityManager.persist(reencodedVf1);
-
-        Recording vfOriginal2 = HelperFactory.createRecording(
-            vfCaptureSessionNoReencode, null, 1,
-            "", null
-        );
-        vfOriginal2.setDuration(Duration.ofMinutes(13));
-        entityManager.persist(vfOriginal2);
-        entityManager.flush();
+        Recording reencodedVf1 = createSampleReencodedRecording(vfOriginal1, 2);
 
         // Pre-test check
         Map<UUID, RecordingDTO> recordingsBeforeFlagSet = recordingService.findAll(
@@ -626,7 +592,8 @@ class RecordingServiceIT extends IntegrationTestBase {
             .stream()
             .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
 
-        checkResultsForDeletedRecordings(recordingsBeforeFlagSet,
+        checkResultsForDeletedRecordings(
+            recordingsBeforeFlagSet,
             List.of(),
             List.of(preRecording.getId(), vfOriginal1.getId(), reencodedVf1.getId(), vfOriginal2.getId())
         );
@@ -643,9 +610,10 @@ class RecordingServiceIT extends IntegrationTestBase {
             .stream()
             .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
 
-        checkResultsForDeletedRecordings(recordingsAfterDeletion,
-                                         List.of(vfOriginal1.getId()),
-                                         List.of(preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId())
+        checkResultsForDeletedRecordings(
+            recordingsAfterDeletion,
+            List.of(vfOriginal1.getId()),
+            List.of(preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId())
         );
 
         recordingService.undeleteOriginalWhereReencodedVersionExists();
@@ -659,11 +627,41 @@ class RecordingServiceIT extends IntegrationTestBase {
             .stream()
             .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
 
-        checkResultsForDeletedRecordings(recordingsAfterUndeletion,
-                                         List.of(),
-                                         List.of(preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId(),
-                                                 vfOriginal1.getId()));
+        checkResultsForDeletedRecordings(
+            recordingsAfterUndeletion,
+            List.of(),
+            List.of(
+                preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId(),
+                vfOriginal1.getId()
+            )
+        );
 
+    }
+
+    private Recording createSampleOriginalRecording(RecordingOrigin recordingOrigin) {
+        CaptureSession sampleCaptureSession = persistSampleCourtCaseBookingCaptureSession(
+            recordingOrigin
+        );
+
+        Recording recording = HelperFactory.createRecording(
+            sampleCaptureSession, null, 1,
+            "", null
+        );
+        recording.setDuration(Duration.ofHours(1));
+        entityManager.persist(recording);
+        return recording;
+    }
+
+    private Recording createSampleReencodedRecording(Recording parentRecording,
+                                                     Integer versionNumber) {
+        Recording recording = HelperFactory.createRecording(
+            parentRecording.getCaptureSession(), parentRecording, versionNumber,
+            "", null
+        );
+        recording.setReencode(true);
+        recording.setDuration(Duration.ofHours(1));
+        entityManager.persist(recording);
+        return recording;
     }
 
     private static void checkResultsForDeletedRecordings(Map<UUID, RecordingDTO> results,
