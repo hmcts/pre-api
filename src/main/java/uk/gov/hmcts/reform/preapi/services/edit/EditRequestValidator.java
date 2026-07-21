@@ -17,6 +17,7 @@ import static java.lang.String.format;
 import static uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO.formatTime;
 
 @Slf4j
+@SuppressWarnings("PMD.GodClass")
 public final class EditRequestValidator {
     static final Integer SINGLETON_LIST_SIZE = 1;
 
@@ -150,6 +151,6 @@ public final class EditRequestValidator {
     }
 
     public static boolean editInstructionsAreEmpty(CreateEditRequestDTO dto) {
-        return (dto.getEditInstructions() == null || dto.getEditInstructions().isEmpty());
+        return dto.getEditInstructions() == null || dto.getEditInstructions().isEmpty();
     }
 }
