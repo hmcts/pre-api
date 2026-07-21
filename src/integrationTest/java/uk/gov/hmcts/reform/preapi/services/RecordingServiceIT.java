@@ -19,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
-import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -32,7 +31,10 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -567,11 +569,149 @@ class RecordingServiceIT extends IntegrationTestBase {
         assertThat(results2.getTotalElements()).isEqualTo(3);
     }
 
+    @Test
+    @Transactional
+    @DisplayName("Mark VF original recordings as deleted/not deleted")
+    void markVfOriginalRecordingsAsDeleted() {
+        mockAdminUser();
+
+        // Set up
+        CaptureSession preSampleCaptureSession = persistSampleCourtCaseBookingCaptureSession(
+            RecordingOrigin.PRE
+        );
+
+        CaptureSession vfCaptureSessionReencoded = persistSampleCourtCaseBookingCaptureSession(
+            RecordingOrigin.VODAFONE
+        );
+
+        CaptureSession vfCaptureSessionNoReencode = persistSampleCourtCaseBookingCaptureSession(
+            RecordingOrigin.VODAFONE
+        );
+
+        Recording preRecording = HelperFactory.createRecording(
+            preSampleCaptureSession, null, 1,
+            "", null
+        );
+        entityManager.persist(preRecording);
+
+        Recording vfOriginal1 = HelperFactory.createRecording(
+            vfCaptureSessionReencoded, null, 1,
+            "", null
+        );
+        entityManager.persist(vfOriginal1);
+
+        Recording reencodedVf1 = HelperFactory.createRecording(
+            vfCaptureSessionReencoded, vfOriginal1, 2,
+            "", null
+        );
+        entityManager.persist(reencodedVf1);
+
+        Recording vfOriginal2 = HelperFactory.createRecording(
+            vfCaptureSessionNoReencode, null, 1,
+            "", null
+        );
+        entityManager.persist(vfOriginal2);
+
+        entityManager.flush();
+
+        // Pre-test check
+        Map<UUID, RecordingDTO> recordingsBeforeFlagSet = recordingService.findAll(
+                new SearchRecordings(),
+                false, Pageable.unpaged()
+            )
+            .stream()
+            .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
+
+        checkResultsForDeletedRecordings(recordingsBeforeFlagSet,
+            List.of(),
+            List.of(preRecording.getId(), vfOriginal1.getId(), reencodedVf1.getId(), vfOriginal2.getId())
+        );
+
+        // Test: delete originals
+        recordingService.deleteOriginalWhereReencodedVersionExists();
+        entityManager.flush();
+
+        Map<UUID, RecordingDTO> recordingsAfterDeletion = recordingService.findAll(
+                new SearchRecordings(),
+                false,
+                Pageable.unpaged()
+            )
+            .stream()
+            .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
+
+        checkResultsForDeletedRecordings(recordingsAfterDeletion,
+                                         List.of(vfOriginal1.getId()),
+                                         List.of(preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId())
+        );
+
+        recordingService.undeleteOriginalWhereReencodedVersionExists();
+        entityManager.flush();
+
+        Map<UUID, RecordingDTO> recordingsAfterUndeletion = recordingService.findAll(
+                new SearchRecordings(),
+                false,
+                Pageable.unpaged()
+            )
+            .stream()
+            .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
+
+        checkResultsForDeletedRecordings(recordingsAfterUndeletion,
+                                         List.of(),
+                                         List.of(preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId(),
+                                                 vfOriginal1.getId()));
+
+    }
+
+    private static void checkResultsForDeletedRecordings(Map<UUID, RecordingDTO> results,
+                                                         List<UUID> shouldBeDeleted,
+                                                         List<UUID> shouldNotBeDeleted) {
+
+        assertThat(results.size()).isEqualTo(shouldNotBeDeleted.size());
+
+        assertThat(results.keySet().containsAll(shouldNotBeDeleted)).isTrue();
+
+        for (UUID id : shouldBeDeleted) {
+            assertThat(results.containsKey(id)).isFalse();
+        }
+    }
+
+
     private static void mockNonAdminUser(UUID courtId) {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(false);
         when(mockAuth.isAppUser()).thenReturn(true);
         when(mockAuth.getCourtId()).thenReturn(courtId);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
+    }
+
+    private CaptureSession persistSampleCourtCaseBookingCaptureSession(RecordingOrigin recordingOrigin) {
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        Case sampleCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        sampleCase.setOrigin(recordingOrigin);
+        entityManager.persist(sampleCase);
+
+        Booking sampleBooking = HelperFactory.createBooking(
+            sampleCase, Timestamp.from(Instant.now()),
+            null, null
+        );
+        entityManager.persist(sampleBooking);
+
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            sampleBooking,
+            recordingOrigin,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        return captureSession;
     }
 }
