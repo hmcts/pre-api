@@ -40,7 +40,7 @@ public class EditEmailParameters {
         String summary = generateEditSummary(requestInstructions);
 
         this.jointlyAgreed = editRequest.getJointlyAgreed();
-        String jointlyAgreedText = jointlyAgreed ? "Yes" : "No";
+        String jointlyAgreedText = editRequest.getJointlyAgreed() ? "Yes" : "No";
 
         this.emailParameters = Map.of(
             "edit_summary", summary,
