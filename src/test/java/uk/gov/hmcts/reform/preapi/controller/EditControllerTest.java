@@ -199,7 +199,7 @@ public class EditControllerTest {
     void getEdits() throws Exception {
         EditRequestDTO dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setStatus(EditRequestStatus.APPROVED);
         dto.setEditInstruction(EditInstructions.fromJson("{}"));
 
         RecordingDTO recordingDTO = new RecordingDTO();
@@ -227,7 +227,7 @@ public class EditControllerTest {
     void getEditsOutOfBounds() throws Exception {
         EditRequestDTO dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setStatus(EditRequestStatus.APPROVED);
         dto.setEditInstruction(EditInstructions.fromJson("{}"));
 
         RecordingDTO recordingDTO = new RecordingDTO();

@@ -61,7 +61,7 @@ public class EditRequestValidatorTest {
     void ensureStatusIsPendingBeforeEditIsProcessed() {
         EditRequestDTO dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setStatus(EditRequestStatus.APPROVED);
         assertDoesNotThrow(() -> EditRequestValidator.ensureStatusIsPendingBeforeProcessingEdit(dto));
 
         dto.setStatus(EditRequestStatus.DRAFT);

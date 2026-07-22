@@ -125,7 +125,7 @@ class EditRequestCrudServiceTest {
 
         when(dto.getId()).thenReturn(UUID.randomUUID());
         when(dto.getSourceRecordingId()).thenReturn(mockRecordingId);
-        when(dto.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(dto.getStatus()).thenReturn(EditRequestStatus.APPROVED);
         when(dto.getEditInstructions()).thenReturn(instructions);
     }
 
@@ -134,7 +134,7 @@ class EditRequestCrudServiceTest {
     void getPendingRegularEditRequestsSuccess() {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setStatus(EditRequestStatus.APPROVED);
 
         when(editRequestRepository.findFirstPendingRegularEditRequest())
                 .thenReturn(Optional.of(editRequest));
@@ -143,7 +143,7 @@ class EditRequestCrudServiceTest {
 
         assertThat(res).isPresent();
         assertThat(res.get().getId()).isEqualTo(editRequest.getId());
-        assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.APPROVED);
 
         verify(editRequestRepository, times(1)).findFirstPendingRegularEditRequest();
         verify(editRequestRepository, never()).findFirstPendingReencodeEditRequest();
@@ -154,7 +154,7 @@ class EditRequestCrudServiceTest {
     void getPendingReencodeEditRequestsSuccess() {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setStatus(EditRequestStatus.APPROVED);
 
         when(editRequestRepository.findFirstPendingReencodeEditRequest())
                 .thenReturn(Optional.of(editRequest));
@@ -163,7 +163,7 @@ class EditRequestCrudServiceTest {
 
         assertThat(res).isPresent();
         assertThat(res.get().getId()).isEqualTo(editRequest.getId());
-        assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.APPROVED);
 
         verify(editRequestRepository, times(1)).findFirstPendingReencodeEditRequest();
         verify(editRequestRepository, never()).findFirstPendingRegularEditRequest();
@@ -187,7 +187,7 @@ class EditRequestCrudServiceTest {
 
         Pair<UpsertResult, EditRequest> response = underTest.upsert(dto, mockRecording, mockUser);
         assertThat(response.getFirst()).isEqualTo(UpsertResult.CREATED);
-        assertThat(response.getSecond().getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(response.getSecond().getStatus()).isEqualTo(EditRequestStatus.APPROVED);
         assertThat(response.getSecond().getId()).isEqualTo(dto.getId());
 
         verify(editRequestRepository, times(1)).findByIdNotLocked(dto.getId());
@@ -197,7 +197,7 @@ class EditRequestCrudServiceTest {
     @Test
     @DisplayName("Should return edit request when it exists")
     void findByIdSuccess() {
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.APPROVED);
         when(mockEditRequest.getEditInstruction()).thenReturn("{}");
 
         when(editRequestRepository.findByIdNotLocked(mockEditRequest.getId())).thenReturn(Optional.of(mockEditRequest));
@@ -205,7 +205,7 @@ class EditRequestCrudServiceTest {
         EditRequestDTO res = underTest.findById(mockEditRequest.getId());
         assertThat(res).isNotNull();
         assertThat(res.getId()).isEqualTo(mockEditRequest.getId());
-        assertThat(res.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(res.getStatus()).isEqualTo(EditRequestStatus.APPROVED);
 
         verify(editRequestRepository, times(1)).findByIdNotLocked(mockEditRequest.getId());
     }

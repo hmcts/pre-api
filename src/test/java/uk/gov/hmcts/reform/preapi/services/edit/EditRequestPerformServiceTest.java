@@ -85,12 +85,12 @@ class EditRequestPerformServiceTest {
     @BeforeEach
     void setUp() throws InterruptedException {
         when(mockEditRequest.getId()).thenReturn(mockEditRequestId);
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.APPROVED);
         when(mockEditRequest.getSourceRecording()).thenReturn(mockRecording);
         when(mockEditRequest.getEditInstruction()).thenReturn("{}");
 
         when(mockEditRequestDTO.getId()).thenReturn(mockEditRequestId);
-        when(mockEditRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(mockEditRequestDTO.getStatus()).thenReturn(EditRequestStatus.APPROVED);
 
         when(mockParentRecording.getId()).thenReturn(mockParentRecordingId);
 

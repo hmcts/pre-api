@@ -80,7 +80,7 @@ class ReEncodeRecordingsFromCsvTest {
             .containsExactly(firstRecordingId, secondRecordingId);
         assertThat(requests).allSatisfy(request -> {
             assertThat(request.getId()).isNotNull();
-            assertThat(request.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+            assertThat(request.getStatus()).isEqualTo(EditRequestStatus.APPROVED);
             assertThat(request.getEditInstructions()).isEmpty();
             assertThat(request.isForceReencode()).isTrue();
             assertThat(request.getSendNotifications()).isFalse();

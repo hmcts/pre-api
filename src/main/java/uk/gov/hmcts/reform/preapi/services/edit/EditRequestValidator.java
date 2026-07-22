@@ -38,12 +38,12 @@ public final class EditRequestValidator {
     }
 
     static void ensureStatusIsPendingBeforeProcessingEdit(EditRequestDTO request) {
-        if (request.getStatus() != EditRequestStatus.PENDING) {
+        if (request.getStatus() != EditRequestStatus.APPROVED) {
             throw new ResourceInWrongStateException(
                 EditRequest.class.getSimpleName(),
                 request.getId().toString(),
                 request.getStatus().toString(),
-                EditRequestStatus.PENDING.toString()
+                EditRequestStatus.APPROVED.toString()
             );
         }
     }

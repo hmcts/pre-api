@@ -164,7 +164,7 @@ class EditRequestServiceTest {
 
         when(dto.getId()).thenReturn(UUID.randomUUID());
         when(dto.getSourceRecordingId()).thenReturn(mockRecordingId);
-        when(dto.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(dto.getStatus()).thenReturn(EditRequestStatus.APPROVED);
         when(dto.getEditInstructions()).thenReturn(instructions);
 
         when(recordingRepository.findByIdAndDeletedAtIsNull(mockRecordingId)).thenReturn(Optional.of(mockRecording));
@@ -178,7 +178,7 @@ class EditRequestServiceTest {
             .thenReturn(Pair.of(UpsertResult.CREATED, mockEditRequest));
         when(editRequestCrudService.findById(mockEditRequestId, false)).thenReturn(editRequestDTO);
         when(editRequestDTO.getId()).thenReturn(mockEditRequestId);
-        when(editRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(editRequestDTO.getStatus()).thenReturn(EditRequestStatus.APPROVED);
         when(editRequestDTO.getCreatedBy()).thenReturn(courtClerkUser.getId().toString());
     }
 
@@ -187,7 +187,7 @@ class EditRequestServiceTest {
     void getPendingRegularEditRequestsSuccess() {
         EditRequest editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setStatus(EditRequestStatus.APPROVED);
 
         when(editRequestCrudService.getNextPendingEditRequest(false))
             .thenReturn(Optional.of(editRequest));
@@ -351,7 +351,7 @@ class EditRequestServiceTest {
 
         assertThat(savedEditRequest.getValue().getId()).isNotNull();
         assertThat(savedEditRequest.getValue().getSourceRecordingId()).isEqualTo(mockRecordingId);
-        assertThat(savedEditRequest.getValue().getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(savedEditRequest.getValue().getStatus()).isEqualTo(EditRequestStatus.APPROVED);
 
         List<EditCutInstructionDTO> editInstructions = savedEditRequest.getValue().getEditInstructions();
         assertThat(editInstructions).hasSize(2);

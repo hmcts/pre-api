@@ -5,7 +5,6 @@ public enum EditRequestStatus {
     SUBMITTED,
     APPROVED,
     REJECTED,
-    PENDING,
     PROCESSING,
     COMPLETE,
     ERROR

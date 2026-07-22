@@ -154,7 +154,7 @@ class PerformEditRequestTest {
     private EditRequest createPendingEditRequest() {
         EditRequest editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setStatus(EditRequestStatus.APPROVED);
         return editRequest;
     }
 }
