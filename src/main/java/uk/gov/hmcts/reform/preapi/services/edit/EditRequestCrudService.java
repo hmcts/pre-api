@@ -132,7 +132,7 @@ public class EditRequestCrudService {
             updatedEditRequest.setCreatedAt(Timestamp.from(Instant.now()));
         }
 
-        editRequestRepository.save(updatedEditRequest);
+        editRequestRepository.saveAndFlush(updatedEditRequest);
 
         boolean editStatusWasUpdated = !isUpdate || !existingEditRequest.get().getStatus().equals(dto.getStatus());
         if (editStatusWasUpdated) {
