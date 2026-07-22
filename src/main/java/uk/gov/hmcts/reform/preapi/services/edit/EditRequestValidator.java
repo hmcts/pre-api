@@ -38,8 +38,8 @@ public final class EditRequestValidator {
                 "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
         }
 
-        if (editInstructionsAreEmpty(dto) &&
-            !(dto.isForceReencode() || dto.getStatus().equals(EditRequestStatus.DRAFT))) {
+        if (editInstructionsAreEmpty(dto)
+            && !(dto.isForceReencode() || dto.getStatus().equals(EditRequestStatus.DRAFT))) {
             throw new IllegalArgumentException("Invalid edit request: instructions may only be empty for DRAFT"
                                                    + " edit requests or forced re-encodes");
         }
