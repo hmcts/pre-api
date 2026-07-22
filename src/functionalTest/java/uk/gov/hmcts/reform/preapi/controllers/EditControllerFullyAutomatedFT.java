@@ -222,16 +222,7 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
     @Test
     @DisplayName("An edit request should be read-only once submitted")
     void editRequestShouldBeReadOnlyOnceSubmitted() throws JsonProcessingException {
-        CreateEditRequestDTO createEditRequestDTO = new CreateEditRequestDTO();
-        UUID editRequestId = UUID.randomUUID();
-        createEditRequestDTO.setId(editRequestId);
-        createEditRequestDTO.setSourceRecordingId(recordingId);
-        List<EditCutInstructionDTO> editInstructions = List.of(EditCutInstructionDTO.builder()
-                                                                   .startOfCut("00:00:00")
-                                                                   .endOfCut("00:00:01")
-                                                                   .build());
-        createEditRequestDTO.setEditInstructions(editInstructions);
-        createEditRequestDTO.setJointlyAgreed(true);
+        CreateEditRequestDTO createEditRequestDTO = bogStandardCreateEditRequestDTO();
 
         // Submit
         createEditRequestDTO.setStatus(EditRequestStatus.SUBMITTED);
@@ -240,7 +231,7 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
         // Fails on message com.fasterxml.jackson.databind.exc.MismatchedInputException:
         // No content to map due to end-of-input
         Response firstResponse = doPutRequest(
-            EDIT_ENDPOINT + "/" + editRequestId,
+            EDIT_ENDPOINT + "/" + createEditRequestDTO.getId(),
             requestBody,
             TestingSupportRoles.SUPER_USER
         );
@@ -255,7 +246,7 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
 
         Assertions.assertThat(submitted.getStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
         Assertions.assertThat(submitted.getEditInstruction().getRequestedInstructions())
-            .isEqualTo(editInstructions);
+            .isEqualTo(createEditRequestDTO.getEditInstructions());
         Assertions.assertThat(submitted.getSourceRecording()).isEqualTo(recordingDTO);
 
         // Should be read-only once submitted
@@ -283,20 +274,42 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
 
     @Test
     @DisplayName("Should record an audit trail when edit request is submitted")
-    void editRequestSubmissionAuditLog() {
-        // Should audit-log who submitted it
-    }
+    void editRequestSubmissionAuditLog() throws JsonProcessingException {
+        CreateEditRequestDTO createEditRequestDTO = bogStandardCreateEditRequestDTO();
 
-    @Test
-    @DisplayName("When an edit request has been rejected, the submitter and shared-with users should be notified")
-    void rejectedEditRequest() {
+        // Submit
+        createEditRequestDTO.setStatus(EditRequestStatus.SUBMITTED);
+        String requestBody = OBJECT_MAPPER.writeValueAsString(createEditRequestDTO);
 
+        Response firstResponse = doPutRequest(
+            EDIT_ENDPOINT + "/" + createEditRequestDTO.getId(),
+            requestBody,
+            TestingSupportRoles.SUPER_USER
+        );
+
+        assertResponseCode(firstResponse, 201);
+
+        // TODO: Finish test here when https://tools.hmcts.net/jira/browse/S28-3556 is done
+        // Response auditResponse = doGetRequest(AUDIT_ENDPOINT...)
     }
 
     @Test
     @DisplayName("When an edit request has been approved, it should be picked up for processing")
-    void approvedEditRequest() {
-        // Not sure how this transition works in practice. Perhaps we won't need the PENDING status any more?
+    void approvedEditRequest() throws JsonProcessingException {
+        CreateEditRequestDTO createEditRequestDTO = bogStandardCreateEditRequestDTO();
+
+        // Submit
+        createEditRequestDTO.setStatus(EditRequestStatus.APPROVED);
+        String requestBody = OBJECT_MAPPER.writeValueAsString(createEditRequestDTO);
+
+        Response firstResponse = doPutRequest(
+            EDIT_ENDPOINT + "/" + createEditRequestDTO.getId(),
+            requestBody,
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(firstResponse, 201);
+
+
     }
 
 
@@ -307,4 +320,17 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
     }
 
 
+    private CreateEditRequestDTO bogStandardCreateEditRequestDTO() {
+        CreateEditRequestDTO createEditRequestDTO = new CreateEditRequestDTO();
+        UUID editRequestId = UUID.randomUUID();
+        createEditRequestDTO.setId(editRequestId);
+        createEditRequestDTO.setSourceRecordingId(recordingId);
+        List<EditCutInstructionDTO> editInstructions = List.of(EditCutInstructionDTO.builder()
+                                                                   .startOfCut("00:00:00")
+                                                                   .endOfCut("00:00:01")
+                                                                   .build());
+        createEditRequestDTO.setEditInstructions(editInstructions);
+        createEditRequestDTO.setJointlyAgreed(true);
+        return createEditRequestDTO;
+    }
 }
