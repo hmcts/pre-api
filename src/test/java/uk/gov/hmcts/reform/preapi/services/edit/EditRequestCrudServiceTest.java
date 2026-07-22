@@ -201,7 +201,7 @@ class EditRequestCrudServiceTest {
         assertThat(response.getId()).isEqualTo(dto.getId());
 
         verify(editRequestRepository, times(1)).findByIdNotLocked(dto.getId());
-        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
         verify(editNotificationService, times(1))
             .editRequestStatusWasUpdated(newlyUpdatedEditRequest);
     }
@@ -231,7 +231,7 @@ class EditRequestCrudServiceTest {
 
         underTest.upsert(dto, mockRecording, mockUser);
 
-        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
         verify(editNotificationService, times(1))
             .editRequestStatusWasUpdated(any(EditRequest.class));
     }
@@ -257,7 +257,7 @@ class EditRequestCrudServiceTest {
         underTest.upsert(dto, mockRecording, mockUser);
 
         ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
-        verify(editRequestRepository, times(1)).save(captor.capture());
+        verify(editRequestRepository, times(1)).saveAndFlush(captor.capture());
 
         assertThat(captor.getValue().getId()).isEqualTo(existingEditRequest.getId());
         assertThat(captor.getValue().getStatus()).isEqualTo(EditRequestStatus.DRAFT);
@@ -464,7 +464,7 @@ class EditRequestCrudServiceTest {
         underTest.upsert(dto, mockRecording, mockUser);
 
         ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
-        verify(editRequestRepository, times(1)).save(captor.capture());
+        verify(editRequestRepository, times(1)).saveAndFlush(captor.capture());
 
         EditInstructions editInstructions = EditInstructions.tryFromJson(captor.getValue().getEditInstruction());
 
