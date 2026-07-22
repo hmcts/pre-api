@@ -17,12 +17,16 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
@@ -63,6 +67,8 @@ public class FunctionalTestBase {
     protected static final String LOCATION_HEADER = "Location";
     protected static final String LEGACY_REPORTS_ENDPOINT = "/reports";
     protected static final String REPORTS_ENDPOINT = "/reports-v2";
+    protected static final String TRIGGER_TASK_ENDPOINT = "/trigger-task";
+    protected static final String EDIT_ENDPOINT = "/edits";
 
     protected static final Map<String, String> MULTIPART_HEADERS =
         Map.of("Content-Type", MediaType.MULTIPART_FORM_DATA_VALUE);
@@ -355,6 +361,15 @@ public class FunctionalTestBase {
         );
     }
 
+    protected EditRequest getEditRequest(UUID id) {
+        Response response = doGetRequest(
+            EDIT_ENDPOINT + "/" + id,
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(response, 201);
+        return response.body().as(EditRequest.class);
+    }
+
     protected CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO dto) {
         var create = new CreateParticipantDTO();
         create.setId(dto.getId());
@@ -435,6 +450,20 @@ public class FunctionalTestBase {
         dto.setStatus(RecordingStatus.STANDBY);
         dto.setOrigin(RecordingOrigin.PRE);
         return dto;
+    }
+
+    protected CreateEditRequestDTO createEditRequestDTO(UUID recordingId) {
+        CreateEditRequestDTO createEditRequestDTO = new CreateEditRequestDTO();
+        UUID editRequestId = UUID.randomUUID();
+        createEditRequestDTO.setId(editRequestId);
+        createEditRequestDTO.setSourceRecordingId(recordingId);
+        List<EditCutInstructionDTO> editInstructions = List.of(EditCutInstructionDTO.builder()
+                                                                   .startOfCut("00:00:00")
+                                                                   .endOfCut("00:00:01")
+                                                                   .build());
+        createEditRequestDTO.setEditInstructions(editInstructions);
+        createEditRequestDTO.setJointlyAgreed(true);
+        return createEditRequestDTO;
     }
 
     protected CreateRecordingDTO createRecording(UUID captureSessionId) {

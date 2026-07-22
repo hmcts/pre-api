@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static java.lang.String.format;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -222,7 +224,7 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
     @Test
     @DisplayName("An edit request should be read-only once submitted")
     void editRequestShouldBeReadOnlyOnceSubmitted() throws JsonProcessingException {
-        CreateEditRequestDTO createEditRequestDTO = bogStandardCreateEditRequestDTO();
+        CreateEditRequestDTO createEditRequestDTO = createEditRequestDTO(recordingId);
 
         // Submit
         createEditRequestDTO.setStatus(EditRequestStatus.SUBMITTED);
@@ -275,7 +277,7 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
     @Test
     @DisplayName("Should record an audit trail when edit request is submitted")
     void editRequestSubmissionAuditLog() throws JsonProcessingException {
-        CreateEditRequestDTO createEditRequestDTO = bogStandardCreateEditRequestDTO();
+        CreateEditRequestDTO createEditRequestDTO = createEditRequestDTO(recordingId);
 
         // Submit
         createEditRequestDTO.setStatus(EditRequestStatus.SUBMITTED);
@@ -296,20 +298,35 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
     @Test
     @DisplayName("When an edit request has been approved, it should be picked up for processing")
     void approvedEditRequest() throws JsonProcessingException {
-        CreateEditRequestDTO createEditRequestDTO = bogStandardCreateEditRequestDTO();
+        CreateEditRequestDTO createEditRequestDTO = createEditRequestDTO(recordingId);
 
         // Submit
         createEditRequestDTO.setStatus(EditRequestStatus.APPROVED);
         String requestBody = OBJECT_MAPPER.writeValueAsString(createEditRequestDTO);
 
-        Response firstResponse = doPutRequest(
+        Response putResponse = doPutRequest(
             EDIT_ENDPOINT + "/" + createEditRequestDTO.getId(),
             requestBody,
             TestingSupportRoles.SUPER_USER
         );
-        assertResponseCode(firstResponse, 201);
+        assertResponseCode(putResponse, 201);
 
+        EditRequest approvedEditRequest = getEditRequest(createEditRequestDTO.getId());
+        assertThat(approvedEditRequest.getStatus()).isEqualTo(EditRequestStatus.APPROVED);
 
+        // Manually trigger cron job: in prod, this is scheduled to run every N minutes
+        Response triggerPerformEditResponse = doPostRequest(
+            TRIGGER_TASK_ENDPOINT + "/PerformEditRequest",
+            "", // Empty body
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(triggerPerformEditResponse, 204);
+
+        EditRequest processingEditRequest = getEditRequest(createEditRequestDTO.getId());
+        assertThat(processingEditRequest.getStatus()).isEqualTo(EditRequestStatus.PROCESSING);
+
+        // Not a full test as we're not waiting for it to fully process. This is just to check that
+        // the edit request is picked up for processing once it is approved.
     }
 
 
@@ -319,18 +336,4 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
         // Copy and rewrite the existing test to use the `PUT edits/{id}` endpoint instead of the CSV endpoint
     }
 
-
-    private CreateEditRequestDTO bogStandardCreateEditRequestDTO() {
-        CreateEditRequestDTO createEditRequestDTO = new CreateEditRequestDTO();
-        UUID editRequestId = UUID.randomUUID();
-        createEditRequestDTO.setId(editRequestId);
-        createEditRequestDTO.setSourceRecordingId(recordingId);
-        List<EditCutInstructionDTO> editInstructions = List.of(EditCutInstructionDTO.builder()
-                                                                   .startOfCut("00:00:00")
-                                                                   .endOfCut("00:00:01")
-                                                                   .build());
-        createEditRequestDTO.setEditInstructions(editInstructions);
-        createEditRequestDTO.setJointlyAgreed(true);
-        return createEditRequestDTO;
-    }
 }
