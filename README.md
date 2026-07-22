@@ -539,7 +539,7 @@ TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
 
 ### Perform edit requests
 
-`PerformEditRequest` processes one pending edit request per run.
+`PerformEditRequest` processes one approved edit request per run.
 
 By default, it only picks up regular edit requests and skips force re-encode requests. Set
 `PERFORM_EDIT_REQUEST_REENCODE_ONLY=true` to switch the same task to only pick up force re-encode requests.

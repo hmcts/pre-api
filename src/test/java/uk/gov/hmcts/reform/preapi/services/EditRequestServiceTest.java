@@ -183,8 +183,8 @@ class EditRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Should pass on query for the next pending edit request")
-    void getPendingRegularEditRequestsSuccess() {
+    @DisplayName("Should pass on query for the next approved edit request")
+    void getApprovedRegularEditRequestsSuccess() {
         EditRequest editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.APPROVED);

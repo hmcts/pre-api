@@ -130,7 +130,7 @@ class EditRequestCrudServiceTest {
     }
 
     @Test
-    @DisplayName("Should return the next pending regular edit request")
+    @DisplayName("Should return the next approved regular edit request")
     void getPendingRegularEditRequestsSuccess() {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
@@ -150,8 +150,8 @@ class EditRequestCrudServiceTest {
     }
 
     @Test
-    @DisplayName("Should return the next pending re-encode edit request")
-    void getPendingReencodeEditRequestsSuccess() {
+    @DisplayName("Should return the next approved re-encode edit request")
+    void getApprovedReencodeEditRequestsSuccess() {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.APPROVED);
