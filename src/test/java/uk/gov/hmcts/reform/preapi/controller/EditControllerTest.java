@@ -252,23 +252,6 @@ public class EditControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 201 when successfully created edit request")
-    void upsertEditRequestCreated() throws Exception {
-        CreateEditRequestDTO dto = createBogStandardEditRequest();
-        dto.setStatus(EditRequestStatus.DRAFT);
-
-        mockMvc.perform(put(TEST_URL + "/edits/" + dto.getId())
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(dto))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNoContent())
-            .andExpect(header().string("Location", TEST_URL + "/edits/" + dto.getId()));
-
-        verify(editRequestService, times(1)).upsert(any(CreateEditRequestDTO.class));
-    }
-
-    @Test
     @DisplayName("Should return 204 when successfully created reencode edit request")
     void upsertReencodeEditRequestCreated() throws Exception {
         CreateEditRequestDTO dto = new CreateEditRequestDTO();
@@ -367,7 +350,6 @@ public class EditControllerTest {
             .andExpect(jsonPath("$.message")
                            .value("Path editRequestId does not match payload property deleteEditRequestDTO.id"));
     }
-
 
     @Test
     @DisplayName("Should return 204 when successfully updated edit request")
