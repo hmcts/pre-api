@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.services.edit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -21,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.services.EditNotificationService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -141,8 +143,8 @@ class EditRequestCrudServiceTest {
         when(newlyUpdatedEditRequest.getEditInstruction()).thenReturn(toJson(instructions));
 
 
-        when(editingService.prepareEditRequestToCreateOrUpdate(any(CreateEditRequestDTO.class), any(Recording.class),
-                                                               any(EditRequest.class)))
+        when(editingService.mergeOldAndNewEditInstructions(any(CreateEditRequestDTO.class), any(Recording.class),
+                                                           any(EditRequest.class)))
             .thenReturn(newlyUpdatedEditRequest);
     }
 
@@ -221,17 +223,69 @@ class EditRequestCrudServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw bad request when trying to create new edit request with empty instructions")
-    void badRequestEmptyInstructions() {
+    @DisplayName("Should allow draft edit request to be created with empty instructions")
+    void createDraftEditWithEmptyInstructions() {
         when(dto.getEditInstructions()).thenReturn(new ArrayList<>());
+        when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+        when(editRequestRepository.findByIdNotLocked(dto.getId())).thenReturn(Optional.empty());
+
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(editNotificationService, times(1))
+            .editRequestStatusWasUpdated(any(EditRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should allow draft edit request to be upserted with empty instructions")
+    void updateDraftEditWithEmptyInstructions() {
+        when(dto.getEditInstructions()).thenReturn(new ArrayList<>());
+        when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+
+        List<EditCutInstructionDTO> oldInstructions = new ArrayList<>();
+        oldInstructions.add(EditCutInstructionDTO.builder()
+                             .start(60L)
+                             .end(120L)
+                             .build());
+
+        EditRequest existingEditRequest = new EditRequest();
+        existingEditRequest.setId(UUID.randomUUID());
+        existingEditRequest.setStatus(EditRequestStatus.DRAFT);
+        existingEditRequest.setEditInstruction(toJson(oldInstructions));
+        when(editRequestRepository.findByIdNotLocked(dto.getId())).thenReturn(Optional.of(existingEditRequest));
+
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository, times(1)).save(captor.capture());
+
+        assertThat(captor.getValue().getId()).isEqualTo(existingEditRequest.getId());
+        assertThat(captor.getValue().getStatus()).isEqualTo(EditRequestStatus.DRAFT);
+        assertThat(captor.getValue().getEditInstruction())
+            .isEqualTo("{\"requestedInstructions\":[],\"ffmpegInstructions\":[],"
+                           + "\"forceReencode\":false,\"sendNotifications\":false}");
+
+        verifyNoInteractions(editNotificationService);
+    }
+
+    @Test
+    @DisplayName("Should throw error when edit request is submitted with empty instructions")
+    void badRequestEmptyInstructions() {
+        CreateEditRequestDTO createEditRequestDTO = new CreateEditRequestDTO();
+        createEditRequestDTO.setId(UUID.randomUUID());
+        createEditRequestDTO.setEditInstructions(new ArrayList<>());
+        createEditRequestDTO.setStatus(EditRequestStatus.SUBMITTED);
+        createEditRequestDTO.setJointlyAgreed(true);
+        createEditRequestDTO.setSourceRecordingId(mockRecordingId);
 
         String message = assertThrows(
-                BadRequestException.class,
-                () -> underTest.upsert(dto, mockRecording, mockUser)
+            IllegalArgumentException.class,
+            () -> underTest.upsert(createEditRequestDTO, mockRecording, mockUser)
         ).getMessage();
 
         assertThat(message)
-                .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+            .isEqualTo("Invalid edit request: "
+                           + "instructions may only be empty for DRAFT edit requests or forced re-encodes");
 
         verifyNoInteractions(editNotificationService);
     }
@@ -287,34 +341,20 @@ class EditRequestCrudServiceTest {
     }
 
     @Test
-    @DisplayName("Should delete edit request when upserting with empty instructions")
-    void deleteEmptyInstructions() {
-        when(dto.getEditInstructions()).thenReturn(new ArrayList<>());
-        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
-        when(editRequestRepository.findByIdNotLocked(dto.getId()))
-            .thenReturn(Optional.of(mockEditRequest));
-        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(mockEditRequest));
-
-        EditRequest result = underTest.upsert(dto, mockRecording, mockUser);
-
-        verify(editRequestRepository, times(1)).delete(result);
-        verifyNoInteractions(editNotificationService);
-    }
-
-    @Test
-    @DisplayName("Should throw exception when editInstructions is null for *new* edit request")
+    @DisplayName("Should throw exception when editInstructions is null for *new* submitted edit request")
     void validateEditInstructionsIsEmptyForNewEditRequest() {
         when(dto.getEditInstructions()).thenReturn(new ArrayList<>());
         when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
 
         String message = assertThrows(
-            BadRequestException.class,
+            IllegalArgumentException.class,
             () -> underTest.upsert(dto, mockRecording, mockUser)
         ).getMessage();
 
         assertThat(message)
-            .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+            .isEqualTo("Invalid edit request: "
+                           + "instructions may only be empty for DRAFT edit requests or forced re-encodes");
         verifyNoInteractions(editNotificationService);
     }
 
@@ -415,4 +455,23 @@ class EditRequestCrudServiceTest {
         verify(editNotificationService, times(1)).editRequestStatusWasUpdated(mockEditRequest);
     }
 
+    @Test
+    @DisplayName("Should create a new reencode edit request")
+    void createReencodeEditRequestSuccess() {
+        when(dto.isForceReencode()).thenReturn(true);
+        when(dto.getEditInstructions()).thenReturn(null);
+        when(dto.getSendNotifications()).thenReturn(true);
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository, times(1)).save(captor.capture());
+
+        EditInstructions editInstructions = EditInstructions.tryFromJson(captor.getValue().getEditInstruction());
+
+        assertThat(editInstructions).isNotNull();
+        assertThat(editInstructions.getRequestedInstructions()).isEmpty();
+        assertThat(editInstructions.getFfmpegInstructions()).isEmpty();
+        assertThat(editInstructions.isForceReencode()).isTrue();
+        assertThat(editInstructions.shouldSendNotifications()).isTrue();
+    }
 }

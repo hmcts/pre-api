@@ -9,7 +9,7 @@ import java.util.UUID;
 public interface IEditingService {
     void performEdit(UUID newRecordingId, EditRequest request);
 
-    EditRequest prepareEditRequestToCreateOrUpdate(CreateEditRequestDTO createEditRequestDTO,
-                                                   Recording sourceRecording,
-                                                   EditRequest request);
+    EditRequest mergeOldAndNewEditInstructions(CreateEditRequestDTO createEditRequestDTO,
+                                               Recording sourceRecording,
+                                               EditRequest request);
 }

@@ -14,17 +14,20 @@ import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.services.EditNotificationService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static uk.gov.hmcts.reform.preapi.services.edit.EditRequestValidator.editInstructionsAreEmpty;
+import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
 
 @Slf4j
 @Service
@@ -121,38 +124,49 @@ public class EditRequestCrudService {
 
         if (isUpdate) {
             EditRequestValidator.extraValidationForExistingEditRequest(existingEditRequest.get(), dto);
-
-            // If is draft and is update and edit instructions are empty: then delete
-            if (dto.getStatus().equals(EditRequestStatus.DRAFT)
-                && editInstructionsAreEmpty(dto)
-                && !dto.isForceReencode()) {
-                log.info(
-                    "Deleting edit request {} for source recording {} as edit instructions are empty",
-                    existingEditRequest.orElseThrow().getId(), dto.getSourceRecordingId()
-                );
-                editRequestRepository.delete(existingEditRequest.orElseThrow());
-                return existingEditRequest.orElseThrow();
-            }
         }
 
-        EditRequest request = editingService.prepareEditRequestToCreateOrUpdate(
-            dto, sourceRecording,
-            existingEditRequest.orElse(new EditRequest())
-        );
+        EditRequest updatedEditRequest = getEditRequestToUpdate(dto, sourceRecording, existingEditRequest);
 
         if (!isUpdate) {
-            request.setCreatedBy(user);
-            request.setCreatedAt(Timestamp.from(Instant.now()));
+            updatedEditRequest.setCreatedBy(user);
+            updatedEditRequest.setCreatedAt(Timestamp.from(Instant.now()));
         }
 
-        editRequestRepository.save(request);
+        editRequestRepository.save(updatedEditRequest);
 
         boolean editStatusWasUpdated = !isUpdate || !existingEditRequest.get().getStatus().equals(dto.getStatus());
         if (editStatusWasUpdated) {
-            editNotificationService.editRequestStatusWasUpdated(request);
+            editNotificationService.editRequestStatusWasUpdated(updatedEditRequest);
         }
 
-        return request;
+        return updatedEditRequest;
+    }
+
+    private EditRequest getEditRequestToUpdate(final CreateEditRequestDTO dto,
+                                               final Recording sourceRecording,
+                                               final Optional<EditRequest> existingEditRequest) {
+
+        EditRequest request = existingEditRequest.orElse(new EditRequest());
+        if (EditRequestValidator.editInstructionsAreEmpty(dto) && dto.getStatus() == EditRequestStatus.DRAFT) {
+            String newEditInstruction = toJson(new EditInstructions(
+                List.of(), List.of(), false,
+                dto.getSendNotifications()
+            ));
+
+            request.updateEditRequestFromDto(dto, sourceRecording, newEditInstruction);
+            return request;
+        }
+
+        if (dto.isForceReencode()) {
+            String newEditInstruction = toJson(new EditInstructions(
+                List.of(), List.of(), true, dto.getSendNotifications()));
+            request.updateEditRequestFromDto(dto, sourceRecording, newEditInstruction);
+            return request;
+        }
+
+        return editingService.mergeOldAndNewEditInstructions(dto, sourceRecording,
+                                                                existingEditRequest.orElse(new EditRequest()));
     }
 
     @Transactional
@@ -163,6 +177,5 @@ public class EditRequestCrudService {
 
         return editRequestRepository.findSourceRecordingIdsWithForceReencodeRequests(sourceRecordingIds);
     }
-
 
 }

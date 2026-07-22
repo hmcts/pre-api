@@ -736,7 +736,7 @@ class FfmpegServiceTest {
         when(mockRecording.getFilename()).thenReturn("filename.mp4");
         when(mockRecording.getDuration()).thenReturn(Duration.ofSeconds(30));
 
-        EditRequest result = underTest.prepareEditRequestToCreateOrUpdate(mockCreateEditRequestDTO,
+        EditRequest result = underTest.mergeOldAndNewEditInstructions(mockCreateEditRequestDTO,
                                                                           mockRecording, realEditRequest);
         assertThat(result.getId()).isEqualTo(mockCreateEditRequestDTO.getId());
         assertThat(result.getSourceRecording().getId()).isEqualTo(mockRecording.getId());
@@ -770,7 +770,7 @@ class FfmpegServiceTest {
         when(mockRecording.getParentRecording()).thenReturn(mockParentRecording);
         when(mockRecording.getEditInstruction()).thenReturn(toJson(originalEdits));
 
-        EditRequest result = underTest.prepareEditRequestToCreateOrUpdate(mockCreateEditRequestDTO,
+        EditRequest result = underTest.mergeOldAndNewEditInstructions(mockCreateEditRequestDTO,
                                                                           mockRecording, realEditRequest);
         assertThat(result.getId()).isEqualTo(realEditRequest.getId());
         assertThat(result.getSourceRecording().getId()).isEqualTo(mockParentRecording.getId());
@@ -803,7 +803,7 @@ class FfmpegServiceTest {
     @DisplayName("Should create a new edit request with notifications disabled")
     void createEditRequestWithNotificationsDisabledSuccess() {
         when(mockCreateEditRequestDTO.getSendNotifications()).thenReturn(false);
-        EditRequest response = underTest.prepareEditRequestToCreateOrUpdate(mockCreateEditRequestDTO,
+        EditRequest response = underTest.mergeOldAndNewEditInstructions(mockCreateEditRequestDTO,
                                                                             mockRecording,
                                                                             realEditRequest);
 
@@ -817,7 +817,7 @@ class FfmpegServiceTest {
     @Test
     @DisplayName("Should update an edit request")
     void updateEditRequestSuccess() {
-        EditRequest response = underTest.prepareEditRequestToCreateOrUpdate(mockCreateEditRequestDTO,
+        EditRequest response = underTest.mergeOldAndNewEditInstructions(mockCreateEditRequestDTO,
                                                                             mockRecording, realEditRequest);
 
         assertThat(response.getId()).isEqualTo(mockCreateEditRequestDTO.getId());
@@ -826,21 +826,6 @@ class FfmpegServiceTest {
         assertThat(response.getEditInstruction()).contains("new edit instructions");
         assertThat(response.getEditInstruction())
                 .contains("\"ffmpegInstructions\":[{\"start\":0,\"end\":10},{\"start\":20,\"end\":180}]");
-    }
-
-    @Test
-    @DisplayName("Should create a new reencode edit request")
-    void createReencodeEditRequestSuccess() {
-        when(mockCreateEditRequestDTO.isForceReencode()).thenReturn(true);
-        EditRequest response = underTest.prepareEditRequestToCreateOrUpdate(mockCreateEditRequestDTO,
-                                                                            mockRecording, realEditRequest);
-
-        EditInstructions editInstructions = EditInstructions.tryFromJson(response.getEditInstruction());
-        assertThat(editInstructions).isNotNull();
-        assertThat(editInstructions.getRequestedInstructions()).isEmpty();
-        assertThat(editInstructions.getFfmpegInstructions()).isEmpty();
-        assertThat(editInstructions.isForceReencode()).isTrue();
-        assertThat(editInstructions.shouldSendNotifications()).isTrue();
     }
 
 

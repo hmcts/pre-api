@@ -33,9 +33,15 @@ public final class EditRequestValidator {
 
     static void validateEditMode(CreateEditRequestDTO dto) {
         log.debug("Validating edit request {}", dto);
-        if (dto.isForceReencode() && editInstructionsAreEmpty(dto)) {
+        if (dto.isForceReencode() && !editInstructionsAreEmpty(dto)) {
             throw new BadRequestException(
                 "Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
+        }
+
+        if (editInstructionsAreEmpty(dto) &&
+            !(dto.isForceReencode() || dto.getStatus().equals(EditRequestStatus.DRAFT))) {
+            throw new IllegalArgumentException("Invalid edit request: instructions may only be empty for DRAFT"
+                                                   + " edit requests or forced re-encodes");
         }
     }
 
