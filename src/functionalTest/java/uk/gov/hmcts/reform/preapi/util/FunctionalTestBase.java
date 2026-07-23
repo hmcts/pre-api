@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,7 +27,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
-import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
@@ -464,6 +464,22 @@ public class FunctionalTestBase {
         createEditRequestDTO.setEditInstructions(editInstructions);
         createEditRequestDTO.setJointlyAgreed(true);
         return createEditRequestDTO;
+    }
+
+    protected @NotNull Response upsertEditRequestAndGetResponse(UUID createEditRequestId,
+                                                              CreateEditRequestDTO createEditRequestDTO)
+        throws JsonProcessingException {
+        Response putResponse = doPutRequest(
+            EDIT_ENDPOINT + "/" + createEditRequestId,
+            OBJECT_MAPPER.writeValueAsString(createEditRequestDTO),
+            TestingSupportRoles.SUPER_USER
+        );
+        assertResponseCode(putResponse, 204);
+
+        return doGetRequest(
+            EDIT_ENDPOINT + "/" + createEditRequestId,
+            TestingSupportRoles.SUPER_USER
+        );
     }
 
     protected CreateRecordingDTO createRecording(UUID captureSessionId) {
