@@ -67,7 +67,7 @@ public class FunctionalTestBase {
     protected static final String LOCATION_HEADER = "Location";
     protected static final String LEGACY_REPORTS_ENDPOINT = "/reports";
     protected static final String REPORTS_ENDPOINT = "/reports-v2";
-    protected static final String TRIGGER_TASK_ENDPOINT = "/trigger-task";
+    protected static final String TRIGGER_TASK_ENDPOINT = "/testing-support/trigger-task";
     protected static final String EDIT_ENDPOINT = "/edits";
 
     protected static final Map<String, String> MULTIPART_HEADERS =
@@ -361,13 +361,13 @@ public class FunctionalTestBase {
         );
     }
 
-    protected EditRequest getEditRequest(UUID id) {
+    protected EditRequestDTO getEditRequest(UUID id) {
         Response response = doGetRequest(
             EDIT_ENDPOINT + "/" + id,
             TestingSupportRoles.SUPER_USER
         );
-        assertResponseCode(response, 201);
-        return response.body().as(EditRequest.class);
+        assertResponseCode(response, 200);
+        return response.body().as(EditRequestDTO.class);
     }
 
     protected CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO dto) {
