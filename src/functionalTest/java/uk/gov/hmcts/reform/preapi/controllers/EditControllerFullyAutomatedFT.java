@@ -213,7 +213,7 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
             OBJECT_MAPPER.writeValueAsString(createEditRequestDTO),
             TestingSupportRoles.SUPER_USER
         );
-        assertResponseCode(putResponse, 200);
+        assertResponseCode(putResponse, 204);
 
         return doGetRequest(
             EDIT_ENDPOINT + "/" + createEditRequestId,
@@ -238,7 +238,7 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
             TestingSupportRoles.SUPER_USER
         );
 
-        assertResponseCode(firstResponse, 201);
+        assertResponseCode(firstResponse, 204);
 
         String firstResponseBody = firstResponse.body().asString();
 
@@ -289,7 +289,7 @@ class EditControllerFullyAutomatedFT extends FunctionalTestBase {
             TestingSupportRoles.SUPER_USER
         );
 
-        assertResponseCode(firstResponse, 201);
+        assertResponseCode(firstResponse, 204);
 
         // TODO: Finish test here when https://tools.hmcts.net/jira/browse/S28-3556 is done
         // Response auditResponse = doGetRequest(AUDIT_ENDPOINT...)
