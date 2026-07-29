@@ -209,18 +209,40 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     )
     List<Recording> findAllOriginVodafoneNoDuration();
 
-    @Query("""
-        SELECT r FROM Recording r
-        WHERE r.captureSession.origin = 'VODAFONE'
-        AND r.deletedAt IS NULL
-        AND r.id in
-                (SELECT reencoded.parentRecording.id FROM Recording reencoded
-                        where reencoded.captureSession.origin = 'VODAFONE'
-                                AND reencoded.deletedAt IS NULL
-                                        AND reencoded.reencode = true
-                        )
-        """
+    @Query(value = """
+        WITH reencoded AS (
+        SELECT r.parent_recording_id, r.version
+        FROM recordings r
+        JOIN capture_sessions cs ON cs.id = r.capture_session_id
+        WHERE r.is_reencode = TRUE
+          AND r.deleted_at IS NULL
+          AND cs.origin = 'VODAFONE'
+          AND r.parent_recording_id IS NOT NULL
+    ),
+    wanted_ids AS (
+        -- include the parent recording
+        SELECT DISTINCT p.id
+        FROM recordings p
+        JOIN capture_sessions cs_p ON cs_p.id = p.capture_session_id
+        JOIN reencoded re ON re.parent_recording_id = p.id
+        WHERE p.deleted_at IS NULL
+          AND cs_p.origin = 'VODAFONE'
+
+        UNION
+
+        -- include sibling children before the reencoded version
+        SELECT DISTINCT c.id
+        FROM recordings c
+        JOIN capture_sessions cs_c ON cs_c.id = c.capture_session_id
+        JOIN reencoded re ON re.parent_recording_id = c.parent_recording_id
+        WHERE c.deleted_at IS NULL
+          AND cs_c.origin = 'VODAFONE'
+          AND c.version < re.version
     )
+    SELECT r.*
+    FROM recordings r
+    WHERE r.id IN (SELECT id FROM wanted_ids)
+        """, nativeQuery = true)
     List<Recording> findVodafoneOriginalRecordingsWhereReencodedVersionExists();
 
     List<Recording> findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue();

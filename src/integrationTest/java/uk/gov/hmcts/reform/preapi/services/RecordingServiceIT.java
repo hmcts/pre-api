@@ -576,13 +576,19 @@ class RecordingServiceIT extends IntegrationTestBase {
         mockAdminUser();
 
         // Set up
-        Recording preRecording = createSampleOriginalRecording(RecordingOrigin.PRE);
+        Recording preRecording = createSampleRecording(RecordingOrigin.PRE, null, 1);
 
-        Recording vfOriginal1 = createSampleOriginalRecording(RecordingOrigin.VODAFONE);
+        Recording vfOriginal1 = createSampleRecording(RecordingOrigin.VODAFONE, null, 1);
 
-        Recording vfOriginal2 = createSampleOriginalRecording(RecordingOrigin.VODAFONE);
+        Recording vfOriginal2 = createSampleRecording(RecordingOrigin.VODAFONE, null, 1);
 
         Recording reencodedVf1 = createSampleReencodedRecording(vfOriginal1, 2);
+
+        Recording vfOriginal3V1 = createSampleRecording(RecordingOrigin.VODAFONE, null, 1);
+
+        Recording vfOriginal3V2 = createSampleRecording(RecordingOrigin.VODAFONE, vfOriginal3V1, 2);
+
+        Recording reencodedVf3 = createSampleReencodedRecording(vfOriginal3V1, 3);
 
         // Pre-test check
         Map<UUID, RecordingDTO> recordingsBeforeFlagSet = recordingService.findAll(
@@ -595,7 +601,8 @@ class RecordingServiceIT extends IntegrationTestBase {
         checkResultsForDeletedRecordings(
             recordingsBeforeFlagSet,
             List.of(),
-            List.of(preRecording.getId(), vfOriginal1.getId(), reencodedVf1.getId(), vfOriginal2.getId())
+            List.of(preRecording.getId(), vfOriginal1.getId(), reencodedVf1.getId(), vfOriginal2.getId(),
+                    vfOriginal3V1.getId(), vfOriginal3V2.getId(), reencodedVf3.getId())
         );
 
         // Test: delete originals
@@ -612,8 +619,8 @@ class RecordingServiceIT extends IntegrationTestBase {
 
         checkResultsForDeletedRecordings(
             recordingsAfterDeletion,
-            List.of(vfOriginal1.getId()),
-            List.of(preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId())
+            List.of(vfOriginal1.getId(), vfOriginal3V1.getId(), vfOriginal3V2.getId()),
+            List.of(preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId(), reencodedVf3.getId())
         );
 
         recordingService.undeleteOriginalWhereReencodedVersionExists();
@@ -632,7 +639,8 @@ class RecordingServiceIT extends IntegrationTestBase {
             List.of(),
             List.of(
                 preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId(),
-                vfOriginal1.getId()
+                vfOriginal1.getId(), vfOriginal3V1.getId(), vfOriginal3V2.getId(),
+                reencodedVf3.getId()
             )
         );
 
@@ -662,13 +670,15 @@ class RecordingServiceIT extends IntegrationTestBase {
             .isEqualTo("User does not have sufficient privileges to undelete original recordings");
     }
 
-    private Recording createSampleOriginalRecording(RecordingOrigin recordingOrigin) {
+    private Recording createSampleRecording(RecordingOrigin recordingOrigin,
+                                            Recording parentRecording,
+                                            Integer versionNumber) {
         CaptureSession sampleCaptureSession = persistSampleCourtCaseBookingCaptureSession(
             recordingOrigin
         );
 
         Recording recording = HelperFactory.createRecording(
-            sampleCaptureSession, null, 1,
+            sampleCaptureSession, parentRecording, versionNumber,
             "", null
         );
         recording.setDuration(Duration.ofHours(1));
