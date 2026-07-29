@@ -210,38 +210,27 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     List<Recording> findAllOriginVodafoneNoDuration();
 
     @Query(value = """
-        WITH reencoded AS (
-        SELECT r.parent_recording_id, r.version
+        SELECT r.*
         FROM recordings r
         JOIN capture_sessions cs ON cs.id = r.capture_session_id
-        WHERE r.is_reencode = TRUE
+        WHERE cs.origin = 'VODAFONE'
           AND r.deleted_at IS NULL
-          AND cs.origin = 'VODAFONE'
-          AND r.parent_recording_id IS NOT NULL
-    ),
-    wanted_ids AS (
-        -- include the parent recording
-        SELECT DISTINCT p.id
-        FROM recordings p
-        JOIN capture_sessions cs_p ON cs_p.id = p.capture_session_id
-        JOIN reencoded re ON re.parent_recording_id = p.id
-        WHERE p.deleted_at IS NULL
-          AND cs_p.origin = 'VODAFONE'
-
-        UNION
-
-        -- include sibling children before the reencoded version
-        SELECT DISTINCT c.id
-        FROM recordings c
-        JOIN capture_sessions cs_c ON cs_c.id = c.capture_session_id
-        JOIN reencoded re ON re.parent_recording_id = c.parent_recording_id
-        WHERE c.deleted_at IS NULL
-          AND cs_c.origin = 'VODAFONE'
-          AND c.version < re.version
-    )
-    SELECT r.*
-    FROM recordings r
-    WHERE r.id IN (SELECT id FROM wanted_ids)
+          AND EXISTS (
+              SELECT 1
+              FROM recordings re
+              JOIN capture_sessions re_cs ON re_cs.id = re.capture_session_id
+              WHERE re_cs.origin = 'VODAFONE'
+                AND re.deleted_at IS NULL
+                AND re.is_reencode = TRUE
+                AND (
+                    re.parent_recording_id = r.id
+                    OR (
+                        r.parent_recording_id IS NOT NULL
+                        AND re.parent_recording_id = r.parent_recording_id
+                        AND r.version < re.version
+                    )
+                )
+          )
         """, nativeQuery = true)
     List<Recording> findVodafoneOriginalRecordingsWhereReencodedVersionExists();
 
