@@ -30,7 +30,7 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
 
     @Query(value = """
         SELECT * FROM edit_requests e
-        WHERE e.status = 'PENDING'
+        WHERE e.status = 'APPROVED'
         AND COALESCE(e.edit_instruction ->> 'forceReencode', 'false') = 'false'
         ORDER BY e.created_at
         LIMIT 1
@@ -39,7 +39,7 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
 
     @Query(value = """
         SELECT * FROM edit_requests e
-        WHERE e.status = 'PENDING'
+        WHERE e.status = 'APPROVED'
         AND e.edit_instruction ->> 'forceReencode' = 'true'
         ORDER BY e.created_at
         LIMIT 1

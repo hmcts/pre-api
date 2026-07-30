@@ -225,7 +225,7 @@ public class ReEncodeRecordingsFromCsv extends RobotUserTask {
         CreateEditRequestDTO dto = new CreateEditRequestDTO();
         dto.setId(UUID.randomUUID());
         dto.setSourceRecordingId(recordingId);
-        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setStatus(EditRequestStatus.APPROVED);
         dto.setEditInstructions(List.of());
         dto.setForceReencode(true);
         dto.setSendNotifications(false);

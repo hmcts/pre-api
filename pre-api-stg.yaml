@@ -851,7 +851,6 @@ definitions:
           - SUBMITTED
           - APPROVED
           - REJECTED
-          - PENDING
           - PROCESSING
           - COMPLETE
           - ERROR
@@ -1252,7 +1251,6 @@ definitions:
           - SUBMITTED
           - APPROVED
           - REJECTED
-          - PENDING
           - PROCESSING
           - COMPLETE
           - ERROR
@@ -1522,7 +1520,6 @@ definitions:
           - SUBMITTED
           - APPROVED
           - REJECTED
-          - PENDING
           - PROCESSING
           - COMPLETE
           - ERROR
@@ -1593,7 +1590,6 @@ definitions:
           - SUBMITTED
           - APPROVED
           - REJECTED
-          - PENDING
           - PROCESSING
           - COMPLETE
           - ERROR
@@ -2295,7 +2291,6 @@ definitions:
           - SUBMITTED
           - APPROVED
           - REJECTED
-          - PENDING
           - PROCESSING
           - COMPLETE
           - ERROR

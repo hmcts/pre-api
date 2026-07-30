@@ -57,11 +57,11 @@ public class EditRequestValidatorTest {
     }
 
     @Test
-    @DisplayName("Status must be pending before edit is processed")
-    void ensureStatusIsPendingBeforeEditIsProcessed() {
+    @DisplayName("Status must be approved before edit is processed")
+    void ensureStatusIsApprovedBeforeEditIsProcessed() {
         EditRequestDTO dto = new EditRequestDTO();
         dto.setId(UUID.randomUUID());
-        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setStatus(EditRequestStatus.APPROVED);
         assertDoesNotThrow(() -> EditRequestValidator.ensureStatusIsPendingBeforeProcessingEdit(dto));
 
         dto.setStatus(EditRequestStatus.DRAFT);

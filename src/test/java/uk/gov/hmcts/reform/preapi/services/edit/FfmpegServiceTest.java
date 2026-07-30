@@ -92,11 +92,11 @@ class FfmpegServiceTest {
         realEditRequest.setId(UUID.randomUUID());
         realEditRequest.setSourceRecording(mockRecording);
         realEditRequest.setEditInstruction("{}");
-        realEditRequest.setStatus(EditRequestStatus.PENDING);
+        realEditRequest.setStatus(EditRequestStatus.APPROVED);
 
         when(mockCreateEditRequestDTO.getId()).thenReturn(UUID.randomUUID());
         when(mockCreateEditRequestDTO.getSourceRecordingId()).thenReturn(recordingId);
-        when(mockCreateEditRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(mockCreateEditRequestDTO.getStatus()).thenReturn(EditRequestStatus.APPROVED);
         when(mockCreateEditRequestDTO.getEditInstructions()).thenReturn(inputEditInstructions);
         when(mockCreateEditRequestDTO.getSendNotifications()).thenReturn(true);
     }
@@ -740,7 +740,7 @@ class FfmpegServiceTest {
                                                                           mockRecording, realEditRequest);
         assertThat(result.getId()).isEqualTo(mockCreateEditRequestDTO.getId());
         assertThat(result.getSourceRecording().getId()).isEqualTo(mockRecording.getId());
-        assertThat(result.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(result.getStatus()).isEqualTo(EditRequestStatus.APPROVED);
         assertThat(result.getEditInstruction()).isNotNull();
 
         EditInstructions editInstructions = EditInstructions.tryFromJson(result.getEditInstruction());
@@ -774,7 +774,7 @@ class FfmpegServiceTest {
                                                                           mockRecording, realEditRequest);
         assertThat(result.getId()).isEqualTo(realEditRequest.getId());
         assertThat(result.getSourceRecording().getId()).isEqualTo(mockParentRecording.getId());
-        assertThat(result.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(result.getStatus()).isEqualTo(EditRequestStatus.APPROVED);
         assertThat(result.getEditInstruction()).isNotNull();
 
         EditInstructions editInstructions = EditInstructions.tryFromJson(result.getEditInstruction());
@@ -821,7 +821,7 @@ class FfmpegServiceTest {
                                                                             mockRecording, realEditRequest);
 
         assertThat(response.getId()).isEqualTo(mockCreateEditRequestDTO.getId());
-        assertThat(response.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(response.getStatus()).isEqualTo(EditRequestStatus.APPROVED);
         assertThat(response.getSourceRecording().getId()).isEqualTo(mockRecording.getId());
         assertThat(response.getEditInstruction()).contains("new edit instructions");
         assertThat(response.getEditInstruction())

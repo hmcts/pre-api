@@ -85,12 +85,12 @@ class EditRequestPerformServiceTest {
     @BeforeEach
     void setUp() throws InterruptedException {
         when(mockEditRequest.getId()).thenReturn(mockEditRequestId);
-        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.APPROVED);
         when(mockEditRequest.getSourceRecording()).thenReturn(mockRecording);
         when(mockEditRequest.getEditInstruction()).thenReturn("{}");
 
         when(mockEditRequestDTO.getId()).thenReturn(mockEditRequestId);
-        when(mockEditRequestDTO.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(mockEditRequestDTO.getStatus()).thenReturn(EditRequestStatus.APPROVED);
 
         when(mockParentRecording.getId()).thenReturn(mockParentRecordingId);
 
@@ -254,8 +254,8 @@ class EditRequestPerformServiceTest {
     }
 
     @Test
-    @DisplayName("Should not perform edit and return null when status of edit request is not PENDING")
-    void performEditStatusNotPending() {
+    @DisplayName("Should not perform edit and return null when status of edit request is not APPROVED")
+    void performEditStatusNotApproved() {
         when(mockEditRequestDTO.getStatus()).thenReturn(EditRequestStatus.PROCESSING);
 
         String message = assertThrows(
@@ -266,7 +266,7 @@ class EditRequestPerformServiceTest {
         assertThat(message)
             .isEqualTo("Resource EditRequest("
                            + mockEditRequestId
-                           + ") is in a PROCESSING state. Expected state is PENDING.");
+                           + ") is in a PROCESSING state. Expected state is APPROVED.");
 
         verify(editRequestCrudService, times(1)).findById(mockEditRequestId);
         verify(editRequestCrudService, never()).upsert(any(), any(), any());

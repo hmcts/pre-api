@@ -53,7 +53,7 @@ public class EditControllerFT extends FunctionalTestBase {
 
         assertThat(postResponse.getId()).isNotNull();
         assertThat(postResponse.getSourceRecording().getId()).isEqualTo(recordingDetails.recordingId());
-        assertThat(postResponse.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(postResponse.getStatus()).isEqualTo(EditRequestStatus.APPROVED);
 
         var instructions = postResponse.getEditInstruction();
         assertThat(postResponse.getEditInstruction()).isNotNull();
@@ -132,7 +132,7 @@ public class EditControllerFT extends FunctionalTestBase {
 
         CreateEditRequestDTO editRequestDTO = new CreateEditRequestDTO();
         editRequestDTO.setSourceRecordingId(recordingDetails.recordingId());
-        editRequestDTO.setStatus(EditRequestStatus.PENDING);
+        editRequestDTO.setStatus(EditRequestStatus.APPROVED);
         editRequestDTO.setId(editRequestId);
         List<EditCutInstructionDTO> editCutInstructionDTOS = new ArrayList<>();
         EditCutInstructionDTO cutInstruction1 = new EditCutInstructionDTO();
@@ -167,7 +167,7 @@ public class EditControllerFT extends FunctionalTestBase {
 
         CreateEditRequestDTO editRequestDTO = new CreateEditRequestDTO();
         editRequestDTO.setSourceRecordingId(recordingDetails.recordingId());
-        editRequestDTO.setStatus(EditRequestStatus.PENDING);
+        editRequestDTO.setStatus(EditRequestStatus.APPROVED);
         editRequestDTO.setId(editRequestId);
         editRequestDTO.setForceReencode(true);
 
@@ -203,7 +203,7 @@ public class EditControllerFT extends FunctionalTestBase {
 
         CreateEditRequestDTO editRequestDTO = new CreateEditRequestDTO();
         editRequestDTO.setSourceRecordingId(recordingDetails.recordingId());
-        editRequestDTO.setStatus(EditRequestStatus.PENDING);
+        editRequestDTO.setStatus(EditRequestStatus.APPROVED);
         editRequestDTO.setId(editRequestId);
         editRequestDTO.setSendNotifications(false);
         editRequestDTO.setEditInstructions(List.of(EditCutInstructionDTO.builder()
@@ -240,7 +240,7 @@ public class EditControllerFT extends FunctionalTestBase {
 
         CreateEditRequestDTO editRequestDTO = new CreateEditRequestDTO();
         editRequestDTO.setSourceRecordingId(recordingDetails.recordingId());
-        editRequestDTO.setStatus(EditRequestStatus.PENDING);
+        editRequestDTO.setStatus(EditRequestStatus.APPROVED);
         editRequestDTO.setId(editRequestId);
         editRequestDTO.setForceReencode(true);
         editRequestDTO.setEditInstructions(List.of(EditCutInstructionDTO.builder()

@@ -138,7 +138,7 @@ public class EditRequestService {
         dto.setId(id);
         dto.setSourceRecordingId(sourceRecordingId);
         dto.setEditInstructions(parseCsv(file));
-        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setStatus(EditRequestStatus.APPROVED);
         dto.getEditInstructions().forEach(editInstruction -> {
             if (!InputSanitizerUtils.isValid(editInstruction.getReason(), false)) {
                 throw new BadRequestException("Edit instruction reason potentially contains malicious code: "

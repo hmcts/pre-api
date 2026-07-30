@@ -56,7 +56,7 @@ public class EditRequestTest extends IntegrationTestBase {
             UUID.randomUUID(),
             recording,
             "{}",
-            EditRequestStatus.PENDING,
+            EditRequestStatus.APPROVED,
             user,
             null,
             null,
@@ -73,7 +73,7 @@ public class EditRequestTest extends IntegrationTestBase {
         assertThat(retrievedEditRequest).isNotNull();
         assertThat(retrievedEditRequest.getId()).isEqualTo(editRequest.getId());
         assertThat(retrievedEditRequest.getSourceRecording().getId()).isEqualTo(recording.getId());
-        assertThat(retrievedEditRequest.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(retrievedEditRequest.getStatus()).isEqualTo(EditRequestStatus.APPROVED);
         assertThat(retrievedEditRequest.getCreatedBy().getId()).isEqualTo(user.getId());
     }
 }
