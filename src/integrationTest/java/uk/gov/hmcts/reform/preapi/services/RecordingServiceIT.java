@@ -19,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
-import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -32,7 +31,10 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -567,11 +569,185 @@ class RecordingServiceIT extends IntegrationTestBase {
         assertThat(results2.getTotalElements()).isEqualTo(3);
     }
 
+    @Test
+    @Transactional
+    @DisplayName("Mark VF original recordings as deleted/not deleted")
+    void markVfOriginalRecordingsAsDeleted() {
+        mockAdminUser();
+
+        // Set up
+        Recording preRecording = createSampleRecording(RecordingOrigin.PRE, null, 1);
+
+        Recording vfOriginal1 = createSampleRecording(RecordingOrigin.VODAFONE, null, 1);
+
+        Recording vfOriginal2 = createSampleRecording(RecordingOrigin.VODAFONE, null, 1);
+
+        Recording reencodedVf1 = createSampleReencodedRecording(vfOriginal1, 2);
+
+        Recording vfOriginal3V1 = createSampleRecording(RecordingOrigin.VODAFONE, null, 1);
+
+        Recording vfOriginal3V2 = createSampleRecording(RecordingOrigin.VODAFONE, vfOriginal3V1, 2);
+
+        Recording reencodedVf3 = createSampleReencodedRecording(vfOriginal3V1, 3);
+
+        // Pre-test check
+        Map<UUID, RecordingDTO> recordingsBeforeFlagSet = recordingService.findAll(
+                new SearchRecordings(),
+                false, Pageable.unpaged()
+            )
+            .stream()
+            .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
+
+        checkResultsForDeletedRecordings(
+            recordingsBeforeFlagSet,
+            List.of(),
+            List.of(preRecording.getId(), vfOriginal1.getId(), reencodedVf1.getId(), vfOriginal2.getId(),
+                    vfOriginal3V1.getId(), vfOriginal3V2.getId(), reencodedVf3.getId())
+        );
+
+        // Test: delete originals
+        recordingService.deleteOriginalWhereReencodedVersionExists();
+        entityManager.flush();
+
+        Map<UUID, RecordingDTO> recordingsAfterDeletion = recordingService.findAll(
+                new SearchRecordings(),
+                false,
+                Pageable.unpaged()
+            )
+            .stream()
+            .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
+
+        checkResultsForDeletedRecordings(
+            recordingsAfterDeletion,
+            List.of(vfOriginal1.getId(), vfOriginal3V1.getId(), vfOriginal3V2.getId()),
+            List.of(preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId(), reencodedVf3.getId())
+        );
+
+        recordingService.undeleteOriginalWhereReencodedVersionExists();
+        entityManager.flush();
+
+        Map<UUID, RecordingDTO> recordingsAfterUndeletion = recordingService.findAll(
+                new SearchRecordings(),
+                false,
+                Pageable.unpaged()
+            )
+            .stream()
+            .collect(Collectors.toMap(RecordingDTO::getId, Function.identity()));
+
+        checkResultsForDeletedRecordings(
+            recordingsAfterUndeletion,
+            List.of(),
+            List.of(
+                preRecording.getId(), reencodedVf1.getId(), vfOriginal2.getId(),
+                vfOriginal1.getId(), vfOriginal3V1.getId(), vfOriginal3V2.getId(),
+                reencodedVf3.getId()
+            )
+        );
+
+    }
+
+
+    @Test
+    @Transactional
+    @DisplayName("Non-admin user cannot mark VF original recordings as deleted/not deleted")
+    void nonAdminUserCannotMarkVfOriginalRecordingsAsDeleted() {
+        mockNonAdminUser();
+
+        String message = Assertions.assertThrows(
+            AccessDeniedException.class,
+            () -> recordingService.deleteOriginalWhereReencodedVersionExists()
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("User does not have sufficient privileges to delete original recordings");
+
+        String message2 = Assertions.assertThrows(
+            AccessDeniedException.class,
+            () ->  recordingService.undeleteOriginalWhereReencodedVersionExists()
+        ).getMessage();
+
+        assertThat(message2)
+            .isEqualTo("User does not have sufficient privileges to undelete original recordings");
+    }
+
+    private Recording createSampleRecording(RecordingOrigin recordingOrigin,
+                                            Recording parentRecording,
+                                            Integer versionNumber) {
+        CaptureSession sampleCaptureSession = persistSampleCourtCaseBookingCaptureSession(
+            recordingOrigin
+        );
+
+        Recording recording = HelperFactory.createRecording(
+            sampleCaptureSession, parentRecording, versionNumber,
+            "", null
+        );
+        recording.setDuration(Duration.ofHours(1));
+        entityManager.persist(recording);
+        return recording;
+    }
+
+    private Recording createSampleReencodedRecording(Recording parentRecording,
+                                                     Integer versionNumber) {
+        Recording recording = HelperFactory.createRecording(
+            parentRecording.getCaptureSession(), parentRecording, versionNumber,
+            "", null
+        );
+        recording.setReencode(true);
+        recording.setDuration(Duration.ofHours(1));
+        entityManager.persist(recording);
+        return recording;
+    }
+
+    private static void checkResultsForDeletedRecordings(Map<UUID, RecordingDTO> results,
+                                                         List<UUID> shouldBeDeleted,
+                                                         List<UUID> shouldNotBeDeleted) {
+
+        assertThat(results.size()).isEqualTo(shouldNotBeDeleted.size());
+
+        assertThat(results.keySet().containsAll(shouldNotBeDeleted)).isTrue();
+
+        for (UUID id : shouldBeDeleted) {
+            assertThat(results.containsKey(id)).isFalse();
+        }
+    }
+
+
     private static void mockNonAdminUser(UUID courtId) {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(false);
         when(mockAuth.isAppUser()).thenReturn(true);
         when(mockAuth.getCourtId()).thenReturn(courtId);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
+    }
+
+    private CaptureSession persistSampleCourtCaseBookingCaptureSession(RecordingOrigin recordingOrigin) {
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        Case sampleCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        sampleCase.setOrigin(recordingOrigin);
+        entityManager.persist(sampleCase);
+
+        Booking sampleBooking = HelperFactory.createBooking(
+            sampleCase, Timestamp.from(Instant.now()),
+            null, null
+        );
+        entityManager.persist(sampleBooking);
+
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            sampleBooking,
+            recordingOrigin,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        return captureSession;
     }
 }

@@ -172,6 +172,9 @@ feature-flags:
   hide-reencoded-recordings: ${HIDE_REENCODED_RECORDINGS:true}
   cleanup-null-duration:
     upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
+  dynatrace-terms-and-conditions:
+    enabled: ${ENABLE_TERMS_AND_CONDITIONS:false}
+    cut-off-date: ${TERMS_AND_CONDITIONS_CUTOFF_DATE:2026-07-15}
 
 #logging:
 #  level:
