@@ -47,7 +47,7 @@ public class BookingDTO {
     @Schema(description = "BookingModifiedAt")
     private Timestamp modifiedAt;
 
-    public BookingDTO(Booking bookingEntity) {
+    public BookingDTO(Booking bookingEntity, boolean rtmpsSuffixEnabled) {
         this.id = bookingEntity.getId();
         this.caseDTO = new CaseDTO(bookingEntity.getCaseId());
         this.scheduledFor = bookingEntity.getScheduledFor();
@@ -60,7 +60,8 @@ public class BookingDTO {
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
         this.captureSessions = Stream.ofNullable(bookingEntity.getCaptureSessions())
-            .flatMap(captureSessions -> captureSessions.stream().map(CaptureSessionDTO::new))
+            .flatMap(captureSessions -> captureSessions.stream()
+                .map(cs -> new CaptureSessionDTO(cs, rtmpsSuffixEnabled)))
             .sorted(Comparator.comparing(CaptureSessionDTO::getId))
             .collect(Collectors.toList());
         this.shares = Stream.ofNullable(bookingEntity.getShares())

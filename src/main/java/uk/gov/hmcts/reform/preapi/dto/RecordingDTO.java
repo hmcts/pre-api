@@ -60,13 +60,13 @@ public class RecordingDTO extends BaseRecordingDTO {
     private EditRequestStatus editStatus;
 
     public RecordingDTO(Recording recording) {
-        this(recording, true);
+        this(recording, true, true);
     }
 
-    public RecordingDTO(Recording recording, boolean includeReencodedRecordings) {
+    public RecordingDTO(Recording recording, boolean includeReencodedRecordings, boolean rtmpsSuffixEnabled) {
         super();
         id = recording.getId();
-        captureSession = new CaptureSessionDTO(recording.getCaptureSession());
+        captureSession = new CaptureSessionDTO(recording.getCaptureSession(), rtmpsSuffixEnabled);
         if (recording.getParentRecording() != null) {
             parentRecordingId = recording.getParentRecording().getId();
         }

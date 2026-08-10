@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -11,6 +12,10 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@TestPropertySource(properties = {
+    "feature-flags.dynatrace-terms-and-conditions.enabled=true",
+    "feature-flags.dynatrace-terms-and-conditions.cut-off-date=2026-07-15"
+})
 class TermsAndConditionsServiceIT extends IntegrationTestBase {
     @Autowired
     private TermsAndConditionsService termsAndConditionsService;
@@ -33,7 +38,7 @@ class TermsAndConditionsServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    void getLatestTermsAndConditionsByTypeApp() {
+    void getLatestTermsAndConditionsByTypeByTypeApp() {
         var latestAppTerms1 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
 
         assertThat(latestAppTerms1.getId()).isEqualTo(termsAndConditionsApp.getId());
@@ -48,7 +53,7 @@ class TermsAndConditionsServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    void getLatestTermsAndConditionsByTypePortal() {
+    void getLatestTermsAndConditionsByTypeByTypePortal() {
         var latestPortalTerms1 = termsAndConditionsService
             .getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
 

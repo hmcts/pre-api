@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -55,6 +56,8 @@ public class RecordingService {
     @Setter
     private boolean enableMigratedData;
 
+    private final boolean rtmpsSuffixEnabled;
+
     @Setter
     private boolean hideReencodedRecordings;
 
@@ -64,6 +67,8 @@ public class RecordingService {
                             @Lazy CaptureSessionService captureSessionService,
                             AzureFinalStorageService azureFinalStorageService,
                             @Value("${migration.enableMigratedData:false}") boolean enableMigratedData,
+                            @Value("${mediakind.rtmpsSuffixEnabled:false}")
+                                boolean rtmpsSuffixEnabled,
                             @Value("${feature-flags.hide-reencoded-recordings:true}")
                             boolean hideReencodedRecordings) {
         this.recordingRepository = recordingRepository;
@@ -71,6 +76,7 @@ public class RecordingService {
         this.captureSessionService = captureSessionService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.enableMigratedData = enableMigratedData;
+        this.rtmpsSuffixEnabled = rtmpsSuffixEnabled;
         this.hideReencodedRecordings = hideReencodedRecordings;
     }
 
@@ -79,7 +85,7 @@ public class RecordingService {
     public RecordingDTO findById(UUID recordingId) {
         boolean includeReencodedRecordings = canViewReencodedRecordings();
         return recordingRepository.findByIdAndDeletedAtIsNull(recordingId, includeReencodedRecordings)
-            .map(recording -> new RecordingDTO(recording, includeReencodedRecordings))
+            .map(recording -> new RecordingDTO(recording, includeReencodedRecordings, rtmpsSuffixEnabled))
             .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
     }
 
@@ -125,7 +131,7 @@ public class RecordingService {
                 includeReencodedRecordings,
                 pageable
             )
-            .map(recording -> new RecordingDTO(recording, includeReencodedRecordings));
+            .map(recording -> new RecordingDTO(recording, includeReencodedRecordings, rtmpsSuffixEnabled));
     }
 
     @Transactional
@@ -226,6 +232,42 @@ public class RecordingService {
         recordingRepository.saveAndFlush(recording);
     }
 
+    @Transactional
+    public void deleteOriginalWhereReencodedVersionExists() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        if (!auth.isAdmin()) {
+            throw new AccessDeniedException("User does not have sufficient privileges to delete original recordings");
+        }
+
+        recordingRepository.findVodafoneOriginalRecordingsWhereReencodedVersionExists()
+            .forEach(recording -> {
+                recording.setVfOriginalNowReencoded(Boolean.TRUE);
+                recording.setDeletedAt(Timestamp.from(Instant.now()));
+                recording.setDeleted(Boolean.TRUE);
+                recordingRepository.save(recording);
+            });
+
+        recordingRepository.flush();
+    }
+
+    @Transactional
+    public void undeleteOriginalWhereReencodedVersionExists() {
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        if (!auth.isAdmin()) {
+            throw new AccessDeniedException("User does not have sufficient privileges to undelete original recordings");
+        }
+
+        recordingRepository.findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue()
+            .forEach(recording -> {
+                // Leave originalVfRecording flag set - doesn't need to be reset
+                recording.setDeletedAt(null);
+                recording.setDeleted(Boolean.FALSE);
+                recordingRepository.save(recording);
+            });
+
+        recordingRepository.flush();
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void checkIfCaptureSessionHasAssociatedRecordings(CaptureSession captureSession) {
         Optional<Recording> recording = recordingRepository.findFirstByCaptureSessionAndDeletedAtIsNull(captureSession);
@@ -294,10 +336,9 @@ public class RecordingService {
     public List<RecordingDTO> findAllDurationNull() {
         return recordingRepository.findAllByDurationIsNullAndDeletedAtIsNull()
             .stream()
-            .map(RecordingDTO::new)
+            .map(r -> new RecordingDTO(r, true, true))
             .toList();
     }
-
 
     @Transactional
     public List<RecordingDTO> findAllVodafoneRecordings() {
@@ -306,5 +347,4 @@ public class RecordingService {
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
-
 }
