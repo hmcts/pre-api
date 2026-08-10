@@ -124,6 +124,7 @@ public class UserControllerTest {
 
         when(userService.findAllBy(
             any(),
+            any(),
             any()
         )).thenReturn(userList);
 
@@ -133,7 +134,8 @@ public class UserControllerTest {
             .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
 
         ArgumentCaptor<SearchUsers> paramsCaptor = ArgumentCaptor.forClass(SearchUsers.class);
-        verify(userService, times(1)).findAllBy(paramsCaptor.capture(), any());
+        verify(userService, times(1)).findAllBy(
+            paramsCaptor.capture(), any(), any());
 
         SearchUsers parameters = paramsCaptor.getValue();
         assertThat(parameters.getCourtId()).isNull();
@@ -155,6 +157,7 @@ public class UserControllerTest {
             .when(userService)
             .findAllBy(
                 any(),
+                any(),
                 any()
             );
 
@@ -170,7 +173,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any());
+            .findAllBy(any(), any(), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -916,6 +919,7 @@ public class UserControllerTest {
     public void testGetCasesIncludeDeletedNotSet() throws Exception {
         when(userService.findAllBy(
             any(),
+            any(),
             any()
         )).thenReturn(new PageImpl<>(List.of()));
 
@@ -929,6 +933,7 @@ public class UserControllerTest {
         verify(userService, times(1))
             .findAllBy(
                 searchUsersCaptor.capture(),
+                any(),
                 any()
             );
         assertThat(searchUsersCaptor.getValue().getIncludeDeleted()).isNull();
@@ -940,6 +945,7 @@ public class UserControllerTest {
         SearchUsers searchUsers = mock(SearchUsers.class);
         when(searchUsers.getIncludeDeleted()).thenReturn(false);
         when(userService.findAllBy(
+            any(),
             any(),
             any()
         )).thenReturn(new PageImpl<>(List.of()));
@@ -953,7 +959,7 @@ public class UserControllerTest {
 
         ArgumentCaptor<SearchUsers> searchUsersCaptor = ArgumentCaptor.forClass(SearchUsers.class);
         verify(userService, times(1))
-            .findAllBy(searchUsersCaptor.capture(), any());
+            .findAllBy(searchUsersCaptor.capture(), any(), any());
         assertThat(searchUsersCaptor.getValue().getIncludeDeleted()).isFalse();
     }
 
@@ -961,6 +967,7 @@ public class UserControllerTest {
     @Test
     public void testGetCasesIncludeDeletedTrue() throws Exception {
         when(userService.findAllBy(
+            any(),
             any(),
             any()
         )).thenReturn(new PageImpl<>(List.of()));
@@ -976,6 +983,7 @@ public class UserControllerTest {
         verify(userService, times(1))
             .findAllBy(
                 searchUsersCaptor.capture(),
+                any(),
                 any()
             );
 

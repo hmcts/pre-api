@@ -205,7 +205,7 @@ public class UserServiceTest {
     @DisplayName("Find all users and return a list of models")
     @Test
     void findAllUsersSuccess() {
-        var models = userService.findAllBy(searchUsers, null);
+        var models = userService.findAllBy(searchUsers, any(),null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(3);
 
@@ -236,6 +236,7 @@ public class UserServiceTest {
 
         var models = userService.findAllBy(
             searchUsers,
+            any(),
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -269,7 +270,7 @@ public class UserServiceTest {
                 null
             )).thenReturn(new PageImpl<>(List.of(userEntity)));
 
-        var models2 = userService.findAllBy(searchUsers, null);
+        var models2 = userService.findAllBy(searchUsers, any(),null);
         assertThat(models2.isEmpty()).isFalse();
         assertThat(models2.getTotalElements()).isEqualTo(1);
 
@@ -305,7 +306,7 @@ public class UserServiceTest {
             )).thenReturn(new PageImpl<>(List.of(userEntity)));
 
         var models = userService
-            .findAllBy(searchUsers, null);
+            .findAllBy(searchUsers, any(), null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -343,6 +344,7 @@ public class UserServiceTest {
 
         var models = userService.findAllBy(
             searchUsers,
+            any(),
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -382,6 +384,7 @@ public class UserServiceTest {
 
         var models = userService.findAllBy(
             searchUsers,
+            any(),
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -421,6 +424,7 @@ public class UserServiceTest {
 
         var models = userService.findAllBy(
             searchUsers,
+            any(),
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -474,7 +478,7 @@ public class UserServiceTest {
             )
         ).thenReturn(new PageImpl<>(List.of(userEntity, appUserEntity)));
 
-        var models = userService.findAllBy(searchUsers, null);
+        var models = userService.findAllBy(searchUsers, any(), null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(2);
 
@@ -511,7 +515,7 @@ public class UserServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(searchUsers, null)
+            () -> userService.findAllBy(searchUsers, any(), null)
         );
 
         verify(courtRepository, times(1)).existsById(randomCourtId);
@@ -546,7 +550,7 @@ public class UserServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(searchUsers, null)
+            () -> userService.findAllBy(searchUsers, any(), null)
         );
 
         verify(courtRepository, never()).existsById(any());
