@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import org.springframework.test.util.ReflectionTestUtils;
+import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
@@ -44,9 +44,9 @@ public class TermsAndConditionsServiceTest {
 
     @AfterEach
     void resetTermsFeatureFlags() {
-        ReflectionTestUtils.setField(termsAndConditionsService, "isDynatraceAppTermsEnabled", true);
+        ReflectionTestUtils.setField(underTest, "isDynatraceAppTermsEnabled", true);
         ReflectionTestUtils
-            .setField(termsAndConditionsService, "cutOffDate", LocalDate.of(2026, 7, 15));
+            .setField(underTest, "cutOffDate", LocalDate.of(2026, 7, 15));
     }
 
     @Test
@@ -119,7 +119,8 @@ public class TermsAndConditionsServiceTest {
         when(termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.APP))
             .thenReturn(Optional.of(termsAndConditionsApp));
 
-        Set<TermsAndConditions> allLatestTermsAndConditions = underTest.getAllLatestTermsAndConditions();
+        Set<TermsAndConditions> allLatestTermsAndConditions =
+            underTest.getAllLatestTermsAndConditions();
         assertThat(allLatestTermsAndConditions.size()).isEqualTo(2);
         assertThat(allLatestTermsAndConditions)
             .containsExactlyInAnyOrder(termsAndConditionsPortal, termsAndConditionsApp);
@@ -138,21 +139,21 @@ public class TermsAndConditionsServiceTest {
         when(termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.APP))
             .thenReturn(Optional.empty());
 
-        Set<TermsAndConditions> allLatestTermsAndConditions = underTest.getAllLatestTermsAndConditions();
+        Set<TermsAndConditions> allLatestTermsAndConditions =
+            underTest.getAllLatestTermsAndConditions();
         assertThat(allLatestTermsAndConditions.isEmpty());
         verify(termsAndConditionsRepository, times(1))
             .findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.APP);
         verify(termsAndConditionsRepository, times(1))
             .findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.PORTAL);
-        verifyNoMoreInteractions(termsAndConditionsRepository):
+        verifyNoMoreInteractions(termsAndConditionsRepository);
     }
 
-    @Test
     @DisplayName("Should use terms before cutoff for APP when dynatrace terms flag is disabled")
     void appUsesCutoffDateWhenFlagDisabled() {
-        ReflectionTestUtils.setField(termsAndConditionsService, "isDynatraceAppTermsEnabled", false);
+        ReflectionTestUtils.setField(underTest, "isDynatraceAppTermsEnabled", false);
         ReflectionTestUtils
-            .setField(termsAndConditionsService, "cutOffDate", LocalDate.of(2026, 7, 15));
+            .setField(underTest, "cutOffDate", LocalDate.of(2026, 7, 15));
 
         var terms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP, "some content");
         terms.setCreatedAt(Timestamp.from(Instant.now()));
@@ -162,7 +163,7 @@ public class TermsAndConditionsServiceTest {
             eq(Timestamp.valueOf(LocalDate.of(2026, 7, 15).atStartOfDay()))))
             .thenReturn(Optional.of(terms));
 
-        termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP);
+        underTest.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
 
         verify(termsAndConditionsRepository, times(1))
             .findFirstByTypeAndCreatedAtBeforeOrderByCreatedAtDesc(
@@ -175,9 +176,9 @@ public class TermsAndConditionsServiceTest {
     @DisplayName("Should throw not found exception when there are no APP terms before cutoff date "
         + "and dynatrace terms flag is disabled")
     void appThrowsNotFoundWhenNoTermsBeforeCutoffAndFlagDisabled() {
-        ReflectionTestUtils.setField(termsAndConditionsService, "isDynatraceAppTermsEnabled", false);
+        ReflectionTestUtils.setField(underTest, "isDynatraceAppTermsEnabled", false);
         ReflectionTestUtils
-            .setField(termsAndConditionsService, "cutOffDate", LocalDate.of(2026, 7, 15));
+            .setField(underTest, "cutOffDate", LocalDate.of(2026, 7, 15));
 
         when(termsAndConditionsRepository.findFirstByTypeAndCreatedAtBeforeOrderByCreatedAtDesc(
             eq(TermsAndConditionsType.APP),
@@ -186,7 +187,7 @@ public class TermsAndConditionsServiceTest {
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP)
+            () -> underTest.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP)
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Terms and conditions of type: APP");
     }
@@ -194,9 +195,9 @@ public class TermsAndConditionsServiceTest {
     @Test
     @DisplayName("Portal should ignore dynatrace terms flag and always return the latest terms")
     void portalDoesNotUseCutoffDateWhenFlagDisabled() {
-        ReflectionTestUtils.setField(termsAndConditionsService, "isDynatraceAppTermsEnabled", false);
+        ReflectionTestUtils.setField(underTest, "isDynatraceAppTermsEnabled", false);
         ReflectionTestUtils
-            .setField(termsAndConditionsService, "cutOffDate", LocalDate.of(2026, 7, 15));
+            .setField(underTest, "cutOffDate", LocalDate.of(2026, 7, 15));
 
         var terms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.PORTAL, "some content");
         terms.setCreatedAt(Timestamp.from(Instant.now()));
@@ -205,7 +206,7 @@ public class TermsAndConditionsServiceTest {
             eq(TermsAndConditionsType.PORTAL)))
             .thenReturn(Optional.of(terms));
 
-        termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+        underTest.getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
 
         verify(termsAndConditionsRepository, never())
             .findFirstByTypeAndCreatedAtBeforeOrderByCreatedAtDesc(
