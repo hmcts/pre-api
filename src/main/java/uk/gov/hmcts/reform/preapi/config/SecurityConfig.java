@@ -32,7 +32,6 @@ public class SecurityConfig {
         "/prometheus",
         "/users/by-email/**",
         "/reports/**",
-        "/audit/**",
         "/b2c/**",
         "/error",
         "/app-terms-and-conditions/latest",
@@ -41,6 +40,10 @@ public class SecurityConfig {
 
     public static final String[] PERMITTED_URIS_GET_ONLY = {
         "/invites",
+    };
+
+    public static final String[] PERMITTED_URIS_PUT_ONLY = {
+        "/audit/**",
     };
 
     public static final String[] PERMITTED_URIS_POST = {
@@ -66,6 +69,7 @@ public class SecurityConfig {
                                        authorize
                                            .requestMatchers(HttpMethod.GET, PERMITTED_URIS_GET_ONLY).permitAll()
                                            .requestMatchers(HttpMethod.POST,  PERMITTED_URIS_POST).permitAll()
+                                           .requestMatchers(HttpMethod.PUT, PERMITTED_URIS_PUT_ONLY).permitAll()
                                            .requestMatchers(PERMITTED_URIS_ALL_REQUESTS).permitAll()
                                            .anyRequest().authenticated()
             )
