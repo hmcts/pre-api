@@ -1,24 +1,31 @@
 package uk.gov.hmcts.reform.preapi.email;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
-import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
+import uk.gov.hmcts.reform.preapi.utils.JsonUtils;
 
 import java.sql.Timestamp;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 class GovNotifyFT {
@@ -32,6 +39,9 @@ class GovNotifyFT {
     @Autowired
     GovNotify client;
 
+    @MockitoBean
+    EditRequest editRequest;
+
     private User createUser() {
         var user = new User();
         user.setFirstName(USER_FIRST_NAME);
@@ -43,38 +53,35 @@ class GovNotifyFT {
     private Case createCase() {
         var court = new Court();
         court.setName(COURT_NAME);
+        court.setGroupEmail(FROM_EMAIL_ADDRESS);
+
         var forCase = new Case();
         forCase.setCourt(court);
         forCase.setReference(CASE_REFERENCE);
         return forCase;
     }
 
-    private Participant createParticipant(ParticipantType type) {
-        var participant = new Participant();
-        participant.setFirstName("First");
-        participant.setLastName("Last");
-        participant.setParticipantType(type);
-        return participant;
-    }
+    @BeforeEach
+    public void setUp() {
+        Case testCase = createCase();
+        Booking booking = mock(Booking.class);
+        when(booking.getCaseId()).thenReturn(testCase);
+        when(booking.getWitnessName()).thenReturn(USER_FIRST_NAME);
+        when(booking.getDefendantName()).thenReturn(USER_LAST_NAME);
 
-    private EditRequest createEditRequest() {
-        var aCase = createCase();
-        var booking = new Booking();
-        booking.setCaseId(aCase);
-        booking.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT)));
-        var captureSession = new CaptureSession();
-        captureSession.setBooking(booking);
-        var recording = new Recording();
-        recording.setCaptureSession(captureSession);
-        var request = new EditRequest();
-        request.setSourceRecording(recording);
-        request.setEditInstruction(
-            "{\"requestedInstructions\":"
-                + "[{\"start_of_cut\":\"00:00:00\",\"end_of_cut\":\"00:00:30\",\"reason\":\"\",\"start\":0,\"end\":0}],"
-                + "\"ffmpegInstructions\":[]}");
-        return request;
+        CaptureSession captureSession = mock(CaptureSession.class);
+        when(captureSession.getBooking()).thenReturn(booking);
+
+        Recording recording = mock(Recording.class);
+        when(recording.getCaptureSession()).thenReturn(captureSession);
+
+        EditCutInstructionDTO instruction1 = new EditCutInstructionDTO(0, 30, "first reason");
+        EditInstructions defaultEditInstructions = new EditInstructions(List.of(instruction1), new ArrayList<>());
+        when(editRequest.getEditInstruction()).thenReturn(JsonUtils.toJson(defaultEditInstructions));
+
+        when(editRequest.getJointlyAgreed()).thenReturn(true);
+        when(editRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+        when(editRequest.getSourceRecording()).thenReturn(recording);
     }
 
     private void compareBody(String expected, EmailResponse emailResponse) {
@@ -276,10 +283,11 @@ class GovNotifyFT {
     @DisplayName("Should send editing jointly agreed email")
     @SuppressWarnings("LineLength")
     void editingJointlyAgreed() {
-        var user = createUser();
-        var forEditRequest = createEditRequest();
+        when(editRequest.getJointlyAgreed()).thenReturn(true);
+        when(editRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
 
-        var response = client.editingJointlyAgreed(user.getEmail(), forEditRequest);
+        EmailResponse response = client.sendEmailAboutEditingRequest(editRequest).orElseThrow();
+
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456",
@@ -291,29 +299,30 @@ class GovNotifyFT {
 
             Court: Court Name
             Case reference: 123456
-            Witness name: First
-            Defendant name(s): First Last
+            Witness name: John
+            Defendant name(s): Doe
 
             Edit 1:\s
             Start time: 00:00:00
             End time: 00:00:30
-            Time Removed: 00:00:00
-            Reason:\s
+            Time Removed: 00:00:30
+            Reason: first reason
 
 
             Edits have been jointly agreed: Yes
 
-            PRE Portal link: [http://localhost:8080](http://localhost:8080)""", response);
+            PRE Portal link: [http://localhost:8080](http://localhost:8080)""", response
+        );
     }
 
     @Test
     @DisplayName("Should send editing not jointly agreed email")
     @SuppressWarnings("LineLength")
     void editingNotJointlyAgreed() {
-        var user = createUser();
-        var forEditRequest = createEditRequest();
+        when(editRequest.getJointlyAgreed()).thenReturn(false);
+        when(editRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
 
-        var response = client.editingNotJointlyAgreed(user.getEmail(), forEditRequest);
+        EmailResponse response = client.sendEmailAboutEditingRequest(editRequest).orElseThrow();
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request for case reference 123456 (NOT JOINTLY AGREED)",
@@ -325,14 +334,14 @@ class GovNotifyFT {
 
             Court: Court Name
             Case reference: 123456
-            Witness name: First
-            Defendant name(s): First Last
+            Witness name: John
+            Defendant name(s): Doe
 
             Edit 1:\s
             Start time: 00:00:00
             End time: 00:00:30
-            Time Removed: 00:00:00
-            Reason:\s
+            Time Removed: 00:00:30
+            Reason: first reason
 
 
             Edits have been jointly agreed: No
@@ -344,12 +353,11 @@ class GovNotifyFT {
     @DisplayName("Should send editing rejection email")
     @SuppressWarnings("LineLength")
     void editingRejectionEmail() {
-        var user = createUser();
-        var forEditRequest = createEditRequest();
-        forEditRequest.setRejectionReason("REJECTION REASON");
-        forEditRequest.setJointlyAgreed(true);
+        when(editRequest.getJointlyAgreed()).thenReturn(true);
+        when(editRequest.getRejectionReason()).thenReturn("REJECTION REASON");
+        when(editRequest.getStatus()).thenReturn(EditRequestStatus.REJECTED);
 
-        var response = client.editingRejected(user.getEmail(), forEditRequest);
+        var response = client.sendEmailAboutEditingRequest(editRequest).orElseThrow();
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals(
             "[Do Not Reply] Pre-recorded Evidence: Edit request REJECTION for case reference 123456",
@@ -363,14 +371,14 @@ class GovNotifyFT {
 
             Court: Court Name
             Case reference: 123456
-            Witness name: First
-            Defendant name(s): First Last
+            Witness name: John
+            Defendant name(s): Doe
 
             Edit 1:\s
             Start time: 00:00:00
             End time: 00:00:30
-            Time Removed: 00:00:00
-            Reason:\s
+            Time Removed: 00:00:30
+            Reason: first reason
 
 
             Edits have been jointly agreed: Yes

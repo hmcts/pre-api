@@ -3,9 +3,9 @@ package uk.gov.hmcts.reform.preapi.services.edit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.util.Pair;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
@@ -20,10 +20,11 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
+import uk.gov.hmcts.reform.preapi.services.EditNotificationService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -41,6 +42,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.hmcts.reform.preapi.utils.JsonUtils.toJson;
@@ -50,6 +52,9 @@ class EditRequestCrudServiceTest {
 
     @MockitoBean
     private EditRequestRepository editRequestRepository;
+
+    @MockitoBean
+    private EditNotificationService editNotificationService;
 
     @MockitoBean
     private IEditingService editingService;
@@ -71,6 +76,9 @@ class EditRequestCrudServiceTest {
 
     @MockitoBean
     private EditRequest mockEditRequest;
+
+    @MockitoBean
+    private EditRequest newlyUpdatedEditRequest;
 
     @MockitoBean
     private CreateEditRequestDTO dto;
@@ -123,10 +131,21 @@ class EditRequestCrudServiceTest {
                              .end(120L)
                              .build());
 
-        when(dto.getId()).thenReturn(UUID.randomUUID());
+        UUID newEditRequestId = UUID.randomUUID();
+        when(dto.getId()).thenReturn(newEditRequestId);
         when(dto.getSourceRecordingId()).thenReturn(mockRecordingId);
-        when(dto.getStatus()).thenReturn(EditRequestStatus.PENDING);
+        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(dto.getEditInstructions()).thenReturn(instructions);
+
+        when(newlyUpdatedEditRequest.getId()).thenReturn(newEditRequestId);
+        when(newlyUpdatedEditRequest.getSourceRecording()).thenReturn(mockRecording);
+        when(newlyUpdatedEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+        when(newlyUpdatedEditRequest.getEditInstruction()).thenReturn(toJson(instructions));
+
+
+        when(editingService.mergeOldAndNewEditInstructions(any(CreateEditRequestDTO.class), any(Recording.class),
+                                                           any(EditRequest.class)))
+            .thenReturn(newlyUpdatedEditRequest);
     }
 
     @Test
@@ -170,28 +189,21 @@ class EditRequestCrudServiceTest {
     }
 
     @Test
-    @DisplayName("Should create a new edit request")
+    @DisplayName("Should create a new edit request and trigger email for SUBMITTED edit")
     void createEditRequestSuccess() {
         when(mockRecording.getParentRecording()).thenReturn(null);
-
-        EditRequest editRequestToReturnFromEditingService = new EditRequest();
-        editRequestToReturnFromEditingService.setId(dto.getId());
-        editRequestToReturnFromEditingService.setStatus(dto.getStatus());
-        editRequestToReturnFromEditingService.setSourceRecording(mockRecording);
-        editRequestToReturnFromEditingService.setEditInstruction(toJson(dto.getEditInstructions()));
-
+        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
 
-        when(editingService.prepareEditRequestToCreateOrUpdate(any(CreateEditRequestDTO.class), any(Recording.class),
-                any(EditRequest.class))).thenReturn(editRequestToReturnFromEditingService);
 
-        Pair<UpsertResult, EditRequest> response = underTest.upsert(dto, mockRecording, mockUser);
-        assertThat(response.getFirst()).isEqualTo(UpsertResult.CREATED);
-        assertThat(response.getSecond().getStatus()).isEqualTo(EditRequestStatus.PENDING);
-        assertThat(response.getSecond().getId()).isEqualTo(dto.getId());
+        EditRequest response = underTest.upsert(dto, mockRecording, mockUser);
+        assertThat(response.getStatus()).isEqualTo(EditRequestStatus.SUBMITTED);
+        assertThat(response.getId()).isEqualTo(dto.getId());
 
         verify(editRequestRepository, times(1)).findByIdNotLocked(dto.getId());
-        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
+        verify(editNotificationService, times(1))
+            .editRequestStatusWasUpdated(newlyUpdatedEditRequest);
     }
 
     @Test
@@ -211,17 +223,71 @@ class EditRequestCrudServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw bad request when trying to create new edit request with empty instructions")
-    void badRequestEmptyInstructions() {
+    @DisplayName("Should allow draft edit request to be created with empty instructions")
+    void createDraftEditWithEmptyInstructions() {
         when(dto.getEditInstructions()).thenReturn(new ArrayList<>());
+        when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+        when(editRequestRepository.findByIdNotLocked(dto.getId())).thenReturn(Optional.empty());
+
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
+        verify(editNotificationService, times(1))
+            .editRequestStatusWasUpdated(any(EditRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should allow draft edit request to be upserted with empty instructions")
+    void updateDraftEditWithEmptyInstructions() {
+        when(dto.getEditInstructions()).thenReturn(new ArrayList<>());
+        when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+
+        List<EditCutInstructionDTO> oldInstructions = new ArrayList<>();
+        oldInstructions.add(EditCutInstructionDTO.builder()
+                             .start(60L)
+                             .end(120L)
+                             .build());
+
+        EditRequest existingEditRequest = new EditRequest();
+        existingEditRequest.setId(UUID.randomUUID());
+        existingEditRequest.setStatus(EditRequestStatus.DRAFT);
+        existingEditRequest.setEditInstruction(toJson(oldInstructions));
+        when(editRequestRepository.findByIdNotLocked(dto.getId())).thenReturn(Optional.of(existingEditRequest));
+
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository, times(1)).saveAndFlush(captor.capture());
+
+        assertThat(captor.getValue().getId()).isEqualTo(existingEditRequest.getId());
+        assertThat(captor.getValue().getStatus()).isEqualTo(EditRequestStatus.DRAFT);
+        assertThat(captor.getValue().getEditInstruction())
+            .isEqualTo("{\"requestedInstructions\":[],\"ffmpegInstructions\":[],"
+                           + "\"forceReencode\":false,\"sendNotifications\":false}");
+
+        verifyNoInteractions(editNotificationService);
+    }
+
+    @Test
+    @DisplayName("Should throw error when edit request is submitted with empty instructions")
+    void badRequestEmptyInstructions() {
+        CreateEditRequestDTO createEditRequestDTO = new CreateEditRequestDTO();
+        createEditRequestDTO.setId(UUID.randomUUID());
+        createEditRequestDTO.setEditInstructions(new ArrayList<>());
+        createEditRequestDTO.setStatus(EditRequestStatus.SUBMITTED);
+        createEditRequestDTO.setJointlyAgreed(true);
+        createEditRequestDTO.setSourceRecordingId(mockRecordingId);
 
         String message = assertThrows(
-                BadRequestException.class,
-                () -> underTest.upsert(dto, mockRecording, mockUser)
+            IllegalArgumentException.class,
+            () -> underTest.upsert(createEditRequestDTO, mockRecording, mockUser)
         ).getMessage();
 
         assertThat(message)
-                .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+            .isEqualTo("Invalid edit request: "
+                           + "instructions may only be empty for DRAFT edit requests or forced re-encodes");
+
+        verifyNoInteractions(editNotificationService);
     }
 
     @Test
@@ -271,41 +337,30 @@ class EditRequestCrudServiceTest {
             .isEqualTo("Invalid Instruction: Cannot request cuts and force reencode on the same edit request");
 
         verify(editRequestRepository, never()).save(any(EditRequest.class));
+        verifyNoInteractions(editNotificationService);
     }
 
     @Test
-    @DisplayName("Should delete edit request when upserting with empty instructions")
-    void deleteEmptyInstructions() {
+    @DisplayName("Should throw exception when editInstructions is null for *new* submitted edit request")
+    void validateEditInstructionsIsEmptyForNewEditRequest() {
         when(dto.getEditInstructions()).thenReturn(new ArrayList<>());
-        when(editRequestRepository.findByIdNotLocked(dto.getId()))
-            .thenReturn(Optional.of(mockEditRequest));
-        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(mockEditRequest));
-
-        Pair<UpsertResult, EditRequest> result = underTest.upsert(dto, mockRecording, mockUser);
-        assertThat(result.getFirst()).isEqualTo(UpsertResult.UPDATED);
-
-        verify(editRequestRepository, times(1)).delete(result.getSecond());
-    }
-
-    @Test
-    @DisplayName("Should throw exception when editInstructions is null for *new* edit request")
-    void validateEditInstructionsIsEmptyForNewEditRequest() throws Exception {
-        when(dto.getEditInstructions()).thenReturn(new ArrayList<>());
-        when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
         when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
 
         String message = assertThrows(
-            BadRequestException.class,
+            IllegalArgumentException.class,
             () -> underTest.upsert(dto, mockRecording, mockUser)
         ).getMessage();
 
         assertThat(message)
-            .isEqualTo("Invalid Instruction: Cannot create an edit request with empty instructions");
+            .isEqualTo("Invalid edit request: "
+                           + "instructions may only be empty for DRAFT edit requests or forced re-encodes");
+        verifyNoInteractions(editNotificationService);
     }
 
     @Test
     @DisplayName("Should ignore attempt to delete non-existent edit request")
-    void deleteNonExistentEditRequestSuccess() throws Exception {
+    void deleteNonExistentEditRequestSuccess() {
         when(dto.getStatus()).thenReturn(EditRequestStatus.DRAFT);
         when(editRequestRepository.findById(dto.getSourceRecordingId()))
             .thenReturn(Optional.empty());
@@ -339,4 +394,84 @@ class EditRequestCrudServiceTest {
         verify(editRequestRepository, never()).findSourceRecordingIdsWithForceReencodeRequests(any());
     }
 
+    @Test
+    @DisplayName("*New* edit request triggers email for SUBMITTED edit request")
+    void newEditRequestTriggersEmailOnSubmission() {
+        when(mockRecording.getParentRecording()).thenReturn(null);
+        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        verify(editNotificationService, times(1))
+            .editRequestStatusWasUpdated(newlyUpdatedEditRequest);
+    }
+
+    @Test
+    @DisplayName("*Updated* edit request triggers email for SUBMITTED edit request when status has changed")
+    void updatedEditRequestTriggersEmailOnSubmissionWhenStatusChanged() {
+        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(mockEditRequest));
+
+
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        verify(editNotificationService, times(1))
+            .editRequestStatusWasUpdated(newlyUpdatedEditRequest);
+    }
+
+    @Test
+    @DisplayName("*No* email for updated SUBMITTED edit request when status has *not* changed")
+    void updatedEditRequestNoEmailOnSubmissionWhenStatusHasNotChanged() {
+        when(dto.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.SUBMITTED);
+
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        verify(editNotificationService, times(1))
+            .editRequestStatusWasUpdated(newlyUpdatedEditRequest);
+    }
+
+    @Test
+    @DisplayName("Should send request to notification service regardless of which status changed")
+    void shouldTriggerNotificationWhicheverStatusChanged() {
+        // Won't actually trigger an email but this is handled by notification service
+        when(dto.getStatus()).thenReturn(EditRequestStatus.COMPLETE);
+        when(mockEditRequest.getStatus()).thenReturn(EditRequestStatus.DRAFT);
+
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        verify(editNotificationService, times(1))
+            .editRequestStatusWasUpdated(newlyUpdatedEditRequest);
+    }
+
+    @Test
+    @DisplayName("Should invoke notification service when updating edit request status")
+    void shouldInvokeNotificationServiceWhenStatusChanged() {
+        when(editRequestRepository.findById(mockEditRequestId)).thenReturn(Optional.of(mockEditRequest));
+        underTest.updateEditRequestStatus(mockEditRequestId, EditRequestStatus.COMPLETE);
+        verify(editNotificationService, times(1)).editRequestStatusWasUpdated(mockEditRequest);
+    }
+
+    @Test
+    @DisplayName("Should create a new reencode edit request")
+    void createReencodeEditRequestSuccess() {
+        when(dto.isForceReencode()).thenReturn(true);
+        when(dto.getEditInstructions()).thenReturn(null);
+        when(dto.getSendNotifications()).thenReturn(true);
+        underTest.upsert(dto, mockRecording, mockUser);
+
+        ArgumentCaptor<EditRequest> captor = ArgumentCaptor.forClass(EditRequest.class);
+        verify(editRequestRepository, times(1)).saveAndFlush(captor.capture());
+
+        EditInstructions editInstructions = EditInstructions.tryFromJson(captor.getValue().getEditInstruction());
+
+        assertThat(editInstructions).isNotNull();
+        assertThat(editInstructions.getRequestedInstructions()).isEmpty();
+        assertThat(editInstructions.getFfmpegInstructions()).isEmpty();
+        assertThat(editInstructions.isForceReencode()).isTrue();
+        assertThat(editInstructions.shouldSendNotifications()).isTrue();
+    }
 }

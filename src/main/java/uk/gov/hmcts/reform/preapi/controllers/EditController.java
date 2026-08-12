@@ -13,7 +13,6 @@ import org.springframework.data.web.SortDefault;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,6 +31,7 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -122,7 +122,8 @@ public class EditController extends PreApiController {
             throw new PathPayloadMismatchException("editRequestId", "createEditRequestDTO.id");
         }
 
-        return getUpsertResponse(editRequestService.upsert(createEditRequestDTO), id);
+        editRequestService.upsert(createEditRequestDTO);
+        return getUpsertResponse(UpsertResult.UPDATED, id);
     }
 
     @DeleteMapping("/{id}")
@@ -136,7 +137,7 @@ public class EditController extends PreApiController {
         }
 
         editRequestService.delete(deleteEditRequestDTO);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return getUpsertResponse(UpsertResult.UPDATED, id);
     }
 
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")

@@ -104,9 +104,10 @@ public class EditControllerFT extends FunctionalTestBase {
 
     @Test
     @DisplayName("Should not create an edit with a csv that has unsafe data in fields")
-    void editRequestWithUnsafeDataCsv() throws JsonProcessingException {
+    void editRequestWithUnsafeDataCsv() {
         CreateRecordingResponse recordingDetails = createRecording();
-        RecordingDTO recordingDTO = assertRecordingExists(recordingDetails.recordingId(), true).as(RecordingDTO.class);
+        RecordingDTO recordingDTO = assertRecordingExists(recordingDetails.recordingId(), true)
+            .as(RecordingDTO.class);
 
         when(azureFinalStorageService.getMp4FileName(recordingDetails.recordingId().toString()))
             .thenReturn(recordingDTO.getFilename());
@@ -183,7 +184,7 @@ public class EditControllerFT extends FunctionalTestBase {
             TestingSupportRoles.SUPER_USER
         );
 
-        assertResponseCode(putResponse, 201);
+        assertResponseCode(putResponse, 204);
 
         EditRequestDTO getResponse = doGetRequest(EDIT_ENDPOINT + "/" + editRequestId, TestingSupportRoles.SUPER_USER)
             .as(EditRequestDTO.class);
@@ -223,7 +224,7 @@ public class EditControllerFT extends FunctionalTestBase {
             TestingSupportRoles.SUPER_USER
         );
 
-        assertResponseCode(putResponse, 201);
+        assertResponseCode(putResponse, 204);
 
         EditRequestDTO getResponse = doGetRequest(EDIT_ENDPOINT + "/" + editRequestId, TestingSupportRoles.SUPER_USER)
             .as(EditRequestDTO.class);

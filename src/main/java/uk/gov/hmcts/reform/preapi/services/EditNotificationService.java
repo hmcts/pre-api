@@ -5,11 +5,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
-import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
 @Service
 @Slf4j
@@ -29,44 +28,29 @@ public class EditNotificationService {
             .forEach(u -> emailServiceFactory.getEnabledEmailService().recordingEdited(u, booking.getCaseId()));
     }
 
-    @Transactional
-    public void onEditRequestSubmitted(EditRequest request) {
-        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
-        if (court.getGroupEmail() == null) {
-            log.error("Court {} does not have a group email for sending edit request submission email for request: {}",
-                      court.getId(), request.getId());
+    public void editRequestStatusWasUpdated(EditRequest editRequest) {
+        if (editRequest == null) {
+            log.error("Tried to send email notification about a null edit request");
             return;
         }
 
-        String groupEmail = court.getGroupEmail();
+        if (!isNotifiable(editRequest.getStatus())) {
+            // For other statuses e.g. completed edits, notification is sent by RecordingListener instead
+            log.info("No notification needed for edit request status {}", editRequest.getStatus().name());
+            return;
+        }
 
         try {
-            IEmailService enabledEmailService = emailServiceFactory.getEnabledEmailService();
-
-            if (Boolean.TRUE.equals(request.getJointlyAgreed())) {
-                enabledEmailService.editingJointlyAgreed(groupEmail, request);
-            } else {
-                enabledEmailService.editingNotJointlyAgreed(groupEmail, request);
-            }
+            emailServiceFactory.getEnabledEmailService().sendEmailAboutEditingRequest(editRequest);
         } catch (Exception e) {
             log.error("Error sending email on edit request submission: {}", e.getMessage());
         }
     }
 
-    @Transactional
-    public void onEditRequestRejected(EditRequest request) {
-        Court court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
-        if (court.getGroupEmail() == null) {
-            log.error("Court {} does not have a group email for sending edit request rejection email for request: {}",
-                      court.getId(), request.getId());
-            return;
-        }
-
-        try {
-            emailServiceFactory.getEnabledEmailService().editingRejected(court.getGroupEmail(), request);
-        } catch (Exception e) {
-            log.error("Error sending email on edit request rejection: {}", e.getMessage());
-        }
+    // An email should be sent to counsel when status becomes...
+    // This can be overridden by e.g. EditInstructions.shouldSendNotifications
+    public static boolean isNotifiable(EditRequestStatus status) {
+        return status == EditRequestStatus.REJECTED || status == EditRequestStatus.SUBMITTED;
     }
 
 }

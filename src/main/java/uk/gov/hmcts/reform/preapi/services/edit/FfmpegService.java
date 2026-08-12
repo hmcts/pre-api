@@ -210,16 +210,9 @@ public class FfmpegService implements IEditingService {
     }
 
     @Override
-    public @NotNull EditRequest prepareEditRequestToCreateOrUpdate(final CreateEditRequestDTO dto,
-                                                                   final Recording sourceRecording,
-                                                                   final EditRequest request) {
-        if (dto.isForceReencode()) {
-            String newEditInstruction = toJson(new EditInstructions(
-                List.of(), List.of(), true,
-                shouldSendNotifications(dto)));
-            request.updateEditRequestFromDto(dto, sourceRecording, newEditInstruction);
-            return request;
-        }
+    public @NotNull EditRequest mergeOldAndNewEditInstructions(final CreateEditRequestDTO dto,
+                                                               final Recording sourceRecording,
+                                                               final EditRequest request) {
 
         boolean isOriginalRecordingEdit = sourceRecording.getParentRecording() == null;
 
@@ -254,16 +247,12 @@ public class FfmpegService implements IEditingService {
 
         String newEditInstruction = toJson(new EditInstructions(
             requestedEdits, editInstructions, false,
-            shouldSendNotifications(dto)
+            dto.getSendNotifications()
         ));
 
         request.updateEditRequestFromDto(dto, recordingForUpdatedEdit, newEditInstruction);
 
         return request;
-    }
-
-    private boolean shouldSendNotifications(CreateEditRequestDTO dto) {
-        return !Boolean.FALSE.equals(dto.getSendNotifications());
     }
 
     // Should be private but leaving as protected to avoid rewriting tests

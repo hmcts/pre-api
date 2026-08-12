@@ -28,7 +28,7 @@ class RecordingControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Restore recording")
     @Test
     void undeleteRecording() {
-        var recordingDetails = createRecording();
+        CreateRecordingResponse recordingDetails = createRecording();
         assertRecordingExists(recordingDetails.recordingId(), true);
 
         var deleteResponse =

@@ -8,19 +8,22 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchEditRequests;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -148,19 +151,21 @@ public class EditRequestServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    public void upsertWithEmptyInstructionsShouldDeleteEditRequest() {
+    public void upsertDraftWithEmptyInstructionsShouldDeleteEditRequestInstructions() {
         var recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
+        recording.setDuration(Duration.ofHours(1));
         entityManager.persist(recording);
 
         when(azureFinalStorageService.getRecordingDuration(recording.getId())).thenReturn(recording.getDuration());
         when(azureFinalStorageService.getMp4FileName(recording.getId().toString())).thenReturn("filename");
 
         UUID editRequestId = UUID.randomUUID();
+        String editInstructions = "{\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]}";
         var editRequest = HelperFactory.createEditRequest(
             editRequestId,
             recording,
-            "{\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]}",
-            EditRequestStatus.PENDING,
+            editInstructions,
+            EditRequestStatus.DRAFT,
             user,
             null,
             null,
@@ -173,19 +178,33 @@ public class EditRequestServiceIT extends IntegrationTestBase {
 
         SearchEditRequests paramsForExistingEditRequest = new SearchEditRequests();
         paramsForExistingEditRequest.setSourceRecordingId(recording.getId());
-        var requests1 = editRequestService.findAll(paramsForExistingEditRequest, Pageable.unpaged()).toList();
+        List<EditRequestDTO> requests1 = editRequestService.findAll(paramsForExistingEditRequest,
+                                                                    Pageable.unpaged()).toList();
         assertThat(requests1).hasSize(1);
         assertThat(requests1.getFirst().getId()).isEqualTo(editRequest.getId());
+        List<FfmpegEditInstructionDTO> ffmpegInstructions = requests1.getFirst()
+            .getEditInstruction().getFfmpegInstructions();
+        assertThat(ffmpegInstructions.getFirst().getStart())
+            .isEqualTo(0);
+        assertThat(ffmpegInstructions.getFirst().getEnd())
+            .isEqualTo(60);
+        assertThat(ffmpegInstructions.get(1).getStart())
+            .isEqualTo(120);
+        assertThat(ffmpegInstructions.get(1).getEnd())
+            .isEqualTo(180);
 
         CreateEditRequestDTO upsertRequest = new CreateEditRequestDTO();
         upsertRequest.setSourceRecordingId(recording.getId());
         upsertRequest.setId(editRequestId);
+        upsertRequest.setStatus(EditRequestStatus.DRAFT);
         upsertRequest.setEditInstructions(new ArrayList<>()); // Intentionally empty
 
-        UpsertResult upsertResult = editRequestService.upsert(upsertRequest);
-        assertThat(upsertResult).isEqualTo(UpsertResult.UPDATED);
+        editRequestService.upsert(upsertRequest);
 
-        var requests2 = editRequestService.findAll(paramsForExistingEditRequest, Pageable.unpaged()).toList();
-        assertThat(requests2).isEmpty();
+        List<EditRequestDTO> requests2 = editRequestService.findAll(paramsForExistingEditRequest,
+                                                                    Pageable.unpaged()).toList();
+        assertThat(requests2).hasSize(1);
+        assertThat(requests2.getFirst().getId()).isEqualTo(editRequest.getId());
+        assertThat(requests2.getFirst().getEditInstruction().getFfmpegInstructions()).isEmpty();
     }
 }

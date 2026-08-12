@@ -10,7 +10,6 @@ import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
@@ -28,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -161,9 +161,9 @@ class ReEncodeRecordingsFromCsvTest {
             %s,
             %s,CASE-456
             """.formatted(failingRecordingId, successfulRecordingId));
-        when(editRequestService.upsert(any(CreateEditRequestDTO.class)))
-            .thenThrow(new IllegalStateException("failed"))
-            .thenReturn(UpsertResult.CREATED);
+
+        doThrow(new IllegalStateException("failed"))
+            .when(editRequestService).upsert(any(CreateEditRequestDTO.class));
 
         task(csv, false).run();
 
