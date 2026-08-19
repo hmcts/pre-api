@@ -13,7 +13,7 @@ public class PortalAppAccessValidator
 
     private final RoleRepository roleRepository;
 
-    private static final String PORTAL_ROLE_NAME = "Level 3";
+    public static final String PORTAL_ROLE_NAME = "Level 3";
 
     @Autowired
     public PortalAppAccessValidator(final RoleRepository roleRepository) {

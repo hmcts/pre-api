@@ -45,7 +45,7 @@ public class TermsAndConditionsServiceCutoffUsedIT extends IntegrationTestBase {
         entityManager.clear();
 
         TermsAndConditionsDTO result =
-            termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP);
+            termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
 
         assertThat(result.getId()).isEqualTo(termsCreatedBeforeCutoff.getId());
         assertThat(result.getCreatedAt())
@@ -75,7 +75,7 @@ public class TermsAndConditionsServiceCutoffUsedIT extends IntegrationTestBase {
         entityManager.clear();
 
         TermsAndConditionsDTO result
-            = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+            = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
 
         assertThat(result.getCreatedAt())
             .isAfter(java.sql.Timestamp.valueOf(LocalDate.of(2026, 7, 15).atStartOfDay()));

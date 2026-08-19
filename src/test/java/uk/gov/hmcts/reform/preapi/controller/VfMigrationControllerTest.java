@@ -353,7 +353,7 @@ public class VfMigrationControllerTest {
         createDto.setWitnessName("witness-name");
         createDto.setCourtId(UUID.randomUUID());
         createDto.setRecordingVersion(VfMigrationRecordingVersion.ORIG);
-    
+
         when(migrationRecordService.update(any(CreateVfMigrationRecordDTO.class))).thenReturn(UpsertResult.UPDATED);
 
         mockMvc.perform(put("/vf-migration-records/" + mockId)
@@ -361,7 +361,7 @@ public class VfMigrationControllerTest {
                         .content(OBJECT_MAPPER.writeValueAsString(createDto))
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNoContent()); 
+            .andExpect(status().isNoContent());
     }
 
     @Test
@@ -394,7 +394,7 @@ public class VfMigrationControllerTest {
         UUID mockId = UUID.randomUUID();
         CreateVfMigrationRecordDTO createDto = new CreateVfMigrationRecordDTO();
         createDto.setId(mockId);
-        createDto.setStatus(VfMigrationStatus.READY); 
+        createDto.setStatus(VfMigrationStatus.READY);
         createDto.setUrn("URN1234567");
         createDto.setExhibitReference("EX");
         createDto.setDefendantName("defendant-name");
@@ -409,7 +409,7 @@ public class VfMigrationControllerTest {
                         .content(OBJECT_MAPPER.writeValueAsString(createDto))
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNoContent()); 
+            .andExpect(status().isNoContent());
     }
 
     @Test
@@ -418,7 +418,7 @@ public class VfMigrationControllerTest {
         UUID mockId = UUID.randomUUID();
         CreateVfMigrationRecordDTO createDto = new CreateVfMigrationRecordDTO();
         createDto.setId(mockId);
-        createDto.setStatus(VfMigrationStatus.READY); 
+        createDto.setStatus(VfMigrationStatus.READY);
         createDto.setUrn("URN1234567");
         createDto.setExhibitReference("EXHIBIT12345678901234567890");
         createDto.setDefendantName("defendant-name");
@@ -432,7 +432,7 @@ public class VfMigrationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.exhibitReference").value("length must be between 0 and 11")); 
+            .andExpect(jsonPath("$.exhibitReference").value("length must be between 0 and 11"));
     }
 
     @Test

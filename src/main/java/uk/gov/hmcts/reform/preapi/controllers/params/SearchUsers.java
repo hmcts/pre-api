@@ -8,6 +8,8 @@ import java.util.UUID;
 @Data
 public class SearchUsers {
     private String name;
+    private String firstName;
+    private String lastName;
     private String email;
     private String organisation;
     private UUID courtId;
@@ -18,6 +20,14 @@ public class SearchUsers {
 
     public String getName() {
         return name != null && !name.isEmpty() ? name : null;
+    }
+
+    public String getFirstName() {
+        return firstName != null && !firstName.isEmpty() ? firstName : null;
+    }
+
+    public String getLastName() {
+        return lastName != null && !lastName.isEmpty() ? lastName : null;
     }
 
     public String getEmail() {

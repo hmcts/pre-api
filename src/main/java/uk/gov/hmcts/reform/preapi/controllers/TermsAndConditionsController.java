@@ -34,7 +34,8 @@ public class TermsAndConditionsController {
         summary = "Get the latest terms and conditions for the app"
     )
     public ResponseEntity<TermsAndConditionsDTO> getLatestAppTermsAndConditions() {
-        return ResponseEntity.ok(termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP));
+        return ResponseEntity.ok(termsAndConditionsService
+                                     .getLatestTermsAndConditionsByType(TermsAndConditionsType.APP));
     }
 
     @GetMapping("/portal-terms-and-conditions/latest")
@@ -43,7 +44,8 @@ public class TermsAndConditionsController {
         summary = "Get the latest terms and conditions for the portal"
     )
     public ResponseEntity<TermsAndConditionsDTO> getLatestPortalTermsAndConditions() {
-        return ResponseEntity.ok(termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL));
+        return ResponseEntity.ok(termsAndConditionsService
+                                     .getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL));
     }
 
     @PostMapping("/accept-terms-and-conditions/{termsId}")
