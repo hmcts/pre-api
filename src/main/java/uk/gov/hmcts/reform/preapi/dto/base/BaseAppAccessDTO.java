@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.dto.base;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.UUID;
 @Schema(description = "BaseAppAccessDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class BaseAppAccessDTO {
+    @Hidden
     @Schema(description = "AppAccessId")
     protected UUID id;
 
