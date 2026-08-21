@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -17,8 +18,8 @@ import java.util.UUID;
 @Schema(description = "PortalAccessDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class PortalAccessDTO {
-    @Hidden
-    @Schema(description = "PortalAccessId")
+    // LER TODO: Add tests for portal access ID hidden
+    @JsonIgnore
     private UUID id;
 
     @Schema(description = "PortalAccessLastAccess")
