@@ -14,14 +14,19 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -94,10 +99,57 @@ public class UserControllerTest {
         when(userService.findById(userId)).thenReturn(mockUser);
 
 
-        mockMvc.perform(get("/users/" + userId))
+        MvcResult result = mockMvc.perform(get("/users/" + userId))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(userId.toString()));
+            .andExpect(jsonPath("$.id").value(userId.toString()))
+            .andReturn();
+
+        result.getResponse().getContentAsString();
+    }
+
+    @DisplayName("Should not display user's app access ID")
+    @Test
+    void doNotDisplayAppAccessIdForGetUser() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UserDTO user = new UserDTO();
+        user.setId(userId);
+
+        CourtDTO court = new CourtDTO();
+        court.setId(UUID.randomUUID());
+        court.setName("Example Court");
+
+        RoleDTO role = new RoleDTO();
+        role.setId(UUID.randomUUID());
+        role.setName("Example Role");
+
+        BaseAppAccessDTO access1 = new BaseAppAccessDTO();
+        access1.setId(UUID.randomUUID());
+        access1.setCourt(court);
+        access1.setRole(role);
+        access1.setActive(true);
+
+        BaseAppAccessDTO access2 = new BaseAppAccessDTO();
+        access2.setId(UUID.randomUUID());
+        access2.setCourt(court);
+        access2.setRole(role);
+        access2.setActive(true);
+
+        user.setAppAccess(List.of(access1, access2));
+
+        when(userService.findById(userId)).thenReturn(user);
+
+        MvcResult result = mockMvc.perform(get("/users/" + userId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(userId.toString()))
+            .andExpect(jsonPath("$.app_access[0].court.name").value("Example Court"))
+            .andExpect(jsonPath("$.app_access[1].role.name").value("Example Role"))
+            .andExpect(jsonPath("$.app_access[0].id").doesNotExist())
+            .andExpect(jsonPath("$.app_access[1].id").doesNotExist())
+            .andReturn();
+
+        System.out.println(result.getResponse().getContentAsString());
     }
 
     @DisplayName("Should return 404 when trying to get non-existing user")
