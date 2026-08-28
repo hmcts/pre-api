@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
@@ -16,9 +17,11 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UserControllerFT extends FunctionalTestBase {
@@ -244,7 +247,15 @@ class UserControllerFT extends FunctionalTestBase {
         var responseActiveTrue =
             doGetRequest(USERS_ENDPOINT + "?appActive=true&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveTrue, 200);
-        assertThat(responseActiveTrue.body().jsonPath().getUUID("_embedded.userDTOList[0].id")).isEqualTo(user.getId());
+        assertThat(responseActiveTrue.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
+            .isEqualTo(user.getId());
+
+        // AppAccess ID should be hidden
+        String firstAppAccessPath = "_embedded.userDTOList[0].app_access[0]";
+        assertThat(responseActiveTrue.body().jsonPath()
+                       .getString(firstAppAccessPath + ".court.name")).isEqualTo(court1.getName());
+        assertThat(responseActiveTrue.body().jsonPath()
+                       .getString(firstAppAccessPath + ".id")).isEqualTo(null);
 
         // app access for court is active
         var responseActiveTrueByCourt = doGetRequest(
@@ -304,9 +315,61 @@ class UserControllerFT extends FunctionalTestBase {
             .isEqualTo(0);
     }
 
+    @DisplayName("App access ID should be hidden on all endpoints")
+    @Test
+    void appAccessIdShouldBeHiddenOnAllEndpoints() throws JsonProcessingException {
+        CreateUserDTO user = createUserDto();
+        UUID roleId = createRole();
+        CreateCourtDTO court1 = createCourt();
+        CreateAppAccessDTO access1 = createAppAccessDto(user.getId(), court1.getId(), roleId);
+        user.setAppAccess(Set.of(access1));
+        user.setEmail("lorem.ipsum@email.com");
+
+        putCourt(court1);
+        assertCourtExists(court1.getId(), true);
+
+        putUser(user);
+        assertUserExists(user.getId(), true);
+
+        // GET all users
+        // LER TODO: Sort out this path
+        checkUserAccessIdHidden(
+            USERS_ENDPOINT,
+            format("._embedded.userDTOList[?(@.id=='%s')].app_access[0]", user.getId()));
+
+        // GET individual user
+        checkUserAccessIdHidden(
+            USERS_ENDPOINT + "/" + user.getId(),
+            "app_access[0]");
+
+        // GET individual user by email
+        checkUserAccessIdHidden(
+            USERS_ENDPOINT + "/by-email/" + user.getEmail().toLowerCase(Locale.UK),
+            "app_access[0]");
+    }
+
+    private void checkUserAccessIdHidden(final String requestUrl,
+                                         final String appAccessPath) {
+
+        Response responseGetOneUserByEmail = doGetRequest(requestUrl, TestingSupportRoles.SUPER_USER);
+
+        assertResponseCode(responseGetOneUserByEmail, 200);
+
+        // Just a sanity check to ensure app access is not null
+        assertThat(responseGetOneUserByEmail.body().jsonPath()
+                       .getString(appAccessPath + ".court.name"))
+            .isEqualTo("Example Court");
+
+        assertThat(responseGetOneUserByEmail.body().jsonPath()
+                       .getString(appAccessPath + ".id"))
+            .isEqualTo(null);
+
+    }
+
+
     @DisplayName("Scenario: Should not create/update a user with un-sanitised data")
     @Test
-    void shouldNoCreateUserWithUnsafeData() throws JsonProcessingException {
+    void shouldNotCreateUserWithUnsafeData() throws JsonProcessingException {
         var dto = createUserDto();
         dto.setOrganisation("<script>alert(1)</script>");
         dto.setFirstName("<br>First</br>");

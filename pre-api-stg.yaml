@@ -163,10 +163,6 @@ definitions:
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
       last_access:
         description: AppAccessLastAccess
         format: date-time
@@ -2335,10 +2331,6 @@ definitions:
       deleted_at:
         description: PortalAccessDeletedAt
         format: date-time
-        type: string
-      id:
-        description: PortalAccessId
-        format: uuid
         type: string
       invited_at:
         description: PortalAccessInvitedAt
