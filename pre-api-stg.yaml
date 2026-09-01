@@ -163,10 +163,6 @@ definitions:
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
       last_access:
         description: AppAccessLastAccess
         format: date-time
