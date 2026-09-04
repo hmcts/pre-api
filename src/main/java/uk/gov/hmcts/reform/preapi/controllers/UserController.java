@@ -172,10 +172,16 @@ public class UserController extends PreApiController {
             throw new PathPayloadMismatchException("userId", "createUserDTO.appAccess[].userId");
         }
 
-        // Prevent ROLE_LEVEL_1 users from uplifting to ROLE_SUPER_USER
+        // User who submitted request: counted as Super User if they are superuser anywhere
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.hasRole("ROLE_LEVEL_1") && !auth.hasRole("ROLE_SUPER_USER")) {
-            boolean hasSuperUserRole = createUserDTO.getAppAccess()
+        UserDTO user = userService.findById(auth.getUserId());
+        boolean requestingUserIsSuperUser = user.getAppAccess().stream()
+            .anyMatch(appAccess -> appAccess.isActive()
+                && appAccess.getRole().getName().equals("Super User"));
+
+        // Prevent ROLE_LEVEL_1 users from editing superusers
+        if (!requestingUserIsSuperUser) {
+            boolean inputSuperUserRole = createUserDTO.getAppAccess()
                 .stream()
                 .map(CreateAppAccessDTO::getRoleId)
                 .anyMatch(roleId -> {
@@ -183,12 +189,12 @@ public class UserController extends PreApiController {
                     return "Super User".equals(role.getName());
                 });
 
-            if (hasSuperUserRole) {
-                throw new ForbiddenException("ROLE_LEVEL_1 users cannot assign ROLE_SUPER_USER");
+            if (inputSuperUserRole) {
+                throw new ForbiddenException("Level 1 users cannot edit a super user");
             }
         }
 
-        return getUpsertResponse(userService.upsert(createUserDTO), userId);
+        return getUpsertResponse(userService.upsert(createUserDTO, requestingUserIsSuperUser), userId);
     }
 
     @DeleteMapping("/{userId}")
