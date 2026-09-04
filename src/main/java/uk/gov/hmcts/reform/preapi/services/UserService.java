@@ -133,6 +133,11 @@ public class UserService {
 
     @Transactional
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
+        return upsert(createUserDTO, false);
+    }
+
+    @Transactional
+    public UpsertResult upsert(CreateUserDTO createUserDTO, boolean requestedBySuperUser) {
         Optional<User> user = userRepository.findById(createUserDTO.getId());
 
         boolean isUpdate = user.isPresent();
@@ -151,7 +156,6 @@ public class UserService {
         });
 
         User entity = user.orElse(new User());
-        entity.setId(createUserDTO.getId());
         entity.setFirstName(createUserDTO.getFirstName());
         entity.setLastName(createUserDTO.getLastName());
         entity.setEmail(createUserDTO.getEmail());
@@ -161,25 +165,30 @@ public class UserService {
         userRepository.saveAndFlush(entity);
 
         if (isUpdate) {
+            // Find existing app access that should be deleted
             Stream.ofNullable(entity.getAppAccess())
                 .flatMap(Collection::stream)
                 .filter(appAccess -> appAccess.getDeletedAt() == null)
-                .map(AppAccess::getId)
-                .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
-                    .noneMatch(newAccessId -> newAccessId.equals(id)))
-                .forEach(appAccessService::deleteById);
+                .map(AppAccess::getCourt)
+                .filter(existingCourt ->
+                    createUserDTO.getAppAccess().stream()
+                        .map(CreateAppAccessDTO::getCourtId)
+                        .noneMatch(inputCourtId -> inputCourtId.equals(existingCourt.getId()))
+                )
+                .forEach(existingCourt ->
+                             appAccessService.deleteByUserIdAndCourtId(entity.getId(), existingCourt.getId()));
 
             Stream.ofNullable(entity.getPortalAccess())
                 .flatMap(Collection::stream)
+                .filter(portalAccess -> portalAccess.getDeletedAt() == null)
                 .map(PortalAccess::getId)
-                .filter(id -> createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId)
-                    .noneMatch(newAccessId -> newAccessId.equals(id)))
                 .forEach(portalAccessService::deleteById);
 
             createUserDTO.getPortalAccess().forEach(portalAccessService::update);
         }
 
-        createUserDTO.getAppAccess().forEach(appAccessService::upsert);
+        createUserDTO.getAppAccess().forEach(appAccess ->
+                                                 appAccessService.upsert(appAccess, requestedBySuperUser));
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }

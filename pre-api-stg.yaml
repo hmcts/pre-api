@@ -163,10 +163,6 @@ definitions:
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
       last_access:
         description: AppAccessLastAccess
         format: date-time
@@ -614,10 +610,6 @@ definitions:
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
       last_active:
         description: AppAccessLastActive
         format: date-time
@@ -632,7 +624,6 @@ definitions:
         type: string
     required:
       - court_id
-      - id
       - role_id
       - user_id
     type: object

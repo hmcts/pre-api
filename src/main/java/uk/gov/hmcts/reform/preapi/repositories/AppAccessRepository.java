@@ -38,4 +38,15 @@ public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
         """
     )
     List<AppAccess> getUserPrimaryCourtsForReport();
+
+    @Query(
+        """
+        SELECT a FROM AppAccess a
+        WHERE a.user.id = :userId
+        AND a.user.deletedAt IS NULL
+        AND a.court.id = :court
+        """
+    )
+    Optional<AppAccess> findByCourtIdIsAndUserIs(UUID courtId, UUID userId);
+
 }

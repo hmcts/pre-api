@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.dto.base;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,7 +18,7 @@ import java.util.UUID;
 @Schema(description = "BaseAppAccessDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class BaseAppAccessDTO {
-    @Schema(description = "AppAccessId")
+    @JsonIgnore
     protected UUID id;
 
     @Schema(description = "AppAccessCourt")

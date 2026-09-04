@@ -11,7 +11,6 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
@@ -45,25 +44,35 @@ public class AppAccessService {
 
     @Transactional
     public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
-        Optional<AppAccess> appAccess = appAccessRepository
-            .findById(createAppAccessDTO.getId());
+        return upsert(createAppAccessDTO, false);
+    }
 
-        if (appAccess.isPresent() && appAccess.get().isDeleted()) {
-            throw new ResourceInDeletedStateException("AppAccessDTO", createAppAccessDTO.getId().toString());
+    @Transactional
+    public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO, boolean requestedBySuperUser) {
+        Optional<AppAccess> appAccess = appAccessRepository
+            .findByCourtIdIsAndUserIs(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId());
+
+        AppAccess entity;
+        if (appAccess.isPresent()) {
+            entity = appAccess.get();
+        } else {
+            entity = new AppAccess();
+            entity.setId(UUID.randomUUID());
+
+            User user = userRepository.findByIdAndDeletedAtIsNull(createAppAccessDTO.getUserId())
+                .orElseThrow(() -> new NotFoundException("User: " + createAppAccessDTO.getUserId()));
+            entity.setUser(user);
+
+            Court court = courtRepository.findById(createAppAccessDTO.getCourtId())
+                .orElseThrow(() -> new NotFoundException("Court: " + createAppAccessDTO.getCourtId()));
+            entity.setCourt(court);
         }
 
-        User user = userRepository.findByIdAndDeletedAtIsNull(createAppAccessDTO.getUserId())
-            .orElseThrow(() -> new NotFoundException("User: " + createAppAccessDTO.getUserId()));
-        Court court = courtRepository.findById(createAppAccessDTO.getCourtId())
-            .orElseThrow(() -> new NotFoundException("Court: " + createAppAccessDTO.getCourtId()));
         Role role = roleRepository.findById(createAppAccessDTO.getRoleId())
             .orElseThrow(() -> new NotFoundException("Role: " + createAppAccessDTO.getRoleId()));
 
-        AppAccess entity = appAccess.orElse(new AppAccess());
-        entity.setId(createAppAccessDTO.getId());
-        entity.setUser(user);
-        entity.setCourt(court);
         entity.setRole(role);
+
         // TODO remove if statement when uncommented @NotNull on CreateAppAccessDTO.courtAccessType
         if (createAppAccessDTO.getDefaultCourt() == null) {
             createAppAccessDTO.setDefaultCourt(true);
@@ -74,6 +83,12 @@ public class AppAccessService {
             entity.setActive(createAppAccessDTO.getActive());
         }
         entity.setLastAccess(createAppAccessDTO.getLastActive());
+
+        // Enables superuser to reset app access ID if compromised
+        if (requestedBySuperUser) {
+            entity.setId(createAppAccessDTO.getId());
+        }
+
         appAccessRepository.save(entity);
 
         return appAccess.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
@@ -83,6 +98,18 @@ public class AppAccessService {
     public void deleteById(UUID appId) {
         appAccessRepository
             .findById(appId)
+            .ifPresent(
+                access -> {
+                    access.setActive(false);
+                    access.setDeletedAt(Timestamp.from(Instant.now()));
+                    appAccessRepository.save(access);
+                });
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void deleteByUserIdAndCourtId(UUID userId, UUID courtId) {
+        appAccessRepository
+            .findByCourtIdIsAndUserIs(courtId, userId)
             .ifPresent(
                 access -> {
                     access.setActive(false);
