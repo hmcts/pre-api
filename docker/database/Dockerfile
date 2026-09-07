@@ -1,4 +1,5 @@
 FROM postgres:18.0-alpine
+USER pre
 
 COPY init-db.sh /docker-entrypoint-initdb.d
 
