@@ -133,11 +133,6 @@ public class UserService {
 
     @Transactional
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
-        return upsert(createUserDTO, false);
-    }
-
-    @Transactional
-    public UpsertResult upsert(CreateUserDTO createUserDTO, boolean requestedBySuperUser) {
         Optional<User> user = userRepository.findById(createUserDTO.getId());
 
         boolean isUpdate = user.isPresent();
@@ -187,8 +182,7 @@ public class UserService {
             createUserDTO.getPortalAccess().forEach(portalAccessService::update);
         }
 
-        createUserDTO.getAppAccess().forEach(appAccess ->
-                                                 appAccessService.upsert(appAccess, requestedBySuperUser));
+        createUserDTO.getAppAccess().forEach(appAccessService::upsert);
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }

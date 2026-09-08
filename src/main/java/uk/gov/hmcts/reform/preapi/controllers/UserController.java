@@ -194,7 +194,7 @@ public class UserController extends PreApiController {
             }
         }
 
-        return getUpsertResponse(userService.upsert(createUserDTO, requestingUserIsSuperUser), userId);
+        return getUpsertResponse(userService.upsert(createUserDTO), userId);
     }
 
     @DeleteMapping("/{userId}")
