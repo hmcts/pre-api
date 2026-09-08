@@ -31,6 +31,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -51,6 +52,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.core.context.SecurityContextHolder.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -1106,15 +1108,15 @@ public class UserControllerTest {
         when(userService.getRoleById(superUserRoleId)).thenReturn(superUserRole);
 
         // Create mock authentication for ROLE_LEVEL_1 (without ROLE_SUPER_USER)
-        var mockAuth = mock(uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication.class);
+        var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
         when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(false);
+        when(mockAuth.getUserId()).thenReturn(userId);
 
         mockMvc.perform(put("/users/" + userId)
                             .with(csrf())
                             .with(request -> {
-                                org.springframework.security.core.context.SecurityContextHolder
-                                    .getContext()
+                                getContext()
                                     .setAuthentication(mockAuth);
                                 return request;
                             })
@@ -1155,7 +1157,7 @@ public class UserControllerTest {
         when(userService.getRoleById(superUserRoleId)).thenReturn(superUserRole);
 
         // Create mock authentication for ROLE_SUPER_USER
-        var mockAuth = mock(uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication.class);
+        var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
         when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
 
@@ -1164,9 +1166,7 @@ public class UserControllerTest {
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
                                                  .with(request -> {
-                                                     org.springframework.security.core.context.SecurityContextHolder
-                                                         .getContext()
-                                                         .setAuthentication(mockAuth);
+                                                     getContext().setAuthentication(mockAuth);
                                                      return request;
                                                  })
                                                  .content(OBJECT_MAPPER.writeValueAsString(user))
