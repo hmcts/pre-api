@@ -212,4 +212,12 @@ public class UserController extends PreApiController {
         userService.undelete(userId);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping("/{userId}/reset-app-access-ids")
+    @Operation(operationId = "resetAppAccessIds", summary = "Reset App Access IDs for a User")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> resetAppAccessIds(@PathVariable UUID userId) {
+        userService.resetAppAccessIdsForUserId(userId);
+        return ResponseEntity.ok().build();
+    }
 }

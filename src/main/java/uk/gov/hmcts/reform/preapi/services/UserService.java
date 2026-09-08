@@ -312,4 +312,9 @@ public class UserService {
     public Page<UserDTO> findPortalUsersWithCjsmEmail(Pageable pageable) {
         return userRepository.findPortalUsersWithCjsmEmail(pageable).map(user -> new UserDTO(user, null));
     }
+
+    @Transactional
+    public void resetAppAccessIdsForUserId(UUID userId) {
+        appAccessService.resetAppAccessIDsForUserId(userId);
+    }
 }

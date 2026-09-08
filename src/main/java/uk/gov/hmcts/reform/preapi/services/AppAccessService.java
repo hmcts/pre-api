@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,11 +45,6 @@ public class AppAccessService {
 
     @Transactional
     public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
-        return upsert(createAppAccessDTO, false);
-    }
-
-    @Transactional
-    public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO, boolean requestedBySuperUser) {
         Optional<AppAccess> appAccess = appAccessRepository
             .findByCourtIdIsAndUserIs(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId());
 
@@ -84,14 +80,19 @@ public class AppAccessService {
         }
         entity.setLastAccess(createAppAccessDTO.getLastActive());
 
-        // Enables superuser to reset app access ID if compromised
-        if (requestedBySuperUser) {
-            entity.setId(createAppAccessDTO.getId());
-        }
-
         appAccessRepository.save(entity);
 
         return appAccess.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void resetAppAccessIDsForUserId(UUID userId) {
+        // Enables superuser to reset app access ID if compromised
+        appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+            .forEach(access -> {
+                access.setId(UUID.randomUUID());
+                appAccessRepository.save(access);
+            });
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
