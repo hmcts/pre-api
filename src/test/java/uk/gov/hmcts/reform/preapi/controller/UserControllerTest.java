@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -35,6 +36,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -61,6 +63,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.hmcts.reform.preapi.enums.RoleType.ROLE_LEVEL_1;
+import static uk.gov.hmcts.reform.preapi.enums.RoleType.ROLE_SUPER_USER;
+import static uk.gov.hmcts.reform.preapi.util.HelperFactory.getMockAuth;
+import static uk.gov.hmcts.reform.preapi.util.HelperFactory.mockUserFromDatabase;
 
 @WebMvcTest(UserController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -84,9 +90,37 @@ public class UserControllerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
 
+    private static final UUID level1UserId = UUID.randomUUID();
+    private static final UUID superUserId = UUID.randomUUID();
+
+    private static final UserAuthentication level1RequesterAuth = getMockAuth(ROLE_LEVEL_1, level1UserId);
+    private static final UserDTO level1UserDTO = mockUserFromDatabase(ROLE_LEVEL_1, level1UserId);
+
+    private static final Role mockSuperUserRole = mock(Role.class);
+    private static final Role mockLevel1Role = mock(Role.class);
+
     @BeforeAll
     static void setUp() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+    }
+
+    @BeforeEach
+    void setUpMocks(){
+
+        when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
+
+        UserDTO superUserDTO = mockUserFromDatabase(ROLE_SUPER_USER, superUserId);
+        when(userService.findById(superUserDTO.getId())).thenReturn(superUserDTO);
+
+        when(mockSuperUserRole.getId()).thenReturn(UUID.randomUUID());
+        when(mockSuperUserRole.getName()).thenReturn(ROLE_SUPER_USER.name());
+        when(userService.getRoleById(superUserDTO.getAppAccess().getFirst().getRole().getId()))
+            .thenReturn(mockSuperUserRole);
+        when(userService.getRoleById(mockSuperUserRole.getId())).thenReturn(mockSuperUserRole);
+
+        when(mockLevel1Role.getName()).thenReturn(ROLE_LEVEL_1.name());
+        when(userService.getRoleById(level1UserDTO.getAppAccess().getFirst().getRole().getId()))
+            .thenReturn(mockLevel1Role);
     }
 
     @DisplayName("Should get user by id with 200 response code")
@@ -1079,54 +1113,93 @@ public class UserControllerTest {
         return appAccess;
     }
 
-    @DisplayName("Should prevent ROLE_LEVEL_1 from assigning ROLE_SUPER_USER with 403 response code")
+    @DisplayName("Should prevent Level 1 users from assigning superuser access to anyone, or editing superusers")
     @Test
-    void upsertUserLevel1CannotAssignSuperUser() throws Exception {
-        var userId = UUID.randomUUID();
-
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-
-        var superUserRoleId = UUID.randomUUID();
-        var appAccess = new CreateAppAccessDTO();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setUserId(userId);
-        appAccess.setCourtId(UUID.randomUUID());
-        appAccess.setRoleId(superUserRoleId);
-        appAccess.setDefaultCourt(true);
-
-        user.setAppAccess(Set.of(appAccess));
-        user.setPortalAccess(Set.of());
-
-        // Mock the role as Super User
-        var superUserRole = new Role();
-        superUserRole.setId(superUserRoleId);
-        superUserRole.setName("Super User");
-        when(userService.getRoleById(superUserRoleId)).thenReturn(superUserRole);
-
-        // Create mock authentication for ROLE_LEVEL_1 (without ROLE_SUPER_USER)
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
-        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(false);
-        when(mockAuth.getUserId()).thenReturn(userId);
-
-        mockMvc.perform(put("/users/" + userId)
+    void upsertUserLevel1CannotEditOrAssignSuperUsers() throws Exception {
+        // Test 1: Level 1 cannot edit user with existing superuser access
+        CreateUserDTO superUserToBeUpserted = HelperFactory.createUserWithAppAccess(superUserId);
+        mockMvc.perform(put("/users/" + superUserToBeUpserted.getId())
                             .with(csrf())
                             .with(request -> {
                                 getContext()
-                                    .setAuthentication(mockAuth);
+                                    .setAuthentication(level1RequesterAuth);
                                 return request;
                             })
-                            .content(OBJECT_MAPPER.writeValueAsString(user))
+                            .content(OBJECT_MAPPER.writeValueAsString(superUserToBeUpserted))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message")
-                           .value("ROLE_LEVEL_1 users cannot assign ROLE_SUPER_USER"));
+                           .value("Level 1 users cannot edit Super Users"));
+
+        // Test 2: Level 1 user cannot uplift Level 1 user to superuser access
+        // Upserted user is an existing Level 1 user
+        CreateUserDTO level1UserToBeUpserted = HelperFactory.createUserWithAppAccess(level1UserId);
+        when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
+
+        // Change the role of the upserted user to superuser in the request body
+        level1UserToBeUpserted.getAppAccess().iterator().next()
+            .setRoleId(mockSuperUserRole.getId());
+
+        mockMvc.perform(put("/users/" + level1UserToBeUpserted.getId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext()
+                                    .setAuthentication(level1RequesterAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(level1UserToBeUpserted))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message")
+                           .value("Level 1 users cannot uplift to superuser access"));
     }
+
+    @DisplayName("Should allow super users to assign superuser access to anyone and edit superusers")
+    @Test
+    void upsertSuperUserCanEditOrAssignSuperUsers() throws Exception {
+        // Set up
+        UserAuthentication superUserAuth = getMockAuth(ROLE_SUPER_USER, superUserId);
+
+        when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.UPDATED);
+
+        // Test 1: Super user can edit user with existing superuser access
+        CreateUserDTO superUserToBeUpserted = HelperFactory.createUserWithAppAccess(superUserId);
+        mockMvc.perform(put("/users/" + superUserToBeUpserted.getId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext()
+                                    .setAuthentication(superUserAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(superUserToBeUpserted))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is2xxSuccessful());
+
+        // Test 2: Super user can uplift Level 1 user to superuser access
+        // Upserted user is an existing Level 1 user
+        CreateUserDTO level1UserToBeUpserted = HelperFactory.createUserWithAppAccess(level1UserId);
+        when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
+
+        // Change the role of the upserted user to superuser in the request body
+        level1UserToBeUpserted.getAppAccess().iterator().next()
+            .setRoleId(mockSuperUserRole.getId());
+
+        mockMvc.perform(put("/users/" + level1UserToBeUpserted.getId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext()
+                                    .setAuthentication(superUserAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(level1UserToBeUpserted))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is2xxSuccessful());
+    }
+
 
     @DisplayName("Should allow ROLE_SUPER_USER to assign any role including ROLE_SUPER_USER with 201 response code")
     @Test

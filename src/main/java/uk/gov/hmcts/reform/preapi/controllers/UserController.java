@@ -31,6 +31,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
+import uk.gov.hmcts.reform.preapi.enums.RoleType;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -167,8 +168,7 @@ public class UserController extends PreApiController {
         if (createUserDTO.getAppAccess()
             .stream()
             .map(CreateAppAccessDTO::getUserId)
-            .anyMatch(id -> !id.equals(userId))
-        ) {
+            .anyMatch(id -> !id.equals(userId))) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.appAccess[].userId");
         }
 
@@ -177,20 +177,28 @@ public class UserController extends PreApiController {
         UserDTO user = userService.findById(auth.getUserId());
         boolean requestingUserIsSuperUser = user.getAppAccess().stream()
             .anyMatch(appAccess -> appAccess.isActive()
-                && appAccess.getRole().getName().equals("Super User"));
+                && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
 
-        // Prevent ROLE_LEVEL_1 users from editing superusers
         if (!requestingUserIsSuperUser) {
+            boolean upsertedUserIsSuperUser = userService.findById(userId).getAppAccess()
+                .stream()
+                .anyMatch(appAccess -> appAccess.isActive()
+                    && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
+
+            if (upsertedUserIsSuperUser) {
+                throw new ForbiddenException("Level 1 users cannot edit Super Users");
+            }
+
             boolean inputSuperUserRole = createUserDTO.getAppAccess()
                 .stream()
                 .map(CreateAppAccessDTO::getRoleId)
                 .anyMatch(roleId -> {
                     Role role = userService.getRoleById(roleId);
-                    return "Super User".equals(role.getName());
+                    return RoleType.ROLE_SUPER_USER.name().equals(role.getName());
                 });
 
             if (inputSuperUserRole) {
-                throw new ForbiddenException("Level 1 users cannot edit a super user");
+                throw new ForbiddenException("Level 1 users cannot uplift to superuser access");
             }
         }
 
