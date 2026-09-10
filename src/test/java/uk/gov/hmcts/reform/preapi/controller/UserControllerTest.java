@@ -1231,10 +1231,14 @@ public class UserControllerTest {
 
         // Create mock authentication for ROLE_SUPER_USER
         var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(userId);
         when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
         when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
 
-        when(userService.upsert(user)).thenReturn(UpsertResult.CREATED);
+        UserDTO superUserInDb = mockUserFromDatabase(ROLE_SUPER_USER, userId);
+        when(userService.findById(userId)).thenReturn(superUserInDb);
+
+        when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.CREATED);
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())

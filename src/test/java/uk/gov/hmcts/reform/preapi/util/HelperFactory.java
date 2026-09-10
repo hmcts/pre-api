@@ -77,11 +77,11 @@ public class HelperFactory {
         var mockAuth = mock(UserAuthentication.class);
         switch (roleType) {
             case ROLE_LEVEL_1:
-                when(mockAuth.hasRole(UserAuthentication.ROLE_LEVEL_1)).thenReturn(true);
-                when(mockAuth.hasRole(UserAuthentication.ROLE_SUPER_USER)).thenReturn(false);
+                when(mockAuth.hasRole(RoleType.ROLE_LEVEL_1.name())).thenReturn(true);
+                when(mockAuth.hasRole(RoleType.ROLE_SUPER_USER.name())).thenReturn(false);
             case ROLE_SUPER_USER:
-                when(mockAuth.hasRole(UserAuthentication.ROLE_SUPER_USER)).thenReturn(true);
-                when(mockAuth.hasRole(UserAuthentication.ROLE_LEVEL_1)).thenReturn(false);
+                when(mockAuth.hasRole(RoleType.ROLE_SUPER_USER.name())).thenReturn(true);
+                when(mockAuth.hasRole(RoleType.ROLE_LEVEL_1.name())).thenReturn(false);
         }
 
         when(mockAuth.getUserId()).thenReturn(userId);
