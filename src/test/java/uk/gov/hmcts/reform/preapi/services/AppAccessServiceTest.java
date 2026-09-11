@@ -272,6 +272,27 @@ class AppAccessServiceTest {
     }
 
     @Test
+    @DisplayName("Should delete by user ID and court ID")
+    void deleteByUserIdAndCourtIdSuccess() {
+        underTest.deleteByUserIdAndCourtId(appAccessToBeUpserted.getUserId(), appAccessToBeUpserted.getCourtId());
+
+        verify(appAccessRepository, times(1))
+            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+
+        ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(1))
+            .save(captor.capture());
+        
+        AppAccess capturedAccess = captor.getValue();
+        assertThat(capturedAccess.getId()).isEqualTo(existingAppAccess.getId());
+        assertThat(capturedAccess.getUser()).isEqualTo(existingAppAccess.getUser());
+        assertThat(capturedAccess.getDeletedAt()).isNotNull();
+        assertThat(capturedAccess.isActive()).isFalse();
+
+        verifyNoMoreInteractions(appAccessRepository);
+    }
+
+    @Test
     @DisplayName("Should cope if deleting by a non-existent user")
     void deleteByNonExistentUser() {
         when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(any(UUID.class)))
