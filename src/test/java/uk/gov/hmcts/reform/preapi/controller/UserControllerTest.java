@@ -110,21 +110,20 @@ public class UserControllerTest {
     }
 
     @BeforeEach
-    void setUpMocks(){
-
-        UserDTO superUserDTO = mockUserFromDatabase(ROLE_SUPER_USER, superUserId);
-        sampleUserToUpdate = HelperFactory.createUserWithAppAccess(UUID.randomUUID());
-        sampleUserFromDatabase = mockUserFromDatabase(ROLE_LEVEL_1, sampleUserToUpdate.getId());
-
+    void setUpMocks() {
         // Role mocks
         when(mockSuperUserRole.getId()).thenReturn(UUID.randomUUID());
         when(mockSuperUserRole.getName()).thenReturn(ROLE_SUPER_USER.name());
         when(mockLevel1Role.getName()).thenReturn(ROLE_LEVEL_1.name());
         when(mockLevel1Role.getId()).thenReturn(mockLevel1RoleId);
 
+        sampleUserToUpdate = HelperFactory.createUserWithAppAccess(UUID.randomUUID());
+        sampleUserFromDatabase = mockUserFromDatabase(ROLE_LEVEL_1, sampleUserToUpdate.getId());
+        UserDTO superUserDTO = mockUserFromDatabase(ROLE_SUPER_USER, superUserId);
+
         // User service mocks
-        when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
         when(userService.findById(superUserDTO.getId())).thenReturn(superUserDTO);
+        when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
         when(userService.findById(sampleUserToUpdate.getId())).thenReturn(sampleUserFromDatabase);
 
         when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
@@ -347,8 +346,7 @@ public class UserControllerTest {
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(
             response.getResponse().getHeaderValue("Location"))
-            .isEqualTo(TEST_URL + "/users/" + sampleUserToUpdate.getId()
-        );
+            .isEqualTo(TEST_URL + "/users/" + sampleUserToUpdate.getId());
     }
 
     @DisplayName("Should fail to create/update a user with 400 response code userId mismatch")
@@ -458,7 +456,7 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user last name is null")
     @Test
     void upsertUserLastNameNull() throws Exception {
-       sampleUserToUpdate.setLastName(null);
+        sampleUserToUpdate.setLastName(null);
 
         MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())

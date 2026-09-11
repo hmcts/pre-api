@@ -79,9 +79,14 @@ public class HelperFactory {
             case ROLE_LEVEL_1:
                 when(mockAuth.hasRole(RoleType.ROLE_LEVEL_1.name())).thenReturn(true);
                 when(mockAuth.hasRole(RoleType.ROLE_SUPER_USER.name())).thenReturn(false);
+                break;
             case ROLE_SUPER_USER:
                 when(mockAuth.hasRole(RoleType.ROLE_SUPER_USER.name())).thenReturn(true);
                 when(mockAuth.hasRole(RoleType.ROLE_LEVEL_1.name())).thenReturn(false);
+                break;
+            default:
+                when(mockAuth.hasRole(RoleType.ROLE_LEVEL_1.name())).thenReturn(false);
+                when(mockAuth.hasRole(RoleType.ROLE_SUPER_USER.name())).thenReturn(false);
         }
 
         when(mockAuth.getUserId()).thenReturn(userId);
