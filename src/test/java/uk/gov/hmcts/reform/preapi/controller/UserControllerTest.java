@@ -116,9 +116,9 @@ public class UserControllerTest {
 
         // Role mocks
         when(mockSuperUserRole.getId()).thenReturn(UUID.randomUUID());
-        when(mockSuperUserRole.getName()).thenReturn(ROLE_SUPER_USER.name());
-        when(mockLevel1Role.getName()).thenReturn(ROLE_LEVEL_1.name());
+        when(mockSuperUserRole.getName()).thenReturn("Super User");
         when(mockLevel1Role.getId()).thenReturn(mockLevel1RoleId);
+        when(mockLevel1Role.getName()).thenReturn("Level 1");
 
         sampleUserToUpdate = HelperFactory.createUserWithAppAccess(UUID.randomUUID());
         sampleUserFromDatabase = mockUserFromDatabase(ROLE_LEVEL_1, sampleUserToUpdate.getId());

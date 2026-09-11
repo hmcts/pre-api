@@ -7,9 +7,9 @@ public enum RoleType {
     ROLE_LEVEL_3("Level 3"),
     ROLE_LEVEL_4("Level 4");
 
-    private final String roleName;
+    public final String roleLabel;
 
-    RoleType(String roleName) {
-        this.roleName = roleName;
+    RoleType(String roleLabel) {
+        this.roleLabel = roleLabel;
     }
 }

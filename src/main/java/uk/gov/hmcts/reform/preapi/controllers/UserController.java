@@ -195,7 +195,7 @@ public class UserController extends PreApiController {
                 .map(CreateAppAccessDTO::getRoleId)
                 .anyMatch(roleId -> {
                     Role role = userService.getRoleById(roleId);
-                    return RoleType.ROLE_SUPER_USER.name().equals(role.getName());
+                    return RoleType.ROLE_SUPER_USER.roleLabel.equals(role.getName());
                 });
 
             if (inputSuperUserRole) {
