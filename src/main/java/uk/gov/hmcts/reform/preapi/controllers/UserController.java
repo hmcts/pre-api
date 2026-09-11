@@ -157,30 +157,30 @@ public class UserController extends PreApiController {
         return ResponseEntity.ok(assembler.toModel(resultPage));
     }
 
-    @PutMapping("/{userId}")
+    @PutMapping("/{upsertedUserId}")
     @Operation(operationId = "putUser", summary = "Create or Update a User")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
-    public ResponseEntity<Void> upsertUser(@PathVariable UUID userId, @RequestBody @Valid CreateUserDTO createUserDTO) {
-        if (!userId.equals(createUserDTO.getId())) {
+    public ResponseEntity<Void> upsertUser(@PathVariable UUID upsertedUserId, @RequestBody @Valid CreateUserDTO createUserDTO) {
+        if (!upsertedUserId.equals(createUserDTO.getId())) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.id");
         }
 
         if (createUserDTO.getAppAccess()
             .stream()
             .map(CreateAppAccessDTO::getUserId)
-            .anyMatch(id -> !id.equals(userId))) {
+            .anyMatch(id -> !id.equals(upsertedUserId))) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.appAccess[].userId");
         }
 
         // User who submitted request: counted as Super User if they are superuser anywhere
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        UserDTO user = userService.findById(auth.getUserId());
-        boolean requestingUserIsSuperUser = user.getAppAccess().stream()
+        UserDTO requestingUserInDb = userService.findById(auth.getUserId());
+        boolean requestingUserIsSuperUser = requestingUserInDb.getAppAccess().stream()
             .anyMatch(appAccess -> appAccess.isActive()
                 && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
 
         if (!requestingUserIsSuperUser) {
-            boolean upsertedUserIsSuperUser = userService.findById(userId).getAppAccess()
+            boolean upsertedUserIsSuperUser = userService.findById(upsertedUserId).getAppAccess()
                 .stream()
                 .anyMatch(appAccess -> appAccess.isActive()
                     && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
@@ -202,7 +202,7 @@ public class UserController extends PreApiController {
             }
         }
 
-        return getUpsertResponse(userService.upsert(createUserDTO), userId);
+        return getUpsertResponse(userService.upsert(createUserDTO), upsertedUserId);
     }
 
     @DeleteMapping("/{userId}")
