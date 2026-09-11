@@ -98,6 +98,7 @@ public class UserControllerTest {
     private static final UserDTO level1UserDTO = mockUserFromDatabase(ROLE_LEVEL_1, level1UserId);
 
     private static final Role mockSuperUserRole = mock(Role.class);
+    private static final UUID mockLevel1RoleId = UUID.randomUUID();
     private static final Role mockLevel1Role = mock(Role.class);
 
     private CreateUserDTO sampleUserToUpdate;
@@ -119,7 +120,7 @@ public class UserControllerTest {
         when(mockSuperUserRole.getId()).thenReturn(UUID.randomUUID());
         when(mockSuperUserRole.getName()).thenReturn(ROLE_SUPER_USER.name());
         when(mockLevel1Role.getName()).thenReturn(ROLE_LEVEL_1.name());
-        when(mockLevel1Role.getId()).thenReturn(UUID.randomUUID());
+        when(mockLevel1Role.getId()).thenReturn(mockLevel1RoleId);
 
         // User service mocks
         when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
@@ -128,6 +129,7 @@ public class UserControllerTest {
 
         when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
                  .thenReturn(mockLevel1Role);
+        when(userService.getRoleById(mockLevel1RoleId)).thenReturn(mockLevel1Role);
         when(userService.getRoleById(level1UserDTO.getAppAccess().getFirst().getRole().getId()))
             .thenReturn(mockLevel1Role);
         when(userService.getRoleById(mockSuperUserRole.getId())).thenReturn(mockSuperUserRole);
@@ -144,14 +146,11 @@ public class UserControllerTest {
 
         when(userService.findById(userId)).thenReturn(mockUser);
 
-
-        MvcResult result = mockMvc.perform(get("/users/" + userId))
+        mockMvc.perform(get("/users/" + userId))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(userId.toString()))
             .andReturn();
-
-        result.getResponse().getContentAsString();
     }
 
     @DisplayName("Should not display user's app access ID")
@@ -194,8 +193,6 @@ public class UserControllerTest {
             .andExpect(jsonPath("$.app_access[0].id").doesNotExist())
             .andExpect(jsonPath("$.app_access[1].id").doesNotExist())
             .andReturn();
-
-        System.out.println(result.getResponse().getContentAsString());
     }
 
     @DisplayName("Should return 404 when trying to get non-existing user")
@@ -520,6 +517,35 @@ public class UserControllerTest {
 
         MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"appAccess\":\"must not be null\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when user app access *id* is null")
+    @Test
+    void upsertUserAppAccessIdNull() throws Exception {
+        CreateAppAccessDTO appAccessWithNoId = new CreateAppAccessDTO();
+        // No ID
+        appAccessWithNoId.setRoleId(mockLevel1RoleId);
+        appAccessWithNoId.setCourtId(UUID.randomUUID());
+        appAccessWithNoId.setUserId(sampleUserToUpdate.getId());
+        sampleUserToUpdate.setAppAccess(Set.of(appAccessWithNoId));
+
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
+                                                 .with(csrf())
+                                                 .with(request -> {
+                                                     getContext()
+                                                         .setAuthentication(level1RequesterAuth);
+                                                     return request;
+                                                 })
                                                  .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
