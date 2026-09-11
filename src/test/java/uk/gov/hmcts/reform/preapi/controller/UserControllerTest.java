@@ -63,7 +63,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.hmcts.reform.preapi.entities.PortalAccess_.user;
 import static uk.gov.hmcts.reform.preapi.enums.RoleType.ROLE_LEVEL_1;
 import static uk.gov.hmcts.reform.preapi.enums.RoleType.ROLE_SUPER_USER;
 import static uk.gov.hmcts.reform.preapi.util.HelperFactory.getMockAuth;
@@ -97,6 +96,9 @@ public class UserControllerTest {
     private static final UserAuthentication level1RequesterAuth = getMockAuth(ROLE_LEVEL_1, level1UserId);
     private static final UserDTO level1UserDTO = mockUserFromDatabase(ROLE_LEVEL_1, level1UserId);
 
+    private static final UserAuthentication mockSuperUserAuth = getMockAuth(ROLE_SUPER_USER, superUserId);
+    private static final UserDTO superUserInDb = mockUserFromDatabase(ROLE_SUPER_USER, superUserId);
+
     private static final Role mockSuperUserRole = mock(Role.class);
     private static final UUID mockLevel1RoleId = UUID.randomUUID();
     private static final Role mockLevel1Role = mock(Role.class);
@@ -111,6 +113,7 @@ public class UserControllerTest {
 
     @BeforeEach
     void setUpMocks() {
+
         // Role mocks
         when(mockSuperUserRole.getId()).thenReturn(UUID.randomUUID());
         when(mockSuperUserRole.getName()).thenReturn(ROLE_SUPER_USER.name());
@@ -119,10 +122,9 @@ public class UserControllerTest {
 
         sampleUserToUpdate = HelperFactory.createUserWithAppAccess(UUID.randomUUID());
         sampleUserFromDatabase = mockUserFromDatabase(ROLE_LEVEL_1, sampleUserToUpdate.getId());
-        UserDTO superUserDTO = mockUserFromDatabase(ROLE_SUPER_USER, superUserId);
 
         // User service mocks
-        when(userService.findById(superUserDTO.getId())).thenReturn(superUserDTO);
+        when(userService.findById(superUserInDb.getId())).thenReturn(superUserInDb);
         when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
         when(userService.findById(sampleUserToUpdate.getId())).thenReturn(sampleUserFromDatabase);
 
@@ -132,7 +134,7 @@ public class UserControllerTest {
         when(userService.getRoleById(level1UserDTO.getAppAccess().getFirst().getRole().getId()))
             .thenReturn(mockLevel1Role);
         when(userService.getRoleById(mockSuperUserRole.getId())).thenReturn(mockSuperUserRole);
-        when(userService.getRoleById(superUserDTO.getAppAccess().getFirst().getRole().getId()))
+        when(userService.getRoleById(superUserInDb.getAppAccess().getFirst().getRole().getId()))
             .thenReturn(mockSuperUserRole);
     }
 
@@ -1040,27 +1042,12 @@ public class UserControllerTest {
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
-        // Mock the role as Super User
-        var superUserRole = new Role();
-        superUserRole.setId(superUserRoleId);
-        superUserRole.setName("Super User");
-        when(userService.getRoleById(superUserRoleId)).thenReturn(superUserRole);
-
-        // Create mock authentication for ROLE_SUPER_USER
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.getUserId()).thenReturn(userId);
-        when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
-        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
-
-        UserDTO superUserInDb = mockUserFromDatabase(ROLE_SUPER_USER, userId);
-        when(userService.findById(userId)).thenReturn(superUserInDb);
-
         when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.CREATED);
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
                                                  .with(request -> {
-                                                     getContext().setAuthentication(mockAuth);
+                                                     getContext().setAuthentication(mockSuperUserAuth);
                                                      return request;
                                                  })
                                                  .content(OBJECT_MAPPER.writeValueAsString(user))
@@ -1072,5 +1059,27 @@ public class UserControllerTest {
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(response.getResponse().getHeaderValue("Location"))
             .isEqualTo(TEST_URL + "/users/" + userId);
+    }
+
+    @Test
+    @DisplayName("Should be able to reset app access IDs for any user")
+    void canResetAppAccessIDs() throws Exception {
+        UUID randomUserId = UUID.randomUUID();
+        mockMvc.perform(put("/users/reset-app-access-ids/" + randomUserId)
+                                                 .with(csrf())
+                                                 .with(request -> {
+                                                     getContext().setAuthentication(mockSuperUserAuth);
+                                                     return request;
+                                                 })
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andExpect(content().string(""))
+            .andReturn();
+
+        ArgumentCaptor<UUID> captor = ArgumentCaptor.forClass(UUID.class);
+        verify(userService, times(1)).resetAppAccessIdsForUserId(captor.capture());
+        assertThat(captor.getValue()).isEqualTo(randomUserId);
     }
 }
