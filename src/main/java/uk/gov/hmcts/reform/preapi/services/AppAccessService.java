@@ -50,6 +50,11 @@ public class AppAccessService {
         AppAccess entity;
         if (appAccess.isPresent()) {
             entity = appAccess.get();
+            // Reactivating if app access was previously deleted
+            entity.setLastAccess(createAppAccessDTO.getLastActive());
+            entity.setDeletedAt(null);
+            entity.setDeleted(false);
+            entity.setActive(createAppAccessDTO.getActive());
         } else {
             entity = new AppAccess();
             entity.setId(UUID.randomUUID());
@@ -77,7 +82,6 @@ public class AppAccessService {
         if (createAppAccessDTO.getActive() != null) {
             entity.setActive(createAppAccessDTO.getActive());
         }
-        entity.setLastAccess(createAppAccessDTO.getLastActive());
 
         appAccessRepository.save(entity);
 
