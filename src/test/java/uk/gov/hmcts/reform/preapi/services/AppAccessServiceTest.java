@@ -282,7 +282,7 @@ class AppAccessServiceTest {
         ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
         verify(appAccessRepository, times(1))
             .save(captor.capture());
-        
+
         AppAccess capturedAccess = captor.getValue();
         assertThat(capturedAccess.getId()).isEqualTo(existingAppAccess.getId());
         assertThat(capturedAccess.getUser()).isEqualTo(existingAppAccess.getUser());
@@ -347,6 +347,36 @@ class AppAccessServiceTest {
 
         verify(appAccessRepository, times(1))
             .findAllByUser_IdAndDeletedAtIsNotNull(any(UUID.class));
+
+        verifyNoMoreInteractions(appAccessRepository);
+    }
+
+    @Test
+    @DisplayName("Should be able to reset app access IDs for a user")
+    void shouldBeAbleToResetAppAccessIDsForUser() {
+        UUID userId = UUID.randomUUID();
+
+        UUID originalId1 = UUID.randomUUID();
+        AppAccess access1 = new AppAccess();
+        access1.setId(originalId1);
+
+        UUID originalId2 = UUID.randomUUID();
+        AppAccess access2 = new AppAccess();
+        access2.setId(originalId2);
+
+        when(appAccessRepository.findAllByUserId(userId))
+            .thenReturn(List.of(access1, access2));
+
+        underTest.resetAppAccessIDsForUserId(userId);
+
+        verify(appAccessRepository, times(1))
+            .findAllByUserId(userId);
+
+        ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(2)).save(captor.capture());
+
+        assertThat(captor.getValue().getId()).isNotNull();
+        assertThat(captor.getValue().getId()).isNotIn(originalId1, originalId2);
 
         verifyNoMoreInteractions(appAccessRepository);
     }

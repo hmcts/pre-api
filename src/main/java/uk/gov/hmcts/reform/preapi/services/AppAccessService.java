@@ -91,7 +91,7 @@ public class AppAccessService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void resetAppAccessIDsForUserId(UUID userId) {
         // Enables superuser to reset app access ID if compromised
-        appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+        appAccessRepository.findAllByUserId(userId)
             .forEach(access -> {
                 access.setId(UUID.randomUUID());
                 appAccessRepository.save(access);
