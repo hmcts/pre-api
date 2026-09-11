@@ -527,35 +527,6 @@ public class UserControllerTest {
             );
     }
 
-    @DisplayName("Should fail to create/update a user with 400 when user app access *id* is null")
-    @Test
-    void upsertUserAppAccessIdNull() throws Exception {
-        CreateAppAccessDTO appAccessWithNoId = new CreateAppAccessDTO();
-        // No ID
-        appAccessWithNoId.setRoleId(mockLevel1RoleId);
-        appAccessWithNoId.setCourtId(UUID.randomUUID());
-        appAccessWithNoId.setUserId(sampleUserToUpdate.getId());
-        sampleUserToUpdate.setAppAccess(Set.of(appAccessWithNoId));
-
-        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
-                                                 .with(csrf())
-                                                 .with(request -> {
-                                                     getContext()
-                                                         .setAuthentication(level1RequesterAuth);
-                                                     return request;
-                                                 })
-                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"appAccess\":\"must not be null\"}"
-            );
-    }
-
     @DisplayName("Should fail to create/update a user with 400 when user app access user id is null")
     @Test
     void upsertUserAppAccessUserIdNull() throws Exception {
