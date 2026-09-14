@@ -51,7 +51,8 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings({"checkstyle:HideUtilityClassConstructor", "PMD.CouplingBetweenObjects"})
 public class HelperFactory {
     public static User createDefaultTestUser() {
-        return createUser("Test", "User", "example@example.com", new Timestamp(System.currentTimeMillis()), null, null);
+        return createUser("Test", "User", "example@example.com",
+                          null, null, null);
     }
 
     public static CreateUserDTO createUserWithAppAccess(UUID userId) {
@@ -127,6 +128,7 @@ public class HelperFactory {
 
     public static Court createCourt(CourtType courtType, String name, String locationCode) {
         Court court = new Court();
+        court.setId(UUID.randomUUID());
         court.setCourtType(courtType);
         court.setName(name);
         court.setLocationCode(locationCode);
