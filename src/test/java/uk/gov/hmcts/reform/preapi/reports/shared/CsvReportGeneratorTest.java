@@ -145,8 +145,8 @@ class CsvReportGeneratorTest {
         String csv = result.orElseThrow(() -> new NotFoundException("No CSV generated"));
         assertThat(csv).isEqualTo("""
                                       COUNTY,COURTTYPE,GROUPEMAIL,ID,LOCATIONCODE,NAME,POSTCODE,REGIONS
-                                      ,CROWN,,,,court one,,
-                                      ,MAGISTRATE,,,,two,,
+                                      ,CROWN,,50777645-b643-4511-b16d-8accaee7efc2,,court one,,
+                                      ,MAGISTRATE,,c4d9b29a-e373-4df3-a145-c396f5f0135b,,two,,
                                       """);
     }
 
