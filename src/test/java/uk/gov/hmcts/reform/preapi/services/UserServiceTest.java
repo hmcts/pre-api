@@ -707,7 +707,7 @@ public class UserServiceTest {
         upsertedUser.setAppAccess(Set.of(updatedCourt1Access, // set to inactive
                                          updatedCourt2Access, // role changed to level 1
                                          updatedCourt3Access, // undeleted: should be set to active
-//                                         updatedCourt4Access, // removed from list, should be deleted
+                                         // updatedCourt4Access, // removed from list, should be deleted
                                          newCourt5Access)); // new: should be created
 
         var portalModel = new CreatePortalAccessDTO();
