@@ -72,7 +72,7 @@ class AppAccessServiceTest {
         // Default test scenario: app access already exists in database
         existingAppAccess = new AppAccess();
         existingAppAccess.setId(UUID.randomUUID());
-        when(appAccessRepository.findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(),
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
                                                           appAccessToBeUpserted.getUserId()))
             .thenReturn(Optional.of(existingAppAccess));
     }
@@ -81,14 +81,14 @@ class AppAccessServiceTest {
     @Test
     void createAppAccessSuccess() {
         // App access does not exist
-        when(appAccessRepository.findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(),
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
                                                           appAccessToBeUpserted.getUserId()))
             .thenReturn(Optional.empty());
 
         assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.CREATED);
 
         verify(appAccessRepository, times(1))
-            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
         verify(userRepository, times(1))
             .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
         verify(courtRepository, times(1)).findById(appAccessToBeUpserted.getCourtId());
@@ -109,7 +109,7 @@ class AppAccessServiceTest {
         assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.UPDATED);
 
         verify(appAccessRepository, times(1))
-            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
         verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
 
         // Not called because access already exists
@@ -133,7 +133,7 @@ class AppAccessServiceTest {
         underTest.upsert(appAccessToBeUpserted);
 
         verify(appAccessRepository, times(1))
-            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
         ArgumentCaptor<AppAccess> appAccessCaptor = ArgumentCaptor.forClass(AppAccess.class);
         verify(appAccessRepository, times(1)).save(appAccessCaptor.capture());
         assertThat(appAccessCaptor.getValue().getDeletedAt()).isNull();
@@ -142,7 +142,7 @@ class AppAccessServiceTest {
     @DisplayName("Should fail to create/update when user cannot be found")
     @Test
     void createAppAccessUserNotFound() {
-        when(appAccessRepository.findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(),
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
                                                           appAccessToBeUpserted.getUserId()))
             .thenReturn(Optional.empty());
         when(userRepository.findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId()))
@@ -155,7 +155,7 @@ class AppAccessServiceTest {
         assertThat(message).isEqualTo("Not found: User: " + appAccessToBeUpserted.getUserId());
 
         verify(appAccessRepository, times(1))
-            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
         verify(userRepository, times(1))
             .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
         verify(appAccessRepository, never()).save(any());
@@ -164,7 +164,7 @@ class AppAccessServiceTest {
     @DisplayName("Should fail to create/update when court cannot be found")
     @Test
     void createAppAccessCourtNotFound() {
-        when(appAccessRepository.findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(),
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
                                                           appAccessToBeUpserted.getUserId()))
             .thenReturn(Optional.empty());
         when(courtRepository.findById(appAccessToBeUpserted.getCourtId())).thenReturn(Optional.empty());
@@ -176,7 +176,7 @@ class AppAccessServiceTest {
         assertThat(message).isEqualTo("Not found: Court: " + appAccessToBeUpserted.getCourtId());
 
         verify(appAccessRepository, times(1))
-            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
         verify(userRepository, times(1))
             .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
         verify(courtRepository, times(1)).findById(appAccessToBeUpserted.getCourtId());
@@ -195,7 +195,7 @@ class AppAccessServiceTest {
         assertThat(message).isEqualTo("Not found: Role: " + appAccessToBeUpserted.getRoleId());
 
         verify(appAccessRepository, times(1))
-            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
         verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
         verify(appAccessRepository, never()).save(any());
     }
@@ -224,14 +224,14 @@ class AppAccessServiceTest {
     void upsertSetCourtAccessType() {
         var appAccess = new AppAccess();
 
-        when(appAccessRepository.findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(),
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
                                                           appAccessToBeUpserted.getUserId()))
             .thenReturn(Optional.of(appAccess));
 
         assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.UPDATED);
 
         verify(appAccessRepository, times(1))
-            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
         verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
 
         ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
@@ -277,7 +277,7 @@ class AppAccessServiceTest {
         underTest.deleteByUserIdAndCourtId(appAccessToBeUpserted.getUserId(), appAccessToBeUpserted.getCourtId());
 
         verify(appAccessRepository, times(1))
-            .findByCourtIdIsAndUserIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
 
         ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
         verify(appAccessRepository, times(1))
@@ -377,6 +377,23 @@ class AppAccessServiceTest {
 
         assertThat(captor.getValue().getId()).isNotNull();
         assertThat(captor.getValue().getId()).isNotIn(originalId1, originalId2);
+
+        verifyNoMoreInteractions(appAccessRepository);
+    }
+
+    @Test
+    @DisplayName("Should be able to cope if user has no app access when resetting")
+    void shouldBeAbleToCopeWhenResettingIfUserHasNoAppAccess() {
+        UUID userId = UUID.randomUUID();
+
+        when(appAccessRepository.findAllByUserId(userId))
+            .thenReturn(List.of());
+
+        underTest.resetAppAccessIDsForUserId(userId);
+
+        verify(appAccessRepository, times(1)).findAllByUserId(userId);
+
+        verify(appAccessRepository, times(0)).save(any(AppAccess.class));
 
         verifyNoMoreInteractions(appAccessRepository);
     }

@@ -38,6 +38,7 @@ import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -181,13 +182,17 @@ public class UserController extends PreApiController {
                 && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
 
         if (!requestingUserIsSuperUser) {
-            boolean upsertedUserIsSuperUser = userService.findById(upsertedUserId).getAppAccess()
-                .stream()
-                .anyMatch(appAccess -> appAccess.isActive()
-                    && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
+            Optional<UserDTO> existingUserUpserted = userService.findByIdIfExists(upsertedUserId);
 
-            if (upsertedUserIsSuperUser) {
-                throw new ForbiddenException("Level 1 users cannot edit Super Users");
+            if (existingUserUpserted.isPresent()) {
+                boolean upsertedUserIsSuperUser = existingUserUpserted.get().getAppAccess()
+                    .stream()
+                    .anyMatch(appAccess -> appAccess.isActive()
+                        && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
+
+                if (upsertedUserIsSuperUser) {
+                    throw new ForbiddenException("Level 1 users cannot edit Super Users");
+                }
             }
 
             boolean inputSuperUserRole = createUserDTO.getAppAccess()

@@ -45,7 +45,7 @@ public class AppAccessService {
     @Transactional
     public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
         Optional<AppAccess> appAccess = appAccessRepository
-            .findByCourtIdIsAndUserIs(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId());
+            .findAllByCourtIdIsAndUserIdIs(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId());
 
         AppAccess entity;
         if (appAccess.isPresent()) {
@@ -113,7 +113,7 @@ public class AppAccessService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteByUserIdAndCourtId(UUID userId, UUID courtId) {
         appAccessRepository
-            .findByCourtIdIsAndUserIs(courtId, userId)
+            .findAllByCourtIdIsAndUserIdIs(courtId, userId)
             .ifPresent(
                 access -> {
                     access.setActive(false);

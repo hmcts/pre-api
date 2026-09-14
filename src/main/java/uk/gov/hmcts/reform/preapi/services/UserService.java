@@ -70,6 +70,14 @@ public class UserService {
     }
 
     @Transactional()
+    public Optional<UserDTO> findByIdIfExists(UUID userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId).map(user -> new UserDTO(
+            user,
+            termsAndConditionsService.getAllLatestTermsAndConditions()
+        ));
+    }
+
+    @Transactional()
     public UserDTO findById(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
             .map(user ->
@@ -151,6 +159,7 @@ public class UserService {
         });
 
         User entity = user.orElse(new User());
+        entity.setId(createUserDTO.getId());
         entity.setFirstName(createUserDTO.getFirstName());
         entity.setLastName(createUserDTO.getLastName());
         entity.setEmail(createUserDTO.getEmail());

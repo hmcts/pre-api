@@ -87,6 +87,27 @@ class UserControllerFT extends FunctionalTestBase {
     }
 
     @Test
+    @DisplayName("Should allow only ROLE_SUPER_USER to reset app access IDs for any user")
+    void superUserCanResetAppAccessIDs() {
+
+        assertResponseCode(
+            doPutRequest(
+                "/users/reset-app-access-ids/" + UUID.randomUUID(),
+                TestingSupportRoles.LEVEL_1
+            ), 403
+        );
+
+        assertResponseCode(
+            doPutRequest(
+                "/users/reset-app-access-ids/" + UUID.randomUUID(),
+                TestingSupportRoles.SUPER_USER
+            ), 204
+        );
+
+    }
+
+
+    @Test
     @DisplayName("Scenario: Unregistered portal user is changed to active")
     void shouldUpdateStatusWhenActivatingUnregisteredPortalUser() throws JsonProcessingException {
         // create and invite a user
@@ -226,7 +247,7 @@ class UserControllerFT extends FunctionalTestBase {
     @Test
     void userFilteredByAppActiveStatus() throws JsonProcessingException {
         var user = createUserDto();
-        var roleId = createRole();
+        var roleId = createRole(TestingSupportRoles.SUPER_USER);
         var court1 = createCourt();
         var court2 = createCourt();
         var access1 = createAppAccessDto(user.getId(), court1.getId(), roleId);
@@ -319,7 +340,7 @@ class UserControllerFT extends FunctionalTestBase {
     @Test
     void appAccessIdShouldBeHiddenOnAllEndpoints() throws JsonProcessingException {
         CreateUserDTO user = createUserDto();
-        UUID roleId = createRole();
+        UUID roleId = createRole(TestingSupportRoles.SUPER_USER);
         CreateCourtDTO court1 = createCourt();
         CreateAppAccessDTO access1 = createAppAccessDto(user.getId(), court1.getId(), roleId);
         user.setAppAccess(Set.of(access1));
@@ -429,8 +450,9 @@ class UserControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private UUID createRole() {
-        return doPostRequest("/testing-support/create-role?roleName=SUPER_USER", TestingSupportRoles.SUPER_USER)
+    private UUID createRole(TestingSupportRoles role) {
+        return doPostRequest(format("/testing-support/create-role?roleName=%s", role.name()),
+                             TestingSupportRoles.SUPER_USER)
             .body()
             .jsonPath().getUUID("roleId");
     }
