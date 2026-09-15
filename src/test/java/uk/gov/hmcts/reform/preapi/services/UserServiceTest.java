@@ -179,12 +179,39 @@ public class UserServiceTest {
         portalAccessEntity.setDeletedAt(null);
     }
 
-    @DisplayName("Find a user by it's id and return a model")
+    @DisplayName("Find a user by its id and return a model")
     @Test
     void findUserByIdSuccess() {
         var model = userService.findById(userEntity.getId());
         assertThat(model.getId()).isEqualTo(userEntity.getId());
         assertThat(model.getFirstName()).isEqualTo(userEntity.getFirstName());
+    }
+
+    @DisplayName("Find a user by its id and return a model if it exists")
+    @Test
+    void findUserByIdIfExistsSuccess() {
+        var model = userService.findByIdIfExists(userEntity.getId());
+        assertThat(model.isPresent()).isTrue();
+        assertThat(model.get().getId()).isEqualTo(userEntity.getId());
+        assertThat(model.get().getFirstName()).isEqualTo(userEntity.getFirstName());
+    }
+
+    @DisplayName("Fail gracefully if user does not exist")
+    @Test
+    void findUserByIdIfExistsFailGracefully() {
+        var model = userService.findByIdIfExists(UUID.randomUUID());
+        assertThat(model.isEmpty()).isTrue();
+    }
+
+    @DisplayName("Reset app access IDs for a user")
+    @Test
+    void resetAppAccessIdsForUserSuccess() {
+        userService.resetAppAccessIdsForUserId(userEntity.getId());
+
+        verify(appAccessService, times(1)).resetAppAccessIDsForUserId(userEntity.getId());
+
+        verifyNoMoreInteractions(appAccessService);
+        verifyNoMoreInteractions(userRepository);
     }
 
     @DisplayName("Find a user by it's id which doesn't exist")
