@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import java.util.List;
 import java.util.Optional;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = CsvReportGenerator.class)
@@ -143,11 +144,11 @@ class CsvReportGeneratorTest {
         );
 
         String csv = result.orElseThrow(() -> new NotFoundException("No CSV generated"));
-        assertThat(csv).isEqualTo("""
+        assertThat(csv).isEqualTo(format("""
                                       COUNTY,COURTTYPE,GROUPEMAIL,ID,LOCATIONCODE,NAME,POSTCODE,REGIONS
-                                      ,CROWN,,50777645-b643-4511-b16d-8accaee7efc2,,court one,,
-                                      ,MAGISTRATE,,c4d9b29a-e373-4df3-a145-c396f5f0135b,,two,,
-                                      """);
+                                      ,CROWN,,%s,,court one,,
+                                      ,MAGISTRATE,,%s,,two,,
+                                      """, randomCourts.get(0).getId(), randomCourts.get(1).getId()));
     }
 
     private static @NotNull String getExpectedCsvReport() {
