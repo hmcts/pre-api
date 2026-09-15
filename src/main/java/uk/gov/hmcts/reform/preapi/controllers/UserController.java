@@ -188,7 +188,7 @@ public class UserController extends PreApiController {
                 boolean upsertedUserIsSuperUser = existingUserUpserted.get().getAppAccess()
                     .stream()
                     .anyMatch(appAccess -> appAccess.isActive()
-                        && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
+                        && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.roleLabel));
 
                 if (upsertedUserIsSuperUser) {
                     throw new ForbiddenException("Level 1 users cannot edit Super Users");

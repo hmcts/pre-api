@@ -99,9 +99,11 @@ public class UserControllerTest {
     private static final UserAuthentication mockSuperUserAuth = getMockAuth(ROLE_SUPER_USER, superUserId);
     private static final UserDTO superUserInDb = mockUserFromDatabase(ROLE_SUPER_USER, superUserId);
 
+    private static final UUID superUserRoleId = UUID.randomUUID();
     private static final Role mockSuperUserRole = mock(Role.class);
     private static final UUID mockLevel1RoleId = UUID.randomUUID();
     private static final Role mockLevel1Role = mock(Role.class);
+    private static final RoleDTO mockSuperUserRoleDto = mock(RoleDTO.class);
 
     private CreateUserDTO sampleUserToUpdate;
     private UserDTO sampleUserFromDatabase;
@@ -115,27 +117,32 @@ public class UserControllerTest {
     void setUpMocks() {
 
         // Role mocks
-        when(mockSuperUserRole.getId()).thenReturn(UUID.randomUUID());
+        when(mockSuperUserRole.getId()).thenReturn(superUserRoleId);
         when(mockSuperUserRole.getName()).thenReturn("Super User");
         when(mockLevel1Role.getId()).thenReturn(mockLevel1RoleId);
         when(mockLevel1Role.getName()).thenReturn("Level 1");
+        when(mockSuperUserRoleDto.getId()).thenReturn(superUserRoleId);
+        when(mockSuperUserRoleDto.getName()).thenReturn("Super User");
 
         sampleUserToUpdate = HelperFactory.createUserWithAppAccess(UUID.randomUUID());
         sampleUserFromDatabase = mockUserFromDatabase(ROLE_LEVEL_1, sampleUserToUpdate.getId());
 
         // User service mocks
         when(userService.findById(superUserInDb.getId())).thenReturn(superUserInDb);
-        when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
-        when(userService.findById(sampleUserToUpdate.getId())).thenReturn(sampleUserFromDatabase);
+        when(userService.findById(level1UserDTO.getId())).thenReturn(level1UserDTO);
+        when(userService.findByIdIfExists(level1UserId)).thenReturn(Optional.of(level1UserDTO));
+        when(userService.findByIdIfExists(sampleUserToUpdate.getId())).thenReturn(Optional.of(sampleUserFromDatabase));
 
         when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
                  .thenReturn(mockLevel1Role);
         when(userService.getRoleById(mockLevel1RoleId)).thenReturn(mockLevel1Role);
         when(userService.getRoleById(level1UserDTO.getAppAccess().getFirst().getRole().getId()))
             .thenReturn(mockLevel1Role);
-        when(userService.getRoleById(mockSuperUserRole.getId())).thenReturn(mockSuperUserRole);
+        when(userService.getRoleById(superUserRoleId)).thenReturn(mockSuperUserRole);
         when(userService.getRoleById(superUserInDb.getAppAccess().getFirst().getRole().getId()))
             .thenReturn(mockSuperUserRole);
+
+        when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.UPDATED);
     }
 
     @DisplayName("Should get user by id with 200 response code")
@@ -185,7 +192,7 @@ public class UserControllerTest {
 
         when(userService.findById(userId)).thenReturn(user);
 
-        MvcResult result = mockMvc.perform(get("/users/" + userId))
+        mockMvc.perform(get("/users/" + userId))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(userId.toString()))
@@ -933,42 +940,48 @@ public class UserControllerTest {
         return appAccess;
     }
 
-    @DisplayName("Should prevent Level 1 users from assigning superuser access to anyone, or editing superusers")
+    @DisplayName("Should prevent Level 1 users from editing superusers")
     @Test
-    void upsertUserLevel1CannotEditOrAssignSuperUsers() throws Exception {
-        // Test 1: Level 1 cannot edit user with existing superuser access
-        CreateUserDTO superUserToBeUpserted = HelperFactory.createUserWithAppAccess(superUserId);
-        mockMvc.perform(put("/users/" + superUserToBeUpserted.getId())
+    void upsertUserLevel1CannotEditSuperUsers() throws Exception {
+        // Existing user is a superuser
+        when(sampleUserFromDatabase.getAppAccess().getFirst().getRole()).thenReturn(mockSuperUserRoleDto);
+        // Level 1 auth is attempting to downgrade to level 1
+        when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
+            .thenReturn(mockLevel1Role);
+        
+        mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                             .with(csrf())
                             .with(request -> {
                                 getContext()
                                     .setAuthentication(level1RequesterAuth);
                                 return request;
                             })
-                            .content(OBJECT_MAPPER.writeValueAsString(superUserToBeUpserted))
+                            .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message")
                            .value("Level 1 users cannot edit Super Users"));
+    }
 
+    @DisplayName("Should prevent Level 1 users from assigning superuser access to anyone")
+    @Test
+    void upsertUserLevel1CannotAssignSuperUserAccess() throws Exception {
         // Test 2: Level 1 user cannot uplift Level 1 user to superuser access
         // Upserted user is an existing Level 1 user
-        CreateUserDTO level1UserToBeUpserted = HelperFactory.createUserWithAppAccess(level1UserId);
-        when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
+        when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
+            .thenReturn(mockSuperUserRole);
+        when(userService.getRoleById(sampleUserFromDatabase.getAppAccess().getFirst().getId()))
+            .thenReturn(mockLevel1Role);
 
-        // Change the role of the upserted user to superuser in the request body
-        level1UserToBeUpserted.getAppAccess().iterator().next()
-            .setRoleId(mockSuperUserRole.getId());
-
-        mockMvc.perform(put("/users/" + level1UserToBeUpserted.getId())
+        mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                             .with(csrf())
                             .with(request -> {
                                 getContext()
                                     .setAuthentication(level1RequesterAuth);
                                 return request;
                             })
-                            .content(OBJECT_MAPPER.writeValueAsString(level1UserToBeUpserted))
+                            .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isForbidden())
@@ -984,7 +997,7 @@ public class UserControllerTest {
 
         when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.UPDATED);
 
-        // Test 1: Super user can edit user with existing superuser access
+        // Test 1: superuser can edit user with existing superuser access
         CreateUserDTO superUserToBeUpserted = HelperFactory.createUserWithAppAccess(superUserId);
         mockMvc.perform(put("/users/" + superUserToBeUpserted.getId())
                             .with(csrf())
@@ -998,10 +1011,10 @@ public class UserControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is2xxSuccessful());
 
-        // Test 2: Super user can uplift Level 1 user to superuser access
+        // Test 2: superuser can uplift Level 1 user to superuser access
         // Upserted user is an existing Level 1 user
         CreateUserDTO level1UserToBeUpserted = HelperFactory.createUserWithAppAccess(level1UserId);
-        when(userService.findById(level1UserId)).thenReturn(level1UserDTO);
+        when(userService.findByIdIfExists(level1UserId)).thenReturn(Optional.of(level1UserDTO));
 
         // Change the role of the upserted user to superuser in the request body
         level1UserToBeUpserted.getAppAccess().iterator().next()
