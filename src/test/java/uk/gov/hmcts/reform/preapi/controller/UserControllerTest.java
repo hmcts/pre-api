@@ -310,10 +310,11 @@ public class UserControllerTest {
                            .value("Not found: User: " + userId));
     }
 
-    @DisplayName("Should create a user with 201 response code")
+    @DisplayName("Should create a new user with 201 response code")
     @Test
     void createUserCreated() throws Exception {
         when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.CREATED);
+        when(userService.findByIdIfExists(sampleUserToUpdate.getId())).thenReturn(Optional.empty());
 
         MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
