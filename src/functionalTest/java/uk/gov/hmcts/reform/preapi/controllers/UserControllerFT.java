@@ -248,7 +248,7 @@ class UserControllerFT extends FunctionalTestBase {
     @Test
     void userFilteredByAppActiveStatus() throws JsonProcessingException {
         var user = createUserDto();
-        var roleId = createRole(TestingSupportRoles.SUPER_USER);
+        var roleId = createRole(TestingSupportRoles.LEVEL_1);
         var court1 = createCourt();
         var court2 = createCourt();
         var access1 = createAppAccessDto(user.getId(), court1.getId(), roleId);
@@ -267,7 +267,8 @@ class UserControllerFT extends FunctionalTestBase {
 
         // has at least one active app access
         var responseActiveTrue =
-            doGetRequest(USERS_ENDPOINT + "?appActive=true&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
+            doGetRequest(USERS_ENDPOINT + "?appActive=true&email=" + user.getEmail(),
+                         TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveTrue, 200);
         assertThat(responseActiveTrue.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
@@ -281,7 +282,7 @@ class UserControllerFT extends FunctionalTestBase {
 
         // app access for court is active
         var responseActiveTrueByCourt = doGetRequest(
-            USERS_ENDPOINT + "?appActive=true&courtId=" + court1.getId() + "&email=" + user.getId(),
+            USERS_ENDPOINT + "?appActive=true&courtId=" + court1.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveTrueByCourt, 200);
@@ -290,7 +291,7 @@ class UserControllerFT extends FunctionalTestBase {
 
         // app access for court is inactive (searching for active)
         var responseActiveTrueByCourt2 = doGetRequest(
-            USERS_ENDPOINT + "?appActive=true&courtId=" + court2.getId() + "&email=" + user.getId(),
+            USERS_ENDPOINT + "?appActive=true&courtId=" + court2.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveTrueByCourt2, 200);
@@ -299,14 +300,14 @@ class UserControllerFT extends FunctionalTestBase {
 
         // has at least one inactive app access
         var responseActiveFalse =
-            doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
+            doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getEmail(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveFalse, 200);
         assertThat(responseActiveFalse.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
 
         // app access for court is active (searching for inactive)
         var responseActiveFalseByCourt = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + court1.getId() + "&email=" + user.getId(),
+            USERS_ENDPOINT + "?appActive=false&courtId=" + court1.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveFalseByCourt, 200);
@@ -315,7 +316,7 @@ class UserControllerFT extends FunctionalTestBase {
 
         // app access for court is inactive
         var responseActiveFalseByCourt2 = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + court2.getId() + "&email=" + user.getId(),
+            USERS_ENDPOINT + "?appActive=false&courtId=" + court2.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveFalseByCourt2, 200);
@@ -341,7 +342,7 @@ class UserControllerFT extends FunctionalTestBase {
     @Test
     void appAccessIdShouldBeHiddenOnAllEndpoints() throws JsonProcessingException {
         CreateUserDTO user = createUserDto();
-        UUID roleId = createRole(TestingSupportRoles.SUPER_USER);
+        UUID roleId = createRole(TestingSupportRoles.LEVEL_1);
         CreateCourtDTO court1 = createCourt();
         CreateAppAccessDTO access1 = createAppAccessDto(user.getId(), court1.getId(), roleId);
         user.setAppAccess(Set.of(access1));
