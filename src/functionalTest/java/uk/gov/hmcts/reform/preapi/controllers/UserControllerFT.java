@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UserControllerFT extends FunctionalTestBase {
@@ -101,7 +102,7 @@ class UserControllerFT extends FunctionalTestBase {
             doPutRequest(
                 "/users/reset-app-access-ids/" + UUID.randomUUID(),
                 TestingSupportRoles.SUPER_USER
-            ), 204
+            ), 200
         );
 
     }
