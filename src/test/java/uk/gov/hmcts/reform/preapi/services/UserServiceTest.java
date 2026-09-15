@@ -730,8 +730,12 @@ public class UserServiceTest {
         assertThat(userCaptor.getValue().getLastName()).isEqualTo(upsertedUser.getLastName());
         assertThat(userCaptor.getValue().getEmail()).isEqualTo(upsertedUser.getEmail());
 
+        ArgumentCaptor<UUID> userIdCaptor = ArgumentCaptor.forClass(UUID.class);
+        ArgumentCaptor<UUID> courtIdCaptor = ArgumentCaptor.forClass(UUID.class);
         verify(appAccessService, times(1))
-            .deleteByUserIdAndCourtId(eq(existingUser.getId()), eq(court4.getId()));
+            .deleteByUserIdAndCourtId(userIdCaptor.capture(), courtIdCaptor.capture());
+        assertThat(userIdCaptor.getValue()).isEqualTo(existingUser.getId());
+        assertThat(courtIdCaptor.getValue()).isEqualTo(court4.getId());
 
         ArgumentCaptor<CreateAppAccessDTO> appAccessCaptor = ArgumentCaptor.forClass(CreateAppAccessDTO.class);
         verify(appAccessService, times(4)).upsert(appAccessCaptor.capture());
