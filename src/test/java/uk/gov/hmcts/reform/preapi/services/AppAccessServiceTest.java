@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -13,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
@@ -53,151 +53,150 @@ class AppAccessServiceTest {
     @Autowired
     private AppAccessService underTest;
 
+    private CreateAppAccessDTO appAccessToBeUpserted;
+    private AppAccess existingAppAccess;
+
+    @BeforeEach
+    void setUp() {
+        appAccessToBeUpserted = new CreateAppAccessDTO();
+        appAccessToBeUpserted.setCourtId(UUID.randomUUID());
+        appAccessToBeUpserted.setUserId(UUID.randomUUID());
+        appAccessToBeUpserted.setRoleId(UUID.randomUUID());
+        appAccessToBeUpserted.setActive(true);
+
+        when(userRepository.findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId()))
+            .thenReturn(Optional.of(new User()));
+        when(roleRepository.findById(appAccessToBeUpserted.getRoleId())).thenReturn(Optional.of(new Role()));
+        when(courtRepository.findById(appAccessToBeUpserted.getCourtId())).thenReturn(Optional.of(new Court()));
+
+        // Default test scenario: app access already exists in database
+        existingAppAccess = new AppAccess();
+        existingAppAccess.setId(UUID.randomUUID());
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
+                                                          appAccessToBeUpserted.getUserId()))
+            .thenReturn(Optional.of(existingAppAccess));
+    }
+
     @DisplayName("Create an app access entity")
     @Test
     void createAppAccessSuccess() {
-        var model = new CreateAppAccessDTO();
-        model.setId(UUID.randomUUID());
-        model.setCourtId(UUID.randomUUID());
-        model.setUserId(UUID.randomUUID());
-        model.setRoleId(UUID.randomUUID());
+        // App access does not exist
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
+                                                          appAccessToBeUpserted.getUserId()))
+            .thenReturn(Optional.empty());
 
-        when(appAccessRepository.findById(model.getId())).thenReturn(Optional.empty());
-        when(userRepository.findByIdAndDeletedAtIsNull(model.getUserId())).thenReturn(Optional.of(new User()));
-        when(roleRepository.findById(model.getRoleId())).thenReturn(Optional.of(new Role()));
-        when(courtRepository.findById(model.getCourtId())).thenReturn(Optional.of(new Court()));
+        assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.CREATED);
 
-        assertThat(underTest.upsert(model)).isEqualTo(UpsertResult.CREATED);
-
-        verify(appAccessRepository, times(1)).findById(model.getId());
-        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
-        verify(courtRepository, times(1)).findById(model.getCourtId());
-        verify(roleRepository, times(1)).findById(model.getRoleId());
+        verify(appAccessRepository, times(1))
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+        verify(userRepository, times(1))
+            .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
+        verify(courtRepository, times(1)).findById(appAccessToBeUpserted.getCourtId());
+        verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
         verify(appAccessRepository, times(1)).save(any());
     }
 
     @DisplayName("Update an app access entity")
     @Test
     void updateAppAccessSuccess() {
-        var model = new CreateAppAccessDTO();
-        model.setId(UUID.randomUUID());
-        model.setCourtId(UUID.randomUUID());
-        model.setUserId(UUID.randomUUID());
-        model.setRoleId(UUID.randomUUID());
-        model.setActive(true);
+        UUID newRoleId = UUID.randomUUID();
+        appAccessToBeUpserted.setRoleId(newRoleId);
 
-        var entity = new AppAccess();
-        entity.setId(model.getId());
+        Role newRole = new Role();
+        newRole.setId(newRoleId);
+        when(roleRepository.findById(newRoleId)).thenReturn(Optional.of(newRole));
 
-        when(appAccessRepository.findById(model.getId())).thenReturn(Optional.of(entity));
-        when(userRepository.findByIdAndDeletedAtIsNull(model.getUserId())).thenReturn(Optional.of(new User()));
-        when(roleRepository.findById(model.getRoleId())).thenReturn(Optional.of(new Role()));
-        when(courtRepository.findById(model.getCourtId())).thenReturn(Optional.of(new Court()));
+        assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.UPDATED);
 
-        assertThat(underTest.upsert(model)).isEqualTo(UpsertResult.UPDATED);
+        verify(appAccessRepository, times(1))
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+        verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
 
-        verify(appAccessRepository, times(1)).findById(model.getId());
-        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
-        verify(courtRepository, times(1)).findById(model.getCourtId());
-        verify(roleRepository, times(1)).findById(model.getRoleId());
-        verify(appAccessRepository, times(1)).save(any());
+        // Not called because access already exists
+        verify(userRepository, times(0))
+            .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
+        verify(courtRepository, times(0)).findById(appAccessToBeUpserted.getCourtId());
+
+        ArgumentCaptor<AppAccess> appAccessCaptor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(1)).save(appAccessCaptor.capture());
+
+        assertThat(appAccessCaptor.getValue().getRole().getId()).isEqualTo(newRoleId);
     }
 
-    @DisplayName("Should fail to create/update when app access has been deleted")
+    @DisplayName("Should reactivate if app access was previously deleted")
     @Test
     void createAppAccessDeleted() {
-        var model = new CreateAppAccessDTO();
-        model.setId(UUID.randomUUID());
-        model.setCourtId(UUID.randomUUID());
-        model.setUserId(UUID.randomUUID());
-        model.setRoleId(UUID.randomUUID());
+        existingAppAccess.setActive(false);
+        existingAppAccess.setDeleted(true);
+        existingAppAccess.setDeletedAt(Timestamp.from(Instant.now()));
 
-        var entity = new AppAccess();
-        entity.setDeletedAt(Timestamp.from(Instant.now()));
+        underTest.upsert(appAccessToBeUpserted);
 
-        when(appAccessRepository.findById(model.getId())).thenReturn(Optional.of(entity));
-
-        assertThrows(
-            ResourceInDeletedStateException.class,
-            () -> underTest.upsert(model)
-        );
-
-        verify(appAccessRepository, times(1)).findById(model.getId());
-        verify(appAccessRepository, never()).save(any());
+        verify(appAccessRepository, times(1))
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+        ArgumentCaptor<AppAccess> appAccessCaptor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(1)).save(appAccessCaptor.capture());
+        assertThat(appAccessCaptor.getValue().getDeletedAt()).isNull();
     }
 
     @DisplayName("Should fail to create/update when user cannot be found")
     @Test
     void createAppAccessUserNotFound() {
-        var model = new CreateAppAccessDTO();
-        model.setId(UUID.randomUUID());
-        model.setCourtId(UUID.randomUUID());
-        model.setUserId(UUID.randomUUID());
-        model.setRoleId(UUID.randomUUID());
-
-        when(appAccessRepository.findById(model.getId())).thenReturn(Optional.empty());
-        when(userRepository.findByIdAndDeletedAtIsNull(model.getUserId())).thenReturn(Optional.empty());
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
+                                                          appAccessToBeUpserted.getUserId()))
+            .thenReturn(Optional.empty());
+        when(userRepository.findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId()))
+            .thenReturn(Optional.empty());
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> underTest.upsert(model)
+            () -> underTest.upsert(appAccessToBeUpserted)
         ).getMessage();
-        assertThat(message).isEqualTo("Not found: User: " + model.getUserId());
+        assertThat(message).isEqualTo("Not found: User: " + appAccessToBeUpserted.getUserId());
 
-        verify(appAccessRepository, times(1)).findById(model.getId());
-        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
+        verify(appAccessRepository, times(1))
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+        verify(userRepository, times(1))
+            .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
         verify(appAccessRepository, never()).save(any());
     }
 
     @DisplayName("Should fail to create/update when court cannot be found")
     @Test
     void createAppAccessCourtNotFound() {
-        var model = new CreateAppAccessDTO();
-        model.setId(UUID.randomUUID());
-        model.setCourtId(UUID.randomUUID());
-        model.setUserId(UUID.randomUUID());
-        model.setRoleId(UUID.randomUUID());
-
-        when(appAccessRepository.findById(model.getId())).thenReturn(Optional.empty());
-        when(userRepository.findByIdAndDeletedAtIsNull(model.getUserId())).thenReturn(Optional.of(new User()));
-        when(courtRepository.findById(model.getCourtId())).thenReturn(Optional.empty());
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
+                                                          appAccessToBeUpserted.getUserId()))
+            .thenReturn(Optional.empty());
+        when(courtRepository.findById(appAccessToBeUpserted.getCourtId())).thenReturn(Optional.empty());
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> underTest.upsert(model)
+            () -> underTest.upsert(appAccessToBeUpserted)
         ).getMessage();
-        assertThat(message).isEqualTo("Not found: Court: " + model.getCourtId());
+        assertThat(message).isEqualTo("Not found: Court: " + appAccessToBeUpserted.getCourtId());
 
-        verify(appAccessRepository, times(1)).findById(model.getId());
-        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
-        verify(courtRepository, times(1)).findById(model.getCourtId());
+        verify(appAccessRepository, times(1))
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+        verify(userRepository, times(1))
+            .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
+        verify(courtRepository, times(1)).findById(appAccessToBeUpserted.getCourtId());
         verify(appAccessRepository, never()).save(any());
     }
 
     @DisplayName("Should fail to create/update when role cannot be found")
     @Test
     void createAppAccessRoleNotFound() {
-        var model = new CreateAppAccessDTO();
-        model.setId(UUID.randomUUID());
-        model.setCourtId(UUID.randomUUID());
-        model.setUserId(UUID.randomUUID());
-        model.setRoleId(UUID.randomUUID());
-
-        when(appAccessRepository.findById(model.getId())).thenReturn(Optional.empty());
-        when(userRepository.findByIdAndDeletedAtIsNull(model.getUserId())).thenReturn(Optional.of(new User()));
-        when(roleRepository.findById(model.getRoleId())).thenReturn(Optional.empty());
-        when(courtRepository.findById(model.getCourtId())).thenReturn(Optional.of(new Court()));
+        when(roleRepository.findById(appAccessToBeUpserted.getRoleId())).thenReturn(Optional.empty());
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> underTest.upsert(model)
+            () -> underTest.upsert(appAccessToBeUpserted)
         ).getMessage();
-        assertThat(message).isEqualTo("Not found: Role: " + model.getRoleId());
+        assertThat(message).isEqualTo("Not found: Role: " + appAccessToBeUpserted.getRoleId());
 
-        verify(appAccessRepository, times(1)).findById(model.getId());
-        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
-        verify(courtRepository, times(1)).findById(model.getCourtId());
-        verify(roleRepository, times(1)).findById(model.getRoleId());
+        verify(appAccessRepository, times(1))
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+        verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
         verify(appAccessRepository, never()).save(any());
     }
 
@@ -223,29 +222,21 @@ class AppAccessServiceTest {
     @DisplayName("Should automatically set court access type to primary when null")
     @Test
     void upsertSetCourtAccessType() {
-        var dto = new CreateAppAccessDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setCourtId(UUID.randomUUID());
-        dto.setUserId(UUID.randomUUID());
-        dto.setRoleId(UUID.randomUUID());
-        dto.setActive(true);
-        dto.setLastActive(Timestamp.from(Instant.now()));
-
         var appAccess = new AppAccess();
 
-        when(appAccessRepository.findById(dto.getId())).thenReturn(Optional.of(appAccess));
-        when(userRepository.findByIdAndDeletedAtIsNull(dto.getUserId())).thenReturn(Optional.of(new User()));
-        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(new Court()));
-        when(roleRepository.findById(dto.getRoleId())).thenReturn(Optional.of(new Role()));
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
+                                                          appAccessToBeUpserted.getUserId()))
+            .thenReturn(Optional.of(appAccess));
 
-        assertThat(underTest.upsert(dto)).isEqualTo(UpsertResult.UPDATED);
-        assertThat(appAccess.isDefaultCourt()).isTrue();
+        assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.UPDATED);
 
-        verify(appAccessRepository, times(1)).findById(dto.getId());
-        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(dto.getUserId());
-        verify(courtRepository, times(1)).findById(dto.getCourtId());
-        verify(roleRepository, times(1)).findById(dto.getRoleId());
-        verify(appAccessRepository, times(1)).save(any());
+        verify(appAccessRepository, times(1))
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+        verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
+
+        ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(1)).save(captor.capture());
+        assertThat(captor.getValue().isDefaultCourt()).isTrue();
     }
 
     @Test
@@ -278,6 +269,27 @@ class AppAccessServiceTest {
 
         verifyNoMoreInteractions(appAccessRepository);
 
+    }
+
+    @Test
+    @DisplayName("Should delete by user ID and court ID")
+    void deleteByUserIdAndCourtIdSuccess() {
+        underTest.deleteByUserIdAndCourtId(appAccessToBeUpserted.getUserId(), appAccessToBeUpserted.getCourtId());
+
+        verify(appAccessRepository, times(1))
+            .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
+
+        ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(1))
+            .save(captor.capture());
+
+        AppAccess capturedAccess = captor.getValue();
+        assertThat(capturedAccess.getId()).isEqualTo(existingAppAccess.getId());
+        assertThat(capturedAccess.getUser()).isEqualTo(existingAppAccess.getUser());
+        assertThat(capturedAccess.getDeletedAt()).isNotNull();
+        assertThat(capturedAccess.isActive()).isFalse();
+
+        verifyNoMoreInteractions(appAccessRepository);
     }
 
     @Test
@@ -335,6 +347,53 @@ class AppAccessServiceTest {
 
         verify(appAccessRepository, times(1))
             .findAllByUser_IdAndDeletedAtIsNotNull(any(UUID.class));
+
+        verifyNoMoreInteractions(appAccessRepository);
+    }
+
+    @Test
+    @DisplayName("Should be able to reset app access IDs for a user")
+    void shouldBeAbleToResetAppAccessIDsForUser() {
+        UUID userId = UUID.randomUUID();
+
+        UUID originalId1 = UUID.randomUUID();
+        AppAccess access1 = new AppAccess();
+        access1.setId(originalId1);
+
+        UUID originalId2 = UUID.randomUUID();
+        AppAccess access2 = new AppAccess();
+        access2.setId(originalId2);
+
+        when(appAccessRepository.findAllByUserId(userId))
+            .thenReturn(List.of(access1, access2));
+
+        underTest.resetAppAccessIDsForUserId(userId);
+
+        verify(appAccessRepository, times(1))
+            .findAllByUserId(userId);
+
+        ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(2)).save(captor.capture());
+
+        assertThat(captor.getValue().getId()).isNotNull();
+        assertThat(captor.getValue().getId()).isNotIn(originalId1, originalId2);
+
+        verifyNoMoreInteractions(appAccessRepository);
+    }
+
+    @Test
+    @DisplayName("Should be able to cope if user has no app access when resetting")
+    void shouldBeAbleToCopeWhenResettingIfUserHasNoAppAccess() {
+        UUID userId = UUID.randomUUID();
+
+        when(appAccessRepository.findAllByUserId(userId))
+            .thenReturn(List.of());
+
+        underTest.resetAppAccessIDsForUserId(userId);
+
+        verify(appAccessRepository, times(1)).findAllByUserId(userId);
+
+        verify(appAccessRepository, times(0)).save(any(AppAccess.class));
 
         verifyNoMoreInteractions(appAccessRepository);
     }

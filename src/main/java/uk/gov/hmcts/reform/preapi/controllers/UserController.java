@@ -31,12 +31,14 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
+import uk.gov.hmcts.reform.preapi.enums.RoleType;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -156,39 +158,57 @@ public class UserController extends PreApiController {
         return ResponseEntity.ok(assembler.toModel(resultPage));
     }
 
-    @PutMapping("/{userId}")
+    @PutMapping("/{upsertedUserId}")
     @Operation(operationId = "putUser", summary = "Create or Update a User")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
-    public ResponseEntity<Void> upsertUser(@PathVariable UUID userId, @RequestBody @Valid CreateUserDTO createUserDTO) {
-        if (!userId.equals(createUserDTO.getId())) {
+    public ResponseEntity<Void> upsertUser(@PathVariable UUID upsertedUserId,
+                                           @RequestBody @Valid CreateUserDTO createUserDTO) {
+        if (!upsertedUserId.equals(createUserDTO.getId())) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.id");
         }
 
         if (createUserDTO.getAppAccess()
             .stream()
             .map(CreateAppAccessDTO::getUserId)
-            .anyMatch(id -> !id.equals(userId))
-        ) {
+            .anyMatch(id -> !id.equals(upsertedUserId))) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.appAccess[].userId");
         }
 
-        // Prevent ROLE_LEVEL_1 users from uplifting to ROLE_SUPER_USER
+        // User who submitted request: counted as Super User if they are superuser anywhere
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.hasRole("ROLE_LEVEL_1") && !auth.hasRole("ROLE_SUPER_USER")) {
-            boolean hasSuperUserRole = createUserDTO.getAppAccess()
+        UserDTO requestingUserInDb = userService.findById(auth.getUserId());
+        boolean requestingUserIsSuperUser = requestingUserInDb.getAppAccess().stream()
+            .anyMatch(appAccess -> appAccess.isActive()
+                && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.name()));
+
+        if (!requestingUserIsSuperUser) {
+            Optional<UserDTO> existingUserUpserted = userService.findByIdIfExists(upsertedUserId);
+
+            if (existingUserUpserted.isPresent()) {
+                boolean upsertedUserIsSuperUser = existingUserUpserted.get().getAppAccess()
+                    .stream()
+                    .anyMatch(appAccess -> appAccess.isActive()
+                        && appAccess.getRole().getName().equals(RoleType.ROLE_SUPER_USER.roleLabel));
+
+                if (upsertedUserIsSuperUser) {
+                    throw new ForbiddenException("Level 1 users cannot edit Super Users");
+                }
+            }
+
+            boolean inputSuperUserRole = createUserDTO.getAppAccess()
                 .stream()
                 .map(CreateAppAccessDTO::getRoleId)
                 .anyMatch(roleId -> {
                     Role role = userService.getRoleById(roleId);
-                    return "Super User".equals(role.getName());
+                    return RoleType.ROLE_SUPER_USER.roleLabel.equals(role.getName());
                 });
 
-            if (hasSuperUserRole) {
-                throw new ForbiddenException("ROLE_LEVEL_1 users cannot assign ROLE_SUPER_USER");
+            if (inputSuperUserRole) {
+                throw new ForbiddenException("Level 1 users cannot uplift to superuser access");
             }
         }
 
-        return getUpsertResponse(userService.upsert(createUserDTO), userId);
+        return getUpsertResponse(userService.upsert(createUserDTO), upsertedUserId);
     }
 
     @DeleteMapping("/{userId}")
@@ -204,6 +224,14 @@ public class UserController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public ResponseEntity<Void> undeleteUser(@PathVariable UUID userId) {
         userService.undelete(userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("reset-app-access-ids/{userId}")
+    @Operation(operationId = "resetAppAccessIds", summary = "Reset App Access IDs for a User")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> resetAppAccessIds(@PathVariable UUID userId) {
+        userService.resetAppAccessIdsForUserId(userId);
         return ResponseEntity.ok().build();
     }
 }
