@@ -91,34 +91,6 @@ class AuditServiceIT extends IntegrationTestBase {
                                                   null);
     }
 
-//    @Transactional
-//    @Test
-//    void testInternalAudit() throws InterruptedException {
-//        CreateCourtDTO court = HelperFactory.createCreateCourtDTO(CourtType.CROWN,
-//                                                                  "Foo Court", "1234");
-//        courtService.upsert(court);
-//
-//        List<Audit> auditResults = auditService.getAuditsByTableRecordId(court.getId());
-//
-//        Assertions.assertEquals(2, auditResults.size());
-//        Assertions.assertEquals(AuditLogSource.AUTO, auditResults.get(0).getSource());
-//        Assertions.assertEquals(AuditAction.CREATE.toString(), auditResults.get(0).getActivity());
-//        Assertions.assertEquals(AuditAction.UPDATE.toString(), auditResults.get(1).getActivity()); // S28-2419
-//
-//        court.setName("Bar Court");
-//        courtService.upsert(court);
-//        sleep(Duration.of(1, ChronoUnit.MINUTES));
-//
-//        var updatedResults = auditService.getAuditsByTableRecordId(court.getId());
-//        Assertions.assertEquals(3, updatedResults.size());
-//
-//        // fails here
-//        Assertions.assertEquals(AuditAction.CREATE.toString(), updatedResults.get(0).getActivity());
-//        Assertions.assertEquals(AuditAction.UPDATE.toString(), updatedResults.get(1).getActivity());
-//        Assertions.assertEquals(AuditAction.UPDATE.toString(), updatedResults.get(2).getActivity());
-//
-//    }
-
     @Transactional
     @Test
     void testDeleteAuditCase() {
