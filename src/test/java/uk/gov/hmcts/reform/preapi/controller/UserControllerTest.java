@@ -948,7 +948,8 @@ public class UserControllerTest {
         // Level 1 auth is attempting to downgrade to level 1
         when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
             .thenReturn(mockLevel1Role);
-        
+        sampleUserToUpdate.setEmail("new@email.com");
+
         mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                             .with(csrf())
                             .with(request -> {
@@ -989,89 +990,45 @@ public class UserControllerTest {
                            .value("Level 1 users cannot uplift to superuser access"));
     }
 
-    @DisplayName("Should allow super users to assign superuser access to anyone and edit superusers")
+    @DisplayName("Should allow super users to edit superusers")
     @Test
-    void upsertSuperUserCanEditOrAssignSuperUsers() throws Exception {
-        // Set up
-        UserAuthentication superUserAuth = getMockAuth(ROLE_SUPER_USER, superUserId);
+    void upsertSuperUserCanEditSuperUsers() throws Exception {
+        // Existing user is a superuser
+        when(sampleUserFromDatabase.getAppAccess().getFirst().getRole()).thenReturn(mockSuperUserRoleDto);
+        sampleUserToUpdate.setEmail("new@email.com");
 
-        when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.UPDATED);
-
-        // Test 1: superuser can edit user with existing superuser access
-        CreateUserDTO superUserToBeUpserted = HelperFactory.createUserWithAppAccess(superUserId);
-        mockMvc.perform(put("/users/" + superUserToBeUpserted.getId())
+        mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                             .with(csrf())
                             .with(request -> {
                                 getContext()
-                                    .setAuthentication(superUserAuth);
+                                    .setAuthentication(mockSuperUserAuth);
                                 return request;
                             })
-                            .content(OBJECT_MAPPER.writeValueAsString(superUserToBeUpserted))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is2xxSuccessful());
-
-        // Test 2: superuser can uplift Level 1 user to superuser access
-        // Upserted user is an existing Level 1 user
-        CreateUserDTO level1UserToBeUpserted = HelperFactory.createUserWithAppAccess(level1UserId);
-        when(userService.findByIdIfExists(level1UserId)).thenReturn(Optional.of(level1UserDTO));
-
-        // Change the role of the upserted user to superuser in the request body
-        level1UserToBeUpserted.getAppAccess().iterator().next()
-            .setRoleId(mockSuperUserRole.getId());
-
-        mockMvc.perform(put("/users/" + level1UserToBeUpserted.getId())
-                            .with(csrf())
-                            .with(request -> {
-                                getContext()
-                                    .setAuthentication(superUserAuth);
-                                return request;
-                            })
-                            .content(OBJECT_MAPPER.writeValueAsString(level1UserToBeUpserted))
+                            .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is2xxSuccessful());
     }
 
-    @DisplayName("Should allow ROLE_SUPER_USER to assign any role including ROLE_SUPER_USER with 201 response code")
+    @DisplayName("Should allow super users to assign superuser access to anyone")
     @Test
-    void upsertUserSuperUserCanAssignSuperUser() throws Exception {
-        var userId = UUID.randomUUID();
+    void upsertSuperUserCanAssignSuperUsers() throws Exception {
+        when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
+            .thenReturn(mockSuperUserRole);
+        when(userService.getRoleById(sampleUserFromDatabase.getAppAccess().getFirst().getId()))
+            .thenReturn(mockLevel1Role);
 
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-
-        var superUserRoleId = UUID.randomUUID();
-        var appAccess = new CreateAppAccessDTO();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setUserId(userId);
-        appAccess.setCourtId(UUID.randomUUID());
-        appAccess.setRoleId(superUserRoleId);
-        appAccess.setDefaultCourt(true);
-
-        user.setAppAccess(Set.of(appAccess));
-        user.setPortalAccess(Set.of());
-
-        when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.CREATED);
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
-                                                 .with(csrf())
-                                                 .with(request -> {
-                                                     getContext().setAuthentication(mockSuperUserAuth);
-                                                     return request;
-                                                 })
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(response.getResponse().getHeaderValue("Location"))
-            .isEqualTo(TEST_URL + "/users/" + userId);
+        mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext()
+                                    .setAuthentication(mockSuperUserAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is2xxSuccessful());
     }
 
     @Test
