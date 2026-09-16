@@ -191,7 +191,7 @@ public class UserServiceTest {
     @Test
     void findUserByIdIfExistsSuccess() {
         var model = userService.findByIdIfExists(userEntity.getId());
-        assertThat(model.isPresent()).isTrue();
+        assertThat(model).isPresent();
         assertThat(model.get().getId()).isEqualTo(userEntity.getId());
         assertThat(model.get().getFirstName()).isEqualTo(userEntity.getFirstName());
     }
@@ -200,7 +200,7 @@ public class UserServiceTest {
     @Test
     void findUserByIdIfExistsFailGracefully() {
         var model = userService.findByIdIfExists(UUID.randomUUID());
-        assertThat(model.isEmpty()).isTrue();
+        assertThat(model).isEmpty();
     }
 
     @DisplayName("Reset app access IDs for a user")
