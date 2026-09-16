@@ -18,6 +18,8 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,18 +46,15 @@ public class AppAccessService {
 
     @Transactional
     public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
-        Optional<AppAccess> appAccess = appAccessRepository
-            .findAllByCourtIdIsAndUserIdIs(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId());
+        Optional<AppAccess> existingAccessForThisUserCourtRole = appAccessRepository
+            .findAllByCourtIdIsAndUserIdIs(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId())
+            .stream()
+            .filter(a -> a.getRole().getId().equals(createAppAccessDTO.getRoleId()))
+            .filter(a -> a.getDeletedAt() == null)
+            .max(Comparator.comparing(AppAccess::getLastAccess));
 
         AppAccess entity;
-        if (appAccess.isPresent()) {
-            entity = appAccess.get();
-            // Reactivating if app access was previously deleted
-            entity.setLastAccess(createAppAccessDTO.getLastActive());
-            entity.setDeletedAt(null);
-            entity.setDeleted(false);
-            entity.setActive(createAppAccessDTO.getActive());
-        } else {
+        if (existingAccessForThisUserCourtRole.isEmpty()) {
             entity = new AppAccess();
             entity.setId(UUID.randomUUID());
 
@@ -66,12 +65,13 @@ public class AppAccessService {
             Court court = courtRepository.findById(createAppAccessDTO.getCourtId())
                 .orElseThrow(() -> new NotFoundException("Court: " + createAppAccessDTO.getCourtId()));
             entity.setCourt(court);
+
+            Role role = roleRepository.findById(createAppAccessDTO.getRoleId())
+                .orElseThrow(() -> new NotFoundException("Role: " + createAppAccessDTO.getRoleId()));
+            entity.setRole(role);
+        } else {
+            entity = existingAccessForThisUserCourtRole.get();
         }
-
-        Role role = roleRepository.findById(createAppAccessDTO.getRoleId())
-            .orElseThrow(() -> new NotFoundException("Role: " + createAppAccessDTO.getRoleId()));
-
-        entity.setRole(role);
 
         // TODO remove if statement when uncommented @NotNull on CreateAppAccessDTO.courtAccessType
         if (createAppAccessDTO.getDefaultCourt() == null) {
@@ -85,7 +85,7 @@ public class AppAccessService {
 
         appAccessRepository.save(entity);
 
-        return appAccess.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return existingAccessForThisUserCourtRole.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -114,7 +114,7 @@ public class AppAccessService {
     public void deleteByUserIdAndCourtId(UUID userId, UUID courtId) {
         appAccessRepository
             .findAllByCourtIdIsAndUserIdIs(courtId, userId)
-            .ifPresent(
+            .forEach(
                 access -> {
                     access.setActive(false);
                     access.setDeletedAt(Timestamp.from(Instant.now()));

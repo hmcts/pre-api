@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.RoleType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
@@ -53,37 +54,50 @@ class AppAccessServiceTest {
     @Autowired
     private AppAccessService underTest;
 
+    private final Role mockRole = mock(Role.class);
+    private final Court mockCourt = mock(Court.class);
+
+    private final UUID mockRoleId = UUID.randomUUID();
+
     private CreateAppAccessDTO appAccessToBeUpserted;
     private AppAccess existingAppAccess;
 
     @BeforeEach
     void setUp() {
+        when(mockRole.getId()).thenReturn(mockRoleId);
+
+        UUID mockCourtId = UUID.randomUUID();
+        when(mockCourt.getId()).thenReturn(mockCourtId);
+
         appAccessToBeUpserted = new CreateAppAccessDTO();
-        appAccessToBeUpserted.setCourtId(UUID.randomUUID());
+        appAccessToBeUpserted.setCourtId(mockCourtId);
         appAccessToBeUpserted.setUserId(UUID.randomUUID());
-        appAccessToBeUpserted.setRoleId(UUID.randomUUID());
+        appAccessToBeUpserted.setRoleId(mockRoleId);
         appAccessToBeUpserted.setActive(true);
 
         when(userRepository.findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId()))
             .thenReturn(Optional.of(new User()));
-        when(roleRepository.findById(appAccessToBeUpserted.getRoleId())).thenReturn(Optional.of(new Role()));
-        when(courtRepository.findById(appAccessToBeUpserted.getCourtId())).thenReturn(Optional.of(new Court()));
+        when(roleRepository.findById(mockRoleId)).thenReturn(Optional.of(mockRole));
+        when(courtRepository.findById(mockCourtId)).thenReturn(Optional.of(mockCourt));
 
         // Default test scenario: app access already exists in database
         existingAppAccess = new AppAccess();
         existingAppAccess.setId(UUID.randomUUID());
-        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
-                                                          appAccessToBeUpserted.getUserId()))
-            .thenReturn(Optional.of(existingAppAccess));
+
+        existingAppAccess.setRole(mockRole);
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(mockCourtId, appAccessToBeUpserted.getUserId()))
+            .thenReturn(List.of(existingAppAccess));
     }
 
     @DisplayName("Create an app access entity")
     @Test
     void createAppAccessSuccess() {
         // App access does not exist
-        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
-                                                          appAccessToBeUpserted.getUserId()))
-            .thenReturn(Optional.empty());
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(
+            appAccessToBeUpserted.getCourtId(),
+            appAccessToBeUpserted.getUserId()
+        ))
+            .thenReturn(List.of());
 
         assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.CREATED);
 
@@ -92,27 +106,21 @@ class AppAccessServiceTest {
         verify(userRepository, times(1))
             .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
         verify(courtRepository, times(1)).findById(appAccessToBeUpserted.getCourtId());
-        verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
+        verify(roleRepository, times(1)).findById(mockRoleId);
         verify(appAccessRepository, times(1)).save(any());
     }
 
     @DisplayName("Update an app access entity")
     @Test
     void updateAppAccessSuccess() {
-        UUID newRoleId = UUID.randomUUID();
-        appAccessToBeUpserted.setRoleId(newRoleId);
-
-        Role newRole = new Role();
-        newRole.setId(newRoleId);
-        when(roleRepository.findById(newRoleId)).thenReturn(Optional.of(newRole));
-
+        appAccessToBeUpserted.setActive(false);
         assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.UPDATED);
 
         verify(appAccessRepository, times(1))
             .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
-        verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
 
         // Not called because access already exists
+        verify(roleRepository, times(0)).findById(mockRoleId);
         verify(userRepository, times(0))
             .findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId());
         verify(courtRepository, times(0)).findById(appAccessToBeUpserted.getCourtId());
@@ -120,7 +128,7 @@ class AppAccessServiceTest {
         ArgumentCaptor<AppAccess> appAccessCaptor = ArgumentCaptor.forClass(AppAccess.class);
         verify(appAccessRepository, times(1)).save(appAccessCaptor.capture());
 
-        assertThat(appAccessCaptor.getValue().getRole().getId()).isEqualTo(newRoleId);
+        assertThat(appAccessCaptor.getValue().isActive()).isEqualTo(false);
     }
 
     @DisplayName("Should reactivate if app access was previously deleted")
@@ -142,9 +150,11 @@ class AppAccessServiceTest {
     @DisplayName("Should fail to create/update when user cannot be found")
     @Test
     void createAppAccessUserNotFound() {
-        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
-                                                          appAccessToBeUpserted.getUserId()))
-            .thenReturn(Optional.empty());
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(
+            appAccessToBeUpserted.getCourtId(),
+            appAccessToBeUpserted.getUserId()
+        ))
+            .thenReturn(List.of());
         when(userRepository.findByIdAndDeletedAtIsNull(appAccessToBeUpserted.getUserId()))
             .thenReturn(Optional.empty());
 
@@ -164,9 +174,11 @@ class AppAccessServiceTest {
     @DisplayName("Should fail to create/update when court cannot be found")
     @Test
     void createAppAccessCourtNotFound() {
-        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
-                                                          appAccessToBeUpserted.getUserId()))
-            .thenReturn(Optional.empty());
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(
+            appAccessToBeUpserted.getCourtId(),
+            appAccessToBeUpserted.getUserId()
+        ))
+            .thenReturn(List.of());
         when(courtRepository.findById(appAccessToBeUpserted.getCourtId())).thenReturn(Optional.empty());
 
         var message = assertThrows(
@@ -186,17 +198,21 @@ class AppAccessServiceTest {
     @DisplayName("Should fail to create/update when role cannot be found")
     @Test
     void createAppAccessRoleNotFound() {
-        when(roleRepository.findById(appAccessToBeUpserted.getRoleId())).thenReturn(Optional.empty());
+        when(roleRepository.findById(mockRoleId)).thenReturn(Optional.empty());
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(
+            appAccessToBeUpserted.getCourtId(),
+            appAccessToBeUpserted.getUserId()
+        )).thenReturn(List.of());
 
         var message = assertThrows(
             NotFoundException.class,
             () -> underTest.upsert(appAccessToBeUpserted)
         ).getMessage();
-        assertThat(message).isEqualTo("Not found: Role: " + appAccessToBeUpserted.getRoleId());
+        assertThat(message).isEqualTo("Not found: Role: " + mockRoleId);
 
         verify(appAccessRepository, times(1))
             .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
-        verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
+        verify(roleRepository, times(1)).findById(mockRoleId);
         verify(appAccessRepository, never()).save(any());
     }
 
@@ -222,21 +238,24 @@ class AppAccessServiceTest {
     @DisplayName("Should automatically set court access type to primary when null")
     @Test
     void upsertSetCourtAccessType() {
-        var appAccess = new AppAccess();
+        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(
+            appAccessToBeUpserted.getCourtId(),
+            appAccessToBeUpserted.getUserId()
+        )).thenReturn(List.of(existingAppAccess));
 
-        when(appAccessRepository.findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(),
-                                                          appAccessToBeUpserted.getUserId()))
-            .thenReturn(Optional.of(appAccess));
+        appAccessToBeUpserted.setDefaultCourt(null);
 
         assertThat(underTest.upsert(appAccessToBeUpserted)).isEqualTo(UpsertResult.UPDATED);
 
         verify(appAccessRepository, times(1))
             .findAllByCourtIdIsAndUserIdIs(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
-        verify(roleRepository, times(1)).findById(appAccessToBeUpserted.getRoleId());
 
         ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
         verify(appAccessRepository, times(1)).save(captor.capture());
         assertThat(captor.getValue().isDefaultCourt()).isTrue();
+
+        verifyNoMoreInteractions(roleRepository);
+        verifyNoMoreInteractions(appAccessRepository);
     }
 
     @Test
