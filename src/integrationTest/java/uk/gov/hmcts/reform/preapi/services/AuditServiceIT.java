@@ -95,32 +95,6 @@ class AuditServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    void testDeleteAuditCase() {
-        mockAdminUser();
-
-        var caseDTO = getCase();
-        var caseId = UUID.randomUUID();
-        caseDTO.setId(caseId);
-
-        var auditResultsEmpty = auditService.getAuditsByTableRecordId(caseDTO.getId());
-
-        caseService.upsert(new CreateCaseDTO(caseDTO));
-        var auditResultsCreated = auditService.getAuditsByTableRecordId(caseDTO.getId());
-        caseService.deleteById(caseDTO.getId());
-
-        var auditResults = auditService.getAuditsByTableRecordId(caseDTO.getId())
-            .stream()
-            .sorted(Comparator.comparing(Audit::getCreatedAt))
-            .toList();
-        Assertions.assertEquals(0, auditResultsEmpty.size());
-        Assertions.assertEquals(1, auditResultsCreated.size());
-        Assertions.assertEquals(2, auditResults.size());
-        Assertions.assertEquals(AuditAction.CREATE.toString(), auditResults.get(0).getActivity());
-        Assertions.assertEquals(AuditAction.DELETE.toString(), auditResults.get(1).getActivity());
-    }
-
-    @Transactional
-    @Test
     void testInternalAudit() {
         var court = HelperFactory.createCreateCourtDTO(CourtType.CROWN, "Foo Court", "1234");
         courtService.upsert(court);
@@ -143,6 +117,32 @@ class AuditServiceIT extends IntegrationTestBase {
         Assertions.assertEquals(AuditAction.CREATE.toString(), updatedResults.get(0).getActivity());
         Assertions.assertEquals(AuditAction.UPDATE.toString(), updatedResults.get(1).getActivity());
         Assertions.assertEquals(AuditAction.UPDATE.toString(), updatedResults.get(2).getActivity());
+    }
+
+    @Transactional
+    @Test
+    void testDeleteAuditCase() {
+        mockAdminUser();
+
+        var caseDTO = getCase();
+        var caseId = UUID.randomUUID();
+        caseDTO.setId(caseId);
+
+        var auditResultsEmpty = auditService.getAuditsByTableRecordId(caseDTO.getId());
+
+        caseService.upsert(new CreateCaseDTO(caseDTO));
+        var auditResultsCreated = auditService.getAuditsByTableRecordId(caseDTO.getId());
+        caseService.deleteById(caseDTO.getId());
+
+        var auditResults = auditService.getAuditsByTableRecordId(caseDTO.getId())
+            .stream()
+            .sorted(Comparator.comparing(Audit::getCreatedAt))
+            .toList();
+        Assertions.assertEquals(0, auditResultsEmpty.size());
+        Assertions.assertEquals(1, auditResultsCreated.size());
+        Assertions.assertEquals(2, auditResults.size());
+        Assertions.assertEquals(AuditAction.CREATE.toString(), auditResults.get(0).getActivity());
+        Assertions.assertEquals(AuditAction.DELETE.toString(), auditResults.get(1).getActivity());
     }
 
     @Transactional
