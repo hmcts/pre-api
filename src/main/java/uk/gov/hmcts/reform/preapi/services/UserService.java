@@ -184,8 +184,9 @@ public class UserService {
 
             Stream.ofNullable(entity.getPortalAccess())
                 .flatMap(Collection::stream)
-                .filter(portalAccess -> portalAccess.getDeletedAt() == null)
                 .map(PortalAccess::getId)
+                .filter(id -> createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId)
+                    .noneMatch(newAccessId -> newAccessId.equals(id)))
                 .forEach(portalAccessService::deleteById);
 
             createUserDTO.getPortalAccess().forEach(portalAccessService::update);
