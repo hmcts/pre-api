@@ -7,13 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.AuditAction;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -25,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 class AuditServiceIT extends IntegrationTestBase {
@@ -47,19 +46,8 @@ class AuditServiceIT extends IntegrationTestBase {
     @Autowired
     private RecordingService recordingService;
 
-    @Autowired
-    private UserService userService;
-
-    private CreateCourtDTO getCreateCourt() {
-        return HelperFactory.createCreateCourtDTO(CourtType.CROWN, "Foo Court", "1234");
-    }
-
-    private Court getCourt() {
-        return HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
-    }
-
     private Case getCase() {
-        var court = getCourt();
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
 
         return HelperFactory.createCase(
@@ -70,7 +58,6 @@ class AuditServiceIT extends IntegrationTestBase {
     }
 
     private Booking getBooking() {
-
         var caseDTO = getCase();
         entityManager.persist(caseDTO);
 
@@ -109,10 +96,10 @@ class AuditServiceIT extends IntegrationTestBase {
     @Transactional
     @Test
     void testInternalAudit() {
-        var court = getCreateCourt();
+        var court = HelperFactory.createCreateCourtDTO(CourtType.CROWN, "Foo Court", "1234");
         courtService.upsert(court);
 
-        var auditResults = auditService.getAuditsByTableRecordId(court.getId());
+        List<Audit> auditResults = auditService.getAuditsByTableRecordId(court.getId());
 
         Assertions.assertEquals(2, auditResults.size());
         Assertions.assertEquals(AuditLogSource.AUTO, auditResults.get(0).getSource());
@@ -122,12 +109,14 @@ class AuditServiceIT extends IntegrationTestBase {
         court.setName("Bar Court");
         courtService.upsert(court);
 
-        var updatedResults = auditService.getAuditsByTableRecordId(court.getId());
+        // Different method
+        List<Audit> updatedResults = auditService.getAuditsByTableRecordId(court.getId()).stream()
+            .sorted(Comparator.comparing(Audit::getCreatedAt)).toList();
         Assertions.assertEquals(3, updatedResults.size());
+
         Assertions.assertEquals(AuditAction.CREATE.toString(), updatedResults.get(0).getActivity());
         Assertions.assertEquals(AuditAction.UPDATE.toString(), updatedResults.get(1).getActivity());
         Assertions.assertEquals(AuditAction.UPDATE.toString(), updatedResults.get(2).getActivity());
-
     }
 
     @Transactional
