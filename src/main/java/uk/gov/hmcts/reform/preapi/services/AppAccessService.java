@@ -43,14 +43,21 @@ public class AppAccessService {
         this.roleRepository = roleRepository;
     }
 
-    @Transactional
-    public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
-        Optional<AppAccess> existingAccessForThisUserCourtRole = appAccessRepository
-            .findAllByCourtIdAndUserId(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId())
+    public Optional<AppAccess> getLatestAccessByCourtIdAndUserIdAndRoleId(UUID courtId, UUID userId, UUID roleId) {
+        return appAccessRepository.findAllByCourtIdAndUserId(courtId, userId)
             .stream()
-            .filter(a -> a.getRole().getId().equals(createAppAccessDTO.getRoleId()))
+            .filter(a -> a.getRole().getId().equals(roleId))
             .filter(a -> a.getDeletedAt() == null)
             .max(Comparator.comparing(AppAccess::getLastAccess));
+    }
+
+    @Transactional
+    public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
+        Optional<AppAccess> existingAccessForThisUserCourtRole =
+            getLatestAccessByCourtIdAndUserIdAndRoleId(
+                createAppAccessDTO.getCourtId(),
+                createAppAccessDTO.getUserId(),
+                createAppAccessDTO.getRoleId());
 
         AppAccess entity;
         if (existingAccessForThisUserCourtRole.isEmpty()) {
