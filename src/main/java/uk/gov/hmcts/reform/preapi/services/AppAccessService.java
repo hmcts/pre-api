@@ -46,7 +46,7 @@ public class AppAccessService {
     @Transactional
     public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
         Optional<AppAccess> existingAccessForThisUserCourtRole = appAccessRepository
-            .findAllByCourtIdIsAndUserIdIs(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId())
+            .findAllByCourtIdAndUserId(createAppAccessDTO.getCourtId(), createAppAccessDTO.getUserId())
             .stream()
             .filter(a -> a.getRole().getId().equals(createAppAccessDTO.getRoleId()))
             .filter(a -> a.getDeletedAt() == null)
@@ -112,7 +112,7 @@ public class AppAccessService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteByUserIdAndCourtId(UUID userId, UUID courtId) {
         appAccessRepository
-            .findAllByCourtIdIsAndUserIdIs(courtId, userId)
+            .findAllByCourtIdAndUserId(courtId, userId)
             .forEach(
                 access -> {
                     access.setActive(false);

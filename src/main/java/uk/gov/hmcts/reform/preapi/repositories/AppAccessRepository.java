@@ -41,5 +41,5 @@ public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
     )
     List<AppAccess> getUserPrimaryCourtsForReport();
 
-    List<AppAccess> findAllByCourtIdIsAndUserIdIs(UUID courtId, UUID userId);
+    List<AppAccess> findAllByCourtIdAndUserId(UUID courtId, UUID userId);
 }
