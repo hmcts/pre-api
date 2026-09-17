@@ -5512,35 +5512,6 @@ paths:
       summary: Reset App Access IDs for a User
       tags:
         - user-controller
-  '/users/{upsertedUserId}':
-    put:
-      consumes:
-        - application/json
-      operationId: putUser
-      parameters:
-        - format: uuid
-          in: path
-          name: upsertedUserId
-          required: true
-          type: string
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-        - in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/CreateUserDTO'
-      responses:
-        '200':
-          description: OK
-      summary: Create or Update a User
-      tags:
-        - user-controller
   '/users/{userId}':
     delete:
       operationId: deleteUser
@@ -5586,6 +5557,34 @@ paths:
           schema:
             $ref: '#/definitions/UserDTO'
       summary: Get a User by Id
+      tags:
+        - user-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putUser
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateUserDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a User
       tags:
         - user-controller
   '/users/{userId}/undelete':
