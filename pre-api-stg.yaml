@@ -9,6 +9,10 @@ definitions:
           $ref: '#/definitions/BaseAppAccessDTO'
         type: array
         uniqueItems: true
+      app_access_id:
+        description: AppAccessId
+        format: uuid
+        type: string
       portal_access:
         description: AccessPortalAccess
         items:
