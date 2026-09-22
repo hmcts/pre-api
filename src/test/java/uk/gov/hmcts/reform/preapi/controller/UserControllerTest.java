@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.PortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
@@ -802,9 +803,21 @@ public class UserControllerTest {
     @DisplayName("Should get user's app access details by email with 200 response code")
     @Test
     void getUserByEmailSuccess() throws Exception {
-        var userEmail = "example@example.com";
-        var mock = new AccessDTO();
-        var mockUser = new BaseUserDTO();
+        String userEmail = "example@example.com";
+
+        BaseAppAccessDTO appAccess = new BaseAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+
+        PortalAccessDTO portalAccess = new PortalAccessDTO();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setStatus(AccessStatus.ACTIVE);
+
+        AccessDTO mock = new AccessDTO();
+        mock.setAppAccessId(UUID.randomUUID());
+        mock.setAppAccess(Set.of(appAccess));
+        mock.setPortalAccess(Set.of(portalAccess));
+
+        BaseUserDTO mockUser = new BaseUserDTO();
         mockUser.setId(UUID.randomUUID());
         mock.setUser(mockUser);
 
@@ -813,7 +826,10 @@ public class UserControllerTest {
         mockMvc.perform(get("/users/by-email/" + userEmail))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.user.id").value(mock.getUser().getId().toString()));
+            .andExpect(jsonPath("$.user.id").value(mock.getUser().getId().toString()))
+            .andExpect(jsonPath("$.app_access_id").value(mock.getAppAccessId().toString()))
+            .andExpect(jsonPath("$.portal_access[0].id").value(portalAccess.getId().toString()))
+            .andExpect(jsonPath("$.app_access[0].id").doesNotExist());
     }
 
     @DisplayName("Should return 404 when user's app access details by email that does not have any app access")

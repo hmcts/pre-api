@@ -368,12 +368,16 @@ class UserControllerFT extends FunctionalTestBase {
             .forEach(appAccess -> assertThat(appAccess.getId()).isNull());
 
         String emailEndpoint = USERS_ENDPOINT + "/by-email/" + user.getEmail().toLowerCase(Locale.UK);
-        doGetRequest(emailEndpoint, TestingSupportRoles.SUPER_USER)
+        AccessDTO userByEmailResponse = doGetRequest(emailEndpoint, TestingSupportRoles.SUPER_USER)
             .body()
             .jsonPath()
-            .getObject("", AccessDTO.class)
+            .getObject("", AccessDTO.class);
+
+        userByEmailResponse
             .getAppAccess()
             .forEach(appAccess -> assertThat(appAccess.getId()).isNull());
+
+        assertThat(userByEmailResponse.getAppAccessId()).isNotNull();
     }
 
     private void checkUserAccessIdHidden(UserDTO user) {
