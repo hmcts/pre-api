@@ -48,8 +48,6 @@ public class AccessDTO {
         if (entity.getAppAccess() != null) {
             appAccessId = entity.getAppAccess().stream().filter(AppAccess::isDefaultCourt)
                 .map(AppAccess::getId).findFirst().orElse(null);
-        } else {
-            appAccessId = null;
         }
         appAccess = Stream.ofNullable(entity.getAppAccess())
             .flatMap(access ->
