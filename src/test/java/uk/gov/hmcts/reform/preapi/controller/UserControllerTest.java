@@ -803,7 +803,6 @@ public class UserControllerTest {
     @DisplayName("Should get user's app access details by email with 200 response code")
     @Test
     void getUserByEmailSuccess() throws Exception {
-        String userEmail = "example@example.com";
 
         BaseAppAccessDTO appAccess = new BaseAppAccessDTO();
         appAccess.setId(UUID.randomUUID());
@@ -821,6 +820,7 @@ public class UserControllerTest {
         mockUser.setId(UUID.randomUUID());
         mock.setUser(mockUser);
 
+        String userEmail = "example@example.com";
         when(userService.findByEmail(userEmail)).thenReturn(mock);
 
         mockMvc.perform(get("/users/by-email/" + userEmail))
