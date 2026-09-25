@@ -1,8 +1,13 @@
 package uk.gov.hmcts.reform.preapi.util;
 
 import lombok.experimental.UtilityClass;
+import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
@@ -29,18 +34,78 @@ import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.enums.RoleType;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @UtilityClass
 @SuppressWarnings({"checkstyle:HideUtilityClassConstructor", "PMD.CouplingBetweenObjects"})
 public class HelperFactory {
     public static User createDefaultTestUser() {
-        return createUser("Test", "User", "example@example.com", new Timestamp(System.currentTimeMillis()), null, null);
+        return createUser("Test", "User", "example@example.com",
+                          null, null, null);
+    }
+
+    public static CreateUserDTO createUserWithAppAccess(UUID userId) {
+        CreateUserDTO user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+
+        CreateAppAccessDTO appAccess = new CreateAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUserId(userId);
+        appAccess.setCourtId(UUID.randomUUID());
+        appAccess.setRoleId(UUID.randomUUID());
+        appAccess.setDefaultCourt(true);
+
+        user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
+        return user;
+    }
+
+    public static UserAuthentication getMockAuth(RoleType roleType, UUID userId) {
+        var mockAuth = mock(UserAuthentication.class);
+        switch (roleType) {
+            case ROLE_LEVEL_1:
+                when(mockAuth.hasRole(RoleType.ROLE_LEVEL_1.name())).thenReturn(true);
+                when(mockAuth.hasRole(RoleType.ROLE_SUPER_USER.name())).thenReturn(false);
+                break;
+            case ROLE_SUPER_USER:
+                when(mockAuth.hasRole(RoleType.ROLE_SUPER_USER.name())).thenReturn(true);
+                when(mockAuth.hasRole(RoleType.ROLE_LEVEL_1.name())).thenReturn(false);
+                break;
+            default:
+                when(mockAuth.hasRole(RoleType.ROLE_LEVEL_1.name())).thenReturn(false);
+                when(mockAuth.hasRole(RoleType.ROLE_SUPER_USER.name())).thenReturn(false);
+        }
+
+        when(mockAuth.getUserId()).thenReturn(userId);
+        return mockAuth;
+    }
+
+    public static UserDTO mockUserFromDatabase(RoleType roleType, UUID userId) {
+        UserDTO user = mock(UserDTO.class);
+        when(user.getId()).thenReturn(userId);
+
+        RoleDTO mockRole = mock(RoleDTO.class);
+        when(mockRole.getName()).thenReturn(roleType.name());
+        BaseAppAccessDTO appAccess = mock(BaseAppAccessDTO.class);
+        when(appAccess.getRole()).thenReturn(mockRole);
+        when(appAccess.isActive()).thenReturn(true);
+        when(user.getAppAccess()).thenReturn(List.of(appAccess));
+
+        return user;
     }
 
     public static User createUser(String firstName,
@@ -63,6 +128,7 @@ public class HelperFactory {
 
     public static Court createCourt(CourtType courtType, String name, String locationCode) {
         Court court = new Court();
+        court.setId(UUID.randomUUID());
         court.setCourtType(courtType);
         court.setName(name);
         court.setLocationCode(locationCode);

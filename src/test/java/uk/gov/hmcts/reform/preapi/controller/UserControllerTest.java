@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -17,10 +18,14 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.PortalAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
@@ -28,9 +33,11 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -48,6 +55,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.core.context.SecurityContextHolder.getContext;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,6 +64,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.hmcts.reform.preapi.enums.RoleType.ROLE_LEVEL_1;
+import static uk.gov.hmcts.reform.preapi.enums.RoleType.ROLE_SUPER_USER;
+import static uk.gov.hmcts.reform.preapi.util.HelperFactory.getMockAuth;
+import static uk.gov.hmcts.reform.preapi.util.HelperFactory.mockUserFromDatabase;
 
 @WebMvcTest(UserController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -79,9 +91,59 @@ public class UserControllerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
 
+    private static final UUID level1UserId = UUID.randomUUID();
+    private static final UUID superUserId = UUID.randomUUID();
+
+    private static final UserAuthentication level1RequesterAuth = getMockAuth(ROLE_LEVEL_1, level1UserId);
+    private static final UserDTO level1UserDTO = mockUserFromDatabase(ROLE_LEVEL_1, level1UserId);
+
+    private static final UserAuthentication mockSuperUserAuth = getMockAuth(ROLE_SUPER_USER, superUserId);
+    private static final UserDTO superUserInDb = mockUserFromDatabase(ROLE_SUPER_USER, superUserId);
+
+    private static final UUID superUserRoleId = UUID.randomUUID();
+    private static final Role mockSuperUserRole = mock(Role.class);
+    private static final UUID mockLevel1RoleId = UUID.randomUUID();
+    private static final Role mockLevel1Role = mock(Role.class);
+    private static final RoleDTO mockSuperUserRoleDto = mock(RoleDTO.class);
+
+    private CreateUserDTO sampleUserToUpdate;
+    private UserDTO sampleUserFromDatabase;
+
     @BeforeAll
     static void setUp() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+    }
+
+    @BeforeEach
+    void setUpMocks() {
+
+        // Role mocks
+        when(mockSuperUserRole.getId()).thenReturn(superUserRoleId);
+        when(mockSuperUserRole.getName()).thenReturn("Super User");
+        when(mockLevel1Role.getId()).thenReturn(mockLevel1RoleId);
+        when(mockLevel1Role.getName()).thenReturn("Level 1");
+        when(mockSuperUserRoleDto.getId()).thenReturn(superUserRoleId);
+        when(mockSuperUserRoleDto.getName()).thenReturn("Super User");
+
+        sampleUserToUpdate = HelperFactory.createUserWithAppAccess(UUID.randomUUID());
+        sampleUserFromDatabase = mockUserFromDatabase(ROLE_LEVEL_1, sampleUserToUpdate.getId());
+
+        // User service mocks
+        when(userService.findById(superUserInDb.getId())).thenReturn(superUserInDb);
+        when(userService.findById(level1UserDTO.getId())).thenReturn(level1UserDTO);
+        when(userService.findByIdIfExists(level1UserId)).thenReturn(Optional.of(level1UserDTO));
+        when(userService.findByIdIfExists(sampleUserToUpdate.getId())).thenReturn(Optional.of(sampleUserFromDatabase));
+
+        when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
+                 .thenReturn(mockLevel1Role);
+        when(userService.getRoleById(mockLevel1RoleId)).thenReturn(mockLevel1Role);
+        when(userService.getRoleById(level1UserDTO.getAppAccess().getFirst().getRole().getId()))
+            .thenReturn(mockLevel1Role);
+        when(userService.getRoleById(superUserRoleId)).thenReturn(mockSuperUserRole);
+        when(userService.getRoleById(superUserInDb.getAppAccess().getFirst().getRole().getId()))
+            .thenReturn(mockSuperUserRole);
+
+        when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.UPDATED);
     }
 
     @DisplayName("Should get user by id with 200 response code")
@@ -93,11 +155,53 @@ public class UserControllerTest {
 
         when(userService.findById(userId)).thenReturn(mockUser);
 
+        mockMvc.perform(get("/users/" + userId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(userId.toString()))
+            .andReturn();
+    }
+
+    @DisplayName("Should not display user's app access ID")
+    @Test
+    void doNotDisplayAppAccessIdForGetUser() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UserDTO user = new UserDTO();
+        user.setId(userId);
+
+        CourtDTO court = new CourtDTO();
+        court.setId(UUID.randomUUID());
+        court.setName("Example Court");
+
+        RoleDTO role = new RoleDTO();
+        role.setId(UUID.randomUUID());
+        role.setName("Example Role");
+
+        BaseAppAccessDTO access1 = new BaseAppAccessDTO();
+        access1.setId(UUID.randomUUID());
+        access1.setCourt(court);
+        access1.setRole(role);
+        access1.setActive(true);
+
+        BaseAppAccessDTO access2 = new BaseAppAccessDTO();
+        access2.setId(UUID.randomUUID());
+        access2.setCourt(court);
+        access2.setRole(role);
+        access2.setActive(true);
+
+        user.setAppAccess(List.of(access1, access2));
+
+        when(userService.findById(userId)).thenReturn(user);
 
         mockMvc.perform(get("/users/" + userId))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(userId.toString()));
+            .andExpect(jsonPath("$.id").value(userId.toString()))
+            .andExpect(jsonPath("$.app_access[0].court.name").value("Example Court"))
+            .andExpect(jsonPath("$.app_access[1].role.name").value("Example Role"))
+            .andExpect(jsonPath("$.app_access[0].id").doesNotExist())
+            .andExpect(jsonPath("$.app_access[1].id").doesNotExist())
+            .andReturn();
     }
 
     @DisplayName("Should return 404 when trying to get non-existing user")
@@ -207,23 +311,20 @@ public class UserControllerTest {
                            .value("Not found: User: " + userId));
     }
 
-    @DisplayName("Should create a user with 201 response code")
+    @DisplayName("Should create a new user with 201 response code")
     @Test
     void createUserCreated() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
+        when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.CREATED);
+        when(userService.findByIdIfExists(sampleUserToUpdate.getId())).thenReturn(Optional.empty());
 
-        when(userService.upsert(user)).thenReturn(UpsertResult.CREATED);
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .with(request -> {
+                                                     getContext()
+                                                         .setAuthentication(level1RequesterAuth);
+                                                     return request;
+                                                 })
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isCreated())
@@ -231,27 +332,23 @@ public class UserControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(
-            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/users/" + userId
-        );
+            response.getResponse().getHeaderValue("Location"))
+            .isEqualTo(TEST_URL + "/users/" + sampleUserToUpdate.getId());
     }
 
     @DisplayName("Should update a user with 204 response code")
     @Test
     void updateUserNoContent() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
+        when(userService.upsert(any(CreateUserDTO.class))).thenReturn(UpsertResult.UPDATED);
 
-        when(userService.upsert(user)).thenReturn(UpsertResult.UPDATED);
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .with(request -> {
+                                                     getContext()
+                                                         .setAuthentication(level1RequesterAuth);
+                                                     return request;
+                                                 })
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent())
@@ -259,25 +356,16 @@ public class UserControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(
-            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/users/" + userId
-        );
+            response.getResponse().getHeaderValue("Location"))
+            .isEqualTo(TEST_URL + "/users/" + sampleUserToUpdate.getId());
     }
 
     @DisplayName("Should fail to create/update a user with 400 response code userId mismatch")
     @Test
     void createUserIdMismatch() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
-
         MvcResult response = mockMvc.perform(put("/users/" + UUID.randomUUID())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -290,21 +378,17 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 404 response code when user has been deleted")
     @Test
     void createUserDeletedBadRequest() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
-
-        doThrow(new ResourceInDeletedStateException("UserDTO", user.getId().toString()))
+        doThrow(new ResourceInDeletedStateException("UserDTO", sampleUserToUpdate.getId().toString()))
             .when(userService).upsert((CreateUserDTO) any());
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .with(request -> {
+                                                     getContext()
+                                                         .setAuthentication(level1RequesterAuth);
+                                                     return request;
+                                                 })
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -312,24 +396,25 @@ public class UserControllerTest {
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo(
-                "{\"message\":\"Resource UserDTO(" + userId + ") is in a deleted state and cannot be updated\"}"
+                "{\"message\":\"Resource UserDTO(" + sampleUserToUpdate.getId()
+                    + ") is in a deleted state and cannot be updated\"}"
             );
     }
 
     @DisplayName("Should fail to create/update a user with 400 when user id is null")
     @Test
     void upsertUserIdNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
+        var userWithNoID = new CreateUserDTO();
+        // no ID set
+        userWithNoID.setFirstName("Example");
+        userWithNoID.setLastName("Person");
+        userWithNoID.setEmail("example@example.com");
+        userWithNoID.setAppAccess(Set.of());
+        userWithNoID.setPortalAccess(Set.of());
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + UUID.randomUUID())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(userWithNoID))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -344,17 +429,11 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user first name is null")
     @Test
     void upsertUserFirstNameNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
+        sampleUserToUpdate.setFirstName(null);
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -369,18 +448,11 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user first name is blank")
     @Test
     void upsertUserFirstNameBlank() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
+        sampleUserToUpdate.setFirstName("");
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -395,17 +467,11 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user last name is null")
     @Test
     void upsertUserLastNameNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
+        sampleUserToUpdate.setLastName(null);
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -420,18 +486,10 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user last name is blank")
     @Test
     void upsertUserLastNameBlank() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        sampleUserToUpdate.setLastName("");
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -446,43 +504,10 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user email is null")
     @Test
     void upsertUserEmailNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        sampleUserToUpdate.setEmail(null);
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"email\":\"must not be blank\"}"
-            );
-    }
-
-    @DisplayName("Should fail to create/update a user with 400 when user first name is blank")
-    @Test
-    void upsertUserEmailBlank() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -497,17 +522,11 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user app access is null")
     @Test
     void upsertUserAppAccessNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setPortalAccess(Set.of());
+        sampleUserToUpdate.setAppAccess(null);
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -519,57 +538,15 @@ public class UserControllerTest {
             );
     }
 
-    @DisplayName("Should fail to create/update a user with 400 when user app access id is null")
-    @Test
-    void upsertUserAppAccessIdNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        var appAccess = new CreateAppAccessDTO();
-        appAccess.setUserId(UUID.randomUUID());
-        appAccess.setCourtId(UUID.randomUUID());
-        appAccess.setRoleId(UUID.randomUUID());
-        appAccess.setDefaultCourt(true);
-        user.setAppAccess(Set.of(appAccess));
-        user.setPortalAccess(Set.of());
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"appAccess[].id\":\"must not be null\"}"
-            );
-    }
-
     @DisplayName("Should fail to create/update a user with 400 when user app access user id is null")
     @Test
     void upsertUserAppAccessUserIdNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        var appAccess = new CreateAppAccessDTO();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setCourtId(UUID.randomUUID());
-        appAccess.setRoleId(UUID.randomUUID());
-        appAccess.setDefaultCourt(true);
-        user.setAppAccess(Set.of(appAccess));
-        user.setPortalAccess(Set.of());
+        sampleUserToUpdate.getAppAccess().iterator()
+            .forEachRemaining(access -> access.setUserId(null));
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -584,23 +561,13 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user app access court id is null")
     @Test
     void upsertUserAppAccessCourtIdNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        var appAccess = new CreateAppAccessDTO();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setUserId(UUID.randomUUID());
-        appAccess.setRoleId(UUID.randomUUID());
-        appAccess.setDefaultCourt(true);
-        user.setAppAccess(Set.of(appAccess));
-        user.setPortalAccess(Set.of());
+        sampleUserToUpdate.getAppAccess().iterator()
+            .forEachRemaining(access -> access.setCourtId(null));
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -615,23 +582,12 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user app access role id is null")
     @Test
     void upsertUserAppAccessRoleIdNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        var appAccess = new CreateAppAccessDTO();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setUserId(UUID.randomUUID());
-        appAccess.setCourtId(UUID.randomUUID());
-        appAccess.setDefaultCourt(true);
-        user.setAppAccess(Set.of(appAccess));
-        user.setPortalAccess(Set.of());
+        sampleUserToUpdate.getAppAccess().iterator()
+            .forEachRemaining(access -> access.setRoleId(null));
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -679,21 +635,14 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when app access doesnt meet NoDuplicateCourtsConstraint")
     @Test
     void upsertUserAppAccessNoDuplicateCourtsConstraint() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setPortalAccess(Set.of());
-        var appAccess1 = createAppAccessDTO(true, userId);
-        var appAccess2 = createAppAccessDTO(false, userId);
+        var appAccess1 = createAppAccessDTO(true, sampleUserToUpdate.getId());
+        var appAccess2 = createAppAccessDTO(false, sampleUserToUpdate.getId());
         appAccess2.setCourtId(appAccess1.getCourtId());
-        user.setAppAccess(Set.of(appAccess1, appAccess2));
+        sampleUserToUpdate.setAppAccess(Set.of(appAccess1, appAccess2));
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -742,19 +691,12 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when app access doesnt meet PrimaryCourtConstraint")
     @Test
     void upsertUserAppAccessPrimaryCourtConstraint() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setPortalAccess(Set.of());
-        var appAccess1 = createAppAccessDTO(false, userId);
-        user.setAppAccess(Set.of(appAccess1));
+        var appAccess1 = createAppAccessDTO(false, sampleUserToUpdate.getId());
+        sampleUserToUpdate.setAppAccess(Set.of(appAccess1));
 
-        var response = mockMvc.perform(put("/users/" + userId)
+        var response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                            .with(csrf())
-                                           .content(OBJECT_MAPPER.writeValueAsString(user))
+                                           .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                            .contentType(MediaType.APPLICATION_JSON_VALUE)
                                            .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -766,21 +708,14 @@ public class UserControllerTest {
             );
     }
 
-    @DisplayName("Should fail to create/update a user with 400 when user first name is blank")
+    @DisplayName("Should fail to create/update a user with 400 when email is malformed")
     @Test
     void upsertUserEmailNotFormattedCorrectly() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example not email");
-        user.setAppAccess(Set.of());
-        user.setPortalAccess(Set.of());
+        sampleUserToUpdate.setEmail("example not email");
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -795,17 +730,11 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user portal access is null")
     @Test
     void upsertUserPortalAccessNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
+        sampleUserToUpdate.setPortalAccess(null);
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -820,21 +749,14 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user portal access id is null")
     @Test
     void upsertUserPortalAccessIdNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
         var access = new CreatePortalAccessDTO();
         access.setStatus(AccessStatus.INACTIVE);
         access.setInvitedAt(Timestamp.from(Instant.now()));
-        user.setPortalAccess(Set.of(access));
+        sampleUserToUpdate.setPortalAccess(Set.of(access));
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -849,21 +771,14 @@ public class UserControllerTest {
     @DisplayName("Should fail to create/update a user with 400 when user portal access status is null")
     @Test
     void upsertUserPortalAccessStatusNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        var access = new CreatePortalAccessDTO();
+        CreatePortalAccessDTO access = new CreatePortalAccessDTO();
         access.setId(UUID.randomUUID());
         access.setInvitedAt(Timestamp.from(Instant.now()));
-        user.setPortalAccess(Set.of(access));
+        sampleUserToUpdate.setPortalAccess(Set.of(access));
 
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+        MvcResult response = mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
@@ -888,18 +803,33 @@ public class UserControllerTest {
     @DisplayName("Should get user's app access details by email with 200 response code")
     @Test
     void getUserByEmailSuccess() throws Exception {
-        var userEmail = "example@example.com";
-        var mock = new AccessDTO();
-        var mockUser = new BaseUserDTO();
+
+        BaseAppAccessDTO appAccess = new BaseAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+
+        PortalAccessDTO portalAccess = new PortalAccessDTO();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setStatus(AccessStatus.ACTIVE);
+
+        AccessDTO mock = new AccessDTO();
+        mock.setAppAccessId(UUID.randomUUID());
+        mock.setAppAccess(Set.of(appAccess));
+        mock.setPortalAccess(Set.of(portalAccess));
+
+        BaseUserDTO mockUser = new BaseUserDTO();
         mockUser.setId(UUID.randomUUID());
         mock.setUser(mockUser);
 
+        String userEmail = "example@example.com";
         when(userService.findByEmail(userEmail)).thenReturn(mock);
 
         mockMvc.perform(get("/users/by-email/" + userEmail))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.user.id").value(mock.getUser().getId().toString()));
+            .andExpect(jsonPath("$.user.id").value(mock.getUser().getId().toString()))
+            .andExpect(jsonPath("$.app_access_id").value(mock.getAppAccessId().toString()))
+            .andExpect(jsonPath("$.portal_access[0].id").value(portalAccess.getId().toString()))
+            .andExpect(jsonPath("$.app_access[0].id").doesNotExist());
     }
 
     @DisplayName("Should return 404 when user's app access details by email that does not have any app access")
@@ -1027,106 +957,116 @@ public class UserControllerTest {
         return appAccess;
     }
 
-    @DisplayName("Should prevent ROLE_LEVEL_1 from assigning ROLE_SUPER_USER with 403 response code")
+    @DisplayName("Should prevent Level 1 users from editing superusers")
     @Test
-    void upsertUserLevel1CannotAssignSuperUser() throws Exception {
-        var userId = UUID.randomUUID();
+    void upsertUserLevel1CannotEditSuperUsers() throws Exception {
+        // Existing user is a superuser
+        when(sampleUserFromDatabase.getAppAccess().getFirst().getRole()).thenReturn(mockSuperUserRoleDto);
+        // Level 1 auth is attempting to downgrade to level 1
+        when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
+            .thenReturn(mockLevel1Role);
+        sampleUserToUpdate.setEmail("new@email.com");
 
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-
-        var superUserRoleId = UUID.randomUUID();
-        var appAccess = new CreateAppAccessDTO();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setUserId(userId);
-        appAccess.setCourtId(UUID.randomUUID());
-        appAccess.setRoleId(superUserRoleId);
-        appAccess.setDefaultCourt(true);
-
-        user.setAppAccess(Set.of(appAccess));
-        user.setPortalAccess(Set.of());
-
-        // Mock the role as Super User
-        var superUserRole = new Role();
-        superUserRole.setId(superUserRoleId);
-        superUserRole.setName("Super User");
-        when(userService.getRoleById(superUserRoleId)).thenReturn(superUserRole);
-
-        // Create mock authentication for ROLE_LEVEL_1 (without ROLE_SUPER_USER)
-        var mockAuth = mock(uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication.class);
-        when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
-        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(false);
-
-        mockMvc.perform(put("/users/" + userId)
+        mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
                             .with(csrf())
                             .with(request -> {
-                                org.springframework.security.core.context.SecurityContextHolder
-                                    .getContext()
-                                    .setAuthentication(mockAuth);
+                                getContext()
+                                    .setAuthentication(level1RequesterAuth);
                                 return request;
                             })
-                            .content(OBJECT_MAPPER.writeValueAsString(user))
+                            .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message")
-                           .value("ROLE_LEVEL_1 users cannot assign ROLE_SUPER_USER"));
+                           .value("Level 1 users cannot edit Super Users"));
     }
 
-    @DisplayName("Should allow ROLE_SUPER_USER to assign any role including ROLE_SUPER_USER with 201 response code")
+    @DisplayName("Should prevent Level 1 users from assigning superuser access to anyone")
     @Test
-    void upsertUserSuperUserCanAssignSuperUser() throws Exception {
-        var userId = UUID.randomUUID();
+    void upsertUserLevel1CannotAssignSuperUserAccess() throws Exception {
+        // Test 2: Level 1 user cannot uplift Level 1 user to superuser access
+        // Upserted user is an existing Level 1 user
+        when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
+            .thenReturn(mockSuperUserRole);
+        when(userService.getRoleById(sampleUserFromDatabase.getAppAccess().getFirst().getId()))
+            .thenReturn(mockLevel1Role);
 
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
+        mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext()
+                                    .setAuthentication(level1RequesterAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message")
+                           .value("Level 1 users cannot uplift to superuser access"));
+    }
 
-        var superUserRoleId = UUID.randomUUID();
-        var appAccess = new CreateAppAccessDTO();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setUserId(userId);
-        appAccess.setCourtId(UUID.randomUUID());
-        appAccess.setRoleId(superUserRoleId);
-        appAccess.setDefaultCourt(true);
+    @DisplayName("Should allow super users to edit superusers")
+    @Test
+    void upsertSuperUserCanEditSuperUsers() throws Exception {
+        // Existing user is a superuser
+        when(sampleUserFromDatabase.getAppAccess().getFirst().getRole()).thenReturn(mockSuperUserRoleDto);
+        sampleUserToUpdate.setEmail("new@email.com");
 
-        user.setAppAccess(Set.of(appAccess));
-        user.setPortalAccess(Set.of());
+        mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext()
+                                    .setAuthentication(mockSuperUserAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is2xxSuccessful());
+    }
 
-        // Mock the role as Super User
-        var superUserRole = new Role();
-        superUserRole.setId(superUserRoleId);
-        superUserRole.setName("Super User");
-        when(userService.getRoleById(superUserRoleId)).thenReturn(superUserRole);
+    @DisplayName("Should allow super users to assign superuser access to anyone")
+    @Test
+    void upsertSuperUserCanAssignSuperUsers() throws Exception {
+        when(userService.getRoleById(sampleUserToUpdate.getAppAccess().iterator().next().getRoleId()))
+            .thenReturn(mockSuperUserRole);
+        when(userService.getRoleById(sampleUserFromDatabase.getAppAccess().getFirst().getId()))
+            .thenReturn(mockLevel1Role);
 
-        // Create mock authentication for ROLE_SUPER_USER
-        var mockAuth = mock(uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication.class);
-        when(mockAuth.hasRole("ROLE_LEVEL_1")).thenReturn(true);
-        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        mockMvc.perform(put("/users/" + sampleUserToUpdate.getId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext()
+                                    .setAuthentication(mockSuperUserAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is2xxSuccessful());
+    }
 
-        when(userService.upsert(user)).thenReturn(UpsertResult.CREATED);
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
+    @Test
+    @DisplayName("Should be able to reset app access IDs for any user")
+    void canResetAppAccessIDs() throws Exception {
+        UUID randomUserId = UUID.randomUUID();
+        mockMvc.perform(put("/users/reset-app-access-ids/" + randomUserId)
                                                  .with(csrf())
                                                  .with(request -> {
-                                                     org.springframework.security.core.context.SecurityContextHolder
-                                                         .getContext()
-                                                         .setAuthentication(mockAuth);
+                                                     getContext().setAuthentication(mockSuperUserAuth);
                                                      return request;
                                                  })
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(sampleUserToUpdate))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated())
+            .andExpect(status().isOk())
+            .andExpect(content().string(""))
             .andReturn();
 
-        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(response.getResponse().getHeaderValue("Location"))
-            .isEqualTo(TEST_URL + "/users/" + userId);
+        ArgumentCaptor<UUID> captor = ArgumentCaptor.forClass(UUID.class);
+        verify(userService, times(1)).resetAppAccessIdsForUserId(captor.capture());
+        assertThat(captor.getValue()).isEqualTo(randomUserId);
     }
 }

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
@@ -18,6 +19,7 @@ import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,6 +28,8 @@ import java.util.stream.Stream;
 @Schema(description = "AccessDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AccessDTO {
+    @Schema(description = "AppAccessId")
+    private UUID appAccessId;
 
     @Schema(description = "AccessUser")
     private BaseUserDTO user;
@@ -41,6 +45,10 @@ public class AccessDTO {
 
     public AccessDTO(User entity, Set<TermsAndConditions> latestTermsAndConditions) {
         user = new BaseUserDTO(entity);
+        if (entity.getAppAccess() != null) {
+            appAccessId = entity.getAppAccess().stream().filter(AppAccess::isDefaultCourt)
+                .map(AppAccess::getId).findFirst().orElse(null);
+        }
         appAccess = Stream.ofNullable(entity.getAppAccess())
             .flatMap(access ->
                 access

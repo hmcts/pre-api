@@ -9,6 +9,10 @@ definitions:
           $ref: '#/definitions/BaseAppAccessDTO'
         type: array
         uniqueItems: true
+      app_access_id:
+        description: AppAccessId
+        format: uuid
+        type: string
       portal_access:
         description: AccessPortalAccess
         items:
@@ -163,10 +167,6 @@ definitions:
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
       last_access:
         description: AppAccessLastAccess
         format: date-time
@@ -614,10 +614,6 @@ definitions:
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
       last_active:
         description: AppAccessLastActive
         format: date-time
@@ -632,7 +628,6 @@ definitions:
         type: string
     required:
       - court_id
-      - id
       - role_id
       - user_id
     type: object
@@ -5497,6 +5492,28 @@ paths:
           schema:
             $ref: '#/definitions/AccessDTO'
       summary: Get a User's App Access by Email
+      tags:
+        - user-controller
+  '/users/reset-app-access-ids/{userId}':
+    put:
+      operationId: resetAppAccessIds
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Reset App Access IDs for a User
       tags:
         - user-controller
   '/users/{userId}':
