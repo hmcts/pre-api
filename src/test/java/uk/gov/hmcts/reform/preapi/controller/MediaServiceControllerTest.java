@@ -4,6 +4,8 @@ import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -896,9 +898,10 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     @DisplayName("Should return 200 with updated capture session when .ism file exists")
-    void checkStreamCaptureSessionIsmFileExists() throws Exception {
+    void checkStreamCaptureSessionIsmFileExists(Boolean ismFileExists) throws Exception {
         var dto = new CaptureSessionDTO();
         dto.setId(UUID.randomUUID());
         dto.setStatus(RecordingStatus.STANDBY);
@@ -916,8 +919,10 @@ public class MediaServiceControllerTest {
 
         dto2.setStartedAt(inputTimestamp);
 
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.checkLiveFeedAvailable(dto.getId())).thenReturn(!ismFileExists);
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
-        when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(true);
+        when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(ismFileExists);
         when(captureSessionService.markAsActualRecordingStarted(dto.getId())).thenReturn(dto2);
 
         MvcResult response = mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
@@ -937,43 +942,6 @@ public class MediaServiceControllerTest {
         // For some reason, output timestamp is in UTC, while we work in UTC/BST. Hopefully this won't break in October.
         assertThat(outputLocalDateTime.getHour()).isEqualTo(inputZonedDateTime.getHour());
         assertThat(outputLocalDateTime.getMinute()).isEqualTo(inputZonedDateTime.getMinute());
-
-        verify(captureSessionService, times(1)).findById(dto.getId());
-        verify(azureIngestStorageService, times(1))
-            .doesIsmFileExist(dto.getBookingId().toString());
-        verify(captureSessionService, times(1))
-            .markAsActualRecordingStarted(dto.getId());
-    }
-
-    @Test
-    @DisplayName("Should return 200 with updated capture session when streaming path exists")
-    void checkStreamCaptureSessionStreamingPathExists() throws Exception {
-        var dto = new CaptureSessionDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setStatus(RecordingStatus.STANDBY);
-        dto.setStartedAt(Timestamp.from(LocalDateTime.of(2026, 6, 1, 7, 0)
-                                           .atZone(ZoneId.of("Europe/London")).toInstant()));
-        dto.setBookingId(UUID.randomUUID());
-
-        var dto2 = new CaptureSessionDTO();
-        dto2.setId(dto.getId());
-        dto2.setStatus(RecordingStatus.RECORDING);
-        dto2.setStartedAt(Timestamp.from(LocalDateTime.of(2026, 6, 1, 14, 53)
-                                            .atZone(ZoneId.of("Europe/London")).toInstant()));
-
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.checkLiveFeedAvailable(dto.getId())).thenReturn(true);
-        when(captureSessionService.findById(dto.getId())).thenReturn(dto);
-        when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
-        when(captureSessionService.markAsActualRecordingStarted(dto.getId())).thenReturn(dto2);
-
-        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
-            .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
-            // LER todo: fix this test, the timezone is one hour out
-//            .andExpect(jsonPath("$.started_at").value(dto2.getStartedAt().toString()));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, times(1))
