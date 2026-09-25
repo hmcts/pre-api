@@ -74,6 +74,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -223,7 +224,7 @@ class TestingSupportController {
 
     @PostMapping(path = "/set-up-recording-available", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> setUpRecordingAvailable() {
-        Map<String, String> mapOfUUIDs = setUpCaptureSessionOnStandby().getBody();
+        final Map<String, String> mapOfUUIDs = setUpCaptureSessionOnStandby().getBody();
         if (mapOfUUIDs == null || mapOfUUIDs.get("captureSessionId") == null) {
             throw new NotFoundException("UUIDs were not set up successfully");
         }
@@ -253,9 +254,10 @@ class TestingSupportController {
 
         recordingRepository.save(recording);
 
-        mapOfUUIDs.put("recordingId", recording.getId().toString());
+        Map<String, String> editedUUIDsMap = new HashMap<>(mapOfUUIDs);
+        editedUUIDsMap.put("recordingId", recording.getId().toString());
 
-        return ResponseEntity.ok(mapOfUUIDs);
+        return ResponseEntity.ok(editedUUIDsMap);
     }
 
     @PostMapping(path = "/set-up-capture-session-on-standby", produces = MediaType.APPLICATION_JSON_VALUE)
