@@ -372,6 +372,7 @@ dependencies {
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
     exclude group: 'junit', module: 'junit'
     exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    exclude group: "com.vaadin.external.google", module:"android-json"
   }, version: versions.springBoot
 
   integrationTestImplementation sourceSets.main.runtimeClasspath
