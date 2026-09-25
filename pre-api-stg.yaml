@@ -451,6 +451,9 @@ definitions:
       defendant_names:
         description: CompletedCaptureSessionReportDefendantNames
         type: string
+      duration:
+        description: RecordingDuration
+        type: string
       finish_time:
         description: CompletedCaptureSessionReportFinishTime
         type: string
