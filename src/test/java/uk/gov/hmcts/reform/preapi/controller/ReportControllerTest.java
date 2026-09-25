@@ -440,7 +440,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for source 'APPLICATION'")
     @Test
     void reportPlaybackApplicationSuccess() throws Exception {
-        var args = createPlaybackReport(Timestamp.valueOf("2025-07-01 00:00:00"));
+        var args = createPlaybackReport(Timestamp.valueOf("2025-07-01 09:15:23"));
         var reportItem = new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
 
         when(reportService.reportPlayback(AuditLogSource.APPLICATION)).thenReturn(List.of(reportItem));
@@ -450,7 +450,7 @@ public class ReportControllerTest {
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$[0].playback_date").value("01/07/2025"))
-               .andExpect(jsonPath("$[0].playback_time").value("01:00:00"))
+               .andExpect(jsonPath("$[0].playback_time").value("09:15:23"))
                .andExpect(jsonPath("$[0].playback_time_zone").value("BST"))
                .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
                .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))

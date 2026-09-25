@@ -33,7 +33,7 @@ public class DateTimeUtils {
         if (timestamp == null) {
             throw new IllegalArgumentException("Timestamp cannot be null");
         }
-        return timestamp.toInstant().atZone(TIME_ZONE).format(TIME_FORMATTER);
+        return timestamp.toLocalDateTime().format(TIME_FORMATTER);
     }
 
     public String formatDuration(Duration duration) {

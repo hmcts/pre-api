@@ -85,16 +85,13 @@ class CompletedCaptureSessionReportDTOV2Test {
         // When
         CompletedCaptureSessionReportDTOV2 reportDTO = new CompletedCaptureSessionReportDTOV2(recording);
 
-        log.info("Report DTO: {}", reportDTO.getRecordingTime());
-
         // Then
         assert reportDTO.getCaseReference().equals(caseObj.getReference());
         assert reportDTO.getCourt().equals("Test Court");
         assert reportDTO.getRecordingDate().equals("04/09/2026"); // Matches capture session not booking
-//       LER TODO: sort out time zones
-//        assert reportDTO.getRecordingTime().equals("12:03:00");
-//        assert reportDTO.getFinishTime().equals("15:02:00");
-//        assert reportDTO.getDuration().equals("03:06:12");
+        assert reportDTO.getRecordingTime().equals("12:03:00");
+        assert reportDTO.getFinishTime().equals("15:02:00");
+        assert reportDTO.getDuration().equals("03:06:12");
         assert reportDTO.getScheduledDate().equals("03/09/2026");
         assert reportDTO.getStatus().equals(captureSession.getStatus());
         assert reportDTO.getDefendantNames().contains("John Doe");
@@ -105,6 +102,5 @@ class CompletedCaptureSessionReportDTOV2Test {
         assert reportDTO.getWitnessNames().contains("Charlie Brown");
         assert reportDTO.getWitness() == 3;
     }
-
-
+    
 }
