@@ -338,6 +338,7 @@ public class ReportControllerTest {
         var timestamp = Timestamp.from(Instant.now());
         reportItem.setRecordingDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setRecordingTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setDuration("03:24:13");
         reportItem.setFinishTime(DateTimeUtils.formatTime(timestamp));
         reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setScheduledDate(DateTimeUtils.formatDate(timestamp));
@@ -360,6 +361,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].recording_date").value(reportItem.getRecordingDate()))
             .andExpect(jsonPath("$[0].recording_time").value(reportItem.getRecordingTime()))
             .andExpect(jsonPath("$[0].finish_time").value(reportItem.getFinishTime()))
+            .andExpect(jsonPath("$[0].duration").value(reportItem.getDuration()))
             .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
             .andExpect(jsonPath("$[0].scheduled_date").value(reportItem.getScheduledDate()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
