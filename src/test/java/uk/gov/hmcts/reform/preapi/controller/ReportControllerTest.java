@@ -338,6 +338,7 @@ public class ReportControllerTest {
         var timestamp = Timestamp.from(Instant.now());
         reportItem.setRecordingDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setRecordingTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setDuration("03:24:13");
         reportItem.setFinishTime(DateTimeUtils.formatTime(timestamp));
         reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setScheduledDate(DateTimeUtils.formatDate(timestamp));
@@ -360,6 +361,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].recording_date").value(reportItem.getRecordingDate()))
             .andExpect(jsonPath("$[0].recording_time").value(reportItem.getRecordingTime()))
             .andExpect(jsonPath("$[0].finish_time").value(reportItem.getFinishTime()))
+            .andExpect(jsonPath("$[0].duration").value(reportItem.getDuration()))
             .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
             .andExpect(jsonPath("$[0].scheduled_date").value(reportItem.getScheduledDate()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
@@ -438,7 +440,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for source 'APPLICATION'")
     @Test
     void reportPlaybackApplicationSuccess() throws Exception {
-        var args = createPlaybackReport(Timestamp.valueOf("2025-07-01 00:00:00"));
+        var args = createPlaybackReport(Timestamp.valueOf("2025-07-01 09:15:23"));
         var reportItem = new PlaybackReportDTOV2(args.audit(), args.user(), args.recording());
 
         when(reportService.reportPlayback(AuditLogSource.APPLICATION)).thenReturn(List.of(reportItem));
@@ -448,7 +450,7 @@ public class ReportControllerTest {
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$[0].playback_date").value("01/07/2025"))
-               .andExpect(jsonPath("$[0].playback_time").value("01:00:00"))
+               .andExpect(jsonPath("$[0].playback_time").value("09:15:23"))
                .andExpect(jsonPath("$[0].playback_time_zone").value("BST"))
                .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
                .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))

@@ -295,6 +295,18 @@ public class CaptureSessionService {
         return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
     }
 
+    @Transactional
+    public CaptureSessionDTO markAsActualRecordingStarted(UUID id) {
+        CaptureSession captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("Capture Session: " + id));
+
+        captureSession.setStartedAt(Timestamp.from(Instant.now()));
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSessionRepository.save(captureSession);
+        return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     public CaptureSessionDTO stopCaptureSession(UUID captureSessionId,
                                                 RecordingStatus status,

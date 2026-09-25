@@ -33,6 +33,9 @@ public class CompletedCaptureSessionReportDTOV2 extends BaseReportDTO {
     @Schema(description = "CompletedCaptureSessionReportFinishTime")
     private String finishTime;
 
+    @Schema(description = "RecordingDuration")
+    private String duration;
+
     @Schema(description = "CompletedCaptureSessionReportTimezone")
     private String timezone;
 
@@ -61,6 +64,7 @@ public class CompletedCaptureSessionReportDTOV2 extends BaseReportDTO {
 
         recordingDate = DateTimeUtils.formatDate(captureSession.getStartedAt());
         recordingTime = DateTimeUtils.formatTime(captureSession.getStartedAt());
+        duration = DateTimeUtils.formatDuration(recording.getDuration());
         finishTime = DateTimeUtils.formatTime(captureSession.getFinishedAt());
         timezone = DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt());
         Booking booking = captureSession.getBooking();

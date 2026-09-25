@@ -55,4 +55,19 @@ public class DateTimeUtilsTest {
     public void getTimezoneAbbreviationNull() {
         assertThrows(IllegalArgumentException.class, () -> DateTimeUtils.getTimezoneAbbreviation(null));
     }
+
+    @Test
+    public void formatDurationSuccess() {
+        var duration = java.time.Duration.ofHours(1).plusMinutes(30).plusSeconds(45);
+        var result = DateTimeUtils.formatDuration(duration);
+
+        assertThat(result).isNotNull().isEqualTo("01:30:45");
+    }
+
+    @Test
+    public void formatDurationNull() {
+        var result = DateTimeUtils.formatDuration(null);
+
+        assertThat(result).isNotNull().isEqualTo("00:00:00");
+    }
 }
