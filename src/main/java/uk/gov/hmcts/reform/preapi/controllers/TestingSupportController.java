@@ -83,7 +83,8 @@ import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases",
+    "PMD.TooManyMethods"})
 @ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
@@ -220,10 +221,12 @@ class TestingSupportController {
         return Set.of(participant1, participant2);
     }
 
-    @SuppressWarnings("PMD.NcssCount")
     @PostMapping(path = "/set-up-recording-available", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> setUpRecordingAvailable() {
         Map<String, String> mapOfUUIDs = setUpCaptureSessionOnStandby().getBody();
+        if (mapOfUUIDs == null || mapOfUUIDs.get("captureSessionId") == null) {
+            throw new NotFoundException("UUIDs were not set up successfully");
+        }
 
         User finishUser = new User();
         finishUser.setId(UUID.randomUUID());
@@ -234,9 +237,6 @@ class TestingSupportController {
         finishUser.setLastName("User");
         userRepository.save(finishUser);
 
-        if(mapOfUUIDs == null || mapOfUUIDs.get("captureSessionId") == null) {
-            throw new NotFoundException("CaptureSessionId not found in response from setUpCaptureSessionOnStandby");
-        }
         UUID captureSessionId = UUID.fromString(mapOfUUIDs.get("captureSessionId"));
         CaptureSession captureSession = captureSessionRepository.findById(captureSessionId).orElseThrow();
         captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
@@ -258,7 +258,6 @@ class TestingSupportController {
         return ResponseEntity.ok(mapOfUUIDs);
     }
 
-    @SuppressWarnings("PMD.NcssCount")
     @PostMapping(path = "/set-up-capture-session-on-standby", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> setUpCaptureSessionOnStandby() {
         Court court = createTestCourt();
