@@ -449,7 +449,7 @@ public class FunctionalTestBase {
     }
 
     protected CreateRecordingResponse createRecording() {
-        var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
+        var response = doPostRequest("/testing-support/set-up-recording-available", null);
         assertResponseCode(response, 200);
         return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
     }

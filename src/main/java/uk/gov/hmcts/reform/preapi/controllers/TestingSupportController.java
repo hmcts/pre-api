@@ -74,6 +74,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,7 +84,8 @@ import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases",
+    "PMD.TooManyMethods"})
 @ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
@@ -105,6 +107,8 @@ class TestingSupportController {
     private final MigrationRecordRepository migrationRecordRepository;
     private final EditRequestService editRequestService;
     private final EditRequestPerformService editRequestPerformService;
+
+    public static final int CRON_JOB_START_HOUR = 7;
 
     @Autowired
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -183,6 +187,26 @@ class TestingSupportController {
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
+        Set<Participant> participants = createSampleParticipantSet(caseEntity);
+        participantRepository.saveAll(participants);
+
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(caseEntity);
+        booking.setParticipants(participants);
+        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
+        bookingRepository.save(booking);
+
+        Map<String, String> response = Map.of(
+            "bookingId", booking.getId().toString(),
+            "courtId", court.getId().toString(),
+            "caseId", caseEntity.getId().toString()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+
+    public static Set<Participant> createSampleParticipantSet(Case caseEntity) {
         Participant participant1 = new Participant();
         participant1.setId(UUID.randomUUID());
         participant1.setParticipantType(ParticipantType.WITNESS);
@@ -195,26 +219,50 @@ class TestingSupportController {
         participant2.setCaseId(caseEntity);
         participant2.setFirstName("Jane");
         participant2.setLastName("Doe");
-        participantRepository.saveAll(Set.of(participant1, participant2));
-
-        Booking booking = new Booking();
-        booking.setId(UUID.randomUUID());
-        booking.setCaseId(caseEntity);
-        booking.setParticipants(Set.of(participant1, participant2));
-        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
-        bookingRepository.save(booking);
-
-        Map<String, String> response = Map.of(
-            "bookingId", booking.getId().toString(),
-            "courtId", court.getId().toString(),
-            "caseId", caseEntity.getId().toString()
-        );
-        return ResponseEntity.ok(response);
+        return Set.of(participant1, participant2);
     }
 
-    @SuppressWarnings("PMD.NcssCount")
-    @PostMapping(path = "/should-delete-recordings-for-booking", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> shouldDeleteRecordingsForBooking() {
+    @PostMapping(path = "/set-up-recording-available", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> setUpRecordingAvailable() {
+        final Map<String, String> mapOfUUIDs = setUpCaptureSessionOnStandby().getBody();
+        if (mapOfUUIDs == null || mapOfUUIDs.get("captureSessionId") == null) {
+            throw new NotFoundException("UUIDs were not set up successfully");
+        }
+
+        User finishUser = new User();
+        finishUser.setId(UUID.randomUUID());
+        finishUser.setEmail("finishuser@justice.local");
+        finishUser.setPhone(RandomStringUtils.secure().nextNumeric(11));
+        finishUser.setOrganisation("Gov Org");
+        finishUser.setFirstName("Finish");
+        finishUser.setLastName("User");
+        userRepository.save(finishUser);
+
+        UUID captureSessionId = UUID.fromString(mapOfUUIDs.get("captureSessionId"));
+        CaptureSession captureSession = captureSessionRepository.findById(captureSessionId).orElseThrow();
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        captureSession.setFinishedByUser(finishUser);
+        captureSession.setFinishedAt(Timestamp.from(Instant.now()));
+        captureSessionRepository.save(captureSession);
+
+        Recording recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+        recording.setVersion(1);
+        recording.setFilename("recording.mp4");
+        recording.setDuration(Duration.ofMinutes(3));
+        recording.setEditInstruction("{\"foo\": \"bar\"}");
+
+        recordingRepository.save(recording);
+
+        Map<String, String> editedUUIDsMap = new HashMap<>(mapOfUUIDs);
+        editedUUIDsMap.put("recordingId", recording.getId().toString());
+
+        return ResponseEntity.ok(editedUUIDsMap);
+    }
+
+    @PostMapping(path = "/set-up-capture-session-on-standby", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> setUpCaptureSessionOnStandby() {
         Court court = createTestCourt();
 
         Region region = new Region();
@@ -230,35 +278,17 @@ class TestingSupportController {
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
-        Participant participant1 = new Participant();
-        participant1.setId(UUID.randomUUID());
-        participant1.setParticipantType(ParticipantType.WITNESS);
-        participant1.setCaseId(caseEntity);
-        participant1.setFirstName("John");
-        participant1.setLastName("Smith");
-        Participant participant2 = new Participant();
-        participant2.setId(UUID.randomUUID());
-        participant2.setParticipantType(ParticipantType.DEFENDANT);
-        participant2.setCaseId(caseEntity);
-        participant2.setFirstName("Jane");
-        participant2.setLastName("Doe");
-        participantRepository.saveAll(Set.of(participant1, participant2));
+        Set<Participant> participants = createSampleParticipantSet(caseEntity);
+        participantRepository.saveAll(participants);
 
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseEntity);
-        booking.setParticipants(Set.of(participant1, participant2));
-        OffsetDateTime scheduledFor = OffsetDateTime.now().plusWeeks(1);
+        booking.setParticipants(participants);
+        OffsetDateTime scheduledFor = OffsetDateTime.now().withHour(CRON_JOB_START_HOUR);
         booking.setScheduledFor(Timestamp.from(scheduledFor.toInstant()));
         bookingRepository.save(booking);
 
-        User finishUser = new User();
-        finishUser.setId(UUID.randomUUID());
-        finishUser.setEmail("finishuser@justice.local");
-        finishUser.setPhone(RandomStringUtils.secure().nextNumeric(11));
-        finishUser.setOrganisation("Gov Org");
-        finishUser.setFirstName("Finish");
-        finishUser.setLastName("User");
         User startUser = new User();
         startUser.setId(UUID.randomUUID());
         startUser.setEmail("startuser@justice.local");
@@ -266,35 +296,22 @@ class TestingSupportController {
         startUser.setOrganisation("Gov Org");
         startUser.setFirstName("Start");
         startUser.setLastName("User");
-        userRepository.saveAll(Set.of(finishUser, startUser));
+        userRepository.saveAll(Set.of(startUser));
 
         CaptureSession captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
         captureSession.setOrigin(RecordingOrigin.PRE);
-        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        captureSession.setStatus(RecordingStatus.STANDBY);
         captureSession.setStartedAt(booking.getScheduledFor());
-        captureSession.setFinishedAt(Timestamp.from(scheduledFor.plusMinutes(30).toInstant()));
         captureSession.setStartedByUser(startUser);
-        captureSession.setFinishedByUser(finishUser);
         captureSession.setIngestAddress("http://localhost:8080/ingest");
         captureSession.setLiveOutputUrl("http://localhost:8080/live");
         captureSessionRepository.save(captureSession);
 
-        Recording recording = new Recording();
-        recording.setId(UUID.randomUUID());
-        recording.setCaptureSession(captureSession);
-        recording.setVersion(1);
-        recording.setFilename("recording.mp4");
-        recording.setDuration(Duration.ofMinutes(3));
-        recording.setEditInstruction("{\"foo\": \"bar\"}");
-
-        recordingRepository.save(recording);
-
         Map<String, String> response = Map.of(
             "caseId", caseEntity.getId().toString(),
             "bookingId", booking.getId().toString(),
-            "recordingId", recording.getId().toString(),
             "captureSessionId", captureSession.getId().toString()
         );
         return ResponseEntity.ok(response);
@@ -484,24 +501,13 @@ class TestingSupportController {
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
-        Participant participant1 = new Participant();
-        participant1.setId(UUID.randomUUID());
-        participant1.setParticipantType(ParticipantType.WITNESS);
-        participant1.setCaseId(caseEntity);
-        participant1.setFirstName("John");
-        participant1.setLastName("Smith");
-        Participant participant2 = new Participant();
-        participant2.setId(UUID.randomUUID());
-        participant2.setParticipantType(ParticipantType.DEFENDANT);
-        participant2.setCaseId(caseEntity);
-        participant2.setFirstName("Jane");
-        participant2.setLastName("Doe");
-        participantRepository.saveAll(Set.of(participant1, participant2));
+        Set<Participant> sampleParticipantSet = createSampleParticipantSet(caseEntity);
+        participantRepository.saveAll(sampleParticipantSet);
 
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseEntity);
-        booking.setParticipants(Set.of(participant1, participant2));
+        booking.setParticipants(sampleParticipantSet);
         booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
         bookingRepository.save(booking);
 
