@@ -13,7 +13,7 @@ public class LegacyReportControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Should format Duration and date correctly")
     @Test
     void shouldFormatDurationAndDateCorrectly() throws JsonProcessingException {
-        var captureSessionId = doPostRequest("/testing-support/should-delete-recordings-for-booking",
+        var captureSessionId = doPostRequest("/testing-support/set-up-recording-available",
                                              TestingSupportRoles.SUPER_USER)
             .body().jsonPath().getUUID("captureSessionId");
 
