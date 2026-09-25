@@ -568,8 +568,6 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should throw not found exception when capture session cannot be found")
     @Test
     void undeleteNotFound() {
-        var captureSessionId = UUID.randomUUID();
-
         when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.empty());
 
         var message = assertThrows(
@@ -586,8 +584,6 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should throw not found when capture session cannot be found when starting capture session")
     @Test
     void startCaptureSessionNotFound() {
-        var captureSessionId = UUID.randomUUID();
-
         when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId)).thenReturn(Optional.empty());
 
         var message = assertThrows(
@@ -826,7 +822,6 @@ public class CaptureSessionServiceTest {
         when(mockAuth.getUserId()).thenReturn(user.getId());
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var captureSessionId = UUID.randomUUID();
         var liveEventId = captureSessionId.toString().replace("-", "");
 
         when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
@@ -1042,7 +1037,7 @@ public class CaptureSessionServiceTest {
 
         String ingestUrl = "rtmps://original-address";
 
-        UUID captureSessionId = UUID.randomUUID();
+        UUID initialisingCaptureSessionId = UUID.randomUUID();
         CaptureSession captureSession = HelperFactory.createCaptureSession(
             booking, RecordingOrigin.PRE, ingestUrl, "live-output",
             Timestamp.from(Instant.now()),
@@ -1050,7 +1045,7 @@ public class CaptureSessionServiceTest {
             RecordingStatus.INITIALISING, null
         );
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(initialisingCaptureSessionId))
             .thenReturn(Optional.of(captureSession));
 
         CaptureSessionService captureSessionServiceWithFlag = new CaptureSessionService(recordingService,
@@ -1064,7 +1059,7 @@ public class CaptureSessionServiceTest {
                                                                                         true);
 
         CaptureSessionDTO result = captureSessionServiceWithFlag.startCaptureSession(
-            captureSessionId,
+            initialisingCaptureSessionId,
             RecordingStatus.STANDBY,
             "rtmps://original-address"
         );
