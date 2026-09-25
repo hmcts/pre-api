@@ -242,6 +242,7 @@ class TestingSupportController {
         CaptureSession captureSession = captureSessionRepository.findById(captureSessionId).orElseThrow();
         captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         captureSession.setFinishedByUser(finishUser);
+        captureSession.setFinishedAt(Timestamp.from(Instant.now()));
         captureSessionRepository.save(captureSession);
 
         Recording recording = new Recording();
