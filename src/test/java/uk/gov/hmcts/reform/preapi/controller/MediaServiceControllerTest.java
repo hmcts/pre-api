@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
@@ -43,7 +44,10 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -905,22 +909,34 @@ public class MediaServiceControllerTest {
         dto2.setId(dto.getId());
         dto2.setStatus(RecordingStatus.RECORDING);
 
-        var timestampNow = Timestamp.from(LocalDateTime.of(2024, 6, 1, 12, 0)
-                                           .atZone(ZoneId.of("Europe/London")).toInstant());
+        LocalDateTime inputDateTime = LocalDateTime.of(2024, 6, 1, 12, 0);
+        ZonedDateTime inputZonedDateTime = inputDateTime.atZone(ZoneId.of("Europe/London"))
+            .withZoneSameInstant(ZoneId.of("UTC"));
+        Timestamp inputTimestamp = Timestamp.from(inputZonedDateTime.toInstant());
 
-        dto2.setStartedAt(timestampNow);
+        dto2.setStartedAt(inputTimestamp);
 
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
         when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(true);
         when(captureSessionService.markAsActualRecordingStarted(dto.getId())).thenReturn(dto2);
 
-        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
+        MvcResult response = mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(dto.getId().toString()))
-            .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
-        // LER TODO: fix this test, the timezone is one hour out
-//            .andExpect(jsonPath("$.started_at").value(timestampNow.toString()));
+            .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()))
+            .andReturn();
+
+        ObjectMapper mapper = new ObjectMapper();
+        var rootNode = mapper.readTree(response.getResponse().getContentAsString());
+        String outputTimestampString = rootNode.get("started_at").toString();
+
+        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd'T'HH:mm:ss.SSSzzzz\"", Locale.ENGLISH);
+        LocalDateTime outputLocalDateTime = LocalDateTime.parse(outputTimestampString, inputFormatter);
+
+        // For some reason, output timestamp is in UTC, while we work in UTC/BST. Hopefully this won't break in October.
+        assertThat(outputLocalDateTime.getHour()).isEqualTo(inputZonedDateTime.getHour());
+        assertThat(outputLocalDateTime.getMinute()).isEqualTo(inputZonedDateTime.getMinute());
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, times(1))
