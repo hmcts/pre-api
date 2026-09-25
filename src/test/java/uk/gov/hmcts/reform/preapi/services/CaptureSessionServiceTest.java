@@ -128,7 +128,8 @@ public class CaptureSessionServiceTest {
 
     @BeforeEach
     void init() {
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId)).thenReturn(Optional.of(captureSession));
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
+            .thenReturn(Optional.of(captureSession));
         when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
         when(userRepository.findByIdAndDeletedAtIsNull(user.getId())).thenReturn(Optional.of(user));
     }

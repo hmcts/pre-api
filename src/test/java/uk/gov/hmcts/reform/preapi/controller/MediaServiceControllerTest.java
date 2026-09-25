@@ -936,7 +936,8 @@ public class MediaServiceControllerTest {
         var rootNode = mapper.readTree(response.getResponse().getContentAsString());
         String outputTimestampString = rootNode.get("started_at").toString();
 
-        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd'T'HH:mm:ss.SSSzzzz\"", Locale.ENGLISH);
+        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd'T'HH:mm:ss.SSSzzzz\"",
+                                                                       Locale.ENGLISH);
         LocalDateTime outputLocalDateTime = LocalDateTime.parse(outputTimestampString, inputFormatter);
 
         // For some reason, output timestamp is in UTC, while we work in UTC/BST. Hopefully this won't break in October.

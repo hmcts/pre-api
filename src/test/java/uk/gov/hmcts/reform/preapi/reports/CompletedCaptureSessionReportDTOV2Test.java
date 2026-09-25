@@ -102,5 +102,5 @@ class CompletedCaptureSessionReportDTOV2Test {
         assert reportDTO.getWitnessNames().contains("Charlie Brown");
         assert reportDTO.getWitness() == 3;
     }
-    
+
 }
