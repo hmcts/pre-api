@@ -919,6 +919,7 @@ public class MediaServiceControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(dto.getId().toString()))
             .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
+        // LER TODO: fix this test, the timezone is one hour out
 //            .andExpect(jsonPath("$.started_at").value(timestampNow.toString()));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
@@ -955,7 +956,7 @@ public class MediaServiceControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(dto.getId().toString()))
             .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
-            // todo: fix this test, the timezone is one hour out
+            // LER todo: fix this test, the timezone is one hour out
 //            .andExpect(jsonPath("$.started_at").value(dto2.getStartedAt().toString()));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
