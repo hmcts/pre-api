@@ -337,6 +337,7 @@ public class CaptureSessionService {
                 recording.setCaptureSessionId(captureSessionId);
                 recording.setVersion(1);
                 try {
+                    recording.setDuration(azureFinalStorageService.getRecordingDuration(recordingId));
                     recording.setFilename(azureFinalStorageService.getMp4FileName(recordingId.toString()));
                 } catch (Exception e) {
                     log.error("Failed to get recording filename for capture session {}", captureSessionId);
