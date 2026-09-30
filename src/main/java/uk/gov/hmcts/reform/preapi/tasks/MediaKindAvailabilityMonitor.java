@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.media.MediaKindManagementClient;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @Component
@@ -50,7 +51,7 @@ public class MediaKindAvailabilityMonitor {
     }
 
     private String classify(Exception ex) {
-        String simpleName = ex.getClass().getSimpleName().toLowerCase();
+        String simpleName = ex.getClass().getSimpleName().toLowerCase(Locale.ROOT);
 
         if (simpleName.contains("timeout")) {
             return "timeout";

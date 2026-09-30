@@ -9,7 +9,6 @@ import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
     url = "${mediakind.management-api}",
     configuration = MediaKindClientConfiguration.class
 )
-@SuppressWarnings("PMD.ImplicitFunctionalInterface")
 public interface MediaKindManagementClient {
 
     @GetMapping("/api/ready")
