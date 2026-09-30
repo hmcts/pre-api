@@ -44,7 +44,8 @@ public class MediaKindAvailabilityMonitor {
         } catch (Exception profileEx) {
             long durationMs = System.currentTimeMillis() - profileStart;
             log.error("MK.IO profile fallback failed. checkId={} endpoint={} durationMs={} failureType={} error={}",
-                      checkId, PROFILE_ENDPOINT, durationMs, classify(profileEx), exceptionMessage(profileEx), profileEx);
+                      checkId, PROFILE_ENDPOINT, durationMs, classify(profileEx),
+                      exceptionMessage(profileEx), profileEx);
         }
     }
 
