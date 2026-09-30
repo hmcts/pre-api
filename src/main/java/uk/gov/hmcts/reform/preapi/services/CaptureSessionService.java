@@ -295,6 +295,18 @@ public class CaptureSessionService {
         return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
     }
 
+    @Transactional
+    public CaptureSessionDTO markAsActualRecordingStarted(UUID id) {
+        CaptureSession captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("Capture Session: " + id));
+
+        captureSession.setStartedAt(Timestamp.from(Instant.now()));
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSessionRepository.save(captureSession);
+        return new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     public CaptureSessionDTO stopCaptureSession(UUID captureSessionId,
                                                 RecordingStatus status,
@@ -325,6 +337,7 @@ public class CaptureSessionService {
                 recording.setCaptureSessionId(captureSessionId);
                 recording.setVersion(1);
                 try {
+                    recording.setDuration(azureFinalStorageService.getRecordingDuration(recordingId));
                     recording.setFilename(azureFinalStorageService.getMp4FileName(recordingId.toString()));
                 } catch (Exception e) {
                     log.error("Failed to get recording filename for capture session {}", captureSessionId);

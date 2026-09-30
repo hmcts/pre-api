@@ -40,13 +40,7 @@ public class ConcurrentCaptureSessionReportDTOV2 extends BaseReportDTO {
     @JsonProperty("duration")
     @Schema(description = "CaptureSessionDuration", implementation = String.class)
     public String getDurationAsString() {
-        if (duration == null) {
-            return null;
-        }
-        return String.format("%02d:%02d:%02d",
-                             duration.toHoursPart(),
-                             duration.toMinutesPart(),
-                             duration.toSecondsPart());
+        return DateTimeUtils.formatDuration(duration);
     }
 
     public ConcurrentCaptureSessionReportDTOV2(CaptureSession entity) {
