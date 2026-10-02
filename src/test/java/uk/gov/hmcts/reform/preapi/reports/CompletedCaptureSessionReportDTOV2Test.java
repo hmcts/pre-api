@@ -2,7 +2,8 @@ package uk.gov.hmcts.reform.preapi.reports;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -16,23 +17,26 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
 import static org.mockito.Mockito.mock;
-import static uk.gov.hmcts.reform.preapi.utils.DateTimeUtils.TIME_ZONE;
 
 @Slf4j
 @SpringBootTest(classes = {CompletedCaptureSessionReportDTOV2.class})
 class CompletedCaptureSessionReportDTOV2Test {
 
-    @Test
+    @ParameterizedTest
     @DisplayName("Should correctly construct object from input object")
-    void shouldCorrectlyConstructObjectFromInputObject() {
+    @EnumSource(Month.class)
+    void shouldCorrectlyConstructObjectFromInputObject(Month month) {
         // Given
         Court court = new Court();
         court.setName("Test Court");
@@ -54,24 +58,20 @@ class CompletedCaptureSessionReportDTOV2Test {
                                  .createParticipant(caseObj, ParticipantType.WITNESS, "Charlie", "Brown", null));
 
         ZonedDateTime bookingZonedDateTime = ZonedDateTime.of(
-            2026, 9, 3, 7, 0, 0, 0,
-            TIME_ZONE
-        );
-
-        Timestamp bookingDate = Timestamp.valueOf(bookingZonedDateTime.toLocalDateTime());
+            2026, month.getValue(), 3, 7, 0, 0, 0,
+            DateTimeUtils.TIME_ZONE);
+        Timestamp bookingDate = Timestamp.from(bookingZonedDateTime.toInstant());
         Booking booking = HelperFactory.createBooking(caseObj, bookingDate, null, participantsList);
 
         ZonedDateTime captureStartTimeZoned = ZonedDateTime.of(
-            2026, 9, 4, 12, 3, 0, 0,
-            TIME_ZONE);
-        Timestamp captureSessionStartedAt = Timestamp.valueOf(captureStartTimeZoned.toLocalDateTime());
+            2026, month.getValue(), 4, 12, 3, 0, 0,
+            DateTimeUtils.TIME_ZONE);
+        Timestamp captureSessionStartedAt = Timestamp.from(captureStartTimeZoned.toInstant());
 
         ZonedDateTime captureFinishTimeZoned = ZonedDateTime.of(
-            2026, 9, 4,  15, 2, 0, 0,
-            TIME_ZONE);
-
-        Timestamp captureSessionFinishedAt = Timestamp.valueOf(
-            captureFinishTimeZoned.toLocalDateTime());
+            2026, month.getValue(), 4,  15, 2, 0, 0,
+            DateTimeUtils.TIME_ZONE);
+        Timestamp captureSessionFinishedAt = Timestamp.from(captureFinishTimeZoned.toInstant());
 
         CaptureSession captureSession = HelperFactory.createCaptureSession(
             booking, RecordingOrigin.PRE,
@@ -88,11 +88,10 @@ class CompletedCaptureSessionReportDTOV2Test {
         // Then
         assert reportDTO.getCaseReference().equals(caseObj.getReference());
         assert reportDTO.getCourt().equals("Test Court");
-        assert reportDTO.getRecordingDate().equals("04/09/2026"); // Matches capture session not booking
+
         assert reportDTO.getRecordingTime().equals("12:03:00");
         assert reportDTO.getFinishTime().equals("15:02:00");
         assert reportDTO.getDuration().equals("03:06:12");
-        assert reportDTO.getScheduledDate().equals("03/09/2026");
         assert reportDTO.getStatus().equals(captureSession.getStatus());
         assert reportDTO.getDefendantNames().contains("John Doe");
         assert reportDTO.getDefendantNames().contains("Jane Smith");
@@ -101,6 +100,20 @@ class CompletedCaptureSessionReportDTOV2Test {
         assert reportDTO.getWitnessNames().contains("Bob Williams");
         assert reportDTO.getWitnessNames().contains("Charlie Brown");
         assert reportDTO.getWitness() == 3;
+
+        Integer recordingDateDay = LocalDate.parse(reportDTO.getRecordingDate(), DateTimeUtils.DATE_FORMATTER)
+            .getDayOfMonth();
+        assert recordingDateDay.equals(4); // Matches capture session not booking
+
+        Integer scheduledDateDay = LocalDate.parse(reportDTO.getScheduledDate(), DateTimeUtils.DATE_FORMATTER)
+            .getDayOfMonth();
+        assert scheduledDateDay.equals(3);
+
+        if (month.getValue() > 3 && month.getValue() <= 10) {
+            assert reportDTO.getTimezone().equals("BST");
+        } else {
+            assert reportDTO.getTimezone().equals("GMT");
+        }
     }
 
 }

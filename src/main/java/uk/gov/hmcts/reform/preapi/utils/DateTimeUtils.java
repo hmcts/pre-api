@@ -16,7 +16,7 @@ public class DateTimeUtils {
     public static final ZoneId TIME_ZONE = ZoneId.of("Europe/London");
 
     // Date Format DD/MM/YYYY
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
+    public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
         .withLocale(Locale.UK);
     // Time Format HH:MM:SS
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
@@ -33,7 +33,7 @@ public class DateTimeUtils {
         if (timestamp == null) {
             throw new IllegalArgumentException("Timestamp cannot be null");
         }
-        return timestamp.toLocalDateTime().format(TIME_FORMATTER);
+        return timestamp.toInstant().atZone(TIME_ZONE).format(TIME_FORMATTER);
     }
 
     public String formatDuration(Duration duration) {
