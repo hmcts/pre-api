@@ -58,6 +58,8 @@ public class ReportService {
     private final PortalAccessRepository portalAccessRepository;
     private final boolean hideReencodedRecordings;
 
+    private static final String EIGHT_WEEKS_AGO = java.time.LocalDate.now().minusWeeks(8).toString();
+
     private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
 
     @Autowired
@@ -233,10 +235,8 @@ public class ReportService {
 
     @Transactional
     public List<CompletedCaptureSessionReportDTOV2> reportCompletedCaptureSessions() {
-        String eightWeeksAgo = java.time.LocalDate.now().minusWeeks(8).toString();
-
         return recordingRepository
-            .findAllCompletedCaptureSessionsWithRecordings(eightWeeksAgo)
+            .findAllCompletedCaptureSessionsWithRecordings(EIGHT_WEEKS_AGO)
             .stream()
             .filter(this::canViewRecording)
             .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
