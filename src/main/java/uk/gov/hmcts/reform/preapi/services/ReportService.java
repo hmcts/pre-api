@@ -233,8 +233,10 @@ public class ReportService {
 
     @Transactional
     public List<CompletedCaptureSessionReportDTOV2> reportCompletedCaptureSessions() {
+        String eightWeeksAgo = java.time.LocalDate.now().minusWeeks(8).toString();
+
         return recordingRepository
-            .findAllCompletedCaptureSessionsWithRecordings()
+            .findAllCompletedCaptureSessionsWithRecordings(eightWeeksAgo)
             .stream()
             .filter(this::canViewRecording)
             .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))

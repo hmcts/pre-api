@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -852,7 +853,8 @@ public class ReportServiceTest {
         bookingEntity.setParticipants(Set.of(witness, defendant));
         bookingEntity.setScheduledFor(Timestamp.from(Instant.now()));
 
-        when(recordingRepository.findAllCompletedCaptureSessionsWithRecordings()).thenReturn(List.of(recordingEntity));
+        when(recordingRepository.findAllCompletedCaptureSessionsWithRecordings(any(String.class)))
+            .thenReturn(List.of(recordingEntity));
 
         var report = reportService.reportCompletedCaptureSessions();
 
@@ -873,6 +875,21 @@ public class ReportServiceTest {
         assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
         assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
         assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Filter reports to the most recent records")
+    @Test
+    void reportCompletedCaptureSessionsFilterMostRecent() {
+        String eightWeeksAgo = java.time.LocalDate.now().minusWeeks(8).toString();
+
+        when(recordingRepository.findAllCompletedCaptureSessionsWithRecordings(any(String.class)))
+            .thenReturn(List.of());
+
+        reportService.reportCompletedCaptureSessions();
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(recordingRepository).findAllCompletedCaptureSessionsWithRecordings(captor.capture());
+        assertThat(captor.getValue()).isEqualTo(eightWeeksAgo);
     }
 
     @DisplayName("Find all share booking removals and return a report")

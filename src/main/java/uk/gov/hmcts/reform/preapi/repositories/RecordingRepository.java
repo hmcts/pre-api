@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -180,14 +181,20 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         FROM Recording r
         INNER JOIN r.captureSession
         INNER JOIN r.captureSession.booking
+        INNER join r.captureSession.booking.caseId
+        INNER JOIN r.captureSession.booking.caseId.court
         LEFT JOIN r.captureSession.finishedByUser
         WHERE r.parentRecording IS NULL
         AND r.captureSession.deletedAt IS NULL
         AND r.captureSession.startedAt IS NOT NULL
         AND r.captureSession.finishedAt IS NOT NULL
+        AND r.captureSession.finishedAt > CAST(:sinceDate AS TIMESTAMP)
+        AND r.captureSession.booking.caseId.court.name NOT ILIKE ('102 %')
+        AND r.captureSession.booking.caseId.court.name NOT ILIKE ('FOO %')
+        AND r.captureSession.booking.caseId.reference NOT ILIKE ('%TEST%')
         """
     )
-    List<Recording> findAllCompletedCaptureSessionsWithRecordings();
+    List<Recording> findAllCompletedCaptureSessionsWithRecordings(@NotNull String sinceDate);
 
     List<Recording> findAllByDurationIsNullAndDeletedAtIsNull();
 
