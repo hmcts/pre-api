@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,10 +15,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import uk.gov.hmcts.reform.preapi.security.filter.XUserIdFilter;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static java.lang.Boolean.parseBoolean;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+    @Value("${security.csrf-disabled:false}") String csrfDisabled;
 
     private final UserAuthenticationService userAuthenticationService;
 
@@ -63,12 +71,23 @@ public class SecurityConfig {
     @Bean
     @SuppressWarnings("PMD.SignatureDeclareThrowsException")
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        List<String> csrfDisabledEndpoints = new ArrayList<>(PERMITTED_URIS_POST.length
+                                                                 + PERMITTED_URIS_GET_ONLY.length
+                                                                 + PERMITTED_URIS_PUT_ONLY.length
+                                                                 + PERMITTED_URIS_ALL_REQUESTS.length);
+        Collections.addAll(csrfDisabledEndpoints, PERMITTED_URIS_ALL_REQUESTS);
+        Collections.addAll(csrfDisabledEndpoints, PERMITTED_URIS_GET_ONLY);
+        Collections.addAll(csrfDisabledEndpoints, PERMITTED_URIS_PUT_ONLY);
+        Collections.addAll(csrfDisabledEndpoints, PERMITTED_URIS_POST);
+
         http
-            .csrf(AbstractHttpConfigurer::disable)
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers(csrfDisabledEndpoints.toArray(String[]::new))
+            )
             .authorizeHttpRequests(authorize ->
                                        authorize
                                            .requestMatchers(HttpMethod.GET, PERMITTED_URIS_GET_ONLY).permitAll()
-                                           .requestMatchers(HttpMethod.POST,  PERMITTED_URIS_POST).permitAll()
+                                           .requestMatchers(HttpMethod.POST, PERMITTED_URIS_POST).permitAll()
                                            .requestMatchers(HttpMethod.PUT, PERMITTED_URIS_PUT_ONLY).permitAll()
                                            .requestMatchers(PERMITTED_URIS_ALL_REQUESTS).permitAll()
                                            .anyRequest().authenticated()
@@ -79,6 +98,11 @@ public class SecurityConfig {
                                    httpSecuritySessionManagementConfigurer
                                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new XUserIdFilter(userAuthenticationService), UsernamePasswordAuthenticationFilter.class);
+
+        if (parseBoolean(csrfDisabled)) {
+            http.csrf(AbstractHttpConfigurer::disable);
+        }
+
         return http.build();
     }
 }
