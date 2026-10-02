@@ -58,7 +58,7 @@ public class ReportService {
     private final PortalAccessRepository portalAccessRepository;
     private final boolean hideReencodedRecordings;
 
-    private static final String EIGHT_WEEKS_AGO = java.time.LocalDate.now().minusWeeks(8).toString();
+    private final String dateToStartReports;
 
     private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
 
@@ -70,6 +70,7 @@ public class ReportService {
                          UserRepository userRepository,
                          AppAccessRepository appAccessRepository,
                          PortalAccessRepository portalAccessRepository,
+                         @Value("${reports.days-range:60}") long numberOfDaysToReport,
                          @Value("${feature-flags.hide-reencoded-recordings:true}")
                          boolean hideReencodedRecordings) {
         this.captureSessionRepository = captureSessionRepository;
@@ -80,6 +81,7 @@ public class ReportService {
         this.appAccessRepository = appAccessRepository;
         this.portalAccessRepository = portalAccessRepository;
         this.hideReencodedRecordings = hideReencodedRecordings;
+        this.dateToStartReports = java.time.LocalDate.now().minusDays(numberOfDaysToReport).toString();
     }
 
     @Transactional
@@ -236,7 +238,7 @@ public class ReportService {
     @Transactional
     public List<CompletedCaptureSessionReportDTOV2> reportCompletedCaptureSessions() {
         return recordingRepository
-            .findAllCompletedCaptureSessionsWithRecordings(EIGHT_WEEKS_AGO)
+            .findAllCompletedCaptureSessionsWithRecordings(dateToStartReports)
             .stream()
             .filter(this::canViewRecording)
             .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))

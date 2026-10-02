@@ -9,6 +9,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -59,6 +60,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = ReportService.class)
+@TestPropertySource(properties = {
+    "reports.days-range=2"
+})
 public class ReportServiceTest {
     private static Recording recordingEntity;
     private static CaptureSession captureSessionEntity;
@@ -880,8 +884,6 @@ public class ReportServiceTest {
     @DisplayName("Filter reports to the most recent records")
     @Test
     void reportCompletedCaptureSessionsFilterMostRecent() {
-        String eightWeeksAgo = java.time.LocalDate.now().minusWeeks(8).toString();
-
         when(recordingRepository.findAllCompletedCaptureSessionsWithRecordings(any(String.class)))
             .thenReturn(List.of());
 
@@ -889,7 +891,10 @@ public class ReportServiceTest {
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(recordingRepository).findAllCompletedCaptureSessionsWithRecordings(captor.capture());
-        assertThat(captor.getValue()).isEqualTo(eightWeeksAgo);
+
+        // From TestPropertySource at the top of this class, the property is set to 2 days ago
+        String expectedDate = java.time.LocalDate.now().minusDays(2).toString();
+        assertThat(captor.getValue()).isEqualTo(expectedDate);
     }
 
     @DisplayName("Find all share booking removals and return a report")
