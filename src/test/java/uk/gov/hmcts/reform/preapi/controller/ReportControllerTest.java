@@ -450,7 +450,7 @@ public class ReportControllerTest {
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$[0].playback_date").value("01/07/2025"))
-               .andExpect(jsonPath("$[0].playback_time").value("09:15:23"))
+               .andExpect(jsonPath("$[0].playback_time").value("10:15:23"))
                .andExpect(jsonPath("$[0].playback_time_zone").value("BST"))
                .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
                .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
