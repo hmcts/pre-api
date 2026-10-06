@@ -2,12 +2,9 @@ package uk.gov.hmcts.reform.preapi.utils;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.Month;
 import java.time.ZonedDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,19 +54,20 @@ class DateTimeUtilsTest {
         assertThat(DateTimeUtils.getTimezoneAbbreviation(timestamp)).isEqualTo("GMT");
     }
 
-    @ParameterizedTest
-    @DisplayName("Should correctly format local time based on timezone")
-    @EnumSource(Month.class)
-    void formatTimeUTCOrBST(Month month) {
-        var timestamp = Timestamp.from(ZonedDateTime.of(2025, month.getValue(), 15,
+    @Test
+    @DisplayName("Should correctly format local time with timezone")
+    void formatTimeUTCOrBST() {
+        var juneTimestamp = Timestamp.from(ZonedDateTime.of(2025, 6, 15,
                                                         3, 16, 42, 0,
                                                         DateTimeUtils.TIME_ZONE).toInstant());
-        assertThat(DateTimeUtils.formatTime(timestamp)).isEqualTo("03:16:42");
-        if (month.getValue() > 3 && month.getValue() <= 10) {
-            assertThat(DateTimeUtils.getTimezoneAbbreviation(timestamp)).isEqualTo("BST");
-        } else {
-            assertThat(DateTimeUtils.getTimezoneAbbreviation(timestamp)).isEqualTo("GMT");
-        }
+        assertThat(DateTimeUtils.formatTime(juneTimestamp)).isEqualTo("03:16:42");
+        assertThat(DateTimeUtils.getTimezoneAbbreviation(juneTimestamp)).isEqualTo("BST");
+
+        var decemberTimestamp = Timestamp.from(ZonedDateTime.of(2025, 12, 15,
+                                                            3, 16, 42, 0,
+                                                            DateTimeUtils.TIME_ZONE).toInstant());
+        assertThat(DateTimeUtils.formatTime(decemberTimestamp)).isEqualTo("03:16:42");
+        assertThat(DateTimeUtils.getTimezoneAbbreviation(decemberTimestamp)).isEqualTo("GMT");
     }
 
     @Test

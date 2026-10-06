@@ -109,11 +109,7 @@ class CompletedCaptureSessionReportDTOV2Test {
             .getDayOfMonth();
         assert scheduledDateDay.equals(3);
 
-        if (month.getValue() > 3 && month.getValue() <= 10) {
-            assert reportDTO.getTimezone().equals("BST");
-        } else {
-            assert reportDTO.getTimezone().equals("GMT");
-        }
+        assert reportDTO.getTimezone().equals(DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt()));
     }
 
 }
