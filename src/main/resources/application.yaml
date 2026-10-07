@@ -93,7 +93,7 @@ dbMigration:
   runOnStartup: ${RUN_DB_MIGRATION_ON_STARTUP:true}
 
 security:
-  csrf-disabled: ${SECURITY_CSRF_DISABLED:false}
+  enable-csrf: ${SECURITY_ENABLE_CSRF:false}
 
 testing-support-endpoints:
   enabled: ${TESTING_SUPPORT_ENDPOINTS_ENABLED:false}

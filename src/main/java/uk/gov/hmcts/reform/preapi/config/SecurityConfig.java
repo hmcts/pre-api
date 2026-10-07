@@ -25,7 +25,7 @@ import static java.lang.Boolean.parseBoolean;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    @Value("${security.csrf-disabled:false}") String csrfDisabled;
+    private final Boolean enableCsrf;
 
     private final UserAuthenticationService userAuthenticationService;
 
@@ -64,8 +64,10 @@ public class SecurityConfig {
     };
 
     @Autowired
-    public SecurityConfig(UserAuthenticationService userAuthenticationService) {
+    public SecurityConfig(UserAuthenticationService userAuthenticationService,
+                          @Value("${security.enable-csrf:false}") String enableCsrf) {
         this.userAuthenticationService = userAuthenticationService;
+        this.enableCsrf = parseBoolean(enableCsrf);
     }
 
     @Bean
@@ -80,10 +82,14 @@ public class SecurityConfig {
         Collections.addAll(csrfDisabledEndpoints, PERMITTED_URIS_PUT_ONLY);
         Collections.addAll(csrfDisabledEndpoints, PERMITTED_URIS_POST);
 
+        if (enableCsrf) {
+            http.csrf(csrf -> csrf
+                    .ignoringRequestMatchers(csrfDisabledEndpoints.toArray(String[]::new)));
+        } else {
+            http.csrf(AbstractHttpConfigurer::disable);
+        }
+
         http
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers(csrfDisabledEndpoints.toArray(String[]::new))
-            )
             .authorizeHttpRequests(authorize ->
                                        authorize
                                            .requestMatchers(HttpMethod.GET, PERMITTED_URIS_GET_ONLY).permitAll()
@@ -98,10 +104,6 @@ public class SecurityConfig {
                                    httpSecuritySessionManagementConfigurer
                                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new XUserIdFilter(userAuthenticationService), UsernamePasswordAuthenticationFilter.class);
-
-        if (parseBoolean(csrfDisabled)) {
-            http.csrf(AbstractHttpConfigurer::disable);
-        }
 
         return http.build();
     }
