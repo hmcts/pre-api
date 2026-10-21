@@ -212,9 +212,14 @@ public class MediaKind implements IMediaService {
 
     @Override
     public List<AssetDTO> getAssets() {
-        return getAllMkList(mediaKindClient::getAssets)
+        return getAssets(null);
+    }
+
+    @Override
+    public List<AssetDTO> getAssets(Integer top) {
+        return mediaKindClient.getAssets(0, top).getValue().stream()
             .map(AssetDTO::new)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
