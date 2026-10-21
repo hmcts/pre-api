@@ -26,7 +26,9 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 @FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
 public interface MediaKindClient {
     @GetMapping("/assets")
-    MkGetListResponse<MkAsset> getAssets(@RequestParam("$skiptoken") int skipToken);
+    MkGetListResponse<MkAsset> getAssets(@RequestParam("$skiptoken") int skipToken,
+                                         @RequestParam(name = "$top", required = false) Integer top
+    );
 
     @GetMapping("/assets/{assetName}")
     MkAsset getAsset(@PathVariable("assetName") String assetName);

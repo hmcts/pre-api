@@ -111,6 +111,9 @@ mediakind:
   location: ${MEDIA_KIND_LOCATION:uksouth-4}
   streaming-endpoint-advanced-settings-name: ${MEDIA_KIND_STREAMING_ENDPOINT_ADVANCED_SETTINGS_NAME:}
   rtmpsSuffixEnabled: ${RTMPS_SUFFIX_ENABLED:false}
+  management-api: ${MEDIA_KIND_MANAGEMENT_API:https://app.mk.io}
+  monitor:
+    ready-interval-ms: ${MEDIAKIND_READY_MONITOR_INTERVAL_MS:30000}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 

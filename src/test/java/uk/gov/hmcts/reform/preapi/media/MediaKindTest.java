@@ -144,7 +144,7 @@ public class MediaKindTest {
             .value(List.of(asset1, asset2))
             .build();
 
-        when(mockClient.getAssets(eq(0))).thenReturn(mockAssets);
+        when(mockClient.getAssets(eq(0),eq(null))).thenReturn(mockAssets);
 
         var assets = mediaKind.getAssets();
 
@@ -156,7 +156,7 @@ public class MediaKindTest {
     @DisplayName("Should fail to get a list of assets and throw a media kind exception")
     @Test
     void getAssetsFeignExceptionThrown() {
-        when(mockClient.getAssets(0)).thenThrow(FeignException.class);
+        when(mockClient.getAssets(0,null)).thenThrow(FeignException.class);
 
         assertThrows(FeignException.class, () -> mediaKind.getAssets());
     }
@@ -213,6 +213,22 @@ public class MediaKindTest {
         assertThat(result).contains("item 2");
         assertThat(result).contains("item 3");
         assertThat(result).contains("item 4");
+    }
+
+    @DisplayName("Should get a limited list of assets when top is provided")
+    @Test
+    void getAssetsWithTopSuccess() {
+        var asset1 = createMkAsset("asset1");
+        var mockAssets = MkGetListResponse.<MkAsset>builder()
+            .value(List.of(asset1))
+            .build();
+
+        when(mockClient.getAssets(0, 10)).thenReturn(mockAssets);
+
+        var assets = mediaKind.getAssets(10);
+
+        assertThat(assets).hasSize(1);
+        assertThat(assets.getFirst().getName()).isEqualTo("asset1");
     }
 
     @DisplayName("Should get asset by asset name")
@@ -1827,7 +1843,7 @@ public class MediaKindTest {
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
                                             .build())
                             .build());
-            
+
         when(mockClient.getStreamingLocator(any()))
             .thenReturn(MkStreamingLocator.builder().build());
 

@@ -82,7 +82,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
@@ -212,9 +211,14 @@ public class MediaKind implements IMediaService {
 
     @Override
     public List<AssetDTO> getAssets() {
-        return getAllMkList(mediaKindClient::getAssets)
+        return getAssets(null);
+    }
+
+    @Override
+    public List<AssetDTO> getAssets(Integer top) {
+        return mediaKindClient.getAssets(0, top).getValue().stream()
             .map(AssetDTO::new)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
