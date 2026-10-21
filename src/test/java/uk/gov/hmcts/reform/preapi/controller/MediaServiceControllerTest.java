@@ -106,11 +106,13 @@ public class MediaServiceControllerTest {
     @DisplayName("Should return 200 when successfully connected to media service")
     void getMediaSuccess() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.getAssets()).thenReturn(List.of());
+        when(mediaService.getAssets(10)).thenReturn(List.of());
 
         var response = mockMvc.perform(get("/media-service/health"))
             .andExpect(status().isOk())
             .andReturn().getResponse();
+
+        verify(mediaService, times(1)).getAssets(10);
 
         assertThat(response.getContentAsString())
             .isEqualTo("successfully connected to media service (MediaKind)");
@@ -156,7 +158,7 @@ public class MediaServiceControllerTest {
                                       "storage account")
         );
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.getAssets()).thenReturn(assets);
+        when(mediaService.getAssets((Integer) null)).thenReturn(assets);
 
         mockMvc.perform(get("/media-service/assets"))
             .andExpect(status().isOk())
