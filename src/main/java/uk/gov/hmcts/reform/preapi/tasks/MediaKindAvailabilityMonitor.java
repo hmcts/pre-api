@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.media.MediaKindClient;
 import uk.gov.hmcts.reform.preapi.media.MediaKindManagementClient;
 
 import java.util.Locale;
@@ -16,13 +17,20 @@ public class MediaKindAvailabilityMonitor {
 
     private static final String READY_ENDPOINT = "/api/ready";
     private static final String PROFILE_ENDPOINT = "/api/v1/user/profile";
+    private static final String ASSETS_ENDPOINT = "/assets";
 
     private final MediaKindManagementClient mediaKindManagementClient;
+    private final MediaKindClient mediaKindClient;
 
     @Scheduled(fixedDelayString = "${mediakind.monitor.ready-interval-ms}")
     public void checkAvailability() {
         String checkId = UUID.randomUUID().toString();
 
+        runReadyAndProfileFallback(checkId);
+        runAssetsAvailabilityCheck(checkId);
+    }
+
+    private void runReadyAndProfileFallback(String checkId) {
         long readyStart = System.currentTimeMillis();
         try {
             mediaKindManagementClient.getReady();
@@ -45,8 +53,21 @@ public class MediaKindAvailabilityMonitor {
         } catch (Exception profileEx) {
             long durationMs = System.currentTimeMillis() - profileStart;
             log.error("MK.IO profile fallback failed. checkId={} endpoint={} durationMs={} failureType={} error={}",
-                      checkId, PROFILE_ENDPOINT, durationMs, classify(profileEx),
-                      exceptionMessage(profileEx), profileEx);
+                      checkId, PROFILE_ENDPOINT, durationMs, classify(profileEx), exceptionMessage(profileEx), profileEx);
+        }
+    }
+
+    private void runAssetsAvailabilityCheck(String checkId) {
+        long assetsStart = System.currentTimeMillis();
+        try {
+            mediaKindClient.getAssets(0, 10);
+            long durationMs = System.currentTimeMillis() - assetsStart;
+            log.info("MK.IO assets health check succeeded. checkId={} endpoint={} durationMs={}",
+                     checkId, ASSETS_ENDPOINT, durationMs);
+        } catch (Exception assetsEx) {
+            long durationMs = System.currentTimeMillis() - assetsStart;
+            log.error("MK.IO assets health check failed. checkId={} endpoint={} durationMs={} failureType={} error={}",
+                      checkId, ASSETS_ENDPOINT, durationMs, classify(assetsEx), exceptionMessage(assetsEx), assetsEx);
         }
     }
 
