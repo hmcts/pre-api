@@ -96,7 +96,7 @@ public class MediaServiceController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<String> mediaService() {
         IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
-        mediaService.getAssets();
+        mediaService.getAssets(10);
         return ResponseEntity.ok("successfully connected to media service ("
                                      + mediaService.getClass().getSimpleName()
                                      + ")");
@@ -105,9 +105,9 @@ public class MediaServiceController extends PreApiController {
     @GetMapping("/assets")
     @Operation(operationId = "getAssets", summary = "Get all media service assets")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<List<AssetDTO>> getAssets() {
+    public ResponseEntity<List<AssetDTO>> getAssets(@RequestParam(name = "top", required = false) Integer top) {
         IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
-        return ResponseEntity.ok(mediaService.getAssets());
+        return ResponseEntity.ok(mediaService.getAssets(top));
     }
 
     @GetMapping("/assets/{assetName}")
