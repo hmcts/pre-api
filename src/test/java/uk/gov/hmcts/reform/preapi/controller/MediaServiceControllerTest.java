@@ -158,7 +158,7 @@ public class MediaServiceControllerTest {
                                       "storage account")
         );
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.getAssets((Integer) null)).thenReturn(assets);
+        when(mediaService.getAssets(null)).thenReturn(assets);
 
         mockMvc.perform(get("/media-service/assets"))
             .andExpect(status().isOk())
