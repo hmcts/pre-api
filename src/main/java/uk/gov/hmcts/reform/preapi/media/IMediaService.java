@@ -27,6 +27,7 @@ public interface IMediaService {
     AssetDTO getAsset(String assetId);
 
     List<AssetDTO> getAssets();
+
     List<AssetDTO> getAssets(Integer top);
 
     LiveEventDTO getLiveEvent(String liveEventId);
