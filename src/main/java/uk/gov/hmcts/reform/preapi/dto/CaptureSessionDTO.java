@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
@@ -27,6 +28,9 @@ public class CaptureSessionDTO extends CreateCaptureSessionDTO {
     @Schema(description = "RecordingParticipants") // todo change this (might be breaking)
     private String courtName;
 
+    @Schema(description = "CaptureSessionCaseReference")
+    private String caseReference;
+
     @Schema(description = "CaptureSessionCaseState")
     private CaseState caseState;
 
@@ -39,14 +43,16 @@ public class CaptureSessionDTO extends CreateCaptureSessionDTO {
     public CaptureSessionDTO(CaptureSession captureSession, Boolean rtmpsSuffixEnabled) {
         super(captureSession);
         deletedAt = captureSession.getDeletedAt();
-        courtName = captureSession.getBooking().getCaseId().getCourt().getName();
-        caseState = captureSession.getBooking().getCaseId().getState();
-        caseClosedAt = captureSession.getBooking().getCaseId().getClosedAt();
+        Case caseDetails = captureSession.getBooking().getCaseId();
+        courtName = caseDetails.getCourt().getName();
+        caseState = caseDetails.getState();
+        caseClosedAt = caseDetails.getClosedAt();
+        caseReference = caseDetails.getReference();
 
         if (rtmpsSuffixEnabled) {
-            String courtPrefix = captureSession.getBooking().getCaseId().getCourt().getName()
+            String courtPrefix = caseDetails.getCourt().getName()
                 .substring(0, 3).toUpperCase(Locale.UK);
-            String caseRef = captureSession.getBooking().getCaseId().getReference();
+            String caseRef = caseDetails.getReference();
 
             displayedRtmpsLink = format("%s/%s-%s", captureSession.getIngestAddress(), courtPrefix, caseRef);
         } else {
