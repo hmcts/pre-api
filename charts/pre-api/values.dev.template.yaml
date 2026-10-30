@@ -5,7 +5,7 @@ java:
     image:
       registry: hmctsprod.azurecr.io
       repository: imported/bitnami/postgresql
-      tag: '15.0.0'
+      tag: '16.0.0'
     enabled: true
     primary:
       initdb:
