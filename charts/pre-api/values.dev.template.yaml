@@ -2,6 +2,10 @@ java:
   devmemoryLimits: '3Gi'
   devmemoryRequests: '3Gi'
   postgresql:
+    image:
+      registry: hmctsprod.azurecr.io
+      repository: imported/bitnami/postgresql
+      tag: '16.0.0'
     enabled: true
     primary:
       initdb:
