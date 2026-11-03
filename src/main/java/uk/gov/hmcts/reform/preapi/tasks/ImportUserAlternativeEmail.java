@@ -47,7 +47,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
     private boolean useLocalCsv;
 
     private static final String CSV_BLOB_PATH = "alternative_email_import.csv";
-    private static final String LOCAL_CSV_PATH = "src/main/resources/batch/alternative_email_import.csv";
+    private static final String LOCAL_CSV_PATH = "src/main/resources/alternative_email_import.csv";
     private static final String REPORT_OUTPUT_DIR = "Migration Reports";
     private static final String STATUS_ERROR = "ERROR";
 
@@ -120,7 +120,7 @@ public class ImportUserAlternativeEmail extends RobotUserTask {
             resource = new FileSystemResource(LOCAL_CSV_PATH);
 
             if (!resource.exists()) {
-                resource = new ClassPathResource("batch/alternative_email_import.csv");
+                resource = new ClassPathResource("alternative_email_import.csv");
             }
 
             if (!resource.exists()) { // NOSONAR
