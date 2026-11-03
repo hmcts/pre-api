@@ -108,10 +108,6 @@ class CaseServiceTest {
         caseEntity = createTestingCase();
         caseEntity.setReference("1234567890");
         allCaseEntities.add(caseEntity);
-    }
-
-    @BeforeEach
-    void reset() {
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
         when(emailServiceFactory.getEnabledEmailService(eq("GovNotify"))).thenReturn(govNotify);
         when(emailServiceFactory.isEnabled()).thenReturn(false);
