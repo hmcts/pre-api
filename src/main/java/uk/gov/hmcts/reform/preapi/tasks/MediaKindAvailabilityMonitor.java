@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.media.MediaKindClient;
@@ -13,6 +14,10 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(
+    name = "mediakind.monitor.enabled",
+    havingValue = "true"
+)
 public class MediaKindAvailabilityMonitor {
 
     private static final String READY_ENDPOINT = "/api/ready";
@@ -22,7 +27,7 @@ public class MediaKindAvailabilityMonitor {
     private final MediaKindManagementClient mediaKindManagementClient;
     private final MediaKindClient mediaKindClient;
 
-    @Scheduled(fixedDelayString = "${mediakind.monitor.ready-interval-ms}")
+    @Scheduled(fixedDelayString = "${mediakind.monitor.ready-interval-ms:30000}")
     public void checkAvailability() {
         String checkId = UUID.randomUUID().toString();
 

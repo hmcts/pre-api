@@ -113,6 +113,7 @@ mediakind:
   rtmpsSuffixEnabled: ${RTMPS_SUFFIX_ENABLED:false}
   management-api: ${MEDIA_KIND_MANAGEMENT_API:https://app.mk.io}
   monitor:
+    enabled: ${MEDIAKIND_MONITOR_ENABLED:false}
     ready-interval-ms: ${MEDIAKIND_READY_MONITOR_INTERVAL_MS:30000}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
