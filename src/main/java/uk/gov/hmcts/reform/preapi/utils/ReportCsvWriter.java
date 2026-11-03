@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
+package uk.gov.hmcts.reform.preapi.utils;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
