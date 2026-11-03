@@ -96,7 +96,7 @@ class CompletedCaptureSessionReportDTOV2Test {
         assertThat(reportDTO.getStatus()).isEqualTo(captureSession.getStatus());
         assertThat(reportDTO.getDefendantNames()).contains("John Doe");
         assertThat(reportDTO.getDefendantNames()).contains("Jane Smith");
-        assertThat(reportDTO.getDefendant() == 2);
+        assertThat(reportDTO.getDefendant()).isEqualTo(2);
         assertThat(reportDTO.getWitnessNames()).contains("Alice Johnson");
         assertThat(reportDTO.getWitnessNames()).contains("Bob Williams");
         assertThat(reportDTO.getWitnessNames()).contains("Charlie Brown");

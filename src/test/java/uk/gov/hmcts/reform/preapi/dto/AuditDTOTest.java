@@ -42,7 +42,7 @@ class AuditDTOTest {
 
     @Test
     @DisplayName("Should create an Audit model from an Audit and User entity")
-    public void createCaseFromAuditAndUser() {
+    void createCaseFromAuditAndUser() {
         var user = new User();
         user.setId(auditEntity.getCreatedBy());
         user.setFirstName("Example");
