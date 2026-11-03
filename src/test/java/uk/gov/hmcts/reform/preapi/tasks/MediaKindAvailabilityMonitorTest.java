@@ -136,6 +136,46 @@ class MediaKindAvailabilityMonitorTest {
         assertEquals("something went wrong", message);
     }
 
+    @Test
+    void shouldCheckReadinessAndAssets() {
+        monitor.checkAvailability();
+
+        verify(mediaKindManagementClient).getReady();
+        verify(mediaKindManagementClient, never()).getProfile();
+        verify(mediaKindClient).getAssets(0, 10);
+    }
+
+    @Test
+    void shouldUseProfileWhenReadinessFails() {
+        doThrow(new RuntimeException("readiness unavailable"))
+            .when(mediaKindManagementClient).getReady();
+
+        monitor.checkAvailability();
+
+        verify(mediaKindManagementClient).getProfile();
+        verify(mediaKindClient).getAssets(0, 10);
+    }
+
+    @Test
+    void shouldContinueWhenReadinessAndProfileFail() {
+        doThrow(new RuntimeException("readiness unavailable"))
+            .when(mediaKindManagementClient).getReady();
+        doThrow(new RuntimeException("profile unavailable"))
+            .when(mediaKindManagementClient).getProfile();
+
+        assertDoesNotThrow(monitor::checkAvailability);
+
+        verify(mediaKindClient).getAssets(0, 10);
+    }
+
+    @Test
+    void shouldContainAssetsFailure() {
+        doThrow(new RuntimeException("assets unavailable"))
+            .when(mediaKindClient).getAssets(0, 10);
+
+        assertDoesNotThrow(monitor::checkAvailability);
+    }
+
     private String invokeClassify(Exception ex) throws Exception {
         Method method = MediaKindAvailabilityMonitor.class.getDeclaredMethod("classify", Exception.class);
         method.setAccessible(true);
