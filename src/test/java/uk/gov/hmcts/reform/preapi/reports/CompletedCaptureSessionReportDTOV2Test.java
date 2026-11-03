@@ -27,6 +27,7 @@ import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 @Slf4j
@@ -86,30 +87,31 @@ class CompletedCaptureSessionReportDTOV2Test {
         CompletedCaptureSessionReportDTOV2 reportDTO = new CompletedCaptureSessionReportDTOV2(recording);
 
         // Then
-        assert reportDTO.getCaseReference().equals(caseObj.getReference());
-        assert reportDTO.getCourt().equals("Test Court");
+        assertThat(reportDTO.getCaseReference().equals(caseObj.getReference()));
+        assertThat(reportDTO.getCourt().equals("Test Court"));
 
-        assert reportDTO.getRecordingTime().equals("12:03:00");
-        assert reportDTO.getFinishTime().equals("15:02:00");
-        assert reportDTO.getDuration().equals("03:06:12");
-        assert reportDTO.getStatus().equals(captureSession.getStatus());
-        assert reportDTO.getDefendantNames().contains("John Doe");
-        assert reportDTO.getDefendantNames().contains("Jane Smith");
-        assert reportDTO.getDefendant() == 2;
-        assert reportDTO.getWitnessNames().contains("Alice Johnson");
-        assert reportDTO.getWitnessNames().contains("Bob Williams");
-        assert reportDTO.getWitnessNames().contains("Charlie Brown");
-        assert reportDTO.getWitness() == 3;
+        assertThat(reportDTO.getRecordingTime().equals("12:03:00"));
+        assertThat(reportDTO.getFinishTime().equals("15:02:00"));
+        assertThat(reportDTO.getDuration().equals("03:06:12"));
+        assertThat(reportDTO.getStatus().equals(captureSession.getStatus()));
+        assertThat(reportDTO.getDefendantNames().contains("John Doe"));
+        assertThat(reportDTO.getDefendantNames().contains("Jane Smith"));
+        assertThat(reportDTO.getDefendant() == 2);
+        assertThat(reportDTO.getWitnessNames().contains("Alice Johnson"));
+        assertThat(reportDTO.getWitnessNames().contains("Bob Williams"));
+        assertThat(reportDTO.getWitnessNames().contains("Charlie Brown"));
+        assertThat(reportDTO.getWitness() == 3);
 
         Integer recordingDateDay = LocalDate.parse(reportDTO.getRecordingDate(), DateTimeUtils.DATE_FORMATTER)
             .getDayOfMonth();
-        assert recordingDateDay.equals(4); // Matches capture session not booking
+        assertThat(recordingDateDay.equals(4)); // Matches capture session not booking
 
         Integer scheduledDateDay = LocalDate.parse(reportDTO.getScheduledDate(), DateTimeUtils.DATE_FORMATTER)
             .getDayOfMonth();
-        assert scheduledDateDay.equals(3);
+        assertThat(scheduledDateDay.equals(3));
 
-        assert reportDTO.getTimezone().equals(DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt()));
+        assertThat(reportDTO.getTimezone()
+                       .equals(DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt())));
     }
 
 }
