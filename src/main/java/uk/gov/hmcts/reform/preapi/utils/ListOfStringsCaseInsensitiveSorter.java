@@ -20,7 +20,7 @@ public class ListOfStringsCaseInsensitiveSorter implements Comparator<String> {
     @Override
     public int compare(String o1, String o2) {
         log.info("Comparing {} and {}", o1, o2);
-        return columnOrder.indexOf(o1.toLowerCase(Locale.UK))
-            - columnOrder.indexOf(o2.toLowerCase(Locale.UK));
+        return Integer.compare(columnOrder.indexOf(o1.toLowerCase(Locale.UK)),
+                               columnOrder.indexOf(o2.toLowerCase(Locale.UK)));
     }
 }
