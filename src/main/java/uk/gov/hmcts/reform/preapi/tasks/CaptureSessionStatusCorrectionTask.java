@@ -11,9 +11,9 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -58,7 +58,7 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
     }
 
     private List<CaptureSession> getFailedCaptureSessions() {
-        LocalDate dateToday = LocalDate.now(ZoneId.of("Europe/London"));
+        LocalDate dateToday = LocalDate.now(DateTimeUtils.TIME_ZONE);
         return captureSessionService.findFailedCaptureSessionsStartedBetween(THRESHOLD_DATE, dateToday);
     }
 

@@ -29,12 +29,12 @@ import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -138,8 +138,8 @@ public class BookingService {
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
 
         LocalDate localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(),
-                                                           ZoneId.of("Europe/London")).toLocalDate();
-        LocalDate today = LocalDate.now(ZoneId.of("Europe/London"));
+                                                           DateTimeUtils.TIME_ZONE).toLocalDate();
+        LocalDate today = LocalDate.now(DateTimeUtils.TIME_ZONE);
 
         if (localDateField.isBefore(today)
             && !auth.hasRole("ROLE_SUPER_USER")) {
@@ -260,7 +260,7 @@ public class BookingService {
 
     @Transactional
     public List<BookingDTO> findAllBookingsForToday() {
-        LocalDate currentDate = LocalDate.now(ZoneId.of("Europe/London"));
+        LocalDate currentDate = LocalDate.now(DateTimeUtils.TIME_ZONE);
         return searchBy(
             null,
             null,

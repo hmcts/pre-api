@@ -5,11 +5,11 @@ import jakarta.validation.ConstraintValidatorContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 public class BookingScheduledForNotPastOrNotChangedValidator
     implements ConstraintValidator<BookingScheduledForNotPastOrNotChangedConstraint, CreateBookingDTO> {
@@ -40,7 +40,7 @@ public class BookingScheduledForNotPastOrNotChangedValidator
         }
 
         LocalDate localDateField = toLocalDate(booking.getScheduledFor());
-        LocalDate today = LocalDate.now(ZoneId.of("Europe/London"));
+        LocalDate today = LocalDate.now(DateTimeUtils.TIME_ZONE);
 
         return !localDateField.isBefore(today)
             || bookingRepository.findById(booking.getId())
@@ -66,7 +66,7 @@ public class BookingScheduledForNotPastOrNotChangedValidator
     }
 
     private LocalDate toLocalDate(Timestamp timestamp) {
-        return LocalDateTime.ofInstant(timestamp.toInstant(), ZoneId.of("Europe/London"))
+        return LocalDateTime.ofInstant(timestamp.toInstant(), DateTimeUtils.TIME_ZONE)
             .toLocalDate();
     }
 }

@@ -38,12 +38,12 @@ import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
@@ -1078,7 +1078,7 @@ public class CaptureSessionServiceTest {
     void markAsActualRecordingStarted() {
         captureSession.setStatus(RecordingStatus.STANDBY);
         captureSession.setStartedAt(Timestamp.from(LocalDateTime.of(2026, 6, 1, 7, 0)
-                                                       .atZone(ZoneId.of("Europe/London")).toInstant()));
+                                                       .atZone(DateTimeUtils.TIME_ZONE).toInstant()));
 
         CaptureSessionDTO result = captureSessionService.markAsActualRecordingStarted(captureSession.getId());
 

@@ -87,31 +87,31 @@ class CompletedCaptureSessionReportDTOV2Test {
         CompletedCaptureSessionReportDTOV2 reportDTO = new CompletedCaptureSessionReportDTOV2(recording);
 
         // Then
-        assertThat(reportDTO.getCaseReference().equals(caseObj.getReference()));
-        assertThat(reportDTO.getCourt().equals("Test Court"));
+        assertThat(reportDTO.getCaseReference()).isEqualTo(caseObj.getReference());
+        assertThat(reportDTO.getCourt()).isEqualTo("Test Court");
 
-        assertThat(reportDTO.getRecordingTime().equals("12:03:00"));
-        assertThat(reportDTO.getFinishTime().equals("15:02:00"));
-        assertThat(reportDTO.getDuration().equals("03:06:12"));
-        assertThat(reportDTO.getStatus().equals(captureSession.getStatus()));
-        assertThat(reportDTO.getDefendantNames().contains("John Doe"));
-        assertThat(reportDTO.getDefendantNames().contains("Jane Smith"));
+        assertThat(reportDTO.getRecordingTime()).isEqualTo("12:03:00");
+        assertThat(reportDTO.getFinishTime()).isEqualTo("15:02:00");
+        assertThat(reportDTO.getDuration()).isEqualTo("03:06:12");
+        assertThat(reportDTO.getStatus()).isEqualTo(captureSession.getStatus());
+        assertThat(reportDTO.getDefendantNames()).contains("John Doe");
+        assertThat(reportDTO.getDefendantNames()).contains("Jane Smith");
         assertThat(reportDTO.getDefendant() == 2);
-        assertThat(reportDTO.getWitnessNames().contains("Alice Johnson"));
-        assertThat(reportDTO.getWitnessNames().contains("Bob Williams"));
-        assertThat(reportDTO.getWitnessNames().contains("Charlie Brown"));
-        assertThat(reportDTO.getWitness() == 3);
+        assertThat(reportDTO.getWitnessNames()).contains("Alice Johnson");
+        assertThat(reportDTO.getWitnessNames()).contains("Bob Williams");
+        assertThat(reportDTO.getWitnessNames()).contains("Charlie Brown");
+        assertThat(reportDTO.getWitness()).isEqualTo(3);
 
         Integer recordingDateDay = LocalDate.parse(reportDTO.getRecordingDate(), DateTimeUtils.DATE_FORMATTER)
             .getDayOfMonth();
-        assertThat(recordingDateDay.equals(4)); // Matches capture session not booking
+        assertThat(recordingDateDay).isEqualTo(4); // Matches capture session not booking
 
         Integer scheduledDateDay = LocalDate.parse(reportDTO.getScheduledDate(), DateTimeUtils.DATE_FORMATTER)
             .getDayOfMonth();
-        assertThat(scheduledDateDay.equals(3));
+        assertThat(scheduledDateDay).isEqualTo(3);
 
-        assertThat(reportDTO.getTimezone()
-                       .equals(DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt())));
+        assertThat(reportDTO.getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt()));
     }
 
 }

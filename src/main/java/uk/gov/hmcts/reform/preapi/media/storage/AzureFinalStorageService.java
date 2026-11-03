@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 import org.w3c.dom.Element;
 import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.UUID;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -74,7 +74,7 @@ public class AzureFinalStorageService extends AzureStorageService {
             + getBlobSasToken(
             containerName,
             blobName,
-            OffsetDateTime.now(ZoneId.of("Europe/London")).plusHours(2),
+            OffsetDateTime.now(DateTimeUtils.TIME_ZONE).plusHours(2),
             new BlobSasPermission().setReadPermission(true)
         );
     }
