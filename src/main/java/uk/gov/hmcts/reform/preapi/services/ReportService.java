@@ -37,6 +37,7 @@ import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +82,8 @@ public class ReportService {
         this.appAccessRepository = appAccessRepository;
         this.portalAccessRepository = portalAccessRepository;
         this.hideReencodedRecordings = hideReencodedRecordings;
-        this.dateToStartReports = java.time.LocalDate.now().minusDays(numberOfDaysToReport).toString();
+        this.dateToStartReports = java.time.LocalDate.now(ZoneId.of("Europe/London"))
+            .minusDays(numberOfDaysToReport).toString();
     }
 
     @Transactional

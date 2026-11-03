@@ -40,7 +40,7 @@ public class BookingScheduledForNotPastOrNotChangedValidator
         }
 
         LocalDate localDateField = toLocalDate(booking.getScheduledFor());
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Europe/London"));
 
         return !localDateField.isBefore(today)
             || bookingRepository.findById(booking.getId())

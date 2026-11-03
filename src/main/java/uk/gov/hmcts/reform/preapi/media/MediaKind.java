@@ -76,6 +76,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -502,7 +503,7 @@ public class MediaKind implements IMediaService {
     }
 
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Europe/London"));
         String streamingLocatorName = userId + "_" + assetName;
 
         // check streaming locator is still valid
@@ -654,7 +655,8 @@ public class MediaKind implements IMediaService {
                                       String transformName,
                                       String fileName) {
         getOrCreateTransform(transformName);
-        String jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        String jobName = inputAssetName + "-" + LocalDateTime.now(ZoneId.of("Europe/London"))
+            .toEpochSecond(ZoneOffset.UTC);
         log.info("Creating job [{}]", jobName);
         mediaKindClient.putJob(
             transformName,

@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -73,7 +74,7 @@ public class AzureFinalStorageService extends AzureStorageService {
             + getBlobSasToken(
             containerName,
             blobName,
-            OffsetDateTime.now().plusHours(2),
+            OffsetDateTime.now(ZoneId.of("Europe/London")).plusHours(2),
             new BlobSasPermission().setReadPermission(true)
         );
     }

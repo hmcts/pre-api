@@ -139,7 +139,7 @@ public class BookingService {
 
         LocalDate localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(),
                                                            ZoneId.of("Europe/London")).toLocalDate();
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Europe/London"));
 
         if (localDateField.isBefore(today)
             && !auth.hasRole("ROLE_SUPER_USER")) {
@@ -260,7 +260,7 @@ public class BookingService {
 
     @Transactional
     public List<BookingDTO> findAllBookingsForToday() {
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = LocalDate.now(ZoneId.of("Europe/London"));
         return searchBy(
             null,
             null,

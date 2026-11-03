@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -57,7 +58,8 @@ public class CaptureSessionStatusCorrectionTask extends RobotUserTask {
     }
 
     private List<CaptureSession> getFailedCaptureSessions() {
-        return captureSessionService.findFailedCaptureSessionsStartedBetween(THRESHOLD_DATE, LocalDate.now());
+        LocalDate dateToday = LocalDate.now(ZoneId.of("Europe/London"));
+        return captureSessionService.findFailedCaptureSessionsStartedBetween(THRESHOLD_DATE, dateToday);
     }
 
     private List<CaptureSession> filterUnusedCaptureSessionsBySectionFile(List<CaptureSession> captureSessions) {

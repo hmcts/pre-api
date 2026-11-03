@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -123,8 +124,8 @@ public abstract class AzureStorageService {
                                      BlobSasPermission permission) {
         if (azureConfiguration.isUsingManagedIdentity()) {
             UserDelegationKey delegationKey = client.getUserDelegationKey(
-                OffsetDateTime.now(),
-                OffsetDateTime.now().plusHours(2)
+                OffsetDateTime.now(ZoneId.of("Europe/London")),
+                OffsetDateTime.now(ZoneId.of("Europe/London")).plusHours(2)
             );
             return "?" + client.getBlobContainerClient(containerName)
                 .getBlobClient(blobName)
@@ -206,8 +207,8 @@ public abstract class AzureStorageService {
             + getBlobSasToken(
             containerName,
             blobName,
-            OffsetDateTime.now().plusHours(1),
-            new BlobSasPermission().setReadPermission(true)
+            OffsetDateTime.now(ZoneId.of("Europe/London")).plusHours(1),
+                new BlobSasPermission().setReadPermission(true)
         );
     }
 }

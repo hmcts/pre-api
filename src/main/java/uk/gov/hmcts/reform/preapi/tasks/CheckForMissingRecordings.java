@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -70,7 +71,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
         log.info("Signing in robot user with email {} on env {}", cronUserEmail, platformEnv);
         signInRobotUser();
 
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now(ZoneId.of("Europe/London")).minusDays(1);
         log.info("Running CheckForMissingRecordings task: looking for missing recordings from {}", yesterday);
 
         Map<RecordingStatus, List<String>> captureSessionIds = captureSessionService
