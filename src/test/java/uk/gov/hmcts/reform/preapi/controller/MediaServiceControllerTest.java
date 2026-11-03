@@ -41,6 +41,7 @@ import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -913,7 +914,7 @@ public class MediaServiceControllerTest {
         dto2.setStatus(RecordingStatus.RECORDING);
 
         LocalDateTime inputDateTime = LocalDateTime.of(2024, 6, 1, 12, 0);
-        ZonedDateTime inputZonedDateTime = inputDateTime.atZone(ZoneId.of("Europe/London"))
+        ZonedDateTime inputZonedDateTime = inputDateTime.atZone(DateTimeUtils.TIME_ZONE)
             .withZoneSameInstant(ZoneId.of("UTC"));
         Timestamp inputTimestamp = Timestamp.from(inputZonedDateTime.toInstant());
 
