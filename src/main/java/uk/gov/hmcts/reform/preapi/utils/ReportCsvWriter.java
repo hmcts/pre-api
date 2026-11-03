@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
+package uk.gov.hmcts.reform.preapi.utils;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +58,7 @@ public class ReportCsvWriter {
             throw e;
         }
 
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
+        String timestamp = LocalDateTime.now(DateTimeUtils.TIME_ZONE).format(TIMESTAMP_FORMATTER);
         String fileName = showTimestamp
             ? String.format("%s-%s.csv", fileNamePrefix, timestamp)
             : fileNamePrefix + ".csv";
