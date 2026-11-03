@@ -1081,7 +1081,7 @@ class ImportUserAlternativeEmailTest {
     @DisplayName("Should throw IOException when local CSV file doesn't exist")
     @Test
     void runThrowsIOExceptionWhenLocalCsvFileNotFound() throws Exception {
-        ClassPathResource fallbackResource = new ClassPathResource("batch/alternative_email_import.csv");
+        ClassPathResource fallbackResource = new ClassPathResource("alternative_email_import.csv");
         Assumptions.assumeFalse(fallbackResource.exists(),
             "Skipping test: ClassPathResource fallback exists, so IOException won't be thrown");
 
