@@ -79,8 +79,7 @@ import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases",
-    "PMD.TooManyMethods"})
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases"})
 @ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
