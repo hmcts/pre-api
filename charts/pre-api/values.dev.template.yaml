@@ -2,6 +2,10 @@ java:
   devmemoryLimits: '3Gi'
   devmemoryRequests: '3Gi'
   postgresql:
+    image:
+      registry: hmctsprod.azurecr.io
+      repository: imported/postgres
+      tag: 18-alpine
     enabled: true
     primary:
       initdb:
