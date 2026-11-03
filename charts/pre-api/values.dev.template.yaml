@@ -8,6 +8,8 @@ java:
       tag: 18-alpine
     enabled: true
     primary:
+      persistence:
+        enabled: false
       initdb:
         user: "postgres"
         scripts:
