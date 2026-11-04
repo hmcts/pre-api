@@ -10,6 +10,9 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
+import java.util.Locale;
+
+import static java.lang.String.format;
 
 @Data
 @NoArgsConstructor
@@ -30,11 +33,25 @@ public class CaptureSessionDTO extends CreateCaptureSessionDTO {
     @Schema(description = "CaptureSessionCaseClosedAt")
     private Timestamp caseClosedAt;
 
-    public CaptureSessionDTO(CaptureSession captureSession) {
+    @Schema(description = "CreateCaptureSessionDisplayedRtmpsLink")
+    private String displayedRtmpsLink;
+
+    public CaptureSessionDTO(CaptureSession captureSession, Boolean rtmpsSuffixEnabled) {
         super(captureSession);
         deletedAt = captureSession.getDeletedAt();
         courtName = captureSession.getBooking().getCaseId().getCourt().getName();
         caseState = captureSession.getBooking().getCaseId().getState();
         caseClosedAt = captureSession.getBooking().getCaseId().getClosedAt();
+
+        if (rtmpsSuffixEnabled) {
+            String courtPrefix = captureSession.getBooking().getCaseId().getCourt().getName()
+                .substring(0, 3).toUpperCase(Locale.UK);
+            String caseRef = captureSession.getBooking().getCaseId().getReference();
+
+            displayedRtmpsLink = format("%s/%s-%s", captureSession.getIngestAddress(), courtPrefix, caseRef);
+        } else {
+            displayedRtmpsLink = captureSession.getIngestAddress();
+        }
+
     }
 }

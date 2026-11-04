@@ -35,6 +35,7 @@ import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RegistrationService;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -51,8 +52,8 @@ public class CaptureSessionController extends PreApiController {
 
     private final CaptureSessionService captureSessionService;
     private final RegistrationService registrationService;
-    @Value("${capture-session-registration.processing-timeout-hours}")
-    private int processingTimeoutHours;
+    @Value("${capture-session-registration.processing-timeout-minutes}")
+    private int processingTimeoutMinutes;
 
     @Autowired
     public CaptureSessionController(CaptureSessionService captureSessionService,
@@ -174,23 +175,39 @@ public class CaptureSessionController extends PreApiController {
         CaptureSessionDTO inDatabase = captureSessionService.findById(captureSessionId);
 
         if (inDatabase == null) {
-            throw new NotFoundException(format("Capture Session with id %s not on the PRE system at all. Typo?",
-                                               captureSessionId));
+            throw new NotFoundException(format(
+                "Capture Session with id %s not on the PRE system at all. Typo?",
+                captureSessionId
+            ));
         }
 
         if (inDatabase.getStatus() != RecordingStatus.PROCESSING) {
             throw new ResourceInWrongStateException(
-                format("Capture session with ID %s is in an incorrect state for registration: %s",
-                       captureSessionId, inDatabase.getStatus()));
+                format(
+                    "Capture session with ID %s is in an incorrect state for registration: %s",
+                    captureSessionId, inDatabase.getStatus()
+                ));
         }
 
-        if (!inDatabase.getFinishedAt().before(Timestamp.from(Instant.now()
-                                                                .minus(processingTimeoutHours, ChronoUnit.HOURS)))) {
-            throw new ResourceInWrongStateException(
-                format("Capture session with ID %s finished processing at %s. "
-                           + "This is within the agreed timeout window of %s hours).",
-                       captureSessionId, inDatabase.getFinishedAt(), processingTimeoutHours
-                ));
+        Timestamp timestampAtEndOfWindowOfTolerance = Timestamp.from(inDatabase.getFinishedAt().toInstant()
+                                                                         .plus(
+                                                                             processingTimeoutMinutes,
+                                                                             ChronoUnit.MINUTES
+                                                                         ));
+
+        if (timestampAtEndOfWindowOfTolerance.after(Timestamp.from(Instant.now()))) {
+            String errorMessage = format(
+                "Capture session with ID %s finished processing at %s on %s. "
+                    + "This is within the agreed tolerance window of %s minutes."
+                    + " Please try again after %s.",
+                captureSessionId,
+                DateTimeUtils.formatTime(inDatabase.getFinishedAt()),
+                DateTimeUtils.formatDate(inDatabase.getFinishedAt()),
+                processingTimeoutMinutes,
+                DateTimeUtils.formatTime(timestampAtEndOfWindowOfTolerance)
+            );
+
+            throw new ResourceInWrongStateException(errorMessage);
         }
 
         return getUpsertResponse(registrationService.register(captureSessionId), captureSessionId);

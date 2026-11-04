@@ -79,20 +79,20 @@ public class GetScheduledBookingsTest {
         var booking1 = createBooking(caseEntity1, Timestamp.valueOf(today.atStartOfDay().plusHours(10)));
         var captureSession1 = createCaptureSession(booking1, user);
         booking1.setCaptureSessions(Set.of(captureSession1));
-        var booking1DTO = new BookingDTO(booking1);
+        var booking1DTO = new BookingDTO(booking1, true);
 
         var caseEntity2 = HelperFactory.createCase(court2, "case-2", true, null);
         var booking2 = createBooking(caseEntity2, Timestamp.valueOf(today.atStartOfDay().plusHours(15)));
         var captureSession2 = createCaptureSession(booking2, user);
         booking2.setCaptureSessions(Set.of(captureSession2));
-        var booking2DTO = new BookingDTO(booking2);
+        var booking2DTO = new BookingDTO(booking2, true);
 
         // Booking without capture session
         var caseEntity3 = HelperFactory.createCase(court3, "case-3", true, null);
         var bookingWithoutCaptureSession = createBooking(
                 caseEntity3,
                 Timestamp.valueOf(today.atStartOfDay().plusHours(16)));
-        var bookingWithoutCaptureSessionDTO = new BookingDTO(bookingWithoutCaptureSession);
+        var bookingWithoutCaptureSessionDTO = new BookingDTO(bookingWithoutCaptureSession, true);
 
         var bookingDTOs = List.of(booking1DTO, booking2DTO, bookingWithoutCaptureSessionDTO);
 

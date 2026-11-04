@@ -2,7 +2,8 @@ package uk.gov.hmcts.reform.preapi.dto;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -30,6 +31,8 @@ class CaptureSessionDTOTest {
         captureSession.setStartedAt(Timestamp.from(java.time.Instant.now()));
         captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
+
+
         var booking = HelperFactory.createBooking(
             HelperFactory.createCase(
                 HelperFactory.createCourt(CourtType.CROWN, "Foo Court", null),
@@ -49,12 +52,20 @@ class CaptureSessionDTOTest {
     }
 
     @DisplayName("Should create a CaptureSession from entity")
-    @Test
-    void createCaseFromEntity() {
-        var model = new CaptureSessionDTO(captureSession);
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void createCaseFromEntity(boolean rtmpsSuffixEnabled) {
+        var model = new CaptureSessionDTO(captureSession, rtmpsSuffixEnabled);
 
         assertThat(model.getId()).isEqualTo(captureSession.getId());
         assertThat(model.getBookingId()).isEqualTo(captureSession.getBooking().getId());
         assertThat(model.getDeletedAt()).isNull();
+        assertThat(model.getLiveOutputUrl()).isEqualTo(captureSession.getLiveOutputUrl());
+        if (rtmpsSuffixEnabled) {
+            assertThat(model.getDisplayedRtmpsLink()).isEqualTo("ingestAddress/FOO-12345678");
+        } else {
+            assertThat(model.getDisplayedRtmpsLink()).isEqualTo("ingestAddress");
+        }
+        assertThat(model.getIngestAddress()).isEqualTo(captureSession.getIngestAddress());
     }
 }

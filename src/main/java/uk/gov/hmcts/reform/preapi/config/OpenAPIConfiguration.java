@@ -27,7 +27,7 @@ public class OpenAPIConfiguration {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
-            .info(new Info().title("PRE API")
+            .info(new Info().title("Pre Recorded Evidence API")
                       .description("PRE API - Used for managing courts, bookings, recordings and permissions.")
                       .version("v0.0.1")
                       .license(new License().name("MIT").url("https://opensource.org/licenses/MIT")))

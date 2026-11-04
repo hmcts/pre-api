@@ -1,13 +1,16 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
@@ -45,12 +48,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = RecordingService.class)
@@ -106,15 +111,17 @@ class RecordingServiceTest {
 
     @BeforeEach
     void reset() {
+        SecurityContextHolder.clearContext();
         recordingEntity.setDeletedAt(null);
         recordingEntity.setParentRecording(null);
         recordingEntity.setCaptureSession(captureSession);
+        recordingEntity.setReencode(false);
     }
 
     @DisplayName("Find a recording by it's id and return a model")
     @Test
     void findRecordingByIdSuccess() {
-        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId()))
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId(), false))
             .thenReturn(Optional.of(recordingEntity));
 
         var model = recordingService.findById(recordingEntity.getId());
@@ -122,17 +129,35 @@ class RecordingServiceTest {
         assertThat(model.getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
     }
 
+    @DisplayName("Find a re-encoded recording by id when user is super user")
+    @Test
+    void findRecordingByIdIncludesReencodedForSuperUser() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        recordingEntity.setReencode(true);
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId(), true))
+            .thenReturn(Optional.of(recordingEntity));
+
+        var model = recordingService.findById(recordingEntity.getId());
+
+        assertThat(model.getId()).isEqualTo(recordingEntity.getId());
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(recordingEntity.getId(), true);
+    }
+
     @DisplayName("Find a recording by it's id which is missing")
     @Test
     void findRecordingByIdMissing() {
-        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId())).thenReturn(Optional.empty());
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId(), false))
+            .thenReturn(Optional.empty());
 
         assertThrows(
             NotFoundException.class,
             () -> recordingService.findById(recordingEntity.getId())
         );
 
-        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(recordingEntity.getId());
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(recordingEntity.getId(), false);
     }
 
     @DisplayName("Find a list of recordings and return a list of models")
@@ -140,7 +165,7 @@ class RecordingServiceTest {
     void findAllRecordingsSuccess() {
         var params = new SearchRecordings();
         when(
-            recordingRepository.searchAllBy(eq(params), eq(false), eq(false), any())
+            recordingRepository.searchAllBy(eq(params), eq(false), eq(false), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -160,7 +185,7 @@ class RecordingServiceTest {
         params.setStartedAtUntil(Timestamp.valueOf("2023-01-01 23:59:59"));
 
         when(
-            recordingRepository.searchAllBy(params, false, false, null)
+            recordingRepository.searchAllBy(params, false, false, false, null)
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -171,6 +196,21 @@ class RecordingServiceTest {
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
+    }
+
+    @DisplayName("Find a list of recordings includes hidden re-encoded recordings for super users")
+    @Test
+    void findAllRecordingsIncludesReencodedForSuperUser() {
+        var params = new SearchRecordings();
+        when(recordingRepository.searchAllBy(params, false, true, true, null)).thenReturn(Page.empty());
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        recordingService.findAll(params, false, null);
+
+        verify(recordingRepository, times(1)).searchAllBy(params, false, true, true, null);
     }
 
     @DisplayName("Create a recording")
@@ -201,6 +241,83 @@ class RecordingServiceTest {
         when(recordingRepository.save(recordingEntity)).thenReturn(recordingEntity);
 
         assertThat(recordingService.upsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
+    }
+
+    @DisplayName("Create a recording from a force re-encode edit request as re-encoded")
+    @Test
+    void createRecordingFromForceReencodeMarkedReencoded() {
+        var aCase = new Case();
+        aCase.setState(CaseState.OPEN);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setVersion(2);
+        recordingModel.setEditInstructions("""
+            {"editRequestId":"%s","editInstructions":{"forceReencode":true}}
+            """.formatted(UUID.randomUUID()));
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
+
+        assertThat(recordingService.upsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
+
+        verify(recordingRepository).save(argThat(Recording::isReencode));
+    }
+
+    @DisplayName("Create a recording from top-level force re-encode edit instructions as re-encoded")
+    @Test
+    void createRecordingFromTopLevelForceReencodeMarkedReencoded() {
+        var aCase = new Case();
+        aCase.setState(CaseState.OPEN);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setVersion(2);
+        recordingModel.setEditInstructions("{\"forceReencode\":true}");
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
+
+        assertThat(recordingService.upsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
+
+        verify(recordingRepository).save(argThat(Recording::isReencode));
+    }
+
+    @DisplayName("Create a recording with invalid edit instructions as not re-encoded")
+    @Test
+    void createRecordingWithInvalidEditInstructionsNotMarkedReencoded() {
+        var aCase = new Case();
+        aCase.setState(CaseState.OPEN);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setVersion(2);
+        recordingModel.setEditInstructions("not-json");
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(recordingModel.getId())).thenReturn(Optional.empty());
+
+        assertThat(recordingService.upsert(recordingModel)).isEqualTo(UpsertResult.CREATED);
+
+        verify(recordingRepository).save(argThat(recording -> !recording.isReencode()));
     }
 
     @DisplayName("Update a recording")
@@ -363,7 +480,7 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
         var params = new SearchRecordings();
-        when(recordingRepository.searchAllBy(params, false, false, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false, false, null)).thenReturn(Page.empty());
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
@@ -372,7 +489,7 @@ class RecordingServiceTest {
         var models = recordingService.findAll(params, false, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(params, false, false,null);
+            .searchAllBy(params, false, false, false, null);
 
         assertThat(models.size()).isEqualTo(0);
     }
@@ -409,8 +526,8 @@ class RecordingServiceTest {
     @DisplayName("Should not throw error when all recordings of a capture session have been marked as deleted")
     @Test
     void checkIfCaptureSessionHasAssociatedRecordingsSuccess() {
-        when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
-            .thenReturn(false);
+        when(recordingRepository.findFirstByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
+            .thenReturn(Optional.empty());
 
         assertDoesNotThrow(
             () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
@@ -420,15 +537,17 @@ class RecordingServiceTest {
     @DisplayName("Should throw error when all recordings of a capture session have not been marked as deleted")
     @Test
     void checkIfCaptureSessionHasAssociatedRecordingsRecordingsNotDeleted() {
-        when(recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
-            .thenReturn(true);
+        when(recordingRepository.findFirstByCaptureSessionAndDeletedAtIsNull(recordingEntity.getCaptureSession()))
+            .thenReturn(Optional.of(recordingEntity));
 
         var message = assertThrows(
             CaptureSessionNotDeletedException.class,
             () -> recordingService.checkIfCaptureSessionHasAssociatedRecordings(recordingEntity.getCaptureSession())
         ).getMessage();
 
-        assertThat(message).isEqualTo("Cannot delete because an associated recording has not been deleted.");
+        assertThat(message).contains("Cannot delete because an associated recording has not been deleted.");
+        assertThat(message).contains(recordingEntity.getCaptureSession().getId().toString());
+        assertThat(message).contains(recordingEntity.getId().toString());
     }
 
     @DisplayName("Should set started at from and until when started at is set")
@@ -441,7 +560,7 @@ class RecordingServiceTest {
         var params = new SearchRecordings();
         var startedAt = new Date();
         params.setStartedAt(startedAt);
-        when(recordingRepository.searchAllBy(params, false, false,null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false, false, null)).thenReturn(Page.empty());
 
         recordingService.findAll(params, false, null);
 
@@ -460,7 +579,7 @@ class RecordingServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var params = new SearchRecordings();
-        when(recordingRepository.searchAllBy(params, false, false, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, false, false, null)).thenReturn(Page.empty());
 
         recordingService.findAll(params, false, null);
 
@@ -713,5 +832,86 @@ class RecordingServiceTest {
         assertThat(results).hasSize(1);
         assertThat(results.getFirst().getId()).isEqualTo(recordingEntity.getId());
         verify(recordingRepository, times(1)).findAllOriginVodafoneNoDuration();
+    }
+
+    @Test
+    @DisplayName("Undelete VF originals")
+    void undeleteVFOriginals() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        Recording vfOriginalWithReencodedVersion = new Recording();
+        vfOriginalWithReencodedVersion.setId(UUID.randomUUID());
+        vfOriginalWithReencodedVersion.setDeleted(Boolean.TRUE);
+        vfOriginalWithReencodedVersion.setDeletedAt(Timestamp.from(Instant.now()));
+        vfOriginalWithReencodedVersion.setVfOriginalNowReencoded(Boolean.TRUE);
+
+        when(recordingRepository.findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue())
+            .thenReturn(List.of(vfOriginalWithReencodedVersion));
+
+        recordingService.undeleteOriginalWhereReencodedVersionExists();
+
+        verify(recordingRepository, times(1))
+            .findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue();
+
+        ArgumentCaptor<Recording> captor = ArgumentCaptor.forClass(Recording.class);
+        verify(recordingRepository, times(1)).save(captor.capture());
+
+        Recording savedRecording = captor.getValue();
+        assertThat(savedRecording.getId()).isEqualTo(vfOriginalWithReencodedVersion.getId());
+        assertThat(savedRecording.isDeleted()).isFalse();
+        assertThat(savedRecording.isVfOriginalNowReencoded()).isTrue();
+
+        verify(recordingRepository, times(1)).flush();
+
+        verifyNoMoreInteractions(recordingRepository);
+    }
+
+    @Test
+    @DisplayName("Delete original VF recordings where re-encoded version exists")
+    void deleteVFWhereReEncodedVersionExists() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        Recording vfOriginalWithReencodedVersion = new Recording();
+        vfOriginalWithReencodedVersion.setId(UUID.randomUUID());
+
+        when(recordingRepository.findVodafoneOriginalRecordingsWhereReencodedVersionExists())
+            .thenReturn(List.of(vfOriginalWithReencodedVersion));
+
+        recordingService.deleteOriginalWhereReencodedVersionExists();
+
+        verify(recordingRepository, times(1))
+            .findVodafoneOriginalRecordingsWhereReencodedVersionExists();
+
+        ArgumentCaptor<Recording> captor = ArgumentCaptor.forClass(Recording.class);
+        verify(recordingRepository, times(1)).save(captor.capture());
+        Recording capturedRecording = captor.getValue();
+        Assertions.assertThat(capturedRecording.isDeleted()).isTrue();
+        Assertions.assertThat(capturedRecording.isVfOriginalNowReencoded()).isTrue();
+
+        verify(recordingRepository, times(1)).flush();
+
+        verifyNoMoreInteractions(recordingRepository);
+    }
+
+    @Test
+    @DisplayName("Need to be admin user to delete/undelete VF originals")
+    void needToBeAdminUserToDelete() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        assertThrows(
+            AccessDeniedException.class,
+            () ->  recordingService.undeleteOriginalWhereReencodedVersionExists()
+        );
+
+        assertThrows(
+            AccessDeniedException.class,
+            () ->  recordingService.deleteOriginalWhereReencodedVersionExists()
+        );
     }
 }

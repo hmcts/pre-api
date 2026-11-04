@@ -64,6 +64,12 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @JdbcTypeCode(SqlTypes.JSON)
     private String editInstruction;
 
+    @Column(name = "is_reencode", nullable = false)
+    private boolean reencode;
+
+    @Column(name = "vf_original_reencoded", nullable = false)
+    private boolean vfOriginalNowReencoded;
+
     @OneToMany(mappedBy = "sourceRecording")
     private Set<EditRequest> editRequests;
 
@@ -86,6 +92,7 @@ public class Recording extends BaseEntity implements ISoftDeletable {
         details.put("parentRecordingId", parentRecording != null ? parentRecording.getId() : null);
         details.put("recordingVersion", version);
         details.put("recordingFilename", filename);
+        details.put("isReencode", reencode);
         if (duration != null) {
             details.put("recordingDuration", duration.toString());
         }

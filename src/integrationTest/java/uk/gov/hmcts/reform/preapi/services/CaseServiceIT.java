@@ -206,7 +206,9 @@ class CaseServiceIT extends IntegrationTestBase {
             () ->  caseService.deleteById(caseEntity.getId())
         ).getMessage();
 
-        Assertions.assertEquals(message, "Cannot delete because an associated recording has not been deleted.");
+        Assertions.assertTrue(message.contains("Cannot delete because an associated recording has not been deleted."));
+        Assertions.assertTrue(message.contains(captureSession.getId().toString()));
+        Assertions.assertTrue(message.contains(recording.getId().toString()));
 
         entityManager.refresh(caseEntity);
         entityManager.refresh(booking);

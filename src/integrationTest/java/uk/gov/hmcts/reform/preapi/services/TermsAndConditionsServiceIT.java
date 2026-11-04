@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -11,6 +12,10 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@TestPropertySource(properties = {
+    "feature-flags.dynatrace-terms-and-conditions.enabled=true",
+    "feature-flags.dynatrace-terms-and-conditions.cut-off-date=2026-07-15"
+})
 class TermsAndConditionsServiceIT extends IntegrationTestBase {
     @Autowired
     private TermsAndConditionsService termsAndConditionsService;
@@ -20,7 +25,8 @@ class TermsAndConditionsServiceIT extends IntegrationTestBase {
 
     @BeforeEach
     public void setUp() {
-        termsAndConditionsApp = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP, "app content");
+        termsAndConditionsApp = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP,
+                                                                       "app content");
         entityManager.persist(termsAndConditionsApp);
 
         termsAndConditionsPortal = HelperFactory.createTermsAndConditions(
@@ -32,30 +38,33 @@ class TermsAndConditionsServiceIT extends IntegrationTestBase {
 
     @Test
     @Transactional
-    void getLatestTermsAndConditionsApp() {
-        var latestAppTerms1 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP);
+    void getLatestTermsAndConditionsByTypeByTypeApp() {
+        var latestAppTerms1 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
 
         assertThat(latestAppTerms1.getId()).isEqualTo(termsAndConditionsApp.getId());
 
         var newTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP, "app content 2");
         entityManager.persist(newTerms);
 
-        var latestAppTerms2 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP);
+        var latestAppTerms2 = termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
         assertThat(latestAppTerms2.getId()).isEqualTo(newTerms.getId());
         assertThat(latestAppTerms2.getCreatedAt()).isAfter(latestAppTerms1.getCreatedAt());
     }
 
     @Test
     @Transactional
-    void getLatestTermsAndConditionsPortal() {
-        var latestPortalTerms1 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+    void getLatestTermsAndConditionsByTypeByTypePortal() {
+        var latestPortalTerms1 = termsAndConditionsService
+            .getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
 
         assertThat(latestPortalTerms1.getId()).isEqualTo(termsAndConditionsPortal.getId());
 
-        var newTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.PORTAL, "portal content 2");
+        var newTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.PORTAL,
+                                                              "portal content 2");
         entityManager.persist(newTerms);
 
-        var latestPortalTerms2 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+        var latestPortalTerms2 = termsAndConditionsService
+            .getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
         assertThat(latestPortalTerms2.getId()).isEqualTo(newTerms.getId());
         assertThat(latestPortalTerms2.getCreatedAt()).isAfter(latestPortalTerms1.getCreatedAt());
     }

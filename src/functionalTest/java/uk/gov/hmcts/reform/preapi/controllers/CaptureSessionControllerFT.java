@@ -29,7 +29,7 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: Delete capture session with recordings")
     void shouldNotDeleteCaptureSessionWithRecordings() {
-        var postResponseData = doPostRequest("/testing-support/should-delete-recordings-for-booking", null)
+        var postResponseData = doPostRequest("/testing-support/set-up-recording-available", null)
             .body().jsonPath();
         var captureSessionId = postResponseData.getUUID("captureSessionId");
         var recordingId = postResponseData.getUUID("recordingId");
@@ -41,7 +41,9 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
             doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCaptureSessionResponse, 400);
         assertThat(deleteCaptureSessionResponse.getBody().jsonPath().getString("message"))
-            .isEqualTo("Cannot delete because an associated recording has not been deleted.");
+            .contains("Cannot delete because an associated recording has not been deleted.")
+            .contains(captureSessionId.toString())
+            .contains(recordingId.toString());
 
         assertCaptureSessionExists(captureSessionId, true);
     }
@@ -49,7 +51,7 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: Delete capture session without recordings")
     void shouldDeleteCaptureSessionWithoutRecordings() {
-        var postResponseData = doPostRequest("/testing-support/should-delete-recordings-for-booking", null)
+        var postResponseData = doPostRequest("/testing-support/set-up-recording-available", null)
             .body().jsonPath();
         var captureSessionId = postResponseData.getUUID("captureSessionId");
         var recordingId = postResponseData.getUUID("recordingId");

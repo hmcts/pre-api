@@ -2,13 +2,17 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
@@ -34,10 +38,13 @@ import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +63,9 @@ import static org.mockito.Mockito.when;
 
 @Slf4j
 @SpringBootTest(classes = CaptureSessionService.class)
+@TestPropertySource(properties = {
+    "mediakind.rtmpsSuffixEnabled=true"
+})
 public class CaptureSessionServiceTest {
     @MockitoBean
     private RecordingService recordingService;
@@ -82,6 +92,7 @@ public class CaptureSessionServiceTest {
     private CaptureSessionService captureSessionService;
 
     private static CaptureSession captureSession;
+    private static final UUID captureSessionId = UUID.randomUUID();
     private static Booking booking;
     private static User user;
 
@@ -103,7 +114,7 @@ public class CaptureSessionServiceTest {
         user.setId(UUID.randomUUID());
 
         captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
+        captureSession.setId(captureSessionId);
         captureSession.setOrigin(RecordingOrigin.PRE);
         captureSession.setBooking(booking);
         captureSession.setIngestAddress("example ingest address");
@@ -115,18 +126,25 @@ public class CaptureSessionServiceTest {
         captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
     }
 
+    @BeforeEach
+    void init() {
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
+            .thenReturn(Optional.of(captureSession));
+        when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
+        when(userRepository.findByIdAndDeletedAtIsNull(user.getId())).thenReturn(Optional.of(user));
+    }
+
     @DisplayName("Find a capture session and return a model")
     @Test
     void findByIdSuccess() {
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-
         var model = captureSessionService.findById(captureSession.getId());
 
         assertThat(model.getId()).isEqualTo(captureSession.getId());
         assertThat(model.getBookingId()).isEqualTo(booking.getId());
         assertThat(model.getOrigin()).isEqualTo(captureSession.getOrigin());
         assertThat(model.getIngestAddress()).isEqualTo(captureSession.getIngestAddress());
+        assertThat(model.getDisplayedRtmpsLink())
+            .isEqualTo("example ingest address/FOO-12345678");
         assertThat(model.getLiveOutputUrl()).isEqualTo(captureSession.getLiveOutputUrl());
         assertThat(model.getStartedAt()).isEqualTo(captureSession.getStartedAt());
         assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
@@ -253,8 +271,6 @@ public class CaptureSessionServiceTest {
     @Test
     void deleteByIdSuccess() {
         captureSession.setStatus(RecordingStatus.NO_RECORDING);
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
 
         captureSessionService.deleteById(captureSession.getId());
 
@@ -552,8 +568,6 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should throw not found exception when capture session cannot be found")
     @Test
     void undeleteNotFound() {
-        var captureSessionId = UUID.randomUUID();
-
         when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.empty());
 
         var message = assertThrows(
@@ -570,8 +584,6 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should throw not found when capture session cannot be found when starting capture session")
     @Test
     void startCaptureSessionNotFound() {
-        var captureSessionId = UUID.randomUUID();
-
         when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId)).thenReturn(Optional.empty());
 
         var message = assertThrows(
@@ -600,8 +612,6 @@ public class CaptureSessionServiceTest {
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         var model = captureSessionService.startCaptureSession(
@@ -627,8 +637,6 @@ public class CaptureSessionServiceTest {
         when(mockAuth.getUserId()).thenReturn(user.getId());
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         var model = captureSessionService.stopCaptureSession(
@@ -654,8 +662,6 @@ public class CaptureSessionServiceTest {
         when(mockAuth.getUserId()).thenReturn(user.getId());
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         var recordingId = UUID.randomUUID();
@@ -666,7 +672,7 @@ public class CaptureSessionServiceTest {
                                                                 bookingService,
                                                                 azureFinalStorageService,
                                                                 auditService,
-                                                                true);
+                                                                true, true);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),
@@ -701,8 +707,6 @@ public class CaptureSessionServiceTest {
         when(mockAuth.getUserId()).thenReturn(user.getId());
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         var recordingId = UUID.randomUUID();
@@ -739,8 +743,6 @@ public class CaptureSessionServiceTest {
         when(mockAuth.getUserId()).thenReturn(user.getId());
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         var recordingId = UUID.randomUUID();
@@ -793,9 +795,6 @@ public class CaptureSessionServiceTest {
     void setCaptureSessionStatus() {
         captureSession.setStatus(RecordingStatus.STANDBY);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-
         var model = captureSessionService.setCaptureSessionStatus(captureSession.getId(), RecordingStatus.RECORDING);
         assertThat(model.getId()).isEqualTo(captureSession.getId());
         assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING);
@@ -823,7 +822,6 @@ public class CaptureSessionServiceTest {
         when(mockAuth.getUserId()).thenReturn(user.getId());
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var captureSessionId = UUID.randomUUID();
         var liveEventId = captureSessionId.toString().replace("-", "");
 
         when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
@@ -856,9 +854,6 @@ public class CaptureSessionServiceTest {
     void deleteCaptureSessionWrongState() {
         captureSession.setStatus(RecordingStatus.STANDBY);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-
         var message = assertThrows(
             ResourceInWrongStateException.class,
             () -> captureSessionService.deleteById(captureSession.getId())
@@ -880,8 +875,6 @@ public class CaptureSessionServiceTest {
     void deleteCascadeCaptureSessionWrongState() {
         captureSession.setStatus(RecordingStatus.STANDBY);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
         when(captureSessionRepository.findAllByBookingAndDeletedAtIsNull(booking)).thenReturn(List.of(captureSession));
 
         var message = assertThrows(
@@ -905,6 +898,7 @@ public class CaptureSessionServiceTest {
     void findAllPastIncompleteCaptureSessions() {
         Court court = new Court();
         court.setId(UUID.randomUUID());
+        court.setName("Court");
         Case aCase = new Case();
         aCase.setId(UUID.randomUUID());
         aCase.setCourt(court);
@@ -1009,6 +1003,90 @@ public class CaptureSessionServiceTest {
         CaptureSession result = captureSessionService.save(captureSession);
 
         assertThat(result).isEqualTo(captureSession);
+
+        verify(captureSessionRepository, times(1)).save(captureSession);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("RTMPS link should/should not have suffix if flag is true/false")
+    void shouldCalculateRTMPsLinkWithSuffix(boolean rtmpsSuffixEnabled) {
+
+        Court court = mock(Court.class);
+        UUID courtId = UUID.randomUUID();
+        when(court.getId()).thenReturn(courtId);
+        when(court.getName()).thenReturn("Mock Crown Court");
+
+        UserAuthentication mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        var mockAppAccess = mock(AppAccess.class);
+        when(mockAuth.getAppAccess()).thenReturn(mockAppAccess);
+        when(mockAuth.isAdmin()).thenReturn(false);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.isPortalUser()).thenReturn(false);
+        when(mockAuth.getCourtId()).thenReturn(courtId);
+
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        Case mockCase = mock(Case.class);
+        when(mockCase.getReference()).thenReturn("TEST12345AB");
+        when(mockCase.getCourt()).thenReturn(court);
+
+        Booking booking = mock(Booking.class);
+        when(booking.getCaseId()).thenReturn(mockCase);
+
+        String ingestUrl = "rtmps://original-address";
+
+        UUID initialisingCaptureSessionId = UUID.randomUUID();
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking, RecordingOrigin.PRE, ingestUrl, "live-output",
+            Timestamp.from(Instant.now()),
+            user, null, null,
+            RecordingStatus.INITIALISING, null
+        );
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(initialisingCaptureSessionId))
+            .thenReturn(Optional.of(captureSession));
+
+        CaptureSessionService captureSessionServiceWithFlag = new CaptureSessionService(recordingService,
+                                                                                        captureSessionRepository,
+                                                                                        bookingRepository,
+                                                                                        userRepository,
+                                                                                        bookingService,
+                                                                                        azureFinalStorageService,
+                                                                                        auditService,
+                                                                                        rtmpsSuffixEnabled,
+                                                                                        true);
+
+        CaptureSessionDTO result = captureSessionServiceWithFlag.startCaptureSession(
+            initialisingCaptureSessionId,
+            RecordingStatus.STANDBY,
+            "rtmps://original-address"
+        );
+
+        assertThat(result.getIngestAddress()).isEqualTo("rtmps://original-address");
+
+        if (rtmpsSuffixEnabled) {
+            assertThat(result.getDisplayedRtmpsLink())
+                .isEqualTo("rtmps://original-address/MOC-TEST12345AB");
+        } else {
+            assertThat(result.getDisplayedRtmpsLink()).isEqualTo(result.getIngestAddress());
+        }
+    }
+
+    @Test
+    void markAsActualRecordingStarted() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        captureSession.setStartedAt(Timestamp.from(LocalDateTime.of(2026, 6, 1, 7, 0)
+                                                       .atZone(DateTimeUtils.TIME_ZONE).toInstant()));
+
+        CaptureSessionDTO result = captureSessionService.markAsActualRecordingStarted(captureSession.getId());
+
+        assertThat(result.getStatus()).isEqualTo(RecordingStatus.RECORDING);
+
+        Instant tenMinutesAgo = Instant.now().minus(10, ChronoUnit.MINUTES);
+
+        assertThat(result.getStartedAt().toInstant()).isAfter(tenMinutesAgo);
 
         verify(captureSessionRepository, times(1)).save(captureSession);
     }

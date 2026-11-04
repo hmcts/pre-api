@@ -49,6 +49,8 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -143,11 +145,17 @@ public class MediaServiceController extends PreApiController {
             try {
                 CaptureSessionDTO captureSession = captureSessionService.findByLiveEventId(liveEventName);
                 if (captureSession.getStatus() == RecordingStatus.INITIALISING) {
-                    captureSessionService.startCaptureSession(
+                    CaptureSessionDTO result = captureSessionService.startCaptureSession(
                         captureSession.getId(),
                         RecordingStatus.STANDBY,
                         data.getInputRtmp()
                     );
+                    data.setDisplayedRtmpsLink(result.getDisplayedRtmpsLink());
+                }
+                log.info("About to override RTMPS link");
+                if (captureSession.getStatus() == RecordingStatus.STANDBY
+                    || captureSession.getStatus() == RecordingStatus.RECORDING) {
+                    data.setDisplayedRtmpsLink(captureSession.getDisplayedRtmpsLink());
                 }
             } catch (NotFoundException e) {
                 log.info("Capture session for live event {} not found", liveEventName);
@@ -294,6 +302,7 @@ public class MediaServiceController extends PreApiController {
         // update captureSession
         captureSession.setLiveOutputUrl(liveOutputUrl);
         captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSession.setStartedAt(Timestamp.from(Instant.now()));
         Map<String, String> properties = new HashMap<>();
         properties.put("captureSession_ID", captureSession.getId().toString());
         properties.put("captureSession_STATUS", captureSession.getStatus().name());
@@ -337,8 +346,7 @@ public class MediaServiceController extends PreApiController {
 
         if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())
                     || mediaServiceBroker.getEnabledMediaService().checkLiveFeedAvailable(captureSessionId)) {
-            return ResponseEntity.ok(captureSessionService
-                                         .setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING));
+            return ResponseEntity.ok(captureSessionService.markAsActualRecordingStarted(captureSessionId));
         }
         throw new NotFoundException("No stream found");
     }

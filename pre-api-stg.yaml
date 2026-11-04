@@ -103,6 +103,51 @@ definitions:
         description: AssetStorageAccountName
         type: string
     type: object
+  AuditDTO:
+    description: AuditDTO
+    properties:
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      created_at:
+        description: AuditCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        $ref: '#/definitions/BaseUserDTO'
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - created_at
+      - created_by
+      - id
+      - source
+    type: object
   BaseAppAccessDTO:
     description: BaseAppAccessDTO
     properties:
@@ -232,6 +277,9 @@ definitions:
       deleted_at:
         description: CaptureSessionDeletedAt
         format: date-time
+        type: string
+      displayed_rtmps_link:
+        description: CreateCaptureSessionDisplayedRtmpsLink
         type: string
       finished_at:
         description: CreateCaptureSessionFinishedAt
@@ -402,6 +450,9 @@ definitions:
         type: integer
       defendant_names:
         description: CompletedCaptureSessionReportDefendantNames
+        type: string
+      duration:
+        description: RecordingDuration
         type: string
       finish_time:
         description: CompletedCaptureSessionReportFinishTime
@@ -1255,6 +1306,52 @@ definitions:
           - ERROR
         type: string
     type: object
+  EntityModelAuditDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      created_at:
+        description: AuditCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        $ref: '#/definitions/BaseUserDTO'
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - created_at
+      - created_by
+      - id
+      - source
+    type: object
   EntityModelBookingDTO:
     properties:
       _links:
@@ -1322,6 +1419,9 @@ definitions:
       deleted_at:
         description: CaptureSessionDeletedAt
         format: date-time
+        type: string
+      displayed_rtmps_link:
+        description: CreateCaptureSessionDisplayedRtmpsLink
         type: string
       finished_at:
         description: CreateCaptureSessionFinishedAt
@@ -1897,26 +1997,20 @@ definitions:
     properties:
       deprecation:
         type: string
-        x-nullable: true
       href:
         type: string
       hreflang:
         type: string
-        x-nullable: true
       name:
         type: string
-        x-nullable: true
       profile:
         type: string
-        x-nullable: true
       templated:
         type: boolean
       title:
         type: string
-        x-nullable: true
       type:
         type: string
-        x-nullable: true
     type: object
   Links:
     additionalProperties:
@@ -1927,6 +2021,9 @@ definitions:
     properties:
       description:
         description: LiveEventDescription
+        type: string
+      displayed_rtmps_link:
+        description: DisplayedRtmpsLink
         type: string
       id:
         description: LiveEventId
@@ -1956,7 +2053,20 @@ definitions:
         format: int64
         type: integer
     type: object
-    x-nullable: true
+  PagedModelEntityModelAuditDTO:
+    properties:
+      _embedded:
+        properties:
+          auditDTOList:
+            items:
+              $ref: '#/definitions/EntityModelAuditDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
   PagedModelEntityModelBookingDTO:
     properties:
       _embedded:
@@ -2592,6 +2702,49 @@ definitions:
           - PORTAL
         type: string
     type: object
+  UpdateBookingCaseDTO:
+    description: UpdateBookingCaseDTO
+    properties:
+      booking_id:
+        description: UpdateBookingId
+        format: uuid
+        type: string
+      case_id:
+        description: CaseReferenceId
+        format: uuid
+        type: string
+    required:
+      - booking_id
+      - case_id
+    type: object
+  UserAccessReportDTO:
+    description: UserAccessReport
+    properties:
+      access_type:
+        description: AccessType
+        type: string
+      active:
+        description: UserReportActive
+        type: string
+      alternative_email:
+        description: UserAlternativeEmail
+        type: string
+      court_name:
+        description: CourtName
+        type: string
+      first_name:
+        description: UserReportFirstName
+        type: string
+      last_name:
+        description: UserReportLastName
+        type: string
+      primary_email:
+        description: UserPrimaryEmail
+        type: string
+      role_name:
+        description: UserReportRoleName
+        type: string
+    type: object
   UserDTO:
     description: UserDTO
     properties:
@@ -2751,7 +2904,7 @@ info:
   license:
     name: MIT
     url: 'https://opensource.org/licenses/MIT'
-  title: PRE API
+  title: Pre Recorded Evidence API
   version: v0.0.1
 paths:
   '/accept-terms-and-conditions/{termsId}':
@@ -2797,7 +2950,106 @@ paths:
       summary: Get the latest terms and conditions for the app
       tags:
         - terms-and-conditions-controller
+  /audit:
+    get:
+      operationId: getAuditLogs
+      parameters:
+        - description: The date time to search after
+          format: iso-date-time
+          in: query
+          name: after
+          type: string
+          x-example: '2021-01-01T00:00:00'
+        - description: The date time to search before
+          format: iso-date-time
+          in: query
+          name: before
+          type: string
+          x-example: '2021-01-01T00:00:00'
+        - description: The functional area to search by
+          in: query
+          name: functionalArea
+          type: string
+          x-example: API
+        - description: The source to search by
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          type: string
+        - description: Partial user's name to search by
+          in: query
+          name: userName
+          type: string
+        - description: The court id of the audit to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The case reference of the audit to search by
+          in: query
+          name: caseReference
+          type: string
+          x-example: CASE12345
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelAuditDTO'
+      summary: Search all Audits
+      tags:
+        - audit-controller
   '/audit/{id}':
+    get:
+      operationId: getAudit
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/AuditDTO'
+      summary: Get an Audit Entry
+      tags:
+        - audit-controller
     put:
       consumes:
         - application/json
@@ -2931,6 +3183,39 @@ paths:
           schema:
             $ref: '#/definitions/PagedModelEntityModelBookingDTO'
       summary: 'Search All Bookings using Case Id, Case Ref, or Scheduled For'
+      tags:
+        - booking-controller
+  '/bookings/migrate-case/{bookingId}':
+    put:
+      consumes:
+        - application/json
+      operationId: migrateToDifferentCaseReference
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateBookingCaseDTO'
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/BookingDTO'
+      summary: Migrate a Booking to a different case reference
       tags:
         - booking-controller
   '/bookings/{bookingId}':
@@ -4730,6 +5015,51 @@ paths:
       summary: Get a report on the bookings that have been shared v2
       tags:
         - report-controller
+  /reports-v2/user-full-access-report:
+    get:
+      operationId: reportUserFullAccess
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserAccessReportDTO'
+            type: array
+      summary: Get full report on app users
+      tags:
+        - report-controller
+  /reports-v2/user-full-access-report-csv:
+    get:
+      operationId: reportUserFullAccessCsv
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - text/csv
+      responses:
+        '200':
+          description: OK
+          schema:
+            format: byte
+            type: string
+      summary: Get full report on app users in CSV format
+      tags:
+        - report-controller
   /reports-v2/user-primary-courts:
     get:
       operationId: reportUserPrimaryCourts_1
@@ -5071,6 +5401,14 @@ paths:
         - description: The name of the user to search by
           in: query
           name: name
+          type: string
+        - description: The first name of the user to search by
+          in: query
+          name: firstName
+          type: string
+        - description: The last name of the user to search by
+          in: query
+          name: lastName
           type: string
         - description: The email of the user to search by
           in: query

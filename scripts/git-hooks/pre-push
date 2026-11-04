@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# TO USE:
+# 1. Copy to git hooks folder: cat scripts/git-hooks/pre-push >> .git/hooks/pre-push
+# 2. Make executable: chmod +x .git/hooks/pre-push
+# 3. If it doesn't work first time, set your git hooks path: git config --local core.hooksPath .git/hooks
+
+echo "Running checkstyle analysis..."
+./gradlew checkstyleTest pmdMain checkstyleFunctionalTest checkstyleIntegrationTest checkstyleMain
+
+if [ $? -ne 0 ]; then
+  echo 1>&2 "Checkstyle failed! Fix then before pushing your code"
+  exit 1
+else
+  echo "Checks passed. Proceeding with commit."
+  exit 0
+fi

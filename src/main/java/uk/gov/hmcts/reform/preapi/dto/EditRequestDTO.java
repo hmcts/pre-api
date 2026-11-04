@@ -82,9 +82,20 @@ public class EditRequestDTO {
     }
 
     public EditRequestDTO(EditRequest editRequest, boolean includeSourceRecording) {
+        this(editRequest, includeSourceRecording, true);
+    }
+
+    public EditRequestDTO(EditRequest editRequest,
+                          boolean includeSourceRecording,
+                          boolean includeReencodedRecordings) {
         this.id = editRequest.getId();
         if (includeSourceRecording) {
-            this.sourceRecording = new RecordingDTO(editRequest.getSourceRecording());
+            this.sourceRecording = new RecordingDTO(
+                editRequest.getSourceRecording(),
+                includeReencodedRecordings,
+                // RTMPS Suffix enabled: can always be true for edits as no longer actively recording
+                true
+            );
         }
         this.editInstruction = fromJson(editRequest.getEditInstruction());
         this.status = editRequest.getStatus();

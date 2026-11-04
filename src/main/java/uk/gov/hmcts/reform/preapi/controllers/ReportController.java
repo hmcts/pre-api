@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,12 +19,16 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.reports.UserFullAccessCsvReportGenerator;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -31,9 +36,12 @@ import java.util.UUID;
 public class ReportController {
 
     private final ReportService reportService;
+    private final UserFullAccessCsvReportGenerator userFullAccessCsvReportGenerator;
 
-    public ReportController(ReportService reportService) {
+    public ReportController(final ReportService reportService,
+                            final UserFullAccessCsvReportGenerator userFullAccessCsvReportGenerator) {
         this.reportService = reportService;
+        this.userFullAccessCsvReportGenerator = userFullAccessCsvReportGenerator;
     }
 
     @GetMapping("/capture-sessions-concurrent")
@@ -168,5 +176,36 @@ public class ReportController {
         summary = "Get report on app users and their primary courts v2")
     public ResponseEntity<List<UserPrimaryCourtReportDTO>> reportUserPrimaryCourts() {
         return ResponseEntity.ok(reportService.reportUserPrimaryCourts());
+    }
+
+    @GetMapping(value = "/user-full-access-report")
+    @Operation(
+        operationId = "reportUserFullAccess",
+        summary = "Get full report on app users")
+    public ResponseEntity<List<UserAccessReportDTO>> reportUserFullAccess() {
+        return ResponseEntity.ok(reportService.reportUserFullAccess());
+    }
+
+    @SuppressWarnings("PMD.LooseCoupling") //We need HttpHeaders for bespoke MIME type text/csv
+    @GetMapping(value = "/user-full-access-report-csv", produces = "text/csv")
+    @Operation(
+        operationId = "reportUserFullAccessCsv",
+        summary = "Get full report on app users in CSV format")
+    public ResponseEntity<byte[]> reportUserFullAccessCsv() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.CONTENT_TYPE, "text/csv");
+
+        Optional<String> csvContent = userFullAccessCsvReportGenerator.getCsvReportAsString();
+        if (csvContent.isEmpty()) {
+            return ResponseEntity
+                .noContent()
+                .headers(headers)
+                .build();
+        }
+
+        byte[] csvBytes = csvContent.get().getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+            .headers(headers)
+            .body(csvBytes);
     }
 }

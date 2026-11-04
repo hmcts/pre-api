@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.UpdateBookingCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -27,12 +29,12 @@ import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +53,8 @@ public class BookingService {
     private final ShareBookingService shareBookingService;
     private final CaseService caseService;
 
+
+    private final boolean rtmpsSuffixEnabled;
     private final boolean enableMigratedData;
 
     @Autowired
@@ -60,6 +64,8 @@ public class BookingService {
                           final CaptureSessionService captureSessionService,
                           final ShareBookingService shareBookingService,
                           @Lazy CaseService caseService,
+                          @Value("${mediakind.rtmpsSuffixEnabled:false}")
+                              boolean rtmpsSuffixEnabled,
                           @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
@@ -67,6 +73,7 @@ public class BookingService {
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
         this.caseService = caseService;
+        this.rtmpsSuffixEnabled = rtmpsSuffixEnabled;
         this.enableMigratedData = enableMigratedData;
     }
 
@@ -74,14 +81,14 @@ public class BookingService {
     @Transactional
     public BookingDTO findById(UUID id) {
         return bookingRepository.findByIdAndDeletedAtIsNull(id)
-            .map(BookingDTO::new)
+            .map(b -> new BookingDTO(b, rtmpsSuffixEnabled))
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
     }
 
     @Transactional
     public Page<BookingDTO> findAllByCaseId(UUID caseId, Pageable pageable) {
         return bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseId, pageable)
-            .map(BookingDTO::new);
+            .map(b -> new BookingDTO(b, rtmpsSuffixEnabled));
     }
 
     @Transactional
@@ -122,7 +129,7 @@ public class BookingService {
                 enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
-            .map(BookingDTO::new);
+            .map(b -> new BookingDTO(b, rtmpsSuffixEnabled));
     }
 
     @Transactional
@@ -131,8 +138,8 @@ public class BookingService {
         UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
 
         LocalDate localDateField = LocalDateTime.ofInstant(createBookingDTO.getScheduledFor().toInstant(),
-                                                           ZoneId.of("Europe/London")).toLocalDate();
-        LocalDate today = LocalDate.now();
+                                                           DateTimeUtils.TIME_ZONE).toLocalDate();
+        LocalDate today = LocalDate.now(DateTimeUtils.TIME_ZONE);
 
         if (localDateField.isBefore(today)
             && !auth.hasRole("ROLE_SUPER_USER")) {
@@ -247,13 +254,13 @@ public class BookingService {
     public List<BookingDTO> findAllPastBookings() {
         return bookingRepository.findAllPastUnusedBookings(Timestamp.from(Instant.now()))
             .stream()
-            .map(BookingDTO::new)
+            .map(b -> new BookingDTO(b, rtmpsSuffixEnabled))
             .toList();
     }
 
     @Transactional
     public List<BookingDTO> findAllBookingsForToday() {
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = LocalDate.now(DateTimeUtils.TIME_ZONE);
         return searchBy(
             null,
             null,
@@ -266,5 +273,18 @@ public class BookingService {
             Pageable.unpaged()
         )
             .toList();
+    }
+
+    public void migrateToNewCaseRef(@Valid UpdateBookingCaseDTO updateBookingCaseDTO) {
+        Booking booking = bookingRepository.findById(updateBookingCaseDTO.getBookingId())
+            .orElseThrow(() -> new NotFoundException("Booking: "
+                                                         + updateBookingCaseDTO.getBookingId()));
+
+        Case caseThatBookingShouldBeFor = caseRepository.findById(updateBookingCaseDTO.getCaseId())
+            .orElseThrow(() -> new NotFoundException("Case: " + updateBookingCaseDTO.getCaseId()));
+
+        booking.setCaseId(caseThatBookingShouldBeFor);
+
+        bookingRepository.save(booking);
     }
 }

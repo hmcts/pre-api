@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 
 import java.sql.Timestamp;
 import java.util.Comparator;
@@ -59,16 +60,22 @@ public class RecordingDTO extends BaseRecordingDTO {
     private EditRequestStatus editStatus;
 
     public RecordingDTO(Recording recording) {
+        this(recording, true, true);
+    }
+
+    public RecordingDTO(Recording recording, boolean includeReencodedRecordings, boolean rtmpsSuffixEnabled) {
         super();
         id = recording.getId();
-        captureSession = new CaptureSessionDTO(recording.getCaptureSession());
+        captureSession = new CaptureSessionDTO(recording.getCaptureSession(), rtmpsSuffixEnabled);
         if (recording.getParentRecording() != null) {
             parentRecordingId = recording.getParentRecording().getId();
         }
         Set<Recording> versions = recording.getParentRecording() != null
             ? recording.getParentRecording().getRecordings()
             : recording.getRecordings();
-        totalVersionCount = versions != null ? versions.size() + 1 : 1;
+        totalVersionCount = versions != null
+            ? (int) versions.stream().filter(r -> includeReencodedRecordings || !r.isReencode()).count() + 1
+            : 1;
         version = recording.getVersion();
         filename = recording.getFilename();
         duration = recording.getDuration();
@@ -91,6 +98,7 @@ public class RecordingDTO extends BaseRecordingDTO {
             .flatMap(request ->
                          request
                              .stream()
+                             .filter(e -> includeReencodedRecordings || !isForceReencode(e))
                              .sorted(Comparator.comparing(EditRequest::getModifiedAt).reversed())
                              .map(e -> new EditRequestDTO(e, false)))
             .collect(Collectors.toList());
@@ -98,5 +106,10 @@ public class RecordingDTO extends BaseRecordingDTO {
         if (recording.getVersion() == 1 && !editRequests.isEmpty()) {
             editStatus = editRequests.getFirst().getStatus();
         }
+    }
+
+    private boolean isForceReencode(EditRequest editRequest) {
+        EditInstructions instructions = EditInstructions.tryFromJson(editRequest.getEditInstruction());
+        return instructions != null && instructions.isForceReencode();
     }
 }

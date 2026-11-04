@@ -8,6 +8,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
@@ -30,11 +32,21 @@ public abstract class IntegrationTestBase {
     protected EntityManager entityManager;
 
     protected static UserAuthentication mockAdminUser() {
-        var mockAuth = mock(UserAuthentication.class);
+        User mockUser = mock(User.class);
+        UUID mockUserId = UUID.randomUUID();
+        when(mockUser.getId()).thenReturn(mockUserId);
+
+        AppAccess mockAppAccess = mock(AppAccess.class);
+        when(mockAppAccess.getUser()).thenReturn(mockUser);
+
+        UserAuthentication mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getAppAccess()).thenReturn(mockAppAccess);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.getUserId()).thenReturn(mockUserId);
         when(mockAuth.getCourtId()).thenReturn(UUID.randomUUID());
         when(mockAuth.hasRole("ROLE_SUPER_USER")).thenReturn(true);
+
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
         return mockAuth;
     }

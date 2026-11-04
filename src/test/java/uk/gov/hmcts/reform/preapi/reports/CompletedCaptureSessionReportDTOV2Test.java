@@ -1,0 +1,117 @@
+package uk.gov.hmcts.reform.preapi.reports;
+
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.boot.test.context.SpringBootTest;
+import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTOV2;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
+
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZonedDateTime;
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
+@Slf4j
+@SpringBootTest(classes = {CompletedCaptureSessionReportDTOV2.class})
+class CompletedCaptureSessionReportDTOV2Test {
+
+    @ParameterizedTest
+    @DisplayName("Should correctly construct object from input object")
+    @EnumSource(Month.class)
+    void shouldCorrectlyConstructObjectFromInputObject(Month month) {
+        // Given
+        Court court = new Court();
+        court.setName("Test Court");
+        court.setCounty("Test County");
+        court.setPostcode("TE5 7CO");
+        court.setRegions(Set.of(HelperFactory.createRegion("Test Region", Set.of(court))));
+        Case caseObj = HelperFactory.createCase(court, "CASE123", true, null);
+
+        Set<Participant> participantsList = new HashSet<>();
+        participantsList.add(HelperFactory
+                                 .createParticipant(caseObj, ParticipantType.DEFENDANT, "John", "Doe", null));
+        participantsList.add(HelperFactory
+                                 .createParticipant(caseObj, ParticipantType.DEFENDANT, "Jane", "Smith", null));
+        participantsList.add(HelperFactory
+                                 .createParticipant(caseObj, ParticipantType.WITNESS, "Alice", "Johnson", null));
+        participantsList.add(HelperFactory
+                                 .createParticipant(caseObj, ParticipantType.WITNESS, "Bob", "Williams", null));
+        participantsList.add(HelperFactory
+                                 .createParticipant(caseObj, ParticipantType.WITNESS, "Charlie", "Brown", null));
+
+        ZonedDateTime bookingZonedDateTime = ZonedDateTime.of(
+            2026, month.getValue(), 3, 7, 0, 0, 0,
+            DateTimeUtils.TIME_ZONE);
+        Timestamp bookingDate = Timestamp.from(bookingZonedDateTime.toInstant());
+        Booking booking = HelperFactory.createBooking(caseObj, bookingDate, null, participantsList);
+
+        ZonedDateTime captureStartTimeZoned = ZonedDateTime.of(
+            2026, month.getValue(), 4, 12, 3, 0, 0,
+            DateTimeUtils.TIME_ZONE);
+        Timestamp captureSessionStartedAt = Timestamp.from(captureStartTimeZoned.toInstant());
+
+        ZonedDateTime captureFinishTimeZoned = ZonedDateTime.of(
+            2026, month.getValue(), 4,  15, 2, 0, 0,
+            DateTimeUtils.TIME_ZONE);
+        Timestamp captureSessionFinishedAt = Timestamp.from(captureFinishTimeZoned.toInstant());
+
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking, RecordingOrigin.PRE,
+            "ingestUrl", "liveOutputUrl",
+            captureSessionStartedAt, mock(User.class), captureSessionFinishedAt, mock(User.class),
+            RecordingStatus.RECORDING_AVAILABLE, null
+        );
+        Recording recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
+        recording.setDuration(Duration.ofHours(3).plusMinutes(6).plusSeconds(12));
+
+        // When
+        CompletedCaptureSessionReportDTOV2 reportDTO = new CompletedCaptureSessionReportDTOV2(recording);
+
+        // Then
+        assertThat(reportDTO.getCaseReference()).isEqualTo(caseObj.getReference());
+        assertThat(reportDTO.getCourt()).isEqualTo("Test Court");
+
+        assertThat(reportDTO.getRecordingTime()).isEqualTo("12:03:00");
+        assertThat(reportDTO.getFinishTime()).isEqualTo("15:02:00");
+        assertThat(reportDTO.getDuration()).isEqualTo("03:06:12");
+        assertThat(reportDTO.getStatus()).isEqualTo(captureSession.getStatus());
+        assertThat(reportDTO.getDefendantNames()).contains("John Doe");
+        assertThat(reportDTO.getDefendantNames()).contains("Jane Smith");
+        assertThat(reportDTO.getDefendant()).isEqualTo(2);
+        assertThat(reportDTO.getWitnessNames()).contains("Alice Johnson");
+        assertThat(reportDTO.getWitnessNames()).contains("Bob Williams");
+        assertThat(reportDTO.getWitnessNames()).contains("Charlie Brown");
+        assertThat(reportDTO.getWitness()).isEqualTo(3);
+
+        Integer recordingDateDay = LocalDate.parse(reportDTO.getRecordingDate(), DateTimeUtils.DATE_FORMATTER)
+            .getDayOfMonth();
+        assertThat(recordingDateDay).isEqualTo(4); // Matches capture session not booking
+
+        Integer scheduledDateDay = LocalDate.parse(reportDTO.getScheduledDate(), DateTimeUtils.DATE_FORMATTER)
+            .getDayOfMonth();
+        assertThat(scheduledDateDay).isEqualTo(3);
+
+        assertThat(reportDTO.getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt()));
+    }
+
+}

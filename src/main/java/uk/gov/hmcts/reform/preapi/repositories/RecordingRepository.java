@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,8 +11,10 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -19,10 +22,22 @@ import java.util.UUID;
 public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     Optional<Recording> findByIdAndDeletedAtIsNull(UUID id);
 
+    @Query("""
+        SELECT r FROM Recording r
+        WHERE r.id = :id
+        AND r.deletedAt IS NULL
+        AND (:includeReencodedRecordings = TRUE OR r.reencode = FALSE)
+        """)
+    Optional<Recording> findByIdAndDeletedAtIsNull(
+        @Param("id") UUID id,
+        @Param("includeReencodedRecordings") boolean includeReencodedRecordings
+    );
+
     @Query(
         """
         SELECT r FROM Recording r
         WHERE (:includeDeleted = TRUE OR r.deletedAt IS NULL)
+        AND (:includeReencodedRecordings = TRUE OR r.reencode = FALSE)
         AND (:includeVodafone = TRUE
             OR (r.captureSession.origin != 'VODAFONE' AND r.captureSession.booking.caseId.origin != 'VODAFONE'))
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
@@ -89,6 +104,7 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         @Param("searchParams") SearchRecordings searchParams,
         @Param("includeDeleted") boolean includeDeleted,
         @Param("includeVodafone") boolean includeVodafone,
+        @Param("includeReencodedRecordings") boolean includeReencodedRecordings,
         Pageable pageable
     );
 
@@ -99,6 +115,33 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     List<Recording> findAllByParentRecordingIsNull();
 
     boolean existsByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
+
+    Optional<Recording> findFirstByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
+
+    @Query("""
+        SELECT DISTINCT recording.id
+        FROM Recording recording
+        LEFT JOIN recording.parentRecording parent
+        WHERE recording.id IN :sourceRecordingIds
+        AND (
+            recording.reencode = TRUE
+            OR EXISTS (
+                SELECT 1
+                FROM Recording reencoded
+                WHERE reencoded.reencode = TRUE
+                AND (
+                    reencoded.parentRecording.id = recording.id
+                    OR (
+                        parent.id IS NOT NULL
+                        AND reencoded.parentRecording.id = parent.id
+                    )
+                )
+            )
+        )
+        """)
+    Set<UUID> findRecordingIdsWithCompletedReencode(
+        @Param("sourceRecordingIds") Collection<UUID> sourceRecordingIds
+    );
 
     @Query("""
         SELECT c, COUNT(c)
@@ -114,6 +157,23 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     )
     List<Object[]> countRecordingsPerCase();
 
+    @Query("""
+        SELECT c, COUNT(c)
+        FROM Recording r
+        LEFT JOIN CaptureSession cs ON r.captureSession.id=cs.id
+        LEFT JOIN Booking b ON cs.booking.id=b.id
+        LEFT JOIN Case c ON b.caseId.id=c.id
+        WHERE r.version = 1
+        AND r.deletedAt IS NULL
+        AND (:includeReencodedRecordings = TRUE OR r.reencode = FALSE)
+        GROUP BY c
+        ORDER BY count(c) DESC
+        """
+    )
+    List<Object[]> countRecordingsPerCase(
+        @Param("includeReencodedRecordings") boolean includeReencodedRecordings
+    );
+
     int countByParentRecording_Id(UUID id);
 
     @Query("""
@@ -121,14 +181,20 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         FROM Recording r
         INNER JOIN r.captureSession
         INNER JOIN r.captureSession.booking
+        INNER join r.captureSession.booking.caseId
+        INNER JOIN r.captureSession.booking.caseId.court
         LEFT JOIN r.captureSession.finishedByUser
         WHERE r.parentRecording IS NULL
         AND r.captureSession.deletedAt IS NULL
         AND r.captureSession.startedAt IS NOT NULL
         AND r.captureSession.finishedAt IS NOT NULL
+        AND r.captureSession.finishedAt > CAST(:sinceDate AS TIMESTAMP)
+        AND r.captureSession.booking.caseId.court.name NOT ILIKE ('102 %')
+        AND r.captureSession.booking.caseId.court.name NOT ILIKE ('FOO %')
+        AND r.captureSession.booking.caseId.reference NOT ILIKE ('%TEST%')
         """
     )
-    List<Recording> findAllCompletedCaptureSessionsWithRecordings();
+    List<Recording> findAllCompletedCaptureSessionsWithRecordings(@NotNull String sinceDate);
 
     List<Recording> findAllByDurationIsNullAndDeletedAtIsNull();
 
@@ -149,4 +215,46 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Recording> findAllOriginVodafoneNoDuration();
+
+    @Query(value = """
+        -- Reencoded Vodafone recordings
+        WITH reencoded AS (
+            SELECT
+                re.parent_recording_id AS parent_id,
+                re.version AS reencoded_version
+            FROM recordings re
+            JOIN capture_sessions re_cs ON re_cs.id = re.capture_session_id
+            WHERE re_cs.origin = 'VODAFONE'
+              AND re.deleted_at IS NULL
+              AND re.is_reencode = TRUE
+        ),
+
+        target_ids AS (
+            -- The parent/original recordings
+            SELECT DISTINCT p.id
+            FROM recordings p
+            JOIN capture_sessions p_cs ON p_cs.id = p.capture_session_id
+            JOIN reencoded re ON re.parent_id = p.id
+            WHERE p_cs.origin = 'VODAFONE'
+              AND p.deleted_at IS NULL
+
+            UNION
+
+            -- The earlier siblings before the reencoded version
+            SELECT DISTINCT c.id
+            FROM recordings c
+            JOIN capture_sessions c_cs ON c_cs.id = c.capture_session_id
+            JOIN reencoded re ON re.parent_id = c.parent_recording_id
+            WHERE c_cs.origin = 'VODAFONE'
+              AND c.deleted_at IS NULL
+              AND c.version < re.reencoded_version
+        )
+
+        SELECT r.*
+        FROM recordings r
+        WHERE r.id IN (SELECT id FROM target_ids)
+        """, nativeQuery = true)
+    List<Recording> findVodafoneOriginalRecordingsWhereReencodedVersionExists();
+
+    List<Recording> findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue();
 }
