@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.IEmailService;
@@ -54,9 +53,6 @@ class EditNotificationServiceTest {
 
     @MockitoBean
     private EmailResponse emailResponse;
-
-    @MockitoBean
-    private LoggingService loggingService;
 
     private User shareWith1;
     private User shareWith2;

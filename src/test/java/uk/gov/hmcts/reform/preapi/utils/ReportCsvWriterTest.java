@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
+package uk.gov.hmcts.reform.preapi.utils;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
