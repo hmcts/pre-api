@@ -8,6 +8,12 @@ java:
       tag: 17.5.0
     enabled: true
     primary:
+      extraEnvVars:
+        - name: POSTGRESQL_INITSCRIPTS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Release.Name }}-postgresql"
+              key: postgres-password
       initdb:
         user: "postgres"
         scripts:
