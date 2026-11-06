@@ -155,7 +155,7 @@ public class RegistrationService {
             throw new BadRequestException(format(
                 "Capture Session with id %s not on the PRE system at all. Typo?",
                 captureSessionId
-            ));
+            ), e);
         }
 
         if (inDatabase.getStatus() != RecordingStatus.PROCESSING
