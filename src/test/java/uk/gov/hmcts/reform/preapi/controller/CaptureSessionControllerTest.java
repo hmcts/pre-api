@@ -504,7 +504,7 @@ public class CaptureSessionControllerTest {
 
         when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
 
-        when(registrationService.register(id)).thenReturn(UpsertResult.UPDATED);
+        when(registrationService.register(id, false)).thenReturn(UpsertResult.UPDATED);
 
         when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.UPDATED);
 

@@ -4,18 +4,26 @@ import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,67 +38,99 @@ public class RegistrationService {
     private final CaptureSessionService captureSessionService;
     private final AzureIngestStorageService azureIngestStorageService;
     private final IMediaService mediaService;
+    private final RecordingService recordingService;
+    private final Integer processingTimeoutMinutes;
 
     protected RegistrationService(final CaptureSessionService captureSessionService,
                                   final MediaServiceBroker mediaServiceBroker,
-                                  final AzureIngestStorageService azureIngestStorageService) {
+                                  final AzureIngestStorageService azureIngestStorageService,
+                                  @Value("${capture-session-registration.processing-timeout-minutes}")
+                                  final Integer processingTimeoutMinutes,
+                                  final RecordingService recordingService) {
         this.captureSessionService = captureSessionService;
         this.azureIngestStorageService = azureIngestStorageService;
         this.mediaService = mediaServiceBroker.getEnabledMediaService();
+        this.processingTimeoutMinutes = processingTimeoutMinutes;
+        this.recordingService = recordingService;
     }
 
     /**
-     * Deals with capture sessions that have finished processing and have a recording stored,
-     * but whose database state has not yet been updated to reflect that. Steps:
+     * Deals with capture sessions in a non-processed state, e.g.
+     * - MediaKind finished processing but the recording was not registered on PRE database
+     * - Something interrupted the MediaKind processing jobs
      *
      * <ul>
      *   <li>Check live event has finished (MediaKind returns NotFound).</li>
-     *   <li>Verify EncodeFromIngest job has completed.</li>
-     *   <li>Check that the recording is available in final storage and update the relevant
-     *       capture session and recording database items.</li>
+     *   <li>Verify whether EncodeFromIngest (first) job has completed --> Register recording</li>
+     *   <li>Otherwise try to process the capture session from scratch.</li>
      * </ul>
-     * Assumes the EncodeFromIngest and EncodeFromMp4 asset containers share a UUID.
-     * @param captureSessionId
-     *        The capture session ID for a session that is still in the processing state
-     *        but needs to be registered as complete.
+     * Assumes the EncodeFromIngest and EncodeFromMp4 asset containers share a UUID
      *
+     * @param captureSessionId The capture session ID for a session that is still in the processing state
+     *                         but needs to be registered as complete.
+     * @param forceReprocess If true, will delete any existing recordings for the capture session
+     *                       and reprocess from scratch, even if a previous encoding job has completed successfully.
      * @return {@link UpsertResult#UPDATED} if the capture session was successfully registered.
      */
-    public UpsertResult register(UUID captureSessionId) {
+    public UpsertResult register(UUID captureSessionId, boolean forceReprocess) throws InterruptedException {
+        final String liveEventId = getSanitisedLiveEventId(captureSessionId);
+
+        verifyCaptureSessionIsPresentAndReadyForReprocessing(captureSessionId, liveEventId);
+
         log.info("Begin registering recording for capture session {}", captureSessionId);
-
-        String liveEventId = getSanitisedLiveEventId(captureSessionId);
-
-        validateLiveEventIsFinished(liveEventId, captureSessionId);
 
         MkJob encodeFromIngestJob = mediaService.getJobFromPartialName(
             ENCODE_FROM_INGEST_TRANSFORM,
             liveEventId
         );
 
-        if (encodeFromIngestJob.getProperties().getState() != JobState.FINISHED) {
-            throw new ResourceInWrongStateException(format(
-                "Capture session %s cannot be deleted: ingest job is not finished",
-                captureSessionId
-            ));
+        if (!forceReprocess
+            && encodeFromIngestJob != null
+            && encodeFromIngestJob.getProperties().getState() == JobState.FINISHED) {
+            log.info("Capture session {} has already been processed. Attempting to register...", captureSessionId);
+            if (registerEncodedRecording(captureSessionId, encodeFromIngestJob) == UpsertResult.UPDATED) {
+                return UpsertResult.UPDATED;
+            }
+            // If unsuccessful, fall through to reprocess the capture session from scratch
         }
 
+        log.info("Finding and deleting any previous encodings for capture session {}", captureSessionId);
+        SearchRecordings params = new SearchRecordings();
+        params.setCaptureSessionId(captureSessionId);
+        recordingService.findAll(params, false, Pageable.unpaged()).forEach(recording -> {
+            log.info("Deleting recording {} for capture session {}", recording.getId(), captureSessionId);
+            recordingService.deleteById(recording.getId());
+        });
+
+        log.info("Creating new recording for capture session {}", captureSessionId);
+        UUID recordingId = UUID.randomUUID();
+        RecordingStatus recordingStatus = mediaService.processCaptureSession(
+            captureSessionService.findById(captureSessionId),
+            recordingId, liveEventId
+        );
+
+        if (recordingStatus == RecordingStatus.FAILURE) {
+            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
+            throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
+                                                 + captureSessionId
+                                                 + ")");
+        }
+        captureSessionService.stopCaptureSession(captureSessionId, recordingStatus, recordingId);
+
+        return UpsertResult.UPDATED;
+    }
+
+    private UpsertResult registerEncodedRecording(UUID captureSessionId, MkJob encodeFromIngestJob) {
         List<JobOutputAsset> ingestJobOutputAssets = getJobOutputAssets(encodeFromIngestJob);
         if (ingestJobOutputAssets.isEmpty()) {
-            String errorMessage = format(
-                    "Capture session %s cannot be deleted: found no output assets from ingest job",
-                    captureSessionId
-            );
-            throw new ResourceInWrongStateException(errorMessage);
+            log.info(format(
+                "Capture session %s cannot be registered from previous job: found no output assets from ingest job",
+                captureSessionId
+            ));
+            return UpsertResult.UNSUCCESSFUL;
         }
 
         JobOutputAsset firstOutputAsset = ingestJobOutputAssets.getFirst();
-        if (firstOutputAsset == null) {
-            throw new ResourceInWrongStateException(
-                    format("Capture session %s cannot be registered: no output asset found for job %s",
-                            captureSessionId, encodeFromIngestJob.getName())
-            );
-        }
         UUID recordingId = UUID.fromString(mediaService.getAsset(firstOutputAsset.assetName()).getContainer());
         verifyFinalAssetIsAvailable(recordingId, captureSessionId);
 
@@ -106,20 +146,50 @@ public class RegistrationService {
         return UpsertResult.UPDATED;
     }
 
-    private void validateLiveEventIsFinished(String sanitisedCaptureSessionId, UUID captureSessionId) {
+    private void verifyCaptureSessionIsPresentAndReadyForReprocessing(UUID captureSessionId,
+                                                                      String sanitisedLiveEventId) {
+        CaptureSessionDTO inDatabase;
         try {
-            LiveEventDTO liveEvent = mediaService.getLiveEvent(sanitisedCaptureSessionId);
-            if (liveEvent != null) {
-                String errorMessage = format(
-                        "Capture session %s cannot be deleted: live event still exists and is in state %s",
-                        captureSessionId, liveEvent.getResourceState()
-                );
-                throw new ResourceInWrongStateException(errorMessage);
-            }
+            inDatabase = captureSessionService.findById(captureSessionId);
         } catch (NotFoundException e) {
-            log.info("Live event not found for capture session {}:"
-                    + " expected if live event is finished", captureSessionId);
+            throw new BadRequestException(format(
+                "Capture Session with id %s not on the PRE system at all. Typo?",
+                captureSessionId
+            ), e);
         }
+
+        if (inDatabase.getStatus() != RecordingStatus.PROCESSING
+            && inDatabase.getStatus() != RecordingStatus.NO_RECORDING
+            && inDatabase.getStatus() != RecordingStatus.FAILURE) {
+            throw new ResourceInWrongStateException(
+                format(
+                    "Capture session with ID %s is in an incorrect state for registration: %s",
+                    captureSessionId, inDatabase.getStatus()
+                ));
+        }
+
+        Timestamp timestampAtEndOfWindowOfTolerance = Timestamp.from(inDatabase.getFinishedAt().toInstant()
+                                                                         .plus(
+                                                                             processingTimeoutMinutes,
+                                                                             ChronoUnit.MINUTES
+                                                                         ));
+
+        if (timestampAtEndOfWindowOfTolerance.after(Timestamp.from(Instant.now()))) {
+            String errorMessage = format(
+                "Capture session with ID %s finished processing at %s on %s. "
+                    + "This is within the agreed tolerance window of %s minutes."
+                    + " Please try again after %s.",
+                captureSessionId,
+                DateTimeUtils.formatTime(inDatabase.getFinishedAt()),
+                DateTimeUtils.formatDate(inDatabase.getFinishedAt()),
+                processingTimeoutMinutes,
+                DateTimeUtils.formatTime(timestampAtEndOfWindowOfTolerance)
+            );
+
+            throw new ResourceInWrongStateException(errorMessage);
+        }
+
+        mediaService.validateLiveEventIsFinished(sanitisedLiveEventId, captureSessionId);
     }
 
     private void verifyFinalAssetIsAvailable(UUID recordingId, UUID captureSessionId) {
