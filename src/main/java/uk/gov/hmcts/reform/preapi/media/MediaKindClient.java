@@ -27,7 +27,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 public interface MediaKindClient {
     @GetMapping("/assets")
     MkGetListResponse<MkAsset> getAssets(@RequestParam("$skiptoken") int skipToken,
-                                         @RequestParam(name = "$top", required = false) Integer top
+                                         @RequestParam(name = "$top", required = true) Integer top
     );
 
     @GetMapping("/assets/{assetName}")
