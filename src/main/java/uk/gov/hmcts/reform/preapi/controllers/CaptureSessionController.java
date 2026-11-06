@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -30,22 +29,15 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
-import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RegistrationService;
-import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
-
-import static java.lang.String.format;
 
 @RestController
 @RequestMapping("/capture-sessions")

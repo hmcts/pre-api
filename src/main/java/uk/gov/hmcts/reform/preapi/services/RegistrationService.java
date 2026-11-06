@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -149,9 +150,9 @@ public class RegistrationService {
                                                                       String sanitisedLiveEventId) {
         CaptureSessionDTO inDatabase;
         try {
-             inDatabase = captureSessionService.findById(captureSessionId);
+            inDatabase = captureSessionService.findById(captureSessionId);
         } catch (NotFoundException e) {
-            throw new NotFoundException(format(
+            throw new BadRequestException(format(
                 "Capture Session with id %s not on the PRE system at all. Typo?",
                 captureSessionId
             ));

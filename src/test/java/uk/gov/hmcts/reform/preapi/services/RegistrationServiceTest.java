@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -105,8 +106,8 @@ public class RegistrationServiceTest {
     }
 
     @Test
-    @DisplayName("Registering: should successfully register capture session with already-processed recording if" +
-        " jobs completed and recording found")
+    @DisplayName("Registering: should successfully register capture session with already-processed recording if"
+        + " jobs completed and recording found")
     public void testRegistrationWhenEncodingIsCompleted() throws InterruptedException {
         when(mediaService.getLiveEvent(LIVE_EVENT_ID)).thenThrow(NotFoundException.class);
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
@@ -250,7 +251,7 @@ public class RegistrationServiceTest {
         when(recording2.getId()).thenReturn(UUID.randomUUID());
 
         when(recordingService.findAll(any(), eq(false), eq(Pageable.unpaged())))
-        .thenReturn(new PageImpl<>(List.of(recording1, recording2)));
+            .thenReturn(new PageImpl<>(List.of(recording1, recording2)));
         underTest.register(CAPTURE_SESSION_ID, true);
 
         verify(mediaService, times(1))
@@ -343,7 +344,7 @@ public class RegistrationServiceTest {
     public void testVerificationExceptionWhenCaptureSessionNotFound() {
         when(captureSessionService.findById(CAPTURE_SESSION_ID)).thenThrow(NotFoundException.class);
         assertThrows(
-            NotFoundException.class,
+            BadRequestException.class,
             () -> underTest.register(CAPTURE_SESSION_ID, false)
         );
     }
