@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchCaptureSessions;
@@ -52,8 +53,6 @@ public class CaptureSessionController extends PreApiController {
 
     private final CaptureSessionService captureSessionService;
     private final RegistrationService registrationService;
-    @Value("${capture-session-registration.processing-timeout-minutes}")
-    private int processingTimeoutMinutes;
 
     @Autowired
     public CaptureSessionController(CaptureSessionService captureSessionService,
@@ -168,49 +167,12 @@ public class CaptureSessionController extends PreApiController {
 
     @PutMapping("/trigger-registration/{captureSessionId}")
     @Operation(operationId = "triggerRegistrationForCaptureSession",
-        summary = "Register a Capture Session that got stuck in PROCESSING state")
+        summary = "Register an unprocessed Capture Session")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
-    public ResponseEntity<Void> registerCaptureSession(@PathVariable UUID captureSessionId) {
-
-        CaptureSessionDTO inDatabase = captureSessionService.findById(captureSessionId);
-
-        if (inDatabase == null) {
-            throw new NotFoundException(format(
-                "Capture Session with id %s not on the PRE system at all. Typo?",
-                captureSessionId
-            ));
-        }
-
-        if (inDatabase.getStatus() != RecordingStatus.PROCESSING) {
-            throw new ResourceInWrongStateException(
-                format(
-                    "Capture session with ID %s is in an incorrect state for registration: %s",
-                    captureSessionId, inDatabase.getStatus()
-                ));
-        }
-
-        Timestamp timestampAtEndOfWindowOfTolerance = Timestamp.from(inDatabase.getFinishedAt().toInstant()
-                                                                         .plus(
-                                                                             processingTimeoutMinutes,
-                                                                             ChronoUnit.MINUTES
-                                                                         ));
-
-        if (timestampAtEndOfWindowOfTolerance.after(Timestamp.from(Instant.now()))) {
-            String errorMessage = format(
-                "Capture session with ID %s finished processing at %s on %s. "
-                    + "This is within the agreed tolerance window of %s minutes."
-                    + " Please try again after %s.",
-                captureSessionId,
-                DateTimeUtils.formatTime(inDatabase.getFinishedAt()),
-                DateTimeUtils.formatDate(inDatabase.getFinishedAt()),
-                processingTimeoutMinutes,
-                DateTimeUtils.formatTime(timestampAtEndOfWindowOfTolerance)
-            );
-
-            throw new ResourceInWrongStateException(errorMessage);
-        }
-
-        return getUpsertResponse(registrationService.register(captureSessionId), captureSessionId);
+    public ResponseEntity<Void> registerCaptureSession(@PathVariable UUID captureSessionId,
+                                                       @RequestParam(required = false) Boolean forceReprocess)
+        throws InterruptedException {
+        return getUpsertResponse(registrationService.register(captureSessionId, forceReprocess), captureSessionId);
     }
 
     @PostMapping("/{captureSessionId}/undelete")
@@ -220,4 +182,5 @@ public class CaptureSessionController extends PreApiController {
         captureSessionService.undelete(captureSessionId);
         return ResponseEntity.ok().build();
     }
+
 }

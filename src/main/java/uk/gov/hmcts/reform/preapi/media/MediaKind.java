@@ -41,6 +41,7 @@ import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetStorage;
@@ -86,6 +87,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.lang.String.format;
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
 
 @Slf4j
@@ -270,6 +272,38 @@ public class MediaKind implements IMediaService {
         throws InterruptedException {
         String captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
+
+        return processCaptureSession(captureSession, recordingId, captureSessionNoHyphen);
+    }
+
+
+
+    @Override
+    public Boolean validateLiveEventIsFinished(String sanitisedCaptureSessionId, UUID captureSessionId) {
+        try {
+            LiveEventDTO liveEvent = getLiveEvent(sanitisedCaptureSessionId);
+            if (liveEvent != null) {
+                String errorMessage = format(
+                    "Capture session %s cannot be deleted: live event still exists and is in state %s",
+                    captureSessionId, liveEvent.getResourceState()
+                );
+                throw new ResourceInWrongStateException(errorMessage);
+            }
+            return true;
+        } catch (NotFoundException e) {
+            log.info("Live event not found for capture session {}:"
+                         + " expected if live event is finished", captureSessionId);
+            return false;
+        }
+    }
+
+    @Override
+    public RecordingStatus processCaptureSession(CaptureSessionDTO captureSession,
+                                                 UUID recordingId,
+                                                 String captureSessionNoHyphen) throws InterruptedException {
+        String liveEventId = getSanitisedLiveEventId(captureSession.getId());
+
+        validateLiveEventIsFinished(liveEventId, captureSession.getId());
 
         String jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
         if (jobName == null) {
