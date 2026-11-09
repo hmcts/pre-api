@@ -1,0 +1,5777 @@
+basePath: /pre-api
+definitions:
+  AccessDTO:
+    description: AccessDTO
+    properties:
+      app_access:
+        description: AccessAppAccess
+        items:
+          $ref: '#/definitions/BaseAppAccessDTO'
+        type: array
+        uniqueItems: true
+      portal_access:
+        description: AccessPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+        uniqueItems: true
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
+      user:
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
+  AccessRemovedReportDTO:
+    description: AccessRemovedReportDTO
+    properties:
+      case_reference:
+        description: AccessRemovedReportCaseReference
+        type: string
+      court:
+        description: AccessRemovedReportCourtName
+        type: string
+      regions:
+        description: AccessRemovedReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      removal_reason:
+        description: AccessRemovedReportRemovalReason
+        type: string
+      removed_at:
+        description: AccessRemovedReportRemovedAt
+        format: date-time
+        type: string
+      user_email:
+        description: AccessRemovedReportUserEmail
+        type: string
+      user_full_name:
+        description: AccessRemovedReportUserFullName
+        type: string
+    type: object
+  AccessRemovedReportDTOV2:
+    description: AccessRemovedReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      full_name:
+        description: AccessRemovedReportUserFullName
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      removed_date:
+        description: AccessRemovedReportRemovedDate
+        type: string
+      removed_time:
+        description: AccessRemovedReportRemovedTime
+        type: string
+      removed_timezone:
+        description: AccessRemovedReportRemovedTimezone
+        type: string
+      user_email:
+        description: AccessRemovedReportUserEmail
+        type: string
+    type: object
+  AssetDTO:
+    description: AssetDTO
+    properties:
+      container:
+        description: AssetContainer
+        type: string
+      description:
+        description: AssetDescription
+        type: string
+      name:
+        description: AssetName
+        type: string
+      storage_account_name:
+        description: AssetStorageAccountName
+        type: string
+    type: object
+  AuditDTO:
+    description: AuditDTO
+    properties:
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      created_at:
+        description: AuditCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        $ref: '#/definitions/BaseUserDTO'
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - created_at
+      - created_by
+      - id
+      - source
+    type: object
+  BaseAppAccessDTO:
+    description: BaseAppAccessDTO
+    properties:
+      active:
+        description: AppAccessActive
+        type: boolean
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: AppAccessCreatedAt
+        format: date-time
+        type: string
+      default_court:
+        description: AppAccessIsDefaultCourt
+        type: boolean
+      id:
+        description: AppAccessId
+        format: uuid
+        type: string
+      last_access:
+        description: AppAccessLastAccess
+        format: date-time
+        type: string
+      role:
+        $ref: '#/definitions/RoleDTO'
+    type: object
+  BaseUserDTO:
+    description: BaseUserDTO
+    properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        maxLength: 100
+        minLength: 0
+        type: string
+      email:
+        description: UserEmail
+        format: email
+        minLength: 1
+        type: string
+      first_name:
+        description: UserFirstName
+        minLength: 1
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        minLength: 1
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+    required:
+      - email
+      - first_name
+      - id
+      - last_name
+    type: object
+  BookingDTO:
+    description: BookingDTO
+    properties:
+      capture_sessions:
+        description: CaptureSessions
+        items:
+          $ref: '#/definitions/CaptureSessionDTO'
+        type: array
+      case_dto:
+        $ref: '#/definitions/CaseDTO'
+      created_at:
+        description: BookingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: BookingDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: BookingId
+        format: uuid
+        type: string
+      modified_at:
+        description: BookingModifiedAt
+        format: date-time
+        type: string
+      participants:
+        description: BookingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+      scheduled_for:
+        description: BookingScheduledFor
+        format: date-time
+        type: string
+      shares:
+        description: BookingShares
+        items:
+          $ref: '#/definitions/ShareBookingDTO'
+        type: array
+    type: object
+  CaptureSessionDTO:
+    description: CaptureSessionDTO
+    properties:
+      booking_id:
+        description: CreateCaptureSessionBookingId
+        format: uuid
+        type: string
+      case_closed_at:
+        description: CaptureSessionCaseClosedAt
+        format: date-time
+        type: string
+      case_state:
+        description: CaptureSessionCaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
+        type: string
+      court_name:
+        description: RecordingParticipants
+        type: string
+      deleted_at:
+        description: CaptureSessionDeletedAt
+        format: date-time
+        type: string
+      displayed_rtmps_link:
+        description: CreateCaptureSessionDisplayedRtmpsLink
+        type: string
+      finished_at:
+        description: CreateCaptureSessionFinishedAt
+        format: date-time
+        type: string
+      finished_by_user_id:
+        description: CreateCaptureSessionFinishedByUserId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaptureSessionId
+        format: uuid
+        type: string
+      ingest_address:
+        description: CreateCaptureSessionIngestAddress
+        type: string
+      live_output_url:
+        description: CreateCaptureSessionLiveOutputURL
+        type: string
+      origin:
+        description: CreateCaptureSessionOrigin
+        enum:
+          - PRE
+          - VODAFONE
+          - VODAFONE_VISIBLE
+        type: string
+      started_at:
+        description: CreateCaptureSessionStartedAt
+        format: date-time
+        type: string
+      started_by_user_id:
+        description: CreateCaptureSessionStartedByUserId
+        format: uuid
+        type: string
+      status:
+        description: CreateCaptureSessionStatus
+        enum:
+          - STANDBY
+          - INITIALISING
+          - RECORDING
+          - PROCESSING
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
+        type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
+    type: object
+  CaseDTO:
+    description: CaseDTO
+    properties:
+      closed_at:
+        description: CaseClosedAt
+        format: date-time
+        type: string
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: CaseCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: CaseDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: CaseId
+        format: uuid
+        type: string
+      modified_at:
+        description: CaseModifiedAt
+        format: date-time
+        type: string
+      origin:
+        description: CaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
+          - VODAFONE_VISIBLE
+        type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+      reference:
+        description: CaseReference
+        type: string
+      state:
+        description: CaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
+        type: string
+      test:
+        description: CaseIsTest
+        type: boolean
+    type: object
+  CompletedCaptureSessionReportDTO:
+    description: CompletedCaptureSessionReportDTO
+    properties:
+      case_reference:
+        description: CompletedCaptureSessionReportCaseReference
+        type: string
+      count_defendants:
+        description: CompletedCaptureSessionReportDefendantCount
+        format: int32
+        type: integer
+      count_witnesses:
+        description: CompletedCaptureSessionReportWitnessCount
+        format: int32
+        type: integer
+      court:
+        description: CompletedCaptureSessionReportCourtName
+        type: string
+      duration:
+        description: CompletedCaptureSessionReportDuration
+        type: string
+      finished_at:
+        description: CompletedCaptureSessionReportFinishedAt
+        format: date-time
+        type: string
+      recording_status:
+        description: CompletedCaptureSessionReportRecordingStatus
+        enum:
+          - STANDBY
+          - INITIALISING
+          - RECORDING
+          - PROCESSING
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
+        type: string
+      regions:
+        description: CompletedCaptureSessionReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: CompletedCaptureSessionReportBookingScheduledFor
+        format: date-time
+        type: string
+      started_at:
+        description: CompletedCaptureSessionReportStartedAt
+        format: date-time
+        type: string
+    type: object
+  CompletedCaptureSessionReportDTOV2:
+    description: CompletedCaptureSessionReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendant:
+        description: CompletedCaptureSessionReportDefendantCount
+        format: int32
+        type: integer
+      defendant_names:
+        description: CompletedCaptureSessionReportDefendantNames
+        type: string
+      duration:
+        description: RecordingDuration
+        type: string
+      finish_time:
+        description: CompletedCaptureSessionReportFinishTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_date:
+        description: CompletedCaptureSessionReportRecordingDate
+        type: string
+      recording_time:
+        description: CompletedCaptureSessionReportRecordingTime
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      scheduled_date:
+        description: CompletedCaptureSessionReportScheduledDate
+        type: string
+      status:
+        description: CompletedCaptureSessionReportStatus
+        enum:
+          - STANDBY
+          - INITIALISING
+          - RECORDING
+          - PROCESSING
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
+        type: string
+      timezone:
+        description: CompletedCaptureSessionReportTimezone
+        type: string
+      witness:
+        description: CompletedCaptureSessionReportWitnessCount
+        format: int32
+        type: integer
+      witness_names:
+        description: CompletedCaptureSessionReportWitnessNames
+        type: string
+    type: object
+  ConcurrentCaptureSessionReportDTO:
+    description: ConcurrentCaptureSessionReportDTO
+    properties:
+      case_reference:
+        description: CaptureSessionCaseReference
+        type: string
+      court:
+        description: CaptureSessionCourtName
+        type: string
+      duration:
+        description: CaptureSessionDuration
+        type: string
+      end_time:
+        description: CaptureSessionEndTime
+        format: date-time
+        type: string
+      id:
+        description: CaptureSessionId
+        format: uuid
+        type: string
+      region:
+        description: CaptureSessionRegionName
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      start_time:
+        description: CaptureSessionStartTime
+        format: date-time
+        type: string
+    type: object
+  ConcurrentCaptureSessionReportDTOV2:
+    description: ConcurrentCaptureSessionReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      date:
+        description: CaptureSessionStartDate
+        type: string
+      duration:
+        description: CaptureSessionDuration
+        type: string
+      end_time:
+        description: CaptureSessionEndTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      start_time:
+        description: CaptureSessionStartTime
+        type: string
+      timezone:
+        description: CaptureSessionStartTimezone
+        type: string
+    type: object
+  CourtDTO:
+    description: CourtDTO
+    properties:
+      county:
+        description: CourtCounty
+        type: string
+      court_type:
+        description: CourtType
+        enum:
+          - CROWN
+          - MAGISTRATE
+          - FAMILY
+        type: string
+      group_email:
+        description: CourtGroupEmail
+        type: string
+      id:
+        description: CourtId
+        format: uuid
+        type: string
+      location_code:
+        description: CourtLocationCode
+        type: string
+      name:
+        description: CourtName
+        type: string
+      postcode:
+        description: CourtPostcode
+        type: string
+      regions:
+        description: CourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+    type: object
+  CourtEmailDTO:
+    description: CourtEmailDTO
+    properties:
+      group_email:
+        description: CourtGroupEmail
+        type: string
+      name:
+        description: CourtName
+        type: string
+    type: object
+  CreateAppAccessDTO:
+    description: CreateAppAccessDTO
+    properties:
+      active:
+        description: AppAccessActive
+        type: boolean
+      court_id:
+        description: AppAccessCourtId
+        format: uuid
+        type: string
+      default_court:
+        description: AppAccessIsDefaultCourt
+        type: boolean
+      id:
+        description: AppAccessId
+        format: uuid
+        type: string
+      last_active:
+        description: AppAccessLastActive
+        format: date-time
+        type: string
+      role_id:
+        description: AppAccessRoleId
+        format: uuid
+        type: string
+      user_id:
+        description: AppAccessUserId
+        format: uuid
+        type: string
+    required:
+      - court_id
+      - id
+      - role_id
+      - user_id
+    type: object
+  CreateAuditDTO:
+    description: AuditDTO
+    properties:
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - id
+      - source
+    type: object
+  CreateBookingDTO:
+    description: CreateBookingDTO
+    properties:
+      case_id:
+        description: CreateBookingCaseId
+        format: uuid
+        type: string
+      id:
+        description: CreateBookingId
+        format: uuid
+        type: string
+      participants:
+        description: CreateBookingParticipants
+        items:
+          $ref: '#/definitions/CreateParticipantDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: CreateBookingScheduledFor
+        format: date-time
+        type: string
+    required:
+      - case_id
+      - id
+      - scheduled_for
+    type: object
+  CreateCaptureSessionDTO:
+    description: CreateCaptureSessionDTO
+    properties:
+      booking_id:
+        description: CreateCaptureSessionBookingId
+        format: uuid
+        type: string
+      finished_at:
+        description: CreateCaptureSessionFinishedAt
+        format: date-time
+        type: string
+      finished_by_user_id:
+        description: CreateCaptureSessionFinishedByUserId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaptureSessionId
+        format: uuid
+        type: string
+      ingest_address:
+        description: CreateCaptureSessionIngestAddress
+        type: string
+      live_output_url:
+        description: CreateCaptureSessionLiveOutputURL
+        type: string
+      origin:
+        description: CreateCaptureSessionOrigin
+        enum:
+          - PRE
+          - VODAFONE
+          - VODAFONE_VISIBLE
+        type: string
+      started_at:
+        description: CreateCaptureSessionStartedAt
+        format: date-time
+        type: string
+      started_by_user_id:
+        description: CreateCaptureSessionStartedByUserId
+        format: uuid
+        type: string
+      status:
+        description: CreateCaptureSessionStatus
+        enum:
+          - STANDBY
+          - INITIALISING
+          - RECORDING
+          - PROCESSING
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
+        type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
+    type: object
+  CreateCaseDTO:
+    description: CreateCaseDTO
+    properties:
+      closed_at:
+        description: CreateCaseClosedAt
+        format: date-time
+        type: string
+      court_id:
+        description: CreateCaseCourtId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaseId
+        format: uuid
+        type: string
+      origin:
+        description: CreateCaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
+          - VODAFONE_VISIBLE
+        type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/CreateParticipantDTO'
+        type: array
+        uniqueItems: true
+      reference:
+        description: CreateCaseReference
+        maxLength: 13
+        minLength: 9
+        type: string
+      state:
+        description: CreateCaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
+        type: string
+      test:
+        description: CreateCaseIsTest
+        type: boolean
+    required:
+      - reference
+    type: object
+  CreateCourtDTO:
+    description: CreateCourtDTO
+    properties:
+      county:
+        description: CreateCourtCounty
+        type: string
+      court_type:
+        description: CreateCourtType
+        enum:
+          - CROWN
+          - MAGISTRATE
+          - FAMILY
+        type: string
+      group_email:
+        description: CreateCourtGroupEmail
+        type: string
+      id:
+        description: CreateCourtId
+        format: uuid
+        type: string
+      location_code:
+        description: CreateCourtLocationCode
+        type: string
+      name:
+        description: CreateCourtName
+        type: string
+      postcode:
+        description: CreateCourtPostcode
+        pattern: '^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$'
+        type: string
+      regions:
+        description: CreateCourtRegionIds
+        items:
+          description: CreateCourtRegionIds
+          format: uuid
+          type: string
+        maxItems: 2147483647
+        minItems: 1
+        type: array
+    required:
+      - court_type
+      - id
+      - location_code
+      - name
+      - regions
+    type: object
+  CreateEditRequestDTO:
+    description: CreateEditRequestDTO
+    properties:
+      approved_at:
+        description: CreateEditRequestApprovedAt
+        format: date-time
+        type: string
+      approved_by:
+        description: CreateEditRequestApprovedBy
+        maxLength: 100
+        minLength: 0
+        type: string
+      edit_instructions:
+        description: CreateEditRequestInstructions
+        items:
+          $ref: '#/definitions/EditCutInstructionDTO'
+        type: array
+      force_reencode:
+        default: false
+        description: Force full-file reencode instead of cut-based editing
+        type: boolean
+      id:
+        description: CreateEditRequestId
+        format: uuid
+        type: string
+      jointly_agreed:
+        description: CreateEditRequestJointlyAgreed
+        type: boolean
+      rejection_reason:
+        description: CreateEditRequestRejectionReason
+        maxLength: 512
+        minLength: 0
+        type: string
+      send_notifications:
+        default: true
+        description: Send notifications when the edited recording becomes available
+        type: boolean
+      source_recording_id:
+        description: CreateEditRequestSourceRecordingId
+        format: uuid
+        type: string
+      status:
+        description: CreateEditRequestStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+    required:
+      - id
+      - source_recording_id
+      - status
+    type: object
+  CreateInviteDTO:
+    description: CreateInviteDTO
+    properties:
+      email:
+        description: InviteEmail
+        format: email
+        minLength: 1
+        type: string
+      first_name:
+        description: InviteFirstName
+        minLength: 1
+        type: string
+      last_name:
+        description: InviteLastName
+        minLength: 1
+        type: string
+      organisation:
+        description: InviteOrganisation
+        type: string
+      phone:
+        description: InvitePhone
+        type: string
+      user_id:
+        description: InviteUserId
+        format: uuid
+        type: string
+    required:
+      - email
+      - first_name
+      - last_name
+      - user_id
+    type: object
+  CreateParticipantDTO:
+    description: CreateParticipantDTO
+    properties:
+      first_name:
+        description: CreateParticipantFirstName
+        type: string
+      id:
+        description: CreateParticipantId
+        format: uuid
+        type: string
+      last_name:
+        description: CreateParticipantLastName
+        type: string
+      participant_type:
+        description: CreateParticipantType
+        enum:
+          - WITNESS
+          - DEFENDANT
+        type: string
+    type: object
+  CreatePortalAccessDTO:
+    description: CreatePortalAccessDTO
+    properties:
+      id:
+        description: PortalAccessId
+        format: uuid
+        type: string
+      invited_at:
+        description: PortalAccessInvitedAt
+        format: date-time
+        type: string
+      last_access:
+        description: PortalAccessLastAccess
+        format: date-time
+        type: string
+      registered_at:
+        description: PortalAccessRegisteredAt
+        format: date-time
+        type: string
+      status:
+        description: PortalAccessStatus
+        enum:
+          - INVITATION_SENT
+          - REGISTERED
+          - ACTIVE
+          - INACTIVE
+        type: string
+    required:
+      - id
+      - status
+    type: object
+  CreateRecordingDTO:
+    description: CreateRecordingDTO
+    properties:
+      capture_session_id:
+        description: RecordingCaptureSessionId
+        format: uuid
+        type: string
+      duration:
+        description: RecordingDuration
+        example: PT3M
+        type: string
+      edit_instructions:
+        description: RecordingEditInstructions
+        type: string
+      filename:
+        description: RecordingFilename
+        type: string
+      id:
+        description: RecordingId
+        format: uuid
+        type: string
+      parent_recording_id:
+        description: RecordingParentRecordingId
+        format: uuid
+        type: string
+      url:
+        description: RecordingURL
+        type: string
+      version:
+        description: RecordingVersion
+        format: int32
+        minimum: 1
+        type: integer
+    required:
+      - capture_session_id
+      - filename
+      - id
+      - version
+    type: object
+  CreateShareBookingDTO:
+    properties:
+      booking_id:
+        format: uuid
+        type: string
+      id:
+        format: uuid
+        type: string
+      shared_by_user:
+        format: uuid
+        type: string
+      shared_with_user:
+        format: uuid
+        type: string
+    type: object
+  CreateUserDTO:
+    description: CreateUserDTO
+    properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        maxLength: 100
+        minLength: 0
+        type: string
+      app_access:
+        description: UserAppAccess
+        items:
+          $ref: '#/definitions/CreateAppAccessDTO'
+        type: array
+        uniqueItems: true
+      email:
+        description: UserEmail
+        format: email
+        minLength: 1
+        type: string
+      first_name:
+        description: UserFirstName
+        minLength: 1
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        minLength: 1
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      portal_access:
+        description: UserPortalAccess
+        items:
+          $ref: '#/definitions/CreatePortalAccessDTO'
+        type: array
+        uniqueItems: true
+    required:
+      - app_access
+      - email
+      - first_name
+      - id
+      - last_name
+      - portal_access
+    type: object
+  CreateVfMigrationRecordDTO:
+    description: CreateVfMigrationRecordDTO
+    properties:
+      court_id:
+        description: CreateMigrationRecordCourtId
+        format: uuid
+        type: string
+      defendant_name:
+        description: CreateMigrationRecordDefendantName
+        type: string
+      exhibit_reference:
+        description: CreateMigrationRecordExhibitReference
+        type: string
+      id:
+        description: CreateMigrationRecordId
+        format: uuid
+        type: string
+      recording_date:
+        description: CreateMigrationRecordRecordingDate
+        format: date-time
+        type: string
+      recording_version:
+        description: CreateMigrationRecordRecordingVersion
+        enum:
+          - ORIG
+          - COPY
+        type: string
+      recording_version_number:
+        description: CreateMigrationRecordRecordingVersion
+        format: double
+        minimum: 1
+        type: number
+      resolved_at:
+        description: CreateMigrationRecordResolvedAt
+        format: date-time
+        type: string
+      status:
+        description: CreateMigrationRecordStatus
+        enum:
+          - PENDING
+          - SUCCESS
+          - FAILED
+          - READY
+          - SUBMITTED
+          - IGNORED
+        type: string
+      urn:
+        description: CreateMigrationRecordUrn
+        type: string
+      witness_name:
+        description: CreateMigrationRecordWitnessName
+        type: string
+    required:
+      - id
+      - status
+    type: object
+  EditCutInstructionDTO:
+    description: EditCutInstructionDTO
+    properties:
+      end_of_cut:
+        description: EditInstructionEnd
+        pattern: '^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
+        type: string
+      reason:
+        type: string
+      start_of_cut:
+        description: EditInstructionStart
+        pattern: '^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
+        type: string
+    required:
+      - end_of_cut
+      - start_of_cut
+    type: object
+  EditInstructions:
+    description: EditRequestEditInstruction
+    properties:
+      ffmpegInstructions:
+        items:
+          $ref: '#/definitions/FfmpegEditInstructionDTO'
+        type: array
+      forceReencode:
+        type: boolean
+      requestedInstructions:
+        items:
+          $ref: '#/definitions/EditCutInstructionDTO'
+        type: array
+      sendNotifications:
+        type: boolean
+    type: object
+  EditReportDTO:
+    description: EditReportDTO
+    properties:
+      case_reference:
+        description: EditReportCaseReference
+        type: string
+      court:
+        description: EditReportCourtName
+        type: string
+      created_at:
+        description: EditReportEditCreatedAt
+        format: date-time
+        type: string
+      recording_id:
+        description: EditReportRecordingId
+        format: uuid
+        type: string
+      regions:
+        description: EditReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      version:
+        description: EditReportRecordingVersion
+        format: int32
+        type: integer
+    type: object
+  EditReportDTOV2:
+    description: EditReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      edit_date:
+        description: EditReportEditDate
+        type: string
+      edit_time:
+        description: EditReportEditTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      timezone:
+        description: EditReportEditTimezone
+        type: string
+      version:
+        description: EditReportRecordingVersion
+        format: int32
+        type: integer
+    type: object
+  EditRequestDTO:
+    properties:
+      approved_at:
+        description: EditRequestApprovedAt
+        format: date-time
+        type: string
+      approved_by:
+        description: EditRequestApprovedBy
+        type: string
+      created_at:
+        description: EditRequestCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        description: EditRequestCreatedByName
+        type: string
+      created_by_id:
+        description: EditRequestCreatedById
+        format: uuid
+        type: string
+      edit_instruction:
+        $ref: '#/definitions/EditInstructions'
+      finished_at:
+        description: EditRequestFinishedAt
+        format: date-time
+        type: string
+      id:
+        description: EditRequestId
+        format: uuid
+        type: string
+      jointly_agreed:
+        description: EditRequestJointlyAgreed
+        type: boolean
+      modified_at:
+        description: EditRequestModifiedAt
+        format: date-time
+        type: string
+      rejection_reason:
+        description: EditRequestRejectionReason
+        type: string
+      source_recording:
+        $ref: '#/definitions/RecordingDTO'
+      started_at:
+        description: EditRequestStartedAt
+        format: date-time
+        type: string
+      status:
+        description: EditRequestStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+    type: object
+  EntityModelAuditDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      created_at:
+        description: AuditCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        $ref: '#/definitions/BaseUserDTO'
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - created_at
+      - created_by
+      - id
+      - source
+    type: object
+  EntityModelBookingDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      capture_sessions:
+        description: CaptureSessions
+        items:
+          $ref: '#/definitions/CaptureSessionDTO'
+        type: array
+      case_dto:
+        $ref: '#/definitions/CaseDTO'
+      created_at:
+        description: BookingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: BookingDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: BookingId
+        format: uuid
+        type: string
+      modified_at:
+        description: BookingModifiedAt
+        format: date-time
+        type: string
+      participants:
+        description: BookingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+      scheduled_for:
+        description: BookingScheduledFor
+        format: date-time
+        type: string
+      shares:
+        description: BookingShares
+        items:
+          $ref: '#/definitions/ShareBookingDTO'
+        type: array
+    type: object
+  EntityModelCaptureSessionDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      booking_id:
+        description: CreateCaptureSessionBookingId
+        format: uuid
+        type: string
+      case_closed_at:
+        description: CaptureSessionCaseClosedAt
+        format: date-time
+        type: string
+      case_state:
+        description: CaptureSessionCaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
+        type: string
+      court_name:
+        description: RecordingParticipants
+        type: string
+      deleted_at:
+        description: CaptureSessionDeletedAt
+        format: date-time
+        type: string
+      displayed_rtmps_link:
+        description: CreateCaptureSessionDisplayedRtmpsLink
+        type: string
+      finished_at:
+        description: CreateCaptureSessionFinishedAt
+        format: date-time
+        type: string
+      finished_by_user_id:
+        description: CreateCaptureSessionFinishedByUserId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaptureSessionId
+        format: uuid
+        type: string
+      ingest_address:
+        description: CreateCaptureSessionIngestAddress
+        type: string
+      live_output_url:
+        description: CreateCaptureSessionLiveOutputURL
+        type: string
+      origin:
+        description: CreateCaptureSessionOrigin
+        enum:
+          - PRE
+          - VODAFONE
+          - VODAFONE_VISIBLE
+        type: string
+      started_at:
+        description: CreateCaptureSessionStartedAt
+        format: date-time
+        type: string
+      started_by_user_id:
+        description: CreateCaptureSessionStartedByUserId
+        format: uuid
+        type: string
+      status:
+        description: CreateCaptureSessionStatus
+        enum:
+          - STANDBY
+          - INITIALISING
+          - RECORDING
+          - PROCESSING
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
+        type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
+    type: object
+  EntityModelCaseDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      closed_at:
+        description: CaseClosedAt
+        format: date-time
+        type: string
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: CaseCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: CaseDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: CaseId
+        format: uuid
+        type: string
+      modified_at:
+        description: CaseModifiedAt
+        format: date-time
+        type: string
+      origin:
+        description: CaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
+          - VODAFONE_VISIBLE
+        type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+      reference:
+        description: CaseReference
+        type: string
+      state:
+        description: CaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
+        type: string
+      test:
+        description: CaseIsTest
+        type: boolean
+    type: object
+  EntityModelCourtDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      county:
+        description: CourtCounty
+        type: string
+      court_type:
+        description: CourtType
+        enum:
+          - CROWN
+          - MAGISTRATE
+          - FAMILY
+        type: string
+      group_email:
+        description: CourtGroupEmail
+        type: string
+      id:
+        description: CourtId
+        format: uuid
+        type: string
+      location_code:
+        description: CourtLocationCode
+        type: string
+      name:
+        description: CourtName
+        type: string
+      postcode:
+        description: CourtPostcode
+        type: string
+      regions:
+        description: CourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+    type: object
+  EntityModelEditRequestDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      approved_at:
+        description: EditRequestApprovedAt
+        format: date-time
+        type: string
+      approved_by:
+        description: EditRequestApprovedBy
+        type: string
+      created_at:
+        description: EditRequestCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        description: EditRequestCreatedByName
+        type: string
+      created_by_id:
+        description: EditRequestCreatedById
+        format: uuid
+        type: string
+      edit_instruction:
+        $ref: '#/definitions/EditInstructions'
+      finished_at:
+        description: EditRequestFinishedAt
+        format: date-time
+        type: string
+      id:
+        description: EditRequestId
+        format: uuid
+        type: string
+      jointly_agreed:
+        description: EditRequestJointlyAgreed
+        type: boolean
+      modified_at:
+        description: EditRequestModifiedAt
+        format: date-time
+        type: string
+      rejection_reason:
+        description: EditRequestRejectionReason
+        type: string
+      source_recording:
+        $ref: '#/definitions/RecordingDTO'
+      started_at:
+        description: EditRequestStartedAt
+        format: date-time
+        type: string
+      status:
+        description: EditRequestStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+    type: object
+  EntityModelInviteDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      code:
+        description: InviteCode
+        type: string
+      email:
+        description: InviteUserEmail
+        type: string
+      first_name:
+        description: InviteUserFirstName
+        type: string
+      invited_at:
+        description: InvitedAt
+        format: date-time
+        type: string
+      last_name:
+        description: InviteUserLastName
+        type: string
+      user_id:
+        description: InviteUserId
+        format: uuid
+        type: string
+    type: object
+  EntityModelRecordingDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      capture_session:
+        $ref: '#/definitions/CaptureSessionDTO'
+      case_id:
+        description: RecordingCaseId
+        format: uuid
+        type: string
+      case_reference:
+        description: RecordingCaseReference
+        type: string
+      created_at:
+        description: RecordingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: RecordingDeletedAt
+        format: date-time
+        type: string
+      duration:
+        description: RecordingDuration
+        example: PT3M
+        type: string
+      edit_instructions:
+        description: RecordingEditInstructions
+        type: string
+      edit_requests:
+        description: RecordingEditRequests
+        items:
+          $ref: '#/definitions/EditRequestDTO'
+        type: array
+      edit_status:
+        description: RecordingEditStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+      filename:
+        description: RecordingFilename
+        type: string
+      id:
+        description: RecordingId
+        format: uuid
+        type: string
+      is_test_case:
+        description: RecordingIsTestCase
+        type: boolean
+      parent_recording_id:
+        description: RecordingParentRecordingId
+        format: uuid
+        type: string
+      participants:
+        description: RecordingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+      total_version_count:
+        description: RecordingTotalVersionCount
+        format: int32
+        type: integer
+      url:
+        description: RecordingURL
+        type: string
+      version:
+        description: RecordingVersion
+        format: int32
+        minimum: 1
+        type: integer
+    required:
+      - filename
+      - id
+      - version
+    type: object
+  EntityModelShareBookingDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      booking_id:
+        format: uuid
+        type: string
+      created_at:
+        format: date-time
+        type: string
+      deleted_at:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      shared_by_user:
+        $ref: '#/definitions/BaseUserDTO'
+      shared_with_user:
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
+  EntityModelUserDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        maxLength: 100
+        minLength: 0
+        type: string
+      app_access:
+        description: UserAppAccess
+        items:
+          $ref: '#/definitions/BaseAppAccessDTO'
+        type: array
+      created_at:
+        description: UserCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: UserDeletedAt
+        format: date-time
+        type: string
+      email:
+        description: UserEmail
+        format: email
+        minLength: 1
+        type: string
+      first_name:
+        description: UserFirstName
+        minLength: 1
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        minLength: 1
+        type: string
+      modified_at:
+        description: UserModifiedAt
+        format: date-time
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      portal_access:
+        description: UserPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
+    required:
+      - email
+      - first_name
+      - id
+      - last_name
+    type: object
+  EntityModelVfMigrationRecordDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      archive_id:
+        description: MigrationRecordArchiveId
+        type: string
+      archive_name:
+        description: MigrationRecordArchiveName
+        type: string
+      booking_id:
+        description: MigrationRecordBookingId
+        format: uuid
+        type: string
+      capture_session_id:
+        description: MigrationRecordCaptureSessionId
+        format: uuid
+        type: string
+      court_id:
+        description: MigrationRecordCourtId
+        format: uuid
+        type: string
+      court_reference:
+        description: MigrationRecordCourtReference
+        type: string
+      create_time:
+        description: MigrationRecordCreateTime
+        format: date-time
+        type: string
+      created_at:
+        description: MigrationRecordCreatedAt
+        format: date-time
+        type: string
+      defendant_name:
+        description: MigrationRecordDefendantName
+        type: string
+      duration:
+        description: MigrationRecordDuration
+        format: int32
+        type: integer
+      error_message:
+        description: MigrationRecordErrorMessage
+        type: string
+      exhibit_reference:
+        description: MigrationRecordExhibitReference
+        type: string
+      file_size:
+        description: MigrationRecordFileSize
+        type: string
+      filename:
+        description: MigrationRecordFilename
+        type: string
+      id:
+        description: MigrationRecordId
+        format: uuid
+        type: string
+      is_most_recent:
+        description: MigrationRecordIsMostRecent
+        type: boolean
+      parent_temp_id:
+        description: MigrationRecordParentTempId
+        format: uuid
+        type: string
+      reason:
+        description: MigrationRecordReason
+        type: string
+      recording_group_key:
+        description: MigrationRecordRecordingGroupKey
+        type: string
+      recording_id:
+        description: MigrationRecordRecordingId
+        format: uuid
+        type: string
+      recording_version:
+        description: MigrationRecordRecordingVersion
+        type: string
+      recording_version_number:
+        description: MigrationRecordRecordingVersionNumber
+        type: string
+      resolved_at:
+        description: MigrationRecordResolvedAt
+        format: date-time
+        type: string
+      status:
+        description: MigrationRecordStatus
+        enum:
+          - PENDING
+          - SUCCESS
+          - FAILED
+          - READY
+          - SUBMITTED
+          - IGNORED
+        type: string
+      urn:
+        description: MigrationRecordUrn
+        type: string
+      witness_name:
+        description: MigrationRecordWitnessName
+        type: string
+    type: object
+  FfmpegEditInstructionDTO:
+    properties:
+      end:
+        format: int64
+        type: integer
+      start:
+        format: int64
+        type: integer
+    type: object
+  GenerateAssetDTO:
+    description: GenerateAssetDTO
+    properties:
+      description:
+        description: GenerateAssetDescription
+        type: string
+      destination_container:
+        description: GenerateAssetDestinationContainer
+        format: uuid
+        type: string
+      final_asset:
+        description: GenerateAssetFinalAsset
+        type: string
+      parent_recording_id:
+        description: ParentRecordingId
+        format: uuid
+        type: string
+      source_container:
+        description: GenerateAssetSourceContainer
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-input$'
+        type: string
+      temp_asset:
+        description: GenerateAssetTempAsset
+        type: string
+    type: object
+  GenerateAssetResponseDTO:
+    description: GenerateAssetResponseDTO
+    properties:
+      asset:
+        description: GenerateAssetResponseAsset
+        type: string
+      container:
+        description: GenerateAssetResponseContainer
+        type: string
+      description:
+        description: GenerateAssetResponseDescription
+        type: string
+      jobStatus:
+        description: GenerateAssetResponseJobStatus
+        type: string
+    type: object
+  InviteDTO:
+    description: InviteDTO
+    properties:
+      code:
+        description: InviteCode
+        type: string
+      email:
+        description: InviteUserEmail
+        type: string
+      first_name:
+        description: InviteUserFirstName
+        type: string
+      invited_at:
+        description: InvitedAt
+        format: date-time
+        type: string
+      last_name:
+        description: InviteUserLastName
+        type: string
+      user_id:
+        description: InviteUserId
+        format: uuid
+        type: string
+    type: object
+  JsonNode:
+    description: AuditDetailsJSONString
+    type: object
+  Link:
+    properties:
+      deprecation:
+        type: string
+      href:
+        type: string
+      hreflang:
+        type: string
+      name:
+        type: string
+      profile:
+        type: string
+      templated:
+        type: boolean
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  Links:
+    additionalProperties:
+      $ref: '#/definitions/Link'
+    type: object
+  LiveEventDTO:
+    description: LiveEventDTO
+    properties:
+      description:
+        description: LiveEventDescription
+        type: string
+      displayed_rtmps_link:
+        description: DisplayedRtmpsLink
+        type: string
+      id:
+        description: LiveEventId
+        type: string
+      input_rtmp:
+        description: LiveEventInputRtmp
+        type: string
+      name:
+        description: LiveEventName
+        type: string
+      resource_state:
+        description: LiveEventResourceState
+        type: string
+    type: object
+  PageMetadata:
+    properties:
+      number:
+        format: int64
+        type: integer
+      size:
+        format: int64
+        type: integer
+      totalElements:
+        format: int64
+        type: integer
+      totalPages:
+        format: int64
+        type: integer
+    type: object
+  PagedModelEntityModelAuditDTO:
+    properties:
+      _embedded:
+        properties:
+          auditDTOList:
+            items:
+              $ref: '#/definitions/EntityModelAuditDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelBookingDTO:
+    properties:
+      _embedded:
+        properties:
+          bookingDTOList:
+            items:
+              $ref: '#/definitions/EntityModelBookingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelCaptureSessionDTO:
+    properties:
+      _embedded:
+        properties:
+          captureSessionDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCaptureSessionDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelCaseDTO:
+    properties:
+      _embedded:
+        properties:
+          caseDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCaseDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelCourtDTO:
+    properties:
+      _embedded:
+        properties:
+          courtDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCourtDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelEditRequestDTO:
+    properties:
+      _embedded:
+        properties:
+          editRequestDTOList:
+            items:
+              $ref: '#/definitions/EntityModelEditRequestDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelInviteDTO:
+    properties:
+      _embedded:
+        properties:
+          inviteDTOList:
+            items:
+              $ref: '#/definitions/EntityModelInviteDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelRecordingDTO:
+    properties:
+      _embedded:
+        properties:
+          recordingDTOList:
+            items:
+              $ref: '#/definitions/EntityModelRecordingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelShareBookingDTO:
+    properties:
+      _embedded:
+        properties:
+          shareBookingDTOList:
+            items:
+              $ref: '#/definitions/EntityModelShareBookingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelUserDTO:
+    properties:
+      _embedded:
+        properties:
+          userDTOList:
+            items:
+              $ref: '#/definitions/EntityModelUserDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelVfMigrationRecordDTO:
+    properties:
+      _embedded:
+        properties:
+          vfMigrationRecordDTOList:
+            items:
+              $ref: '#/definitions/EntityModelVfMigrationRecordDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  ParticipantDTO:
+    description: ParticipantDTO
+    properties:
+      created_at:
+        description: ParticipantCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: ParticipantDeletedAt
+        format: date-time
+        type: string
+      first_name:
+        description: ParticipantFirstName
+        type: string
+      id:
+        description: ParticipantId
+        format: uuid
+        type: string
+      last_name:
+        description: ParticipantLastName
+        type: string
+      modified_at:
+        description: ParticipantModifiedAt
+        format: date-time
+        type: string
+      participant_type:
+        description: ParticipantType
+        enum:
+          - WITNESS
+          - DEFENDANT
+        type: string
+    type: object
+  PlaybackDTO:
+    description: PlaybackDTO
+    properties:
+      dash_url:
+        description: PlaybackDashUrl
+        type: string
+      hls_url:
+        description: PlaybackHlsUrl
+        type: string
+      license_url:
+        description: PlaybackLicenseUrl
+        type: string
+      token:
+        description: PlaybackToken
+        type: string
+    type: object
+  PlaybackReportDTO:
+    description: PlaybackReportDTO
+    properties:
+      case_reference:
+        description: PlaybackReportCaseReference
+        type: string
+      court:
+        description: PlaybackReportCourt
+        type: string
+      playback_at:
+        description: PlaybackReportPlaybackAt
+        format: date-time
+        type: string
+      recording_id:
+        description: PlaybackReportRecordingId
+        format: uuid
+        type: string
+      regions:
+        description: PlaybackReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
+        type: string
+    type: object
+  PlaybackReportDTOV2:
+    description: PlaybackReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      playback_time_zone:
+        description: PlaybackReportTimeZone
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
+      region:
+        description: ReportRegion
+        type: string
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
+        type: string
+    type: object
+  PortalAccessDTO:
+    description: PortalAccessDTO
+    properties:
+      deleted_at:
+        description: PortalAccessDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: PortalAccessId
+        format: uuid
+        type: string
+      invited_at:
+        description: PortalAccessInvitedAt
+        format: date-time
+        type: string
+      last_access:
+        description: PortalAccessLastAccess
+        format: date-time
+        type: string
+      registered_at:
+        description: PortalAccessRegisteredAt
+        format: date-time
+        type: string
+      status:
+        description: PortalAccessStatus
+        enum:
+          - INVITATION_SENT
+          - REGISTERED
+          - ACTIVE
+          - INACTIVE
+        type: string
+    type: object
+  RecordingDTO:
+    description: RecordingDTO
+    properties:
+      capture_session:
+        $ref: '#/definitions/CaptureSessionDTO'
+      case_id:
+        description: RecordingCaseId
+        format: uuid
+        type: string
+      case_reference:
+        description: RecordingCaseReference
+        type: string
+      created_at:
+        description: RecordingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: RecordingDeletedAt
+        format: date-time
+        type: string
+      duration:
+        description: RecordingDuration
+        example: PT3M
+        type: string
+      edit_instructions:
+        description: RecordingEditInstructions
+        type: string
+      edit_requests:
+        description: RecordingEditRequests
+        items:
+          $ref: '#/definitions/EditRequestDTO'
+        type: array
+      edit_status:
+        description: RecordingEditStatus
+        enum:
+          - DRAFT
+          - SUBMITTED
+          - APPROVED
+          - REJECTED
+          - PENDING
+          - PROCESSING
+          - COMPLETE
+          - ERROR
+        type: string
+      filename:
+        description: RecordingFilename
+        type: string
+      id:
+        description: RecordingId
+        format: uuid
+        type: string
+      is_test_case:
+        description: RecordingIsTestCase
+        type: boolean
+      parent_recording_id:
+        description: RecordingParentRecordingId
+        format: uuid
+        type: string
+      participants:
+        description: RecordingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+      total_version_count:
+        description: RecordingTotalVersionCount
+        format: int32
+        type: integer
+      url:
+        description: RecordingURL
+        type: string
+      version:
+        description: RecordingVersion
+        format: int32
+        minimum: 1
+        type: integer
+    required:
+      - filename
+      - id
+      - version
+    type: object
+  RecordingParticipantsReportDTO:
+    description: RecordingParticipantsReportDTOV2
+    properties:
+      case_reference:
+        description: RecordingParticipantCaseReference
+        type: string
+      court_name:
+        description: RecordingParticipantCourtName
+        type: string
+      participant_name:
+        description: RecordingParticipantName
+        type: string
+      participant_type:
+        description: RecordingParticipantType
+        enum:
+          - WITNESS
+          - DEFENDANT
+        type: string
+      recorded_at:
+        description: RecordingParticipantRecordedAt
+        format: date-time
+        type: string
+      recording_id:
+        description: RecordingParticipantRecordingId
+        format: uuid
+        type: string
+    type: object
+  RecordingsPerCaseReportDTO:
+    description: RecordingsPerCaseReportDTO
+    properties:
+      case_reference:
+        description: RecordingsPerCaseCaseReference
+        type: string
+      count:
+        description: RecordingsPerCaseCount
+        format: int32
+        type: integer
+      court:
+        description: RecordingsPerCaseCourt
+        type: string
+      regions:
+        description: RecordingsPerCaseRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+    type: object
+  RecordingsPerCaseReportDTOV2:
+    description: RecordingsPerCaseReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      number_of_recordings:
+        description: RecordingsPerCaseNumberOfRecordings
+        format: int32
+        type: integer
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+    type: object
+  RegionDTO:
+    description: RegionDTO
+    properties:
+      name:
+        description: RegionName
+        type: string
+    type: object
+  RoleDTO:
+    description: RoleDTO
+    properties:
+      description:
+        description: RoleDescription
+        type: string
+      id:
+        description: RoleId
+        format: uuid
+        type: string
+      name:
+        description: RoleName
+        type: string
+    type: object
+  ScheduleReportDTO:
+    description: ScheduleReportDTO
+    properties:
+      booking_created_at:
+        description: ScheduleReportBookingCreatedAt
+        format: date-time
+        type: string
+      capture_session_user:
+        description: ScheduleReportUserEmail
+        type: string
+      case_reference:
+        description: ScheduleReportCaseReference
+        type: string
+      court:
+        description: ScheduleReportCourtName
+        type: string
+      regions:
+        description: ScheduleReportCourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: ScheduleReportStartedAt
+        format: date-time
+        type: string
+    type: object
+  ScheduleReportDTOV2:
+    description: ScheduleReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      date_of_booking:
+        description: ScheduleReportBookingCreatedAt
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      scheduled_date:
+        description: ScheduleReportStartedDate
+        type: string
+      user:
+        description: ScheduleReportUserEmail
+        type: string
+    type: object
+  ShareBookingDTO:
+    description: BookingShares
+    properties:
+      booking_id:
+        format: uuid
+        type: string
+      created_at:
+        format: date-time
+        type: string
+      deleted_at:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      shared_by_user:
+        $ref: '#/definitions/BaseUserDTO'
+      shared_with_user:
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
+  SharedReportDTO:
+    description: SharedReportDTO
+    properties:
+      allocated_by:
+        description: SharedReportAllocatedBy
+        type: string
+      allocated_by_full_name:
+        description: SharedReportAllocatedToFullName
+        type: string
+      allocated_to:
+        description: SharedReportAllocatedTo
+        type: string
+      allocated_to_full_name:
+        description: SharedReportAllocatedToFullName
+        type: string
+      booking_id:
+        description: SharedReportBookingId
+        format: uuid
+        type: string
+      case_reference:
+        description: SharedReportCaseReference
+        type: string
+      court:
+        description: SharedReportCourtName
+        type: string
+      regions:
+        description: SharedReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      shared_at:
+        description: SharedReportSharedAt
+        format: date-time
+        type: string
+    type: object
+  SharedReportDTOV2:
+    description: SharedReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      granted_by:
+        description: SharedReportGrantedBy
+        type: string
+      granted_by_full_name:
+        description: SharedReportGrantedByFullName
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      share_date:
+        description: SharedReportShareDate
+        type: string
+      share_time:
+        description: SharedReportShareTime
+        type: string
+      shared_with:
+        description: SharedReportSharedWith
+        type: string
+      shared_with_full_name:
+        description: SharedReportSharedWithFullName
+        type: string
+      timezone:
+        description: SharedReportShareTimezone
+        type: string
+    type: object
+  TermsAndConditionsDTO:
+    properties:
+      created_at:
+        format: date-time
+        type: string
+      html:
+        type: string
+      id:
+        format: uuid
+        type: string
+      type:
+        enum:
+          - APP
+          - PORTAL
+        type: string
+    type: object
+  UpdateBookingCaseDTO:
+    description: UpdateBookingCaseDTO
+    properties:
+      booking_id:
+        description: UpdateBookingId
+        format: uuid
+        type: string
+      case_id:
+        description: CaseReferenceId
+        format: uuid
+        type: string
+    required:
+      - booking_id
+      - case_id
+    type: object
+  UserAccessReportDTO:
+    description: UserAccessReport
+    properties:
+      access_type:
+        description: AccessType
+        type: string
+      active:
+        description: UserReportActive
+        type: string
+      alternative_email:
+        description: UserAlternativeEmail
+        type: string
+      court_name:
+        description: CourtName
+        type: string
+      first_name:
+        description: UserReportFirstName
+        type: string
+      last_name:
+        description: UserReportLastName
+        type: string
+      primary_email:
+        description: UserPrimaryEmail
+        type: string
+      role_name:
+        description: UserReportRoleName
+        type: string
+    type: object
+  UserDTO:
+    description: UserDTO
+    properties:
+      alternative_email:
+        description: AlternativeEmail
+        format: email
+        maxLength: 100
+        minLength: 0
+        type: string
+      app_access:
+        description: UserAppAccess
+        items:
+          $ref: '#/definitions/BaseAppAccessDTO'
+        type: array
+      created_at:
+        description: UserCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: UserDeletedAt
+        format: date-time
+        type: string
+      email:
+        description: UserEmail
+        format: email
+        minLength: 1
+        type: string
+      first_name:
+        description: UserFirstName
+        minLength: 1
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        minLength: 1
+        type: string
+      modified_at:
+        description: UserModifiedAt
+        format: date-time
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      portal_access:
+        description: UserPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
+    required:
+      - email
+      - first_name
+      - id
+      - last_name
+    type: object
+  UserPrimaryCourtReportDTO:
+    description: UserPrimaryCourtReportDTOV2
+    properties:
+      active:
+        description: UserPrimaryCourtReportActive
+        type: string
+      first_name:
+        description: UserPrimaryCourtReportFirstName
+        type: string
+      last_access:
+        description: UserPrimaryCourtReportLastAccess
+        format: date-time
+        type: string
+      last_name:
+        description: UserPrimaryCourtReportLastName
+        type: string
+      primary_court_name:
+        description: UserPrimaryCourtReportPrimaryCourtName
+        type: string
+      role_name:
+        description: UserPrimaryCourtReportRoleName
+        type: string
+    type: object
+  UserRecordingPlaybackReportDTOV2:
+    description: UserRecordingPlaybackReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
+      region:
+        description: ReportRegion
+        type: string
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
+        type: string
+    type: object
+  VerifyEmailRequestDTO:
+    description: VerifyEmailRequestDTO
+    properties:
+      email:
+        description: Email
+        format: email
+        minLength: 1
+        type: string
+      verification_code:
+        description: VerificationCode
+        minLength: 1
+        pattern: '^[0-9]{6}$'
+        type: string
+    required:
+      - email
+      - verification_code
+    type: object
+externalDocs:
+  description: README
+  url: 'https://github.com/hmcts/pre-api'
+host: 'sds-api-mgmt.staging.platform.hmcts.net'
+info:
+  description: 'PRE API - Used for managing courts, bookings, recordings and permissions.'
+  license:
+    name: MIT
+    url: 'https://opensource.org/licenses/MIT'
+  title: Pre Recorded Evidence API
+  version: v0.0.1
+paths:
+  '/accept-terms-and-conditions/{termsId}':
+    post:
+      operationId: acceptTermsAndConditions
+      parameters:
+        - format: uuid
+          in: path
+          name: termsId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Accept terms and conditions for a user
+      tags:
+        - terms-and-conditions-controller
+  /app-terms-and-conditions/latest:
+    get:
+      operationId: getLatestTermsForApp
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the app
+      tags:
+        - terms-and-conditions-controller
+  /audit:
+    get:
+      operationId: getAuditLogs
+      parameters:
+        - description: The date time to search after
+          format: iso-date-time
+          in: query
+          name: after
+          type: string
+          x-example: '2021-01-01T00:00:00'
+        - description: The date time to search before
+          format: iso-date-time
+          in: query
+          name: before
+          type: string
+          x-example: '2021-01-01T00:00:00'
+        - description: The functional area to search by
+          in: query
+          name: functionalArea
+          type: string
+          x-example: API
+        - description: The source to search by
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          type: string
+        - description: Partial user's name to search by
+          in: query
+          name: userName
+          type: string
+        - description: The court id of the audit to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The case reference of the audit to search by
+          in: query
+          name: caseReference
+          type: string
+          x-example: CASE12345
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelAuditDTO'
+      summary: Search all Audits
+      tags:
+        - audit-controller
+  '/audit/{id}':
+    get:
+      operationId: getAudit
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/AuditDTO'
+      summary: Get an Audit Entry
+      tags:
+        - audit-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putAudit
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateAuditDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create an Audit Entry
+      tags:
+        - audit-controller
+  /b2c/email-verification:
+    post:
+      consumes:
+        - application/json
+      operationId: postEmailVerification
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/VerifyEmailRequestDTO'
+      responses:
+        '204':
+          description: No Content
+      summary: Trigger an email verification email to be sent out via gov notify
+      tags:
+        - b-2-c-controller
+  /bookings:
+    get:
+      operationId: searchBookings
+      parameters:
+        - description: The Case Id to search for
+          format: uuid
+          in: query
+          name: caseId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The Case Reference to search for
+          in: query
+          name: caseReference
+          type: string
+          x-example: 1234567890123456
+        - description: The Date the Booking is scheduled for
+          format: date
+          in: query
+          name: scheduledFor
+          type: string
+          x-example: '2024-04-27'
+        - description: The Participant Id to search for
+          format: uuid
+          in: query
+          name: participantId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The Court Id to search for
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: If the booking has any recordings
+          in: query
+          name: hasRecordings
+          type: boolean
+        - description: >-
+            Search bookings with at least one associated capture session with
+            one of the statuses listed
+          in: query
+          name: captureSessionStatusIn
+          type: string
+        - description: >-
+            Bookings where the associated capture sessions do not match status
+            or bookings without sessions
+          in: query
+          name: captureSessionStatusNotIn
+          type: string
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelBookingDTO'
+      summary: 'Search All Bookings using Case Id, Case Ref, or Scheduled For'
+      tags:
+        - booking-controller
+  '/bookings/migrate-case/{bookingId}':
+    put:
+      consumes:
+        - application/json
+      operationId: migrateToDifferentCaseReference
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateBookingCaseDTO'
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/BookingDTO'
+      summary: Migrate a Booking to a different case reference
+      tags:
+        - booking-controller
+  '/bookings/{bookingId}':
+    delete:
+      operationId: deleteBooking
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Delete a Booking
+      tags:
+        - booking-controller
+    get:
+      operationId: getBookingById
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/BookingDTO'
+      summary: Get a Booking by Id
+      tags:
+        - booking-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putBooking
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateBookingDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Booking
+      tags:
+        - booking-controller
+  '/bookings/{bookingId}/share':
+    get:
+      operationId: getSharedBookingLogs
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelShareBookingDTO'
+      tags:
+        - booking-controller
+    put:
+      consumes:
+        - application/json
+      operationId: shareBookingById
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateShareBookingDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Share a Booking
+      tags:
+        - booking-controller
+  '/bookings/{bookingId}/share/{shareId}':
+    delete:
+      operationId: deleteShareBookingById
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - format: uuid
+          in: path
+          name: shareId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      tags:
+        - booking-controller
+  '/bookings/{bookingId}/undelete':
+    post:
+      operationId: undeleteBooking
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of a booking
+      tags:
+        - booking-controller
+  /capture-sessions:
+    get:
+      operationId: searchCaptureSessions
+      parameters:
+        - description: The case reference to search for
+          in: query
+          name: caseReference
+          type: string
+          x-example: 1234567890123456
+        - description: The booking id to search for
+          format: uuid
+          in: query
+          name: bookingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The origin of the capture session to search for
+          enum:
+            - PRE
+            - VODAFONE
+            - VODAFONE_VISIBLE
+          in: query
+          name: origin
+          type: string
+        - description: The recording status to search for
+          enum:
+            - STANDBY
+            - INITIALISING
+            - RECORDING
+            - PROCESSING
+            - RECORDING_AVAILABLE
+            - FAILURE
+            - NO_RECORDING
+          in: query
+          name: recordingStatus
+          type: string
+        - description: The Date the Booking was scheduled for
+          format: date
+          in: query
+          name: scheduledFor
+          type: string
+          x-example: '2024-04-27'
+        - description: The court id of the capture session to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelCaptureSessionDTO'
+      summary: Search All Capture Sessions
+      tags:
+        - capture-session-controller
+  '/capture-sessions/trigger-registration/{captureSessionId}':
+    put:
+      operationId: triggerRegistrationForCaptureSession
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Register a Capture Session that got stuck in PROCESSING state
+      tags:
+        - capture-session-controller
+  '/capture-sessions/{captureSessionId}':
+    delete:
+      operationId: deleteCaptureSessionById
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Delete Capture Session by Id
+      tags:
+        - capture-session-controller
+    get:
+      operationId: getCaptureSessionById
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Get a Capture Session by Id
+      tags:
+        - capture-session-controller
+    put:
+      consumes:
+        - application/json
+      operationId: upsertCaptureSession
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCaptureSessionDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Capture Session
+      tags:
+        - capture-session-controller
+  '/capture-sessions/{captureSessionId}/undelete':
+    post:
+      operationId: undeleteCaptureSession
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of a capture session
+      tags:
+        - capture-session-controller
+  /cases:
+    get:
+      operationId: getCases
+      parameters:
+        - description: The case reference to search by
+          in: query
+          name: reference
+          type: string
+          x-example: 1234567890123456
+        - description: The court id to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: Include cases marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelCaseDTO'
+      summary: Get a case by reference or court id
+      tags:
+        - case-controller
+  /cases/close-pending:
+    post:
+      operationId: closePendingCases
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Close cases in PENDING_CLOSURE state > 29 days
+      tags:
+        - case-controller
+  '/cases/{id}':
+    delete:
+      operationId: deleteCase
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Mark a Case as deleted
+      tags:
+        - case-controller
+    get:
+      operationId: getCaseById
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaseDTO'
+      summary: Get a case by id
+      tags:
+        - case-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putCase
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCaseDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Case
+      tags:
+        - case-controller
+  '/cases/{id}/undelete':
+    post:
+      operationId: undeleteCase
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of a case
+      tags:
+        - case-controller
+  /courts:
+    get:
+      operationId: searchCourts
+      parameters:
+        - description: The type of the court to search by
+          enum:
+            - CROWN
+            - MAGISTRATE
+            - FAMILY
+          in: query
+          name: courtType
+          type: string
+        - description: The name of the court to search by
+          in: query
+          name: name
+          type: string
+          x-example: Example
+        - description: The location code of the court to search by
+          in: query
+          name: locationCode
+          type: string
+        - description: The region name of the court to search by
+          in: query
+          name: regionName
+          type: string
+          x-example: London
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelCourtDTO'
+      summary: 'Search for Courts by court type, name, location code or region name'
+      tags:
+        - court-controller
+  /courts/email:
+    post:
+      consumes:
+        - multipart/form-data
+      operationId: updateCourtEmailAddresses
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - format: binary
+          in: formData
+          name: file
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CourtEmailDTO'
+            type: array
+      tags:
+        - court-controller
+  '/courts/{courtId}':
+    get:
+      operationId: getCourtById
+      parameters:
+        - format: uuid
+          in: path
+          name: courtId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CourtDTO'
+      summary: Get a Court by Id
+      tags:
+        - court-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putCourt
+      parameters:
+        - format: uuid
+          in: path
+          name: courtId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCourtDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Court
+      tags:
+        - court-controller
+  /edits:
+    get:
+      operationId: searchEdits
+      parameters:
+        - description: The source recording's id to search by
+          format: uuid
+          in: query
+          name: sourceRecordingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The date of last modification to search after
+          format: date
+          in: query
+          name: lastModifiedAfter
+          type: string
+          x-example: '2024-04-27'
+        - description: The date of last modification to search before
+          format: date
+          in: query
+          name: lastModifiedBefore
+          type: string
+          x-example: '2024-04-27'
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelEditRequestDTO'
+      tags:
+        - edit-controller
+  '/edits/from-csv/{sourceRecordingId}':
+    post:
+      consumes:
+        - multipart/form-data
+      operationId: createEditFromCsv
+      parameters:
+        - format: uuid
+          in: path
+          name: sourceRecordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - format: binary
+          in: formData
+          name: file
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
+  '/edits/{id}':
+    delete:
+      consumes:
+        - application/json
+      operationId: delete
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateEditRequestDTO'
+      responses:
+        '200':
+          description: OK
+      tags:
+        - edit-controller
+    get:
+      operationId: getEditRequestById
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EditRequestDTO'
+      tags:
+        - edit-controller
+    put:
+      consumes:
+        - application/json
+      operationId: upsertEditRequest
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateEditRequestDTO'
+      responses:
+        '200':
+          description: OK
+      tags:
+        - edit-controller
+  /health:
+    get:
+      operationId: health
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/json
+        - application/vnd.spring-boot.actuator.v2+json
+        - application/vnd.spring-boot.actuator.v3+json
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+      summary: Actuator web endpoint 'health'
+      tags:
+        - Actuator
+  /invites:
+    get:
+      operationId: searchInvites
+      parameters:
+        - description: The first name of the user to search by
+          in: query
+          name: firstName
+          type: string
+        - description: The last name of the user to search by
+          in: query
+          name: lastName
+          type: string
+        - description: The email of the user to search by
+          in: query
+          name: email
+          type: string
+          x-example: example@example.com
+        - description: The organisation of the user to search by
+          in: query
+          name: organisation
+          type: string
+        - description: The access status of the user to search by
+          enum:
+            - INVITATION_SENT
+            - REGISTERED
+            - ACTIVE
+            - INACTIVE
+          in: query
+          name: status
+          type: string
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelInviteDTO'
+      summary: 'Search for Invites by first name, last name, email or organisation'
+      tags:
+        - invite-controller
+  /invites/redeem:
+    post:
+      operationId: redeemInvite
+      parameters:
+        - description: The email of the user to redeem the invite for
+          in: query
+          name: email
+          required: true
+          type: string
+          x-example: example@example.com
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Redeem an invite
+      tags:
+        - invite-controller
+  '/invites/{userId}':
+    delete:
+      operationId: deleteInvite
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Delete the user with invitation sent status
+      tags:
+        - invite-controller
+    get:
+      operationId: getInviteById
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/InviteDTO'
+      summary: Get an invite by user id
+      tags:
+        - invite-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putInvite
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateInviteDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create a portal access user and invite them
+      tags:
+        - invite-controller
+  /media-service/assets:
+    get:
+      operationId: getAssets
+      parameters:
+        - format: int32
+          in: query
+          name: top
+          required: false
+          type: integer
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AssetDTO'
+            type: array
+      summary: Get all media service assets
+      tags:
+        - media-service-controller
+  '/media-service/assets/{assetName}':
+    get:
+      operationId: getAssetsByName
+      parameters:
+        - in: path
+          name: assetName
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/AssetDTO'
+      summary: Get a media service asset by name
+      tags:
+        - media-service-controller
+  '/media-service/blob/{containerName}':
+    get:
+      operationId: checkBlobExists
+      parameters:
+        - in: path
+          name: containerName
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: boolean
+      summary: >-
+        Checks if a container contains the .ism file. 204 on success, 404 on
+        failure.
+      tags:
+        - media-service-controller
+  /media-service/generate-asset:
+    post:
+      consumes:
+        - application/json
+      operationId: generateAsset
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/GenerateAssetDTO'
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/GenerateAssetResponseDTO'
+      summary: >-
+        LEGACY - Given a source & destination, this endpoint will generate a
+        streaming asset for a given mp4
+      tags:
+        - media-service-controller
+  /media-service/health:
+    get:
+      operationId: mediaServiceHealth
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+      summary: Check the status of the media service connection
+      tags:
+        - media-service-controller
+  '/media-service/live-event/check/{captureSessionId}':
+    post:
+      operationId: checkStream
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Check stream has started
+      tags:
+        - media-service-controller
+  '/media-service/live-event/end/{captureSessionId}':
+    put:
+      operationId: stopLiveEvent
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Stop a live event
+      tags:
+        - media-service-controller
+  '/media-service/live-event/start/{captureSessionId}':
+    put:
+      operationId: startLiveEvent
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Start a live event
+      tags:
+        - media-service-controller
+  /media-service/live-events:
+    get:
+      operationId: getLiveEvents
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/LiveEventDTO'
+            type: array
+      summary: Get a list of media service live events
+      tags:
+        - media-service-controller
+  '/media-service/live-events/{liveEventName}':
+    get:
+      operationId: getLiveEventsByName
+      parameters:
+        - in: path
+          name: liveEventName
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/LiveEventDTO'
+      summary: Get a media service live event by name
+      tags:
+        - media-service-controller
+  '/media-service/streaming-locator/live-event/{captureSessionId}':
+    put:
+      operationId: playLiveEvent
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Play a live event
+      tags:
+        - media-service-controller
+  /media-service/vod:
+    get:
+      operationId: getVod
+      parameters:
+        - format: uuid
+          in: query
+          name: recordingId
+          required: true
+          type: string
+        - in: query
+          name: mediaService
+          required: false
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PlaybackDTO'
+      tags:
+        - media-service-controller
+  /portal-terms-and-conditions/latest:
+    get:
+      operationId: getLatestTermsForPortal
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the portal
+      tags:
+        - terms-and-conditions-controller
+  /recordings:
+    get:
+      operationId: getRecordings
+      parameters:
+        - description: Partial string of the recording id to search by
+          in: query
+          name: id
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The capture session to search by
+          format: uuid
+          in: query
+          name: captureSessionId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The parent recording to search by
+          format: uuid
+          in: query
+          name: parentRecordingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The participant to search by
+          format: uuid
+          in: query
+          name: participantId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The name of a witness to search by
+          in: query
+          name: witnessName
+          type: string
+        - description: The name of a defendant to search by
+          in: query
+          name: defendantName
+          type: string
+        - description: The case reference to search by
+          in: query
+          name: caseReference
+          type: string
+          x-example: CASE12345
+        - description: The Date the recording's capture session was started at
+          format: date
+          in: query
+          name: startedAt
+          type: string
+          x-example: '2024-04-27'
+        - description: The court to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: Include recordings marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
+        - description: The version number to search by
+          format: int32
+          in: query
+          name: version
+          type: integer
+        - description: The case status to search by
+          in: query
+          name: caseOpen
+          type: boolean
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelRecordingDTO'
+      summary: Search all Recordings
+      tags:
+        - recording-controller
+  '/recordings/{recordingId}':
+    delete:
+      operationId: deleteRecording
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Delete a Recording
+      tags:
+        - recording-controller
+    get:
+      operationId: getRecordingById
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/RecordingDTO'
+      summary: Get a Recording by Id
+      tags:
+        - recording-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putRecordings
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateRecordingDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Recording
+      tags:
+        - recording-controller
+  '/recordings/{recordingId}/undelete':
+    post:
+      operationId: undeleteRecording
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of a recording
+      tags:
+        - recording-controller
+  /reports-v2/capture-sessions-concurrent:
+    get:
+      operationId: reportConcurrentCaptureSessionsv2
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ConcurrentCaptureSessionReportDTOV2'
+            type: array
+      tags:
+        - report-controller
+  /reports-v2/completed-capture-sessions:
+    get:
+      operationId: reportCompletedCaptureSessions_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CompletedCaptureSessionReportDTOV2'
+            type: array
+      summary: Get a report on capture sessions with available recordings v2
+      tags:
+        - report-controller
+  /reports-v2/edits:
+    get:
+      operationId: reportEdits_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/EditReportDTOV2'
+            type: array
+      summary: Get a report on recordings edits v2
+      tags:
+        - report-controller
+  /reports-v2/playback:
+    get:
+      operationId: reportPlayback_1
+      parameters:
+        - description: 'The source of the playback. Only accepts PORTAL, APPLICATION or null'
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          required: false
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/PlaybackReportDTOV2'
+            type: array
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION) v2'
+      tags:
+        - report-controller
+  /reports-v2/recording-participants:
+    get:
+      operationId: reportRecordingParticipants_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingParticipantsReportDTO'
+            type: array
+      summary: Get report on participants and the recordings they are part of v2
+      tags:
+        - report-controller
+  /reports-v2/recordings-per-case:
+    get:
+      operationId: reportRecordingsPerCase_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingsPerCaseReportDTOV2'
+            type: array
+      summary: Get the number of completed capture sessions for each case v2
+      tags:
+        - report-controller
+  /reports-v2/schedules:
+    get:
+      operationId: reportSchedules_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ScheduleReportDTOV2'
+            type: array
+      summary: Get a list of completed capture sessions with booking details v2
+      tags:
+        - report-controller
+  /reports-v2/share-bookings-removed:
+    get:
+      operationId: reportShareBookingRemoved_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AccessRemovedReportDTOV2'
+            type: array
+      summary: Get report on booking share removal v2
+      tags:
+        - report-controller
+  /reports-v2/shared-bookings:
+    get:
+      operationId: reportBookingsShared_1
+      parameters:
+        - description: The court id to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The booking id to search by
+          format: uuid
+          in: query
+          name: bookingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The id of the user the booking is shared with to search by
+          format: uuid
+          in: query
+          name: sharedWithId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The email of the user the booking is shared with to search by
+          in: query
+          name: sharedWithEmail
+          type: string
+          x-example: example@example.com
+        - description: 'The shares must be active (not deleted) then true, otherwise false'
+          in: query
+          name: onlyActive
+          type: boolean
+          x-example: true
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/SharedReportDTOV2'
+            type: array
+      summary: Get a report on the bookings that have been shared v2
+      tags:
+        - report-controller
+  /reports-v2/user-full-access-report:
+    get:
+      operationId: reportUserFullAccess
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserAccessReportDTO'
+            type: array
+      summary: Get full report on app users
+      tags:
+        - report-controller
+  /reports-v2/user-full-access-report-csv:
+    get:
+      operationId: reportUserFullAccessCsv
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - text/csv
+      responses:
+        '200':
+          description: OK
+          schema:
+            format: byte
+            type: string
+      summary: Get full report on app users in CSV format
+      tags:
+        - report-controller
+  /reports-v2/user-primary-courts:
+    get:
+      operationId: reportUserPrimaryCourts_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserPrimaryCourtReportDTO'
+            type: array
+      summary: Get report on app users and their primary courts v2
+      tags:
+        - report-controller
+  /reports-v2/user-recording-playback:
+    get:
+      operationId: userRecordingPlaybackReport
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserRecordingPlaybackReportDTOV2'
+            type: array
+      summary: Get report on playback by playback for all sources v2
+      tags:
+        - report-controller
+  /reports/capture-sessions-concurrent:
+    get:
+      operationId: reportConcurrentCaptureSessions
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ConcurrentCaptureSessionReportDTO'
+            type: array
+      tags:
+        - legacy-report-controller
+  /reports/completed-capture-sessions:
+    get:
+      operationId: reportCompletedCaptureSessions
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CompletedCaptureSessionReportDTO'
+            type: array
+      summary: Get a report on capture sessions with available recordings
+      tags:
+        - legacy-report-controller
+  /reports/edits:
+    get:
+      operationId: reportEdits
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/EditReportDTO'
+            type: array
+      summary: Get a report on recordings edits
+      tags:
+        - legacy-report-controller
+  /reports/playback:
+    get:
+      operationId: reportPlayback
+      parameters:
+        - description: 'The source of the playback. Only accepts PORTAL, APPLICATION or null'
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          required: false
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/PlaybackReportDTO'
+            type: array
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
+      tags:
+        - legacy-report-controller
+  /reports/recording-participants:
+    get:
+      operationId: reportRecordingParticipants
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingParticipantsReportDTO'
+            type: array
+      summary: Get report on participants and the recordings they are part of
+      tags:
+        - legacy-report-controller
+  /reports/recordings-per-case:
+    get:
+      operationId: reportRecordingsPerCase
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingsPerCaseReportDTO'
+            type: array
+      summary: Get the number of completed capture sessions for each case
+      tags:
+        - legacy-report-controller
+  /reports/schedules:
+    get:
+      operationId: reportSchedules
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ScheduleReportDTO'
+            type: array
+      summary: Get a list of completed capture sessions with booking details
+      tags:
+        - legacy-report-controller
+  /reports/share-bookings-removed:
+    get:
+      operationId: reportShareBookingRemoved
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AccessRemovedReportDTO'
+            type: array
+      summary: Get report on booking share removal
+      tags:
+        - legacy-report-controller
+  /reports/shared-bookings:
+    get:
+      operationId: reportBookingsShared
+      parameters:
+        - description: The court id to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The booking id to search by
+          format: uuid
+          in: query
+          name: bookingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The id of the user the booking is shared with to search by
+          format: uuid
+          in: query
+          name: sharedWithId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The email of the user the booking is shared with to search by
+          in: query
+          name: sharedWithEmail
+          type: string
+          x-example: example@example.com
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/SharedReportDTO'
+            type: array
+      summary: Get a report on the bookings that have been shared
+      tags:
+        - legacy-report-controller
+  /reports/user-primary-courts:
+    get:
+      operationId: reportUserPrimaryCourts
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserPrimaryCourtReportDTO'
+            type: array
+      summary: >-
+        Get report on app users: their first and last name, their role, their
+        active status, their primary court and their last access time (if
+        available)
+      tags:
+        - legacy-report-controller
+  /roles:
+    get:
+      operationId: getRoles
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RoleDTO'
+            type: array
+      summary: Get a list of all roles
+      tags:
+        - role-controller
+  /users:
+    get:
+      operationId: getUsers
+      parameters:
+        - description: The name of the user to search by
+          in: query
+          name: name
+          type: string
+        - description: The first name of the user to search by
+          in: query
+          name: firstName
+          type: string
+        - description: The last name of the user to search by
+          in: query
+          name: lastName
+          type: string
+        - description: The email of the user to search by
+          in: query
+          name: email
+          type: string
+          x-example: example@example.com
+        - description: The organisation of the user to search by
+          in: query
+          name: organisation
+          type: string
+        - description: The court id of the user to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The role id of the user to search by
+          format: uuid
+          in: query
+          name: roleId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: Get Users by their access type
+          enum:
+            - PORTAL
+            - APP
+          in: query
+          name: accessType
+          type: string
+        - description: Include users marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
+        - description: Filter by users with active app access
+          in: query
+          name: appActive
+          type: boolean
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelUserDTO'
+      summary: >-
+        Search for Users by first name, last name, email, organisation, court or
+        role
+      tags:
+        - user-controller
+  '/users/by-email/{email}':
+    get:
+      operationId: getUserAccessByEmail
+      parameters:
+        - in: path
+          name: email
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/AccessDTO'
+      summary: Get a User's App Access by Email
+      tags:
+        - user-controller
+  '/users/{userId}':
+    delete:
+      operationId: deleteUser
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Delete a User
+      tags:
+        - user-controller
+    get:
+      operationId: getUserById
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/UserDTO'
+      summary: Get a User by Id
+      tags:
+        - user-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putUser
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateUserDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a User
+      tags:
+        - user-controller
+  '/users/{userId}/undelete':
+    post:
+      operationId: undeleteUser
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of user
+      tags:
+        - user-controller
+  /vf-migration-records:
+    get:
+      operationId: getVfMigrationRecords
+      parameters:
+        - description: The case reference to search for
+          in: query
+          name: caseReference
+          type: string
+        - description: The witness name to search for
+          in: query
+          name: witnessName
+          type: string
+        - description: The defendant name to search for
+          in: query
+          name: defendantName
+          type: string
+        - description: The court id to search for
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+        - description: The court reference to search for
+          in: query
+          name: courtReference
+          type: string
+        - description: The status to search for
+          enum:
+            - PENDING
+            - SUCCESS
+            - FAILED
+            - READY
+            - SUBMITTED
+            - IGNORED
+          in: query
+          name: status
+          type: string
+        - description: The date the record was created to search from
+          format: date
+          in: query
+          name: createDateFrom
+          type: string
+          x-example: '2024-04-27'
+        - description: The date the record was created to search to
+          format: date
+          in: query
+          name: createDateTo
+          type: string
+          x-example: '2024-04-27'
+        - description: Search by a list of reasons
+          in: query
+          name: reasonIn
+          type: string
+        - description: Search by a list of reasons that should not be included
+          in: query
+          name: reasonNotIn
+          type: string
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'archiveName,desc'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelVfMigrationRecordDTO'
+      summary: Search all migration records
+      tags:
+        - vf-migration-controller
+  /vf-migration-records/import-assets:
+    post:
+      operationId: importVodafoneAssets
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Imports Vodafone for resolbed migration records
+      tags:
+        - vf-migration-controller
+  /vf-migration-records/submit:
+    post:
+      operationId: submitMigrationRecords
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Submits resolved migration records and runs import
+      tags:
+        - vf-migration-controller
+  '/vf-migration-records/{id}':
+    put:
+      consumes:
+        - application/json
+      operationId: putVfMigrationRecord
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateVfMigrationRecordDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Update vf migration record
+      tags:
+        - vf-migration-controller
+schemes:
+  - https
+security:
+  - Ocp-Apim-Subscription-Key: []
+securityDefinitions:
+  Ocp-Apim-Subscription-Key:
+    in: header
+    name: Ocp-Apim-Subscription-Key
+    type: apiKey
+swagger: '2.0'
+tags:
+  - description: Monitor and interact
+    externalDocs:
+      description: Spring Boot Actuator Web API Documentation
+      url: 'https://docs.spring.io/spring-boot/docs/current/actuator-api/html/'
+    name: Actuator
+x-components: {}
+
