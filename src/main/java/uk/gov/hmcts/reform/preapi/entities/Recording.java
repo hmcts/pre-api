@@ -67,6 +67,9 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @Column(name = "is_reencode", nullable = false)
     private boolean reencode;
 
+    @Column(name = "vf_original_reencoded", nullable = false)
+    private boolean vfOriginalNowReencoded;
+
     @OneToMany(mappedBy = "sourceRecording")
     private Set<EditRequest> editRequests;
 

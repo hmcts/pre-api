@@ -37,7 +37,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     void shouldNotDeleteRecordingsForBooking() {
 
-        var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking", null).body().jsonPath();
+        var testIds = doPostRequest("/testing-support/set-up-recording-available", null).body().jsonPath();
 
         var bookingId = testIds.getUUID("bookingId");
         var recordingId = testIds.getUUID("recordingId");

@@ -69,6 +69,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -506,7 +507,7 @@ public class MediaKind implements IMediaService {
     }
 
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(DateTimeUtils.TIME_ZONE);
         String streamingLocatorName = userId + "_" + assetName;
 
         // check streaming locator is still valid
@@ -658,7 +659,8 @@ public class MediaKind implements IMediaService {
                                       String transformName,
                                       String fileName) {
         getOrCreateTransform(transformName);
-        String jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        String jobName = inputAssetName + "-" + LocalDateTime.now(DateTimeUtils.TIME_ZONE)
+            .toEpochSecond(ZoneOffset.UTC);
         log.info("Creating job [{}]", jobName);
         mediaKindClient.putJob(
             transformName,

@@ -1,13 +1,16 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
@@ -52,6 +55,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = RecordingService.class)
@@ -828,5 +832,86 @@ class RecordingServiceTest {
         assertThat(results).hasSize(1);
         assertThat(results.getFirst().getId()).isEqualTo(recordingEntity.getId());
         verify(recordingRepository, times(1)).findAllOriginVodafoneNoDuration();
+    }
+
+    @Test
+    @DisplayName("Undelete VF originals")
+    void undeleteVFOriginals() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        Recording vfOriginalWithReencodedVersion = new Recording();
+        vfOriginalWithReencodedVersion.setId(UUID.randomUUID());
+        vfOriginalWithReencodedVersion.setDeleted(Boolean.TRUE);
+        vfOriginalWithReencodedVersion.setDeletedAt(Timestamp.from(Instant.now()));
+        vfOriginalWithReencodedVersion.setVfOriginalNowReencoded(Boolean.TRUE);
+
+        when(recordingRepository.findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue())
+            .thenReturn(List.of(vfOriginalWithReencodedVersion));
+
+        recordingService.undeleteOriginalWhereReencodedVersionExists();
+
+        verify(recordingRepository, times(1))
+            .findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue();
+
+        ArgumentCaptor<Recording> captor = ArgumentCaptor.forClass(Recording.class);
+        verify(recordingRepository, times(1)).save(captor.capture());
+
+        Recording savedRecording = captor.getValue();
+        assertThat(savedRecording.getId()).isEqualTo(vfOriginalWithReencodedVersion.getId());
+        assertThat(savedRecording.isDeleted()).isFalse();
+        assertThat(savedRecording.isVfOriginalNowReencoded()).isTrue();
+
+        verify(recordingRepository, times(1)).flush();
+
+        verifyNoMoreInteractions(recordingRepository);
+    }
+
+    @Test
+    @DisplayName("Delete original VF recordings where re-encoded version exists")
+    void deleteVFWhereReEncodedVersionExists() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        Recording vfOriginalWithReencodedVersion = new Recording();
+        vfOriginalWithReencodedVersion.setId(UUID.randomUUID());
+
+        when(recordingRepository.findVodafoneOriginalRecordingsWhereReencodedVersionExists())
+            .thenReturn(List.of(vfOriginalWithReencodedVersion));
+
+        recordingService.deleteOriginalWhereReencodedVersionExists();
+
+        verify(recordingRepository, times(1))
+            .findVodafoneOriginalRecordingsWhereReencodedVersionExists();
+
+        ArgumentCaptor<Recording> captor = ArgumentCaptor.forClass(Recording.class);
+        verify(recordingRepository, times(1)).save(captor.capture());
+        Recording capturedRecording = captor.getValue();
+        Assertions.assertThat(capturedRecording.isDeleted()).isTrue();
+        Assertions.assertThat(capturedRecording.isVfOriginalNowReencoded()).isTrue();
+
+        verify(recordingRepository, times(1)).flush();
+
+        verifyNoMoreInteractions(recordingRepository);
+    }
+
+    @Test
+    @DisplayName("Need to be admin user to delete/undelete VF originals")
+    void needToBeAdminUserToDelete() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        assertThrows(
+            AccessDeniedException.class,
+            () ->  recordingService.undeleteOriginalWhereReencodedVersionExists()
+        );
+
+        assertThrows(
+            AccessDeniedException.class,
+            () ->  recordingService.deleteOriginalWhereReencodedVersionExists()
+        );
     }
 }

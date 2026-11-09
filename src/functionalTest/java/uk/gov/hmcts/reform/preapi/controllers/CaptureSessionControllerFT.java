@@ -29,7 +29,7 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: Delete capture session with recordings")
     void shouldNotDeleteCaptureSessionWithRecordings() {
-        var postResponseData = doPostRequest("/testing-support/should-delete-recordings-for-booking", null)
+        var postResponseData = doPostRequest("/testing-support/set-up-recording-available", null)
             .body().jsonPath();
         var captureSessionId = postResponseData.getUUID("captureSessionId");
         var recordingId = postResponseData.getUUID("recordingId");
@@ -51,7 +51,7 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: Delete capture session without recordings")
     void shouldDeleteCaptureSessionWithoutRecordings() {
-        var postResponseData = doPostRequest("/testing-support/should-delete-recordings-for-booking", null)
+        var postResponseData = doPostRequest("/testing-support/set-up-recording-available", null)
             .body().jsonPath();
         var captureSessionId = postResponseData.getUUID("captureSessionId");
         var recordingId = postResponseData.getUUID("recordingId");

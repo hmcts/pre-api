@@ -60,7 +60,7 @@ public class TermsAndConditionsControllerTest {
         model.setType(TermsAndConditionsType.APP);
         model.setCreatedAt(Timestamp.from(Instant.now()));
 
-        when(termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP))
+        when(termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.APP))
             .thenReturn(model);
 
         mockMvc.perform(get(TEST_URL + "/app-terms-and-conditions/latest"))
@@ -70,14 +70,14 @@ public class TermsAndConditionsControllerTest {
             .andExpect(jsonPath("$.type").value(model.getType().toString()))
             .andExpect(jsonPath("$.html").value(model.getHtml()));
 
-        verify(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.APP);
+        verify(termsAndConditionsService).getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
     }
 
     @Test
     @DisplayName("Should return 404 error when there are no terms and conditions for app")
     void getLatestTermsAndConditionsAppNotFound() throws Exception {
         doThrow(new NotFoundException("Terms and conditions of type: APP"))
-            .when(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.APP);
+            .when(termsAndConditionsService).getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
 
         mockMvc.perform(get(TEST_URL + "/app-terms-and-conditions/latest"))
             .andExpect(status().isNotFound())
@@ -85,7 +85,7 @@ public class TermsAndConditionsControllerTest {
             .andExpect(jsonPath("$.message")
                            .value("Not found: Terms and conditions of type: APP"));
 
-        verify(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.APP);
+        verify(termsAndConditionsService).getLatestTermsAndConditionsByType(TermsAndConditionsType.APP);
     }
 
     @Test
@@ -97,7 +97,7 @@ public class TermsAndConditionsControllerTest {
         model.setType(TermsAndConditionsType.PORTAL);
         model.setCreatedAt(Timestamp.from(Instant.now()));
 
-        when(termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL))
+        when(termsAndConditionsService.getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL))
             .thenReturn(model);
 
         mockMvc.perform(get(TEST_URL + "/portal-terms-and-conditions/latest"))
@@ -107,14 +107,14 @@ public class TermsAndConditionsControllerTest {
             .andExpect(jsonPath("$.type").value(model.getType().toString()))
             .andExpect(jsonPath("$.html").value(model.getHtml()));
 
-        verify(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+        verify(termsAndConditionsService).getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
     }
 
     @Test
     @DisplayName("Should return 404 error when there are no terms and conditions for portal")
     void getLatestTermsAndConditionsPortalNotFound() throws Exception {
         doThrow(new NotFoundException("Terms and conditions of type: PORTAL"))
-            .when(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+            .when(termsAndConditionsService).getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
 
         mockMvc.perform(get(TEST_URL + "/portal-terms-and-conditions/latest"))
             .andExpect(status().isNotFound())
@@ -122,7 +122,7 @@ public class TermsAndConditionsControllerTest {
             .andExpect(jsonPath("$.message")
                            .value("Not found: Terms and conditions of type: PORTAL"));
 
-        verify(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+        verify(termsAndConditionsService).getLatestTermsAndConditionsByType(TermsAndConditionsType.PORTAL);
     }
 
     @Test

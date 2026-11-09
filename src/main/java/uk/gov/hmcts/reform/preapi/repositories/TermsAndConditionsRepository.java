@@ -5,10 +5,14 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 
+import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface TermsAndConditionsRepository extends JpaRepository<TermsAndConditions, UUID> {
     Optional<TermsAndConditions> findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType type);
+
+    Optional<TermsAndConditions> findFirstByTypeAndCreatedAtBeforeOrderByCreatedAtDesc(
+        TermsAndConditionsType type, Timestamp timestamp);
 }

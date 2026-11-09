@@ -5,9 +5,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserAccessReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -58,6 +60,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = ReportService.class)
+@TestPropertySource(properties = {
+    "reports.days-range=2"
+})
 public class ReportServiceTest {
     private static Recording recordingEntity;
     private static CaptureSession captureSessionEntity;
@@ -852,7 +857,8 @@ public class ReportServiceTest {
         bookingEntity.setParticipants(Set.of(witness, defendant));
         bookingEntity.setScheduledFor(Timestamp.from(Instant.now()));
 
-        when(recordingRepository.findAllCompletedCaptureSessionsWithRecordings()).thenReturn(List.of(recordingEntity));
+        when(recordingRepository.findAllCompletedCaptureSessionsWithRecordings(any(String.class)))
+            .thenReturn(List.of(recordingEntity));
 
         var report = reportService.reportCompletedCaptureSessions();
 
@@ -873,6 +879,22 @@ public class ReportServiceTest {
         assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
         assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
         assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Filter reports to the most recent records")
+    @Test
+    void reportCompletedCaptureSessionsFilterMostRecent() {
+        when(recordingRepository.findAllCompletedCaptureSessionsWithRecordings(any(String.class)))
+            .thenReturn(List.of());
+
+        reportService.reportCompletedCaptureSessions();
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(recordingRepository).findAllCompletedCaptureSessionsWithRecordings(captor.capture());
+
+        // From TestPropertySource at the top of this class, the property is set to 2 days ago
+        String expectedDate = java.time.LocalDate.now().minusDays(2).toString();
+        assertThat(captor.getValue()).isEqualTo(expectedDate);
     }
 
     @DisplayName("Find all share booking removals and return a report")

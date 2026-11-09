@@ -36,6 +36,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -58,6 +59,8 @@ public class ReportService {
     private final PortalAccessRepository portalAccessRepository;
     private final boolean hideReencodedRecordings;
 
+    private final String dateToStartReports;
+
     private static final String ROLE_SUPER_USER = "ROLE_SUPER_USER";
 
     @Autowired
@@ -68,6 +71,7 @@ public class ReportService {
                          UserRepository userRepository,
                          AppAccessRepository appAccessRepository,
                          PortalAccessRepository portalAccessRepository,
+                         @Value("${reports.days-range:60}") long numberOfDaysToReport,
                          @Value("${feature-flags.hide-reencoded-recordings:true}")
                          boolean hideReencodedRecordings) {
         this.captureSessionRepository = captureSessionRepository;
@@ -78,6 +82,8 @@ public class ReportService {
         this.appAccessRepository = appAccessRepository;
         this.portalAccessRepository = portalAccessRepository;
         this.hideReencodedRecordings = hideReencodedRecordings;
+        this.dateToStartReports = java.time.LocalDate.now(DateTimeUtils.TIME_ZONE)
+            .minusDays(numberOfDaysToReport).toString();
     }
 
     @Transactional
@@ -234,7 +240,7 @@ public class ReportService {
     @Transactional
     public List<CompletedCaptureSessionReportDTOV2> reportCompletedCaptureSessions() {
         return recordingRepository
-            .findAllCompletedCaptureSessionsWithRecordings()
+            .findAllCompletedCaptureSessionsWithRecordings(dateToStartReports)
             .stream()
             .filter(this::canViewRecording)
             .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
