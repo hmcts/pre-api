@@ -669,6 +669,31 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
     }
 
+    @Test
+    @DisplayName("Should verify that live event is still running")
+    void verifyLiveEventIsRunning() {
+        final String liveEventName = UUID.randomUUID().toString();
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(
+            MkLiveEvent.builder()
+                .properties(MkLiveEventProperties.builder()
+                                .resourceState(LiveEventResourceState.RUNNING.toString())
+                                .build())
+                .build()
+        );
+
+        Boolean liveEventIsFinished = mediaKind.verifyLiveEventIsFinished(liveEventName);
+        assertThat(liveEventIsFinished).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should verify that live event is finished")
+    void verifyLiveEventHasFinished() {
+        final String liveEventName = UUID.randomUUID().toString();
+        when(mockClient.getLiveEvent(liveEventName)).thenThrow(NotFoundException.class);
+
+        Boolean liveEventIsFinished = mediaKind.verifyLiveEventIsFinished(liveEventName);
+        assertThat(liveEventIsFinished).isTrue();
+    }
 
     @Test
     @DisplayName("Should create the EncodeFromIngest transform if it doesn't exist")
@@ -1827,7 +1852,7 @@ public class MediaKindTest {
                                             .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
                                             .build())
                             .build());
-            
+
         when(mockClient.getStreamingLocator(any()))
             .thenReturn(MkStreamingLocator.builder().build());
 

@@ -41,9 +41,9 @@ public interface IMediaService {
     RecordingStatus stopLiveEventAndProcess(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException;
 
-    Boolean validateLiveEventIsFinished(String sanitisedCaptureSessionId, UUID captureSessionId);
+    Boolean verifyLiveEventIsFinished(String sanitisedCaptureSessionId);
 
-    RecordingStatus processCaptureSession(CaptureSessionDTO captureSession,
+    RecordingStatus reprocessCaptureSession(CaptureSessionDTO captureSession,
                                           UUID recordingId,
                                           String captureSessionNoHyphen) throws InterruptedException;
 

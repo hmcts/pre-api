@@ -104,7 +104,7 @@ public class RegistrationService {
 
         log.info("Creating new recording for capture session {}", captureSessionId);
         UUID recordingId = UUID.randomUUID();
-        RecordingStatus recordingStatus = mediaService.processCaptureSession(
+        RecordingStatus recordingStatus = mediaService.reprocessCaptureSession(
             captureSessionService.findById(captureSessionId),
             recordingId, liveEventId
         );
@@ -189,7 +189,13 @@ public class RegistrationService {
             throw new ResourceInWrongStateException(errorMessage);
         }
 
-        mediaService.validateLiveEventIsFinished(sanitisedLiveEventId, captureSessionId);
+        Boolean liveEventIsFinished = mediaService.verifyLiveEventIsFinished(sanitisedLiveEventId);
+        if (!liveEventIsFinished) {
+            throw new ResourceInWrongStateException(format(
+                "Capture session %s cannot be registered: live event %s is still running",
+                captureSessionId, sanitisedLiveEventId
+            ));
+        }
     }
 
     private void verifyFinalAssetIsAvailable(UUID recordingId, UUID captureSessionId) {

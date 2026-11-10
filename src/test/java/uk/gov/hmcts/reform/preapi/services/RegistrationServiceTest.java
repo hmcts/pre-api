@@ -50,7 +50,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
 
 @SpringBootTest(classes = RegistrationService.class)
-public class RegistrationServiceTest {
+class RegistrationServiceTest {
 
     @MockitoBean
     private CaptureSessionService captureSessionService;
@@ -95,8 +95,9 @@ public class RegistrationServiceTest {
 
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
             .thenReturn(ingestJob);
+        when(mediaService.verifyLiveEventIsFinished(LIVE_EVENT_ID)).thenReturn(true);
 
-        when(mediaService.processCaptureSession(eq(captureSessionDTO), any(), eq(LIVE_EVENT_ID)))
+        when(mediaService.reprocessCaptureSession(eq(captureSessionDTO), any(), eq(LIVE_EVENT_ID)))
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
 
         underTest = new RegistrationService(
@@ -108,7 +109,7 @@ public class RegistrationServiceTest {
     @Test
     @DisplayName("Registering: should successfully register capture session with already-processed recording if"
         + " jobs completed and recording found")
-    public void testRegistrationWhenEncodingIsCompleted() throws InterruptedException {
+    void testRegistrationWhenEncodingIsCompleted() throws InterruptedException {
         when(mediaService.getLiveEvent(LIVE_EVENT_ID)).thenThrow(NotFoundException.class);
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
             .thenReturn(ingestJob);
@@ -137,7 +138,7 @@ public class RegistrationServiceTest {
 
         // Should skip the re-encoding jobs
         verifyNoInteractions(recordingService);
-        verify(mediaService, times(0)).processCaptureSession(any(), any(), any());
+        verify(mediaService, times(0)).reprocessCaptureSession(any(), any(), any());
 
         verify(mediaService, times(1)).verifyFinalAssetExists(RECORDING_ID);
         verify(captureSessionService, times(1))
@@ -151,8 +152,8 @@ public class RegistrationServiceTest {
 
     @Test
     @DisplayName("Registering: Should throw exception when a running live event is found for capture session")
-    public void testExceptionWhenActiveLiveEventFound() {
-        when(mediaService.validateLiveEventIsFinished(LIVE_EVENT_ID, CAPTURE_SESSION_ID))
+    void testExceptionWhenActiveLiveEventFound() {
+        when(mediaService.verifyLiveEventIsFinished(LIVE_EVENT_ID))
             .thenThrow(ResourceInWrongStateException.class);
         assertThrows(
             ResourceInWrongStateException.class,
@@ -162,7 +163,7 @@ public class RegistrationServiceTest {
 
     @Test
     @DisplayName("Registering: Should reprocess when ingest job is incomplete")
-    public void testRegistrationExceptionWhenIngestJobIncomplete() throws InterruptedException {
+    void testRegistrationExceptionWhenIngestJobIncomplete() throws InterruptedException {
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
             .thenReturn(ingestJob);
         MkJob.MkJobProperties properties = mock(MkJob.MkJobProperties.class);
@@ -175,8 +176,8 @@ public class RegistrationServiceTest {
         verify(mediaService, times(1))
             .getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID);
         verify(mediaService, times(1))
-            .validateLiveEventIsFinished(LIVE_EVENT_ID, CAPTURE_SESSION_ID);
-        verify(mediaService, times(1)).processCaptureSession(any(), any(), any());
+            .verifyLiveEventIsFinished(LIVE_EVENT_ID);
+        verify(mediaService, times(1)).reprocessCaptureSession(any(), any(), any());
 
         verify(captureSessionService, times(1)).stopCaptureSession(
             eq(CAPTURE_SESSION_ID), eq(RecordingStatus.RECORDING_AVAILABLE), any(UUID.class));
@@ -184,7 +185,7 @@ public class RegistrationServiceTest {
 
     @Test
     @DisplayName("Registering: Should reprocess when ingest job is null")
-    public void testRegistrationExceptionWhenIngestJobNull() throws InterruptedException {
+    void testRegistrationExceptionWhenIngestJobNull() throws InterruptedException {
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
             .thenReturn(null);
 
@@ -195,8 +196,8 @@ public class RegistrationServiceTest {
         verify(mediaService, times(1))
             .getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID);
         verify(mediaService, times(1))
-            .validateLiveEventIsFinished(LIVE_EVENT_ID, CAPTURE_SESSION_ID);
-        verify(mediaService, times(1)).processCaptureSession(any(), any(), any());
+            .verifyLiveEventIsFinished(LIVE_EVENT_ID);
+        verify(mediaService, times(1)).reprocessCaptureSession(any(), any(), any());
 
         verify(captureSessionService, times(1)).stopCaptureSession(
             eq(CAPTURE_SESSION_ID), eq(RecordingStatus.RECORDING_AVAILABLE), any(UUID.class));
@@ -204,7 +205,7 @@ public class RegistrationServiceTest {
 
     @Test
     @DisplayName("Registering: Should reprocess when no ingest job assets found")
-    public void testExceptionWhenNoIngestJobAssetsFound() throws InterruptedException {
+    void testExceptionWhenNoIngestJobAssetsFound() throws InterruptedException {
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
             .thenReturn(ingestJob);
         MkJob.MkJobProperties properties = mock(MkJob.MkJobProperties.class);
@@ -216,13 +217,13 @@ public class RegistrationServiceTest {
         verify(mediaService, times(1))
             .getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID);
         verify(mediaService, times(1))
-            .validateLiveEventIsFinished(LIVE_EVENT_ID, CAPTURE_SESSION_ID);
-        verify(mediaService, times(1)).processCaptureSession(any(), any(), any());
+            .verifyLiveEventIsFinished(LIVE_EVENT_ID);
+        verify(mediaService, times(1)).reprocessCaptureSession(any(), any(), any());
     }
 
     @Test
     @DisplayName("Registering: Should force reprocessing if flag is set")
-    public void testForceReprocessing() throws InterruptedException {
+    void testForceReprocessing() throws InterruptedException {
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
             .thenReturn(ingestJob);
         MkJob.MkJobProperties properties = mock(MkJob.MkJobProperties.class);
@@ -237,14 +238,14 @@ public class RegistrationServiceTest {
         verify(mediaService, times(1))
             .getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID);
         verify(mediaService, times(1))
-            .validateLiveEventIsFinished(LIVE_EVENT_ID, CAPTURE_SESSION_ID);
-        verify(mediaService, times(1)).processCaptureSession(any(), any(), any());
+            .verifyLiveEventIsFinished(LIVE_EVENT_ID);
+        verify(mediaService, times(1)).reprocessCaptureSession(any(), any(), any());
 
     }
 
     @Test
     @DisplayName("Registering: Should delete any existing recordings when reprocessing a capture session")
-    public void testExistingRecordingsAreDeletedWhenReprocessing() throws InterruptedException {
+    void testExistingRecordingsAreDeletedWhenReprocessing() throws InterruptedException {
         RecordingDTO recording1 = mock(RecordingDTO.class);
         RecordingDTO recording2 = mock(RecordingDTO.class);
         when(recording1.getId()).thenReturn(UUID.randomUUID());
@@ -257,8 +258,8 @@ public class RegistrationServiceTest {
         verify(mediaService, times(1))
             .getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID);
         verify(mediaService, times(1))
-            .validateLiveEventIsFinished(LIVE_EVENT_ID, CAPTURE_SESSION_ID);
-        verify(mediaService, times(1)).processCaptureSession(any(), any(), any());
+            .verifyLiveEventIsFinished(LIVE_EVENT_ID);
+        verify(mediaService, times(1)).reprocessCaptureSession(any(), any(), any());
 
         ArgumentCaptor<SearchRecordings> searchRecordingsCaptor = ArgumentCaptor.forClass(SearchRecordings.class);
         verify(recordingService, times(1)).findAll(searchRecordingsCaptor.capture(),
@@ -272,7 +273,7 @@ public class RegistrationServiceTest {
 
     @Test
     @DisplayName("Registering: should throw exception when registering capture session if recording not found")
-    public void testRegistrationExceptionWhenNoRecordingFound() {
+    void testRegistrationExceptionWhenNoRecordingFound() {
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
             .thenReturn(ingestJob);
         MkJob.MkJobProperties properties = mock(MkJob.MkJobProperties.class);
@@ -298,8 +299,8 @@ public class RegistrationServiceTest {
 
     @Test
     @DisplayName("Registering: should throw exception when registering capture session if recording fails")
-    public void testRegistrationExceptionWhenRecordingFails() throws InterruptedException {
-        when(mediaService.processCaptureSession(eq(captureSessionDTO), any(UUID.class), eq(LIVE_EVENT_ID)))
+    void testRegistrationExceptionWhenRecordingFails() throws InterruptedException {
+        when(mediaService.reprocessCaptureSession(eq(captureSessionDTO), any(UUID.class), eq(LIVE_EVENT_ID)))
             .thenReturn(RecordingStatus.FAILURE);
 
         assertThrows(
@@ -316,7 +317,7 @@ public class RegistrationServiceTest {
     @NullSource
     @EmptySource
     @DisplayName("Should reprocess if job found but it has no output assets")
-    public void testRegistrationExceptionWhenIngestJobHasNoOutputAssets(List<JobOutputAsset> jobOutputAssets)
+    void testRegistrationExceptionWhenIngestJobHasNoOutputAssets(List<JobOutputAsset> jobOutputAssets)
         throws InterruptedException {
         when(mediaService.getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID))
             .thenReturn(ingestJob);
@@ -330,10 +331,10 @@ public class RegistrationServiceTest {
         verify(mediaService, times(1))
             .getJobFromPartialName(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, LIVE_EVENT_ID);
         verify(mediaService, times(1))
-            .validateLiveEventIsFinished(LIVE_EVENT_ID, CAPTURE_SESSION_ID);
+            .verifyLiveEventIsFinished(LIVE_EVENT_ID);
 
         verify(mediaService, times(1))
-            .processCaptureSession(eq(captureSessionDTO), any(UUID.class), eq(LIVE_EVENT_ID));
+            .reprocessCaptureSession(eq(captureSessionDTO), any(UUID.class), eq(LIVE_EVENT_ID));
 
         verify(captureSessionService, times(1)).stopCaptureSession(
             eq(CAPTURE_SESSION_ID), eq(RecordingStatus.RECORDING_AVAILABLE), any(UUID.class));
@@ -341,7 +342,7 @@ public class RegistrationServiceTest {
 
     @Test
     @DisplayName("Verification: should throw exception when capture session is not found in database")
-    public void testVerificationExceptionWhenCaptureSessionNotFound() {
+    void testVerificationExceptionWhenCaptureSessionNotFound() {
         when(captureSessionService.findById(CAPTURE_SESSION_ID)).thenThrow(NotFoundException.class);
         assertThrows(
             BadRequestException.class,
@@ -351,7 +352,7 @@ public class RegistrationServiceTest {
 
     @Test
     @DisplayName("Verification: should throw exception if capture session was finished within timeout window")
-    public void testVerificationExceptionWhenCaptureSessionFinishedRecently() {
+    void testVerificationExceptionWhenCaptureSessionFinishedRecently() {
         when(captureSessionDTO.getFinishedAt())
             .thenReturn(Timestamp.from(Instant.now().minus(5, ChronoUnit.MINUTES)));
         assertThrows(
@@ -363,7 +364,7 @@ public class RegistrationServiceTest {
     @ParameterizedTest
     @EnumSource(value = RecordingStatus.class, names = {"INITIALISING", "STANDBY", "RECORDING", "RECORDING_AVAILABLE"})
     @DisplayName("Verification: should throw exception when capture session is ready for processing")
-    public void testVerificationExceptionWhenCaptureSessionNotReady(RecordingStatus status) {
+    void testVerificationExceptionWhenCaptureSessionNotReady(RecordingStatus status) {
         when(captureSessionDTO.getStatus()).thenReturn(status);
         assertThrows(
             ResourceInWrongStateException.class,
@@ -374,11 +375,20 @@ public class RegistrationServiceTest {
     @ParameterizedTest
     @EnumSource(value = RecordingStatus.class, names = {"PROCESSING", "NO_RECORDING", "FAILURE"})
     @DisplayName("Verification: should register when capture session is ready for processing")
-    public void testShouldRegisterWhenCaptureSessionIsReady(RecordingStatus status)
+    void testShouldRegisterWhenCaptureSessionIsReady(RecordingStatus status)
         throws InterruptedException {
         when(captureSessionDTO.getStatus()).thenReturn(status);
         UpsertResult register = underTest.register(CAPTURE_SESSION_ID, true);
         assertThat(register).isEqualTo(UpsertResult.UPDATED);
+    }
+
+    @Test
+    @DisplayName("Verification: should throw exception if live event is still running")
+    void testShouldRegisterWhenCaptureSessionIsReady() {
+        when(mediaService.verifyLiveEventIsFinished(LIVE_EVENT_ID)).thenReturn(false);
+        assertThrows(
+            ResourceInWrongStateException.class,
+            () -> underTest.register(CAPTURE_SESSION_ID, true));
     }
 
 }

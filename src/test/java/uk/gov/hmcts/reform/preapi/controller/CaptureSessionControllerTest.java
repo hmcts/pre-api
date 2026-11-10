@@ -53,7 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(CaptureSessionController.class)
 @AutoConfigureMockMvc(addFilters = false)
-public class CaptureSessionControllerTest {
+class CaptureSessionControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
