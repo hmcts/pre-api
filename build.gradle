@@ -100,7 +100,7 @@ tasks.withType(Test).configureEach {
 }
 
 test {
-  failFast = false
+  failFast = true
 }
 
 tasks.register('functional', Test) {
