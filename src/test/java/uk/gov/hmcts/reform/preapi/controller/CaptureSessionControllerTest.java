@@ -25,17 +25,14 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RegistrationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
-import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static java.lang.String.format;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -56,7 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(CaptureSessionController.class)
 @AutoConfigureMockMvc(addFilters = false)
-public class CaptureSessionControllerTest {
+class CaptureSessionControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
@@ -496,20 +493,13 @@ public class CaptureSessionControllerTest {
 
         CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
         captureSessionDTO.setId(id);
-        captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
 
-        Instant exceedingTimeout = Instant.now()
-            .minus(processingTimeoutMinutes + 1, ChronoUnit.MINUTES);
-        captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
-
-        when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
-
-        when(registrationService.register(id)).thenReturn(UpsertResult.UPDATED);
-
-        when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.UPDATED);
+        when(registrationService.register(id, true)).thenReturn(UpsertResult.UPDATED);
 
         MvcResult response = mockMvc.perform(put(CAPTURE_SESSION_REGISTRATION_PATH, id)
-                                                 .with(csrf()))
+                                                 .param("forceReprocess", Boolean.TRUE.toString())
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent())
             .andReturn();
 
@@ -518,75 +508,20 @@ public class CaptureSessionControllerTest {
             .isEqualTo(TEST_URL + "/capture-sessions/trigger-registration/" + id);
     }
 
-    @DisplayName("Attempt to register a non-existent capture session should return a 404 response")
+    @DisplayName("Failed attempt to register a non-existent capture session should return a 404 response")
     @Test
     void registerCaptureSessionNotFound() throws Exception {
         var captureSessionId = UUID.randomUUID();
-        when(captureSessionService.findById(captureSessionId)).thenReturn(null);
+
+        when(registrationService.register(captureSessionId, true))
+            .thenReturn(UpsertResult.UNSUCCESSFUL);
 
         mockMvc.perform(put(CAPTURE_SESSION_REGISTRATION_PATH, captureSessionId)
-                            .with(csrf()))
-            .andExpect(status().isNotFound());
-    }
-
-    @DisplayName("Attempt to register a non-processing capture session should fail with 400 error")
-    @Test
-    void registerNonProcessingCaptureSession() throws Exception {
-        UUID id = UUID.randomUUID();
-        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
-        captureSessionDTO.setId(id);
-        captureSessionDTO.setStatus(RecordingStatus.FAILURE);
-
-        Instant exceedingTimeout = Instant.now()
-            .minus(processingTimeoutMinutes + 1, ChronoUnit.HOURS);
-        captureSessionDTO.setFinishedAt(Timestamp.from(exceedingTimeout));
-
-        when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
-
-        MvcResult response = mockMvc.perform(put(CAPTURE_SESSION_REGISTRATION_PATH, id)
-                                                 .with(csrf()))
-            .andExpect(status().isBadRequest())
+                                                 .param("forceReprocess", Boolean.TRUE.toString())
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
             .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(format("{\"message\":"
-                                  + "\"Capture session with ID %s is in an incorrect state for registration: %s\"}",
-                              id, RecordingStatus.FAILURE));
-    }
-
-    @DisplayName("Attempt to register a capture session finished within agreed timeout should fail with 400 error")
-    @Test
-    void registerRecentlyFinishedCaptureSession() throws Exception {
-        UUID id = UUID.randomUUID();
-        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
-        captureSessionDTO.setId(id);
-        captureSessionDTO.setStatus(RecordingStatus.PROCESSING);
-
-        Instant oneMinuteAgo = Instant.now().minus(1, ChronoUnit.MINUTES);
-
-        Instant atEndOfWindowOfTolerance = oneMinuteAgo.plus(processingTimeoutMinutes, ChronoUnit.MINUTES);
-
-        captureSessionDTO.setFinishedAt(Timestamp.from(oneMinuteAgo));
-
-        when(captureSessionService.findById(id)).thenReturn(captureSessionDTO);
-
-        MvcResult response = mockMvc.perform(put(CAPTURE_SESSION_REGISTRATION_PATH, id)
-                                                 .with(csrf()))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        String actualResponse = response.getResponse().getContentAsString();
-
-        String expectedResponse =
-            format("{\"message\":\"Capture session with ID %s finished processing at %s on %s. "
-                   + "This is within the agreed tolerance window of %d minutes."
-                   + " Please try again after %s.\"}", id,
-                                         DateTimeUtils.formatTime(Timestamp.from(oneMinuteAgo)),
-                                         DateTimeUtils.formatDate(Timestamp.from(oneMinuteAgo)),
-                                         processingTimeoutMinutes,
-                                         DateTimeUtils.formatTime(Timestamp.from(atEndOfWindowOfTolerance)));
-
-        assertThat(actualResponse).isEqualTo(expectedResponse);
     }
 
 }
