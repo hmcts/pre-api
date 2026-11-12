@@ -2,18 +2,8 @@ java:
   devmemoryLimits: '3Gi'
   devmemoryRequests: '3Gi'
   postgresql:
-    image:
-      registry: hmctsprod.azurecr.io
-      repository: imported/bitnami/postgresql
-      tag: 17.5.0
     enabled: true
     primary:
-      extraEnvVars:
-        - name: POSTGRESQL_INITSCRIPTS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: "{{ .Release.Name }}-postgresql"
-              key: postgres-password
       initdb:
         user: "postgres"
         scripts:
