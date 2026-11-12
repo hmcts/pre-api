@@ -28,6 +28,8 @@ public interface IMediaService {
 
     List<AssetDTO> getAssets();
 
+    List<AssetDTO> getAssets(Integer top);
+
     LiveEventDTO getLiveEvent(String liveEventId);
 
     List<LiveEventDTO> getLiveEvents();

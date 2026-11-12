@@ -4251,6 +4251,11 @@ paths:
     get:
       operationId: getAssets
       parameters:
+        - format: int32
+          in: query
+          name: top
+          required: false
+          type: integer
         - description: The User Id of the User making the request
           format: uuid
           in: header
