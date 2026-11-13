@@ -115,6 +115,7 @@ mediakind:
   monitor:
     enabled: ${MEDIAKIND_MONITOR_ENABLED:false}
     ready-interval-ms: ${MEDIAKIND_READY_MONITOR_INTERVAL_MS:30000}
+    test-court-id: ${MEDIAKIND_MONITOR_TEST_COURT_ID}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 
