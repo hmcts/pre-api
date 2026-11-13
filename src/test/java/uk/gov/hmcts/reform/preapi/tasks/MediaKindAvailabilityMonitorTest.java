@@ -2,12 +2,16 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageRequest;
 import uk.gov.hmcts.reform.preapi.media.MediaKindClient;
 import uk.gov.hmcts.reform.preapi.media.MediaKindManagementClient;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 import java.lang.reflect.Method;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,15 +25,33 @@ import static org.mockito.Mockito.when;
 
 class MediaKindAvailabilityMonitorTest {
 
+    private static final UUID TEST_COURT_ID =
+        UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID RECORDING_ID =
+        UUID.fromString("00000000-0000-0000-0000-000000000002");
+
     private MediaKindManagementClient mediaKindManagementClient;
     private MediaKindClient mediaKindClient;
+    private RecordingRepository recordingRepository;
     private MediaKindAvailabilityMonitor monitor;
 
     @BeforeEach
     void setUp() {
         mediaKindManagementClient = mock(MediaKindManagementClient.class);
         mediaKindClient = mock(MediaKindClient.class);
-        monitor = new MediaKindAvailabilityMonitor(mediaKindManagementClient, mediaKindClient);
+        recordingRepository = mock(RecordingRepository.class);
+
+        when(recordingRepository.findRecordingIdsByCourtId(
+            TEST_COURT_ID,
+            PageRequest.of(0, 1)
+        )).thenReturn(List.of(RECORDING_ID));
+
+        monitor = new MediaKindAvailabilityMonitor(
+            mediaKindManagementClient,
+            mediaKindClient,
+            recordingRepository,
+            TEST_COURT_ID
+        );
     }
 
     @Test
@@ -137,12 +159,17 @@ class MediaKindAvailabilityMonitorTest {
     }
 
     @Test
-    void shouldCheckReadinessAndAssets() {
+    void shouldCheckReadinessAssetsAndVod() {
         monitor.checkAvailability();
 
         verify(mediaKindManagementClient).getReady();
         verify(mediaKindManagementClient, never()).getProfile();
         verify(mediaKindClient).getAssets(0, 10);
+        verify(recordingRepository).findRecordingIdsByCourtId(
+            TEST_COURT_ID,
+            PageRequest.of(0, 1)
+        );
+        verify(mediaKindClient).getAsset(RECORDING_ID.toString());
     }
 
     @Test
