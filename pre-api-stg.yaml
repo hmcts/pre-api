@@ -3491,6 +3491,10 @@ paths:
           name: captureSessionId
           required: true
           type: string
+        - in: query
+          name: forceReprocess
+          required: false
+          type: boolean
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -3501,7 +3505,7 @@ paths:
       responses:
         '200':
           description: OK
-      summary: Register a Capture Session that got stuck in PROCESSING state
+      summary: Register an unprocessed Capture Session
       tags:
         - capture-session-controller
   '/capture-sessions/{captureSessionId}':
