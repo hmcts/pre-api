@@ -11,14 +11,12 @@ import uk.gov.hmcts.reform.preapi.media.MediaKindManagementClient;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
 @Slf4j
-@ConditionalOnProperty(
-    name = "mediakind.monitor.enabled",
-    havingValue = "true"
-)
+@ConditionalOnProperty(name = "mediakind.monitor.enabled", havingValue = "true")
 public class MediaKindAvailabilityMonitor {
 
     private static final String READY_ENDPOINT = "/api/ready";
@@ -32,11 +30,10 @@ public class MediaKindAvailabilityMonitor {
     private final UUID testCourtId;
 
     public MediaKindAvailabilityMonitor(
-        MediaKindManagementClient mediaKindManagementClient,
-        MediaKindClient mediaKindClient,
-        RecordingRepository recordingRepository,
-        @Value("${mediakind.monitor.test-court-id}") UUID testCourtId
-    ) {
+            MediaKindManagementClient mediaKindManagementClient,
+            MediaKindClient mediaKindClient,
+            RecordingRepository recordingRepository,
+            @Value("${mediakind.monitor.test-court-id}") UUID testCourtId) {
         this.mediaKindManagementClient = mediaKindManagementClient;
         this.mediaKindClient = mediaKindClient;
         this.recordingRepository = recordingRepository;
@@ -58,20 +55,19 @@ public class MediaKindAvailabilityMonitor {
             mediaKindManagementClient.getReady();
             long durationMs = System.currentTimeMillis() - readyStart;
             log.info("MK.IO API readiness check succeeded. checkId={} endpoint={} durationMs={}",
-                     checkId, READY_ENDPOINT, durationMs);
+                    checkId, READY_ENDPOINT, durationMs);
             return;
         } catch (Exception readyEx) {
             long durationMs = System.currentTimeMillis() - readyStart;
             log.error(
-                "MK.IO API readiness check failed. checkId={} endpoint={} "
-                    + "durationMs={} failureType={} error={}",
-                checkId,
-                READY_ENDPOINT,
-                durationMs,
-                classify(readyEx),
-                exceptionMessage(readyEx),
-                readyEx
-            );
+                    "MK.IO API readiness check failed. checkId={} endpoint={} "
+                            + "durationMs={} failureType={} error={}",
+                    checkId,
+                    READY_ENDPOINT,
+                    durationMs,
+                    classify(readyEx),
+                    exceptionMessage(readyEx),
+                    readyEx);
         }
 
         long profileStart = System.currentTimeMillis();
@@ -79,12 +75,12 @@ public class MediaKindAvailabilityMonitor {
             mediaKindManagementClient.getProfile();
             long durationMs = System.currentTimeMillis() - profileStart;
             log.warn("MK.IO profile fallback succeeded after readiness failure. checkId={} endpoint={} durationMs={}",
-                     checkId, PROFILE_ENDPOINT, durationMs);
+                    checkId, PROFILE_ENDPOINT, durationMs);
         } catch (Exception profileEx) {
             long durationMs = System.currentTimeMillis() - profileStart;
             log.error("MK.IO profile fallback failed. checkId={} endpoint={} durationMs={} failureType={} error={}",
-                      checkId, PROFILE_ENDPOINT, durationMs, classify(profileEx), exceptionMessage(profileEx),
-                      profileEx);
+                    checkId, PROFILE_ENDPOINT, durationMs, classify(profileEx), exceptionMessage(profileEx),
+                    profileEx);
         }
     }
 
@@ -94,11 +90,11 @@ public class MediaKindAvailabilityMonitor {
             mediaKindClient.getAssets(0, 10);
             long durationMs = System.currentTimeMillis() - assetsStart;
             log.info("MK.IO assets health check succeeded. checkId={} endpoint={} durationMs={}",
-                     checkId, ASSETS_ENDPOINT, durationMs);
+                    checkId, ASSETS_ENDPOINT, durationMs);
         } catch (Exception assetsEx) {
             long durationMs = System.currentTimeMillis() - assetsStart;
             log.error("MK.IO assets health check failed. checkId={} endpoint={} durationMs={} failureType={} error={}",
-                      checkId, ASSETS_ENDPOINT, durationMs, classify(assetsEx), exceptionMessage(assetsEx), assetsEx);
+                    checkId, ASSETS_ENDPOINT, durationMs, classify(assetsEx), exceptionMessage(assetsEx), assetsEx);
         }
     }
 
@@ -106,37 +102,37 @@ public class MediaKindAvailabilityMonitor {
         long vodStart = System.currentTimeMillis();
 
         try {
-            UUID recordingId = recordingRepository
-                .findRecordingIdsByCourtId(testCourtId, PageRequest.of(0, 1))
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                    "No recording found for configured MediaKind monitor court"
-                ));
+            Optional<UUID> recordingId = recordingRepository
+                    .findRecordingIdsByCourtId(testCourtId, PageRequest.of(0, 1))
+                    .stream()
+                    .findFirst();
 
-            mediaKindClient.getAsset(recordingId.toString());
+            if (recordingId.isEmpty()) {
+                log.warn("No recording found for court with ID {} - Specific MK.IO asset check skipped.", testCourtId);
+                return;
+            }
+
+            mediaKindClient.getAsset(recordingId.get().toString());
 
             long durationMs = System.currentTimeMillis() - vodStart;
             log.info(
-                "MK.IO VOD health check succeeded. checkId={} endpoint={} recordingId={} durationMs={}",
-                checkId,
-                VOD_ENDPOINT,
-                recordingId,
-                durationMs
-            );
+                    "MK.IO VOD health check succeeded. checkId={} endpoint={} recordingId={} durationMs={}",
+                    checkId,
+                    VOD_ENDPOINT,
+                    recordingId.get(),
+                    durationMs);
         } catch (Exception vodEx) {
             long durationMs = System.currentTimeMillis() - vodStart;
             log.error(
-                "MK.IO VOD health check failed. checkId={} endpoint={} courtId={} "
-                    + "durationMs={} failureType={} error={}",
-                checkId,
-                VOD_ENDPOINT,
-                testCourtId,
-                durationMs,
-                classify(vodEx),
-                exceptionMessage(vodEx),
-                vodEx
-            );
+                    "MK.IO VOD health check failed. checkId={} endpoint={} courtId={} "
+                            + "durationMs={} failureType={} error={}",
+                    checkId,
+                    VOD_ENDPOINT,
+                    testCourtId,
+                    durationMs,
+                    classify(vodEx),
+                    exceptionMessage(vodEx),
+                    vodEx);
         }
     }
 
