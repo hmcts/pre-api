@@ -271,6 +271,12 @@ public class MediaKind implements IMediaService {
         String captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
+        return processCaptureSession(captureSession, recordingId, captureSessionNoHyphen);
+    }
+
+    private RecordingStatus processCaptureSession(CaptureSessionDTO captureSession,
+                                                 UUID recordingId,
+                                                 String captureSessionNoHyphen) throws InterruptedException {
         String jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
         if (jobName == null) {
             return RecordingStatus.NO_RECORDING;
@@ -302,6 +308,27 @@ public class MediaKind implements IMediaService {
         }
 
         return recordingStatus;
+    }
+
+    @Override
+    @Transactional
+    public Boolean verifyLiveEventIsFinished(String sanitisedCaptureSessionId) {
+        try {
+            getLiveEventMk(sanitisedCaptureSessionId);
+        } catch (NotFoundException e) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    @Transactional
+    public RecordingStatus reprocessCaptureSession(CaptureSessionDTO captureSession,
+                                                   UUID recordingId,
+                                                   String captureSessionNoHyphen) throws InterruptedException {
+        verifyLiveEventIsFinished(captureSessionNoHyphen);
+
+        return processCaptureSession(captureSession, recordingId, captureSessionNoHyphen);
     }
 
     @Override
