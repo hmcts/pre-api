@@ -169,7 +169,9 @@ class MediaKindAvailabilityMonitorTest {
             TEST_COURT_ID,
             PageRequest.of(0, 1)
         );
-        verify(mediaKindClient).getAsset(RECORDING_ID.toString());
+        verify(mediaKindClient).getAsset(
+            RECORDING_ID.toString().replace("-", "") + "_temp"
+        );
     }
 
     @Test
