@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.InputStreamResource;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
@@ -17,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.B2CGraphService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
+import uk.gov.hmcts.reform.preapi.utils.ReportCsvWriter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -1081,7 +1081,7 @@ class ImportUserAlternativeEmailTest {
     @DisplayName("Should throw IOException when local CSV file doesn't exist")
     @Test
     void runThrowsIOExceptionWhenLocalCsvFileNotFound() throws Exception {
-        ClassPathResource fallbackResource = new ClassPathResource("batch/alternative_email_import.csv");
+        ClassPathResource fallbackResource = new ClassPathResource("alternative_email_import.csv");
         Assumptions.assumeFalse(fallbackResource.exists(),
             "Skipping test: ClassPathResource fallback exists, so IOException won't be thrown");
 
@@ -1215,7 +1215,7 @@ class ImportUserAlternativeEmailTest {
             Path mockReportPath = mock(Path.class);
             when(mockReportPath.toFile()).thenReturn(mockFile);
             when(mockReportPath.getFileName()).thenReturn(java.nio.file.Paths.get("Alternative_Email_Report-test.csv"));
-            
+
             reportCsvWriterMock.when(() -> ReportCsvWriter.writeToCsv(
                 any(), any(), anyString(), anyString(), anyBoolean()))
                 .thenReturn(mockReportPath);
