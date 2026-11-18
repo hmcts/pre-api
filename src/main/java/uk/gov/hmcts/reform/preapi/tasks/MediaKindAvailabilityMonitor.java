@@ -112,14 +112,15 @@ public class MediaKindAvailabilityMonitor {
                 return;
             }
 
-            mediaKindClient.getAsset(recordingId.get().toString());
+            String assetName = recordingId.get().toString().replace("-", "") + "_temp";
+            mediaKindClient.getAsset(assetName);
 
             long durationMs = System.currentTimeMillis() - vodStart;
             log.info(
                     "MK.IO VOD health check succeeded. checkId={} endpoint={} recordingId={} durationMs={}",
                     checkId,
                     VOD_ENDPOINT,
-                    recordingId.get(),
+                    assetName,
                     durationMs);
         } catch (Exception vodEx) {
             long durationMs = System.currentTimeMillis() - vodStart;
