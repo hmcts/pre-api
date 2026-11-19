@@ -12,6 +12,7 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -123,8 +124,8 @@ public abstract class AzureStorageService {
                                      BlobSasPermission permission) {
         if (azureConfiguration.isUsingManagedIdentity()) {
             UserDelegationKey delegationKey = client.getUserDelegationKey(
-                OffsetDateTime.now(),
-                OffsetDateTime.now().plusHours(2)
+                OffsetDateTime.now(DateTimeUtils.TIME_ZONE),
+                OffsetDateTime.now(DateTimeUtils.TIME_ZONE).plusHours(2)
             );
             return "?" + client.getBlobContainerClient(containerName)
                 .getBlobClient(blobName)
@@ -206,8 +207,8 @@ public abstract class AzureStorageService {
             + getBlobSasToken(
             containerName,
             blobName,
-            OffsetDateTime.now().plusHours(1),
-            new BlobSasPermission().setReadPermission(true)
+            OffsetDateTime.now(DateTimeUtils.TIME_ZONE).plusHours(1),
+                new BlobSasPermission().setReadPermission(true)
         );
     }
 }

@@ -33,6 +33,8 @@ public class PreApiController {
             return ResponseEntity.created(location).build();
         } else if (result == UpsertResult.UPDATED) {
             return ResponseEntity.noContent().location(location).build();
+        } else if (result == UpsertResult.UNSUCCESSFUL) {
+            return ResponseEntity.unprocessableEntity().build();
         }
         throw new UnknownServerException("Unexpected result: " + result);
     }

@@ -171,7 +171,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Should get a list of audit logs with 200 response code")
-    public void testSearchAuditLogsSuccess() throws Exception {
+    void testSearchAuditLogsSuccess() throws Exception {
         var auditLogId = UUID.randomUUID();
         var mockAuditDTO = new AuditDTO();
         mockAuditDTO.setId(auditLogId);
@@ -191,7 +191,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Search audits by created after")
-    public void searchLogsByCreatedAfter() throws Exception {
+    void searchLogsByCreatedAfter() throws Exception {
         var auditLogId = UUID.randomUUID();
         var mockAudit = new AuditDTO();
         mockAudit.setId(auditLogId);
@@ -216,7 +216,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Search audits by created before")
-    public void searchLogsByCreatedBefore() throws Exception {
+    void searchLogsByCreatedBefore() throws Exception {
         var auditLogId = UUID.randomUUID();
         var mockAudit = new AuditDTO();
         mockAudit.setId(auditLogId);
@@ -241,7 +241,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Search audits by functional area")
-    public void searchLogsByFunctionalArea() throws Exception {
+    void searchLogsByFunctionalArea() throws Exception {
         var auditLogId = UUID.randomUUID();
         var mockAudit = new AuditDTO();
         mockAudit.setId(auditLogId);
@@ -262,7 +262,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Search audits by source")
-    public void searchLogsBySource() throws Exception {
+    void searchLogsBySource() throws Exception {
         var auditLogId = UUID.randomUUID();
         var mockAudit = new AuditDTO();
         mockAudit.setId(auditLogId);
@@ -283,7 +283,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Search audits by user's name")
-    public void searchLogsByUserName() throws Exception {
+    void searchLogsByUserName() throws Exception {
         var auditLogId = UUID.randomUUID();
         var mockAudit = new AuditDTO();
         mockAudit.setId(auditLogId);
@@ -304,7 +304,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Search audits by court id")
-    public void searchLogsByCourtId() throws Exception {
+    void searchLogsByCourtId() throws Exception {
         var auditLogId = UUID.randomUUID();
         var mockAudit = new AuditDTO();
         mockAudit.setId(auditLogId);
@@ -325,7 +325,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Search audits by case reference")
-    public void searchLogsByCaseReference() throws Exception {
+    void searchLogsByCaseReference() throws Exception {
         var auditLogId = UUID.randomUUID();
         var mockAudit = new AuditDTO();
         mockAudit.setId(auditLogId);
@@ -346,7 +346,7 @@ class AuditControllerTest {
 
     @Test
     @DisplayName("Requested page out of range")
-    public void getAuditLogsRequestedPageOutOfRange() throws Exception {
+    void getAuditLogsRequestedPageOutOfRange() throws Exception {
         UUID auditLogId = UUID.randomUUID();
         var mockAuditDTO = new AuditDTO();
         mockAuditDTO.setId(auditLogId);

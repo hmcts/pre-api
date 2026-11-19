@@ -69,6 +69,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -270,6 +271,12 @@ public class MediaKind implements IMediaService {
         String captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
+        return processCaptureSession(captureSession, recordingId, captureSessionNoHyphen);
+    }
+
+    private RecordingStatus processCaptureSession(CaptureSessionDTO captureSession,
+                                                 UUID recordingId,
+                                                 String captureSessionNoHyphen) throws InterruptedException {
         String jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
         if (jobName == null) {
             return RecordingStatus.NO_RECORDING;
@@ -301,6 +308,27 @@ public class MediaKind implements IMediaService {
         }
 
         return recordingStatus;
+    }
+
+    @Override
+    @Transactional
+    public Boolean verifyLiveEventIsFinished(String sanitisedCaptureSessionId) {
+        try {
+            getLiveEventMk(sanitisedCaptureSessionId);
+        } catch (NotFoundException e) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    @Transactional
+    public RecordingStatus reprocessCaptureSession(CaptureSessionDTO captureSession,
+                                                   UUID recordingId,
+                                                   String captureSessionNoHyphen) throws InterruptedException {
+        verifyLiveEventIsFinished(captureSessionNoHyphen);
+
+        return processCaptureSession(captureSession, recordingId, captureSessionNoHyphen);
     }
 
     @Override
@@ -502,7 +530,7 @@ public class MediaKind implements IMediaService {
     }
 
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(DateTimeUtils.TIME_ZONE);
         String streamingLocatorName = userId + "_" + assetName;
 
         // check streaming locator is still valid
@@ -654,7 +682,8 @@ public class MediaKind implements IMediaService {
                                       String transformName,
                                       String fileName) {
         getOrCreateTransform(transformName);
-        String jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        String jobName = inputAssetName + "-" + LocalDateTime.now(DateTimeUtils.TIME_ZONE)
+            .toEpochSecond(ZoneOffset.UTC);
         log.info("Creating job [{}]", jobName);
         mediaKindClient.putJob(
             transformName,

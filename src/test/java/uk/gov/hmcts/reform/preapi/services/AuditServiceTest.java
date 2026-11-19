@@ -300,7 +300,7 @@ class AuditServiceTest {
 
     @Test
     @DisplayName("Should return audit by id")
-    public void getAuditByIdSuccess() {
+    void getAuditByIdSuccess() {
         audit.setId(UUID.randomUUID());
         when(auditRepository.findById(audit.getId())).thenReturn(Optional.of(audit));
 
@@ -319,7 +319,7 @@ class AuditServiceTest {
 
     @Test
     @DisplayName("Should throw not found error when audit by id does not exist")
-    public void getAuditByIdNotFound() {
+    void getAuditByIdNotFound() {
         var id = UUID.randomUUID();
         when(auditRepository.findById(id)).thenReturn(Optional.empty());
 

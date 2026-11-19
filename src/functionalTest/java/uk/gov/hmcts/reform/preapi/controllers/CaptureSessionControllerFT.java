@@ -561,16 +561,16 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
         dto.setStatus(RecordingStatus.NO_RECORDING);
 
         var registerResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId(),
+            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId() + "?forceReprocess=true",
             TestingSupportRoles.SUPER_USER
         );
-        assertResponseCode(registerResponse, 404);
+        assertResponseCode(registerResponse, 400);
     }
 
     @ParameterizedTest
     @EnumSource(value = RecordingStatus.class,
-        names = {"STANDBY", "INITIALISING", "RECORDING", "RECORDING_AVAILABLE", "FAILURE", "NO_RECORDING"})
-    @DisplayName("Should return 400 when trying to register a capture session that is not in PROCESSING state")
+        names = {"STANDBY", "INITIALISING", "RECORDING", "RECORDING_AVAILABLE"})
+    @DisplayName("Should return 400 when trying to register a capture session that is not ready for processing")
     void shouldReturn400WhenCaptureSessionProcessing(RecordingStatus recordingStatus) throws JsonProcessingException {
         var dto = createCaptureSession();
         dto.setStatus(recordingStatus);
@@ -586,7 +586,7 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
 
         // attempt to register capture session that is not in PROCESSING state
         var registerResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId(),
+            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId() + "?forceReprocess=true",
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(registerResponse, 400);
@@ -610,7 +610,7 @@ class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(dto.getId(), true);
 
         var registerResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId(),
+            CAPTURE_SESSIONS_ENDPOINT + "/trigger-registration/" + dto.getId() + "?forceReprocess=true",
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(registerResponse, 400);
