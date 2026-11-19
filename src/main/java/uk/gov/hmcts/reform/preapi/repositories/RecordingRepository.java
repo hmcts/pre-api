@@ -257,4 +257,13 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     List<Recording> findVodafoneOriginalRecordingsWhereReencodedVersionExists();
 
     List<Recording> findRecordingsByDeletedAtIsNotNullAndVfOriginalNowReencodedIsTrue();
+
+    @Query("""
+        SELECT r.id
+        FROM Recording r
+        WHERE r.captureSession.booking.caseId.court.id = :courtId
+        AND r.deletedAt IS NULL
+        ORDER BY r.createdAt DESC
+        """)
+    List<UUID> findRecordingIdsByCourtId(@Param("courtId") UUID courtId, Pageable pageable);
 }
