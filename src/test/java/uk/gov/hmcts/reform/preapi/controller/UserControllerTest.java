@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
+import uk.gov.hmcts.reform.preapi.enums.RoleType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -103,9 +106,12 @@ public class UserControllerTest {
     private static final Role mockSuperUserRole = mock(Role.class);
     private static final UUID mockLevel1RoleId = UUID.randomUUID();
     private static final Role mockLevel1Role = mock(Role.class);
+
     private static final RoleDTO mockSuperUserRoleDto = mock(RoleDTO.class);
 
+    CreateAppAccessDTO createAppAccessDTO;
     private CreateUserDTO sampleUserToUpdate;
+
     private UserDTO sampleUserFromDatabase;
 
     @BeforeAll
@@ -115,6 +121,7 @@ public class UserControllerTest {
 
     @BeforeEach
     void setUpMocks() {
+        createAppAccessDTO = createAppAccessDTO(true, UUID.randomUUID());
 
         // Role mocks
         when(mockSuperUserRole.getId()).thenReturn(superUserRoleId);
@@ -1023,4 +1030,68 @@ public class UserControllerTest {
         verify(userService, times(1)).resetAppAccessIdsForUserId(captor.capture());
         assertThat(captor.getValue()).isEqualTo(randomUserId);
     }
+
+    @Test
+    @DisplayName("Should throw PathPayloadMismatchException when path userId and payload userId do not match")
+    void upsertUserAccess_throwsWhenPathAndPayloadUserIdMismatch() throws Exception {
+        UUID randomUUID = UUID.randomUUID();
+        mockMvc.perform(put("/users/access/" + randomUUID)
+                            .with(csrf())
+                            .with(request -> {
+                                getContext().setAuthentication(mockSuperUserAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(createAppAccessDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Path userId does not match payload property createUserDTO.id"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = RoleType.class, names = {"ROLE_LEVEL_1", "ROLE_LEVEL_3", "ROLE_SUPER_USER"})
+    @DisplayName("Should throw BadRequestException when role is not Level 2 or Level 4")
+    void upsertUserAccess_throwsWhenRoleIsNotLevel2OrLevel4(RoleType roleType) throws Exception {
+        Role role = mock(Role.class);
+        when(role.getName()).thenReturn(roleType.name());
+
+        when(userService.getRoleById(createAppAccessDTO.getRoleId())).thenReturn(role);
+
+        mockMvc.perform(put("/users/access/" + createAppAccessDTO.getUserId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext().setAuthentication(mockSuperUserAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(createAppAccessDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("This endpoint is intended for court access only (Level 2 and Level 4 roles). " +
+                                      "Please use the /users endpoint to create/update users with other roles."));
+    }
+
+    @Test
+    void upsertUserAccess_allowsLevel2RoleAndDelegatesToService() throws Exception {
+        Role role = mock(Role.class);
+        when(role.getName()).thenReturn(RoleType.ROLE_LEVEL_2.name());
+        when(userService.getRoleById(createAppAccessDTO.getRoleId())).thenReturn(role);
+        when(userService.upsertAppAccess(createAppAccessDTO)).thenReturn(UpsertResult.UPDATED);
+
+        mockMvc.perform(put("/users/access/" + createAppAccessDTO.getUserId())
+                            .with(csrf())
+                            .with(request -> {
+                                getContext().setAuthentication(mockSuperUserAuth);
+                                return request;
+                            })
+                            .content(OBJECT_MAPPER.writeValueAsString(createAppAccessDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is2xxSuccessful());
+
+        verify(userService).upsertAppAccess(createAppAccessDTO);
+    }
+
 }

@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.RoleType;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -210,6 +211,28 @@ public class UserController extends PreApiController {
 
         return getUpsertResponse(userService.upsert(createUserDTO), userId);
     }
+
+    @PutMapping("/access/{userId}")
+    @Operation(operationId = "putUserAccess", summary = "Create or Update a User Access At Court Level")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public ResponseEntity<Void> upsertUserAccess(@PathVariable UUID userId,
+                                                 @RequestBody @Valid CreateAppAccessDTO createAppAccessDTO) {
+        if (!userId.equals(createAppAccessDTO.getUserId())) {
+            throw new PathPayloadMismatchException("userId", "createUserDTO.id");
+        }
+        Role roleById = userService.getRoleById(createAppAccessDTO.getRoleId());
+
+        boolean level2 = roleById.getName().equals(RoleType.ROLE_LEVEL_2.name());
+        boolean level4 = roleById.getName().equals(RoleType.ROLE_LEVEL_4.name());
+        if (!level2 && !level4) {
+            throw new BadRequestException(
+                "This endpoint is intended for court access only (Level 2 and Level 4 roles). " +
+                    "Please use the /users endpoint to create/update users with other roles.");
+        }
+
+        return getUpsertResponse(userService.upsertAppAccess(createAppAccessDTO), userId);
+    }
+
 
     @DeleteMapping("/{userId}")
     @Operation(operationId = "deleteUser", summary = "Delete a User")

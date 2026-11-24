@@ -198,6 +198,11 @@ public class UserService {
     }
 
     @Transactional
+    public UpsertResult upsertAppAccess(CreateAppAccessDTO createAppAccessDTO) {
+        return appAccessService.upsert(createAppAccessDTO);
+    }
+
+    @Transactional
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
         Optional<User> user = userRepository.findById(createInviteDTO.getUserId());
         if (user.isPresent() && user.get().isDeleted()) {
