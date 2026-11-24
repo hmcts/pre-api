@@ -5481,6 +5481,35 @@ paths:
         role
       tags:
         - user-controller
+  '/users/access/{userId}':
+    put:
+      consumes:
+        - application/json
+      operationId: putUserAccess
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateAppAccessDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a User Access At Court Level
+      tags:
+        - user-controller
   '/users/by-email/{email}':
     get:
       operationId: getUserAccessByEmail
