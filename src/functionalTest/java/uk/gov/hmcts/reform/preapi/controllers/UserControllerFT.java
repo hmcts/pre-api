@@ -7,9 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
-import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
@@ -18,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 

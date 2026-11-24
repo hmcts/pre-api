@@ -18,7 +18,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
-import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
