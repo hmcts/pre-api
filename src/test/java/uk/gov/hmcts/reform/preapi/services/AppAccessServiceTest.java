@@ -128,7 +128,7 @@ class AppAccessServiceTest {
         ArgumentCaptor<AppAccess> appAccessCaptor = ArgumentCaptor.forClass(AppAccess.class);
         verify(appAccessRepository, times(1)).save(appAccessCaptor.capture());
 
-        assertThat(appAccessCaptor.getValue().isActive()).isEqualTo(false);
+        assertThat(appAccessCaptor.getValue().isActive()).isFalse();
         assertThat(appAccessCaptor.getValue().getRole()).isEqualTo(mockRole);
     }
 
