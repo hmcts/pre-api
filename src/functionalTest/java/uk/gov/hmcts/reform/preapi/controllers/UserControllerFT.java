@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
+import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
@@ -16,9 +18,11 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UserControllerFT extends FunctionalTestBase {
@@ -82,6 +86,27 @@ class UserControllerFT extends FunctionalTestBase {
 
         assertResponseCode(createResponse, 403);
     }
+
+    @Test
+    @DisplayName("Should allow only ROLE_SUPER_USER to reset app access IDs for any user")
+    void superUserCanResetAppAccessIDs() {
+
+        assertResponseCode(
+            doPutRequest(
+                "/users/reset-app-access-ids/" + UUID.randomUUID(),
+                TestingSupportRoles.LEVEL_1
+            ), 403
+        );
+
+        assertResponseCode(
+            doPutRequest(
+                "/users/reset-app-access-ids/" + UUID.randomUUID(),
+                TestingSupportRoles.SUPER_USER
+            ), 200
+        );
+
+    }
+
 
     @Test
     @DisplayName("Scenario: Unregistered portal user is changed to active")
@@ -223,7 +248,7 @@ class UserControllerFT extends FunctionalTestBase {
     @Test
     void userFilteredByAppActiveStatus() throws JsonProcessingException {
         var user = createUserDto();
-        var roleId = createRole();
+        var roleId = createRole(TestingSupportRoles.LEVEL_1);
         var court1 = createCourt();
         var court2 = createCourt();
         var access1 = createAppAccessDto(user.getId(), court1.getId(), roleId);
@@ -242,13 +267,15 @@ class UserControllerFT extends FunctionalTestBase {
 
         // has at least one active app access
         var responseActiveTrue =
-            doGetRequest(USERS_ENDPOINT + "?appActive=true&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
+            doGetRequest(USERS_ENDPOINT + "?appActive=true&email=" + user.getEmail(),
+                         TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveTrue, 200);
-        assertThat(responseActiveTrue.body().jsonPath().getUUID("_embedded.userDTOList[0].id")).isEqualTo(user.getId());
+        assertThat(responseActiveTrue.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
+            .isEqualTo(user.getId());
 
         // app access for court is active
         var responseActiveTrueByCourt = doGetRequest(
-            USERS_ENDPOINT + "?appActive=true&courtId=" + court1.getId() + "&email=" + user.getId(),
+            USERS_ENDPOINT + "?appActive=true&courtId=" + court1.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveTrueByCourt, 200);
@@ -257,7 +284,7 @@ class UserControllerFT extends FunctionalTestBase {
 
         // app access for court is inactive (searching for active)
         var responseActiveTrueByCourt2 = doGetRequest(
-            USERS_ENDPOINT + "?appActive=true&courtId=" + court2.getId() + "&email=" + user.getId(),
+            USERS_ENDPOINT + "?appActive=true&courtId=" + court2.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveTrueByCourt2, 200);
@@ -266,14 +293,14 @@ class UserControllerFT extends FunctionalTestBase {
 
         // has at least one inactive app access
         var responseActiveFalse =
-            doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
+            doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getEmail(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveFalse, 200);
         assertThat(responseActiveFalse.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
 
         // app access for court is active (searching for inactive)
         var responseActiveFalseByCourt = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + court1.getId() + "&email=" + user.getId(),
+            USERS_ENDPOINT + "?appActive=false&courtId=" + court1.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveFalseByCourt, 200);
@@ -282,7 +309,7 @@ class UserControllerFT extends FunctionalTestBase {
 
         // app access for court is inactive
         var responseActiveFalseByCourt2 = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + court2.getId() + "&email=" + user.getId(),
+            USERS_ENDPOINT + "?appActive=false&courtId=" + court2.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveFalseByCourt2, 200);
@@ -306,7 +333,7 @@ class UserControllerFT extends FunctionalTestBase {
 
     @DisplayName("Scenario: Should not create/update a user with un-sanitised data")
     @Test
-    void shouldNoCreateUserWithUnsafeData() throws JsonProcessingException {
+    void shouldNotCreateUserWithUnsafeData() throws JsonProcessingException {
         var dto = createUserDto();
         dto.setOrganisation("<script>alert(1)</script>");
         dto.setFirstName("<br>First</br>");
@@ -375,8 +402,9 @@ class UserControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private UUID createRole() {
-        return doPostRequest("/testing-support/create-role?roleName=SUPER_USER", TestingSupportRoles.SUPER_USER)
+    private UUID createRole(TestingSupportRoles role) {
+        return doPostRequest(format("/testing-support/create-role?roleName=%s", role.name()),
+                             TestingSupportRoles.SUPER_USER)
             .body()
             .jsonPath().getUUID("roleId");
     }

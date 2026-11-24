@@ -70,6 +70,14 @@ public class UserService {
     }
 
     @Transactional()
+    public Optional<UserDTO> findByIdIfExists(UUID userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId).map(user -> new UserDTO(
+            user,
+            termsAndConditionsService.getAllLatestTermsAndConditions()
+        ));
+    }
+
+    @Transactional()
     public UserDTO findById(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
             .map(user ->
@@ -161,13 +169,18 @@ public class UserService {
         userRepository.saveAndFlush(entity);
 
         if (isUpdate) {
+            // Find existing app access that should be deleted
             Stream.ofNullable(entity.getAppAccess())
                 .flatMap(Collection::stream)
                 .filter(appAccess -> appAccess.getDeletedAt() == null)
-                .map(AppAccess::getId)
-                .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
-                    .noneMatch(newAccessId -> newAccessId.equals(id)))
-                .forEach(appAccessService::deleteById);
+                .map(AppAccess::getCourt)
+                .filter(existingCourt ->
+                    createUserDTO.getAppAccess().stream()
+                        .map(CreateAppAccessDTO::getCourtId)
+                        .noneMatch(inputCourtId -> inputCourtId.equals(existingCourt.getId()))
+                )
+                .forEach(existingCourt ->
+                             appAccessService.deleteByUserIdAndCourtId(entity.getId(), existingCourt.getId()));
 
             Stream.ofNullable(entity.getPortalAccess())
                 .flatMap(Collection::stream)
@@ -302,5 +315,10 @@ public class UserService {
     @Transactional(readOnly = true)
     public Page<UserDTO> findPortalUsersWithCjsmEmail(Pageable pageable) {
         return userRepository.findPortalUsersWithCjsmEmail(pageable).map(user -> new UserDTO(user, null));
+    }
+
+    @Transactional
+    public void resetAppAccessIdsForUserId(UUID userId) {
+        appAccessService.resetAppAccessIDsForUserId(userId);
     }
 }
