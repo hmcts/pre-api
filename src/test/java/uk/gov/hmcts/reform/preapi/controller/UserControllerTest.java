@@ -1069,8 +1069,8 @@ public class UserControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
-                           .value("This endpoint is intended for court access only (Level 2 and Level 4 roles). " +
-                                      "Please use the /users endpoint to create/update users with other roles."));
+                           .value("This endpoint is intended for court access only (Level 2 and Level 4 roles). "
+                                      + "Please use the /users endpoint to create/update users with other roles."));
     }
 
     @Test

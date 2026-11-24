@@ -140,6 +140,11 @@ public class UserService {
     }
 
     @Transactional
+    public UpsertResult upsertAppAccess(CreateAppAccessDTO createAppAccessDTO) {
+        return appAccessService.upsert(createAppAccessDTO);
+    }
+    
+    @Transactional
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
         Optional<User> user = userRepository.findById(createUserDTO.getId());
 
@@ -195,11 +200,6 @@ public class UserService {
         createUserDTO.getAppAccess().forEach(appAccessService::upsert);
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
-    }
-
-    @Transactional
-    public UpsertResult upsertAppAccess(CreateAppAccessDTO createAppAccessDTO) {
-        return appAccessService.upsert(createAppAccessDTO);
     }
 
     @Transactional
