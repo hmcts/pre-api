@@ -222,11 +222,12 @@ public class UserController extends PreApiController {
         }
         Role roleById = userService.getRoleById(createAppAccessDTO.getRoleId());
 
-        boolean level2 = roleById.getName().equals(RoleType.ROLE_LEVEL_2.name());
-        boolean level4 = roleById.getName().equals(RoleType.ROLE_LEVEL_4.name());
-        if (!level2 && !level4) {
+        boolean level1 = roleById.getName().equals(RoleType.ROLE_LEVEL_1.roleLabel);
+        boolean level2 = roleById.getName().equals(RoleType.ROLE_LEVEL_2.roleLabel);
+        boolean level4 = roleById.getName().equals(RoleType.ROLE_LEVEL_4.roleLabel);
+        if (!level1 && !level2 && !level4) {
             throw new BadRequestException(
-                "This endpoint is intended for court access only (Level 2 and Level 4 roles). "
+                "This endpoint is intended for court access only (Levels 1, 2 and 4 roles). "
                     + "Please use the /users endpoint to create/update users with other roles.");
         }
 

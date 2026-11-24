@@ -16,7 +16,6 @@ import java.util.UUID;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateAppAccessDTO {
     @Schema(description = "AppAccessId")
-    @NotNull
     private UUID id;
 
     @Schema(description = "AppAccessUserId")

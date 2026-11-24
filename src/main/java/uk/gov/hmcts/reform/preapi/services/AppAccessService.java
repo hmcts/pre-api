@@ -43,24 +43,27 @@ public class AppAccessService {
         this.roleRepository = roleRepository;
     }
 
-    public Optional<AppAccess> getLatestAccessByCourtIdAndUserIdAndRoleId(UUID courtId, UUID userId, UUID roleId) {
+    public Optional<AppAccess> getLatestAccessByCourtIdAndUserId(UUID courtId, UUID userId) {
         return appAccessRepository.findAllByCourtIdAndUserId(courtId, userId)
             .stream()
-            .filter(a -> a.getRole().getId().equals(roleId))
-            .filter(a -> a.getDeletedAt() == null)
-            .max(Comparator.comparing(AppAccess::getLastAccess));
+            // Backwards compatible because the database is not enforcing a unique constraint on courtId and userId
+            .max(
+                Comparator
+                    .comparing(AppAccess::isActive)
+                    .thenComparing(
+                        AppAccess::getLastAccess,
+                        Comparator.nullsFirst(Comparator.naturalOrder())));
     }
 
     @Transactional
     public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
-        Optional<AppAccess> existingAccessForThisUserCourtRole =
-            getLatestAccessByCourtIdAndUserIdAndRoleId(
+        Optional<AppAccess> existingAccessForThisUserCourt =
+            getLatestAccessByCourtIdAndUserId(
                 createAppAccessDTO.getCourtId(),
-                createAppAccessDTO.getUserId(),
-                createAppAccessDTO.getRoleId());
+                createAppAccessDTO.getUserId());
 
         AppAccess entity;
-        if (existingAccessForThisUserCourtRole.isEmpty()) {
+        if (existingAccessForThisUserCourt.isEmpty()) {
             entity = new AppAccess();
             entity.setId(UUID.randomUUID());
 
@@ -72,7 +75,7 @@ public class AppAccessService {
                 .orElseThrow(() -> new NotFoundException("Court: " + createAppAccessDTO.getCourtId()));
             entity.setCourt(court);
         } else {
-            entity = existingAccessForThisUserCourtRole.get();
+            entity = existingAccessForThisUserCourt.get();
         }
 
         // TODO remove if statement when uncommented @NotNull on CreateAppAccessDTO.courtAccessType
@@ -91,7 +94,7 @@ public class AppAccessService {
 
         appAccessRepository.save(entity);
 
-        return existingAccessForThisUserCourtRole.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return existingAccessForThisUserCourt.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
