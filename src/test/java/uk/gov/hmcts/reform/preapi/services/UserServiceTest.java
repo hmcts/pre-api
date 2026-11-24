@@ -1443,4 +1443,21 @@ public class UserServiceTest {
         assertThat(dto.getEmail()).isEqualTo(cjsmUser.getEmail());
         assertThat(dto.getAlternativeEmail()).isEqualTo(cjsmUser.getAlternativeEmail());
     }
+
+    @Test
+    @DisplayName("Should delegate to app access service")
+    void upsertAppAccessDelegatesToService() {
+        var appAccess = new CreateAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUserId(UUID.randomUUID());
+        appAccess.setCourtId(UUID.randomUUID());
+        appAccess.setRoleId(UUID.randomUUID());
+
+        when(appAccessService.upsert(appAccess)).thenReturn(UpsertResult.CREATED);
+
+        var result = userService.upsertAppAccess(appAccess);
+
+        assertThat(result).isEqualTo(UpsertResult.CREATED);
+        verify(appAccessService, times(1)).upsert(appAccess);
+    }
 }

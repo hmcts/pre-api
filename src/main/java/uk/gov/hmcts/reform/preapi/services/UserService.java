@@ -140,6 +140,11 @@ public class UserService {
     }
 
     @Transactional
+    public UpsertResult upsertAppAccess(CreateAppAccessDTO createAppAccessDTO) {
+        return appAccessService.upsert(createAppAccessDTO);
+    }
+    
+    @Transactional
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
         Optional<User> user = userRepository.findById(createUserDTO.getId());
 
