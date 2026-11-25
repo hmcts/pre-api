@@ -12,7 +12,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -1118,15 +1117,14 @@ public class UserControllerTest {
     void getUsersByCourtId_shouldReturnOkWithServiceResponse_andUseUnpaged() throws Exception {
         UUID courtId = UUID.randomUUID();
         Pageable unpaged = Pageable.unpaged();
-        Page<UserDTO> mockPage = new PageImpl<>(List.of());
-        when(userService.getUsersWithLatestAccessForCourt(eq(courtId), eq(unpaged))).thenReturn(mockPage);
+        when(userService.getUsersWithLatestAccessForCourt(eq(courtId))).thenReturn(List.of());
 
         mockMvc.perform(get("/users/by-court/" + courtId)
                             .with(csrf())
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk());
 
-        verify(userService).getUsersWithLatestAccessForCourt(eq(courtId), eq(unpaged));
+        verify(userService).getUsersWithLatestAccessForCourt(eq(courtId));
         verifyNoMoreInteractions(userService);
     }
 

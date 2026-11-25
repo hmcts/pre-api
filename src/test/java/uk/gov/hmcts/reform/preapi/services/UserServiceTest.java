@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -1509,38 +1508,35 @@ public class UserServiceTest {
         user.setAppAccess(Set.of(appAccess));
 
         Page<User> usersPage = new PageImpl<>(List.of(user));
-        Pageable pageable = PageRequest.of(0, 10);
 
         when(courtRepository.existsById(courtId)).thenReturn(true);
         when(userRepository.searchAllBy(
             isNull(), isNull(), isNull(), isNull(), isNull(), eq(courtId),
-            isNull(), eq(false), eq(true), eq(true), isNull(), eq(pageable)
+            isNull(), eq(false), eq(true), eq(true), isNull(), any()
         )).thenReturn(usersPage);
 
-        Page<UserDTO> result = userService.getUsersWithLatestAccessForCourt(courtId, pageable);
+        List<UserDTO> result = userService.getUsersWithLatestAccessForCourt(courtId);
 
-        assertThat(result.getTotalElements()).isEqualTo(1L);
-        UserDTO dto = result.getContent().get(0);
+        assertThat(result.size()).isEqualTo(1);
+        UserDTO dto = result.getFirst();
         assertThat(dto.getAppAccess()).isNotNull();
         assertThat(dto.getAppAccess()).hasSize(1);
 
         verify(courtRepository).existsById(courtId);
         verify(userRepository).searchAllBy(
             isNull(), isNull(), isNull(), isNull(), isNull(), eq(courtId),
-            isNull(), eq(false), eq(true), eq(true), isNull(), eq(pageable)
+            isNull(), eq(false), eq(true), eq(true), isNull(), any()
         );
     }
 
     @Test
     void getUsersWithLatestAccessForCourt_throwsWhenCourtMissing() {
         UUID courtId = UUID.randomUUID();
-        Pageable pageable = PageRequest.of(0, 10);
-
         when(courtRepository.existsById(courtId)).thenReturn(false);
 
         NotFoundException ex = assertThrows(
             NotFoundException.class,
-            () -> userService.getUsersWithLatestAccessForCourt(courtId, pageable)
+            () -> userService.getUsersWithLatestAccessForCourt(courtId)
         );
 
         assertThat(ex.getMessage()).contains("Court: " + courtId);

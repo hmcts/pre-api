@@ -160,7 +160,7 @@ public class UserService {
     }
 
     @Transactional
-    public Page<UserDTO> getUsersWithLatestAccessForCourt(UUID courtId, Pageable pageable) {
+    public List<UserDTO> getUsersWithLatestAccessForCourt(UUID courtId) {
         if (courtId == null || !courtRepository.existsById(courtId)) {
             throw new NotFoundException("Court: " + courtId);
         }
@@ -175,7 +175,7 @@ public class UserService {
             searchUsers.getRoleId(),
             searchUsers.getAccessType() == AccessType.PORTAL,
             searchUsers.getAccessType() == AccessType.APP,
-            true, searchUsers.getAppActive(), pageable
+            true, searchUsers.getAppActive(), Pageable.unpaged()
         );
 
         return returnedFromDB.map(user -> {
@@ -192,7 +192,7 @@ public class UserService {
                                        mappedUser.setAppAccess(List.of(new BaseAppAccessDTO(appAccess))));
 
             return mappedUser;
-        });
+        }).stream().toList();
     }
 
     @Transactional

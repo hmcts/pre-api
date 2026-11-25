@@ -39,6 +39,7 @@ import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -170,8 +171,8 @@ public class UserController extends PreApiController {
     @GetMapping("/by-court/{courtId}")
     @Operation(operationId = "getUserAccessByCourt", summary = "Get a User's latest access for this court")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
-    public ResponseEntity<Page<UserDTO>> getUsersByCourtId(@PathVariable UUID courtId) {
-        return ResponseEntity.ok(userService.getUsersWithLatestAccessForCourt(courtId, Pageable.unpaged()));
+    public ResponseEntity<List<UserDTO>> getUsersByCourtId(@PathVariable UUID courtId) {
+        return ResponseEntity.ok(userService.getUsersWithLatestAccessForCourt(courtId));
     }
 
     @PutMapping("/{userId}")
