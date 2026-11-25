@@ -2052,56 +2052,6 @@ definitions:
         format: int64
         type: integer
     type: object
-  PageUserDTO:
-    properties:
-      content:
-        items:
-          $ref: '#/definitions/UserDTO'
-        type: array
-      empty:
-        type: boolean
-      first:
-        type: boolean
-      last:
-        type: boolean
-      number:
-        format: int32
-        type: integer
-      numberOfElements:
-        format: int32
-        type: integer
-      pageable:
-        $ref: '#/definitions/PageableObject'
-      size:
-        format: int32
-        type: integer
-      sort:
-        $ref: '#/definitions/SortObject'
-      totalElements:
-        format: int64
-        type: integer
-      totalPages:
-        format: int32
-        type: integer
-    type: object
-  PageableObject:
-    properties:
-      offset:
-        format: int64
-        type: integer
-      pageNumber:
-        format: int32
-        type: integer
-      pageSize:
-        format: int32
-        type: integer
-      paged:
-        type: boolean
-      sort:
-        $ref: '#/definitions/SortObject'
-      unpaged:
-        type: boolean
-    type: object
   PagedModelEntityModelAuditDTO:
     properties:
       _embedded:
@@ -2734,15 +2684,6 @@ definitions:
       timezone:
         description: SharedReportShareTimezone
         type: string
-    type: object
-  SortObject:
-    properties:
-      empty:
-        type: boolean
-      sorted:
-        type: boolean
-      unsorted:
-        type: boolean
     type: object
   TermsAndConditionsDTO:
     properties:
@@ -5590,7 +5531,9 @@ paths:
         '200':
           description: OK
           schema:
-            $ref: '#/definitions/PageUserDTO'
+            items:
+              $ref: '#/definitions/UserDTO'
+            type: array
       summary: Get a User's latest access for this court
       tags:
         - user-controller
