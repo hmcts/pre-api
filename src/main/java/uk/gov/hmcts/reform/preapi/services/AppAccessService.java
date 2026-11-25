@@ -18,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,8 +34,7 @@ public class AppAccessService {
         AppAccessRepository appAccessRepository,
         UserRepository userRepository,
         CourtRepository courtRepository,
-        RoleRepository roleRepository
-    ) {
+        RoleRepository roleRepository) {
         this.appAccessRepository = appAccessRepository;
         this.userRepository = userRepository;
         this.courtRepository = courtRepository;
@@ -44,26 +42,23 @@ public class AppAccessService {
     }
 
     public Optional<AppAccess> getLatestAccessByCourtIdAndUserId(UUID courtId, UUID userId) {
+        // The database does not enforce a unique constraint on courtId and userId.
+        // Attempting to find the most relevant app access for this user and court
         return appAccessRepository.findAllByCourtIdAndUserId(courtId, userId)
             .stream()
-            // Backwards compatible because the database is not enforcing a unique constraint on courtId and userId
-            .max(
-                Comparator
-                    .comparing(AppAccess::isActive)
-                    .thenComparing(
-                        AppAccess::getLastAccess,
-                        Comparator.nullsFirst(Comparator.naturalOrder())));
+            .max(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE);
     }
 
     @Transactional
     public UpsertResult upsert(CreateAppAccessDTO createAppAccessDTO) {
-        Optional<AppAccess> existingAccessForThisUserCourt =
+        Optional<AppAccess> latestAccessForThisUserCourt =
             getLatestAccessByCourtIdAndUserId(
                 createAppAccessDTO.getCourtId(),
-                createAppAccessDTO.getUserId());
+                createAppAccessDTO.getUserId()
+            );
 
         AppAccess entity;
-        if (existingAccessForThisUserCourt.isEmpty()) {
+        if (latestAccessForThisUserCourt.isEmpty()) {
             entity = new AppAccess();
             entity.setId(UUID.randomUUID());
 
@@ -75,7 +70,7 @@ public class AppAccessService {
                 .orElseThrow(() -> new NotFoundException("Court: " + createAppAccessDTO.getCourtId()));
             entity.setCourt(court);
         } else {
-            entity = existingAccessForThisUserCourt.get();
+            entity = latestAccessForThisUserCourt.get();
         }
 
         // TODO remove if statement when uncommented @NotNull on CreateAppAccessDTO.courtAccessType
@@ -88,13 +83,19 @@ public class AppAccessService {
             entity.setActive(createAppAccessDTO.getActive());
         }
 
+        if (entity.isActive()) {
+            entity.setDeletedAt(null);
+        } else {
+            entity.setDeletedAt(Timestamp.from(Instant.now()));
+        }
+
         Role role = roleRepository.findById(createAppAccessDTO.getRoleId())
             .orElseThrow(() -> new NotFoundException("Role: " + createAppAccessDTO.getRoleId()));
         entity.setRole(role);
 
         appAccessRepository.save(entity);
 
-        return existingAccessForThisUserCourt.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return latestAccessForThisUserCourt.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -103,6 +104,19 @@ public class AppAccessService {
         appAccessRepository.findAllByUserId(userId)
             .forEach(access -> {
                 access.setId(UUID.randomUUID());
+                appAccessRepository.save(access);
+            });
+    }
+
+    @Transactional
+    public void deleteDuplicateAccessForUserIdAndCourtId(UUID userId, UUID courtId) {
+        Optional<AppAccess> latestAccess = getLatestAccessByCourtIdAndUserId(courtId, userId);
+        appAccessRepository.findAllByCourtIdAndUserId(courtId, userId)
+            .stream()
+            .filter(access -> !access.getId().equals(latestAccess.map(AppAccess::getId).orElse(null)))
+            .forEach(access -> {
+                access.setActive(false);
+                access.setDeletedAt(Timestamp.from(Instant.now()));
                 appAccessRepository.save(access);
             });
     }

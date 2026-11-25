@@ -159,6 +159,21 @@ public class UserController extends PreApiController {
         return ResponseEntity.ok(assembler.toModel(resultPage));
     }
 
+    @DeleteMapping("/duplicate-access")
+    @Operation(operationId = "deactivateDuplicateAccess", summary = "Deactivate duplicate access for a user")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<Void> deactivateDuplicateAccess() {
+        userService.deactivateDuplicateAccessRecords();
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/by-court/{courtId}")
+    @Operation(operationId = "getUserAccessByCourt", summary = "Get a User's latest access for this court")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public ResponseEntity<Page<UserDTO>> getUsersByCourtId(@PathVariable UUID courtId) {
+        return ResponseEntity.ok(userService.getUsersWithLatestAccessForCourt(courtId, Pageable.unpaged()));
+    }
+
     @PutMapping("/{userId}")
     @Operation(operationId = "putUser", summary = "Create or Update a User")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
@@ -220,6 +235,7 @@ public class UserController extends PreApiController {
         if (!userId.equals(createAppAccessDTO.getUserId())) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.id");
         }
+
         Role roleById = userService.getRoleById(createAppAccessDTO.getRoleId());
 
         boolean level1 = roleById.getName().equals(RoleType.ROLE_LEVEL_1.roleLabel);

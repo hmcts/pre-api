@@ -3,6 +3,8 @@ package uk.gov.hmcts.reform.preapi.services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -132,12 +134,12 @@ class AppAccessServiceTest {
         assertThat(appAccessCaptor.getValue().getRole()).isEqualTo(mockRole);
     }
 
-    @DisplayName("Should reactivate if app access was previously deleted")
-    @Test
-    void createAppAccessDeleted() {
-        existingAppAccess.setActive(false);
-        existingAppAccess.setDeleted(true);
-        existingAppAccess.setDeletedAt(Timestamp.from(Instant.now()));
+    @ParameterizedTest
+    @CsvSource({"true,false", "true,true", "false,true", "false,false"})
+    @DisplayName("Should create or update app access entity with active/inactive status")
+    void createAppAccessDeleted(boolean existingAccessIsActive, boolean updatedAccessIsActive) {
+        existingAppAccess.setActive(existingAccessIsActive);
+        appAccessToBeUpserted.setActive(updatedAccessIsActive);
 
         underTest.upsert(appAccessToBeUpserted);
 
@@ -145,7 +147,11 @@ class AppAccessServiceTest {
             .findAllByCourtIdAndUserId(appAccessToBeUpserted.getCourtId(), appAccessToBeUpserted.getUserId());
         ArgumentCaptor<AppAccess> appAccessCaptor = ArgumentCaptor.forClass(AppAccess.class);
         verify(appAccessRepository, times(1)).save(appAccessCaptor.capture());
-        assertThat(appAccessCaptor.getValue().getDeletedAt()).isNull();
+        if (updatedAccessIsActive) {
+            assertThat(appAccessCaptor.getValue().getDeletedAt()).isNull();
+        } else {
+            assertThat(appAccessCaptor.getValue().getDeletedAt()).isNotNull();
+        }
     }
 
     @DisplayName("Should fail to create/update when user cannot be found")

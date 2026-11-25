@@ -12,14 +12,24 @@ import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Timestamp;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+
+import static uk.gov.hmcts.reform.preapi.entities.Role.BY_NAME_PRIORITY;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "app_access")
 public class AppAccess extends CreatedModifiedAtEntity {
+    public static final Comparator<AppAccess> BY_ACTIVE_LAST_ACCESS_ROLE = Comparator
+        .comparing(AppAccess::isActive)
+        .thenComparing(
+            AppAccess::getLastAccess,
+            Comparator.nullsFirst(Comparator.naturalOrder()))
+        .thenComparing(AppAccess::getRole, BY_NAME_PRIORITY);
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;

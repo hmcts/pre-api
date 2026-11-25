@@ -13,7 +13,9 @@ import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
@@ -31,6 +33,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -143,7 +146,55 @@ public class UserService {
     public UpsertResult upsertAppAccess(CreateAppAccessDTO createAppAccessDTO) {
         return appAccessService.upsert(createAppAccessDTO);
     }
-    
+
+    @Transactional
+    public void deactivateDuplicateAccessRecords() {
+        List<User> userList = userRepository.findAll();
+        List<Court> courtList = courtRepository.findAll();
+
+        for (User user : userList) {
+            for (Court court : courtList) {
+                appAccessService.deleteDuplicateAccessForUserIdAndCourtId(user.getId(), court.getId());
+            }
+        }
+    }
+
+    @Transactional
+    public Page<UserDTO> getUsersWithLatestAccessForCourt(UUID courtId, Pageable pageable) {
+        if (courtId == null || !courtRepository.existsById(courtId)) {
+            throw new NotFoundException("Court: " + courtId);
+        }
+
+        SearchUsers searchUsers = new SearchUsers();
+        searchUsers.setCourtId(courtId);
+        searchUsers.setAccessType(AccessType.APP);
+        searchUsers.setIncludeDeleted(true);
+        Page<User> returnedFromDB = userRepository.searchAllBy(
+            searchUsers.getName(), searchUsers.getFirstName(), searchUsers.getLastName(),
+            searchUsers.getEmail(), searchUsers.getOrganisation(), searchUsers.getCourtId(),
+            searchUsers.getRoleId(),
+            searchUsers.getAccessType() == AccessType.PORTAL,
+            searchUsers.getAccessType() == AccessType.APP,
+            true, searchUsers.getAppActive(), pageable
+        );
+
+        return returnedFromDB.map(user -> {
+            // Override access set to only include the latest access for this court. Don't care about T&Cs.
+            UserDTO mappedUser = new UserDTO(user, null);
+            if (user.getId() == null) {
+                return mappedUser;
+            }
+
+            Optional<AppAccess> latestAccess = user.getAppAccess().stream()
+                .max(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE);
+
+            latestAccess.ifPresent(appAccess ->
+                                       mappedUser.setAppAccess(List.of(new BaseAppAccessDTO(appAccess))));
+
+            return mappedUser;
+        });
+    }
+
     @Transactional
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
         Optional<User> user = userRepository.findById(createUserDTO.getId());
