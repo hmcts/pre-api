@@ -165,23 +165,12 @@ public class UserService {
             throw new NotFoundException("Court: " + courtId);
         }
 
-        SearchUsers searchUsers = new SearchUsers();
-        searchUsers.setCourtId(courtId);
-        searchUsers.setAccessType(AccessType.APP);
-        searchUsers.setIncludeDeleted(true);
-        Page<User> returnedFromDB = userRepository.searchAllBy(
-            searchUsers.getName(), searchUsers.getFirstName(), searchUsers.getLastName(),
-            searchUsers.getEmail(), searchUsers.getOrganisation(), searchUsers.getCourtId(),
-            searchUsers.getRoleId(),
-            searchUsers.getAccessType() == AccessType.PORTAL,
-            searchUsers.getAccessType() == AccessType.APP,
-            true, searchUsers.getAppActive(), Pageable.unpaged()
-        );
+        List<User> returnedFromDB = userRepository.findAllByCourtIdIs(courtId);
 
-        return returnedFromDB.map(user -> {
+        return returnedFromDB.stream().map(user -> {
             // Override access set to only include the latest access for this court. Don't care about T&Cs.
             UserDTO mappedUser = new UserDTO(user, null);
-            if (user.getId() == null) {
+            if (user.getId() == null || user.getAppAccess() == null || user.getAppAccess().isEmpty()) {
                 return mappedUser;
             }
 
@@ -192,7 +181,7 @@ public class UserService {
                                        mappedUser.setAppAccess(List.of(new BaseAppAccessDTO(appAccess))));
 
             return mappedUser;
-        }).stream().toList();
+        }).toList();
     }
 
     @Transactional

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -74,6 +75,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("isAppActive") Boolean isAppActive,
         Pageable pageable
     );
+
+    @Query(
+        """
+        SELECT u FROM User u
+        WHERE EXISTS(
+            SELECT 1 FROM u.appAccess aa
+            WHERE aa.court.id = :courtId)
+        """)
+    List<User> findAllByCourtIdIs(UUID courtId);
 
     Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
 

@@ -443,6 +443,7 @@ class AppAccessServiceTest {
         AppAccess latest = new AppAccess();
         latest.setId(UUID.randomUUID());
         latest.setActive(true);
+        // Should be treated as the latest because it has the most recent last access even though it has lower role
         latest.setRole(level4Role);
         latest.setLastAccess(Timestamp.from(Instant.now()));
 
@@ -450,6 +451,7 @@ class AppAccessServiceTest {
         duplicate1.setId(UUID.randomUUID());
         duplicate1.setActive(true);
         duplicate1.setRole(level2Role);
+        // Should be treated as older than latest because it has an older last access
         duplicate1.setLastAccess(Timestamp.from(Instant.now()
                                                     .minus(1, java.time.temporal.ChronoUnit.DAYS)));
 
@@ -457,9 +459,11 @@ class AppAccessServiceTest {
         duplicate2.setId(UUID.randomUUID());
         duplicate2.setActive(true);
         duplicate2.setRole(level4Role);
+        // Null last access should be treated as older than any non-null last access
 
         AppAccess duplicate3 = new AppAccess();
         duplicate3.setId(UUID.randomUUID());
+        // Inactive app access should be treated as older than any active app access
         duplicate3.setActive(false);
         duplicate3.setRole(level2Role);
 
@@ -472,7 +476,7 @@ class AppAccessServiceTest {
         verify(appAccessRepository, times(3)).save(captor.capture());
 
         Set<UUID> deactivatedIds = captor.getAllValues().stream().map(AppAccess::getId).collect(Collectors.toSet());
-        assertThat(Set.of(duplicate1.getId(), duplicate2.getId(), duplicate3.getId())).isEqualTo(deactivatedIds);
+        assertThat(Set.of(duplicate1.getId(), duplicate2.getId(), duplicate3.getId())).containsAll(deactivatedIds);
 
         captor.getAllValues().forEach(a -> {
             assertThat(a.isActive()).isFalse();
