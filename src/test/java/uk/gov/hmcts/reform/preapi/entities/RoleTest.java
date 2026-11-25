@@ -50,7 +50,7 @@ class RoleTest {
         assertEquals("Beta", roles.get(1).getName());
         assertEquals("zeta", roles.get(2).getName());
     }
-    
+
     private static Role role(String name) {
         Role role = new Role();
         role.setName(name);

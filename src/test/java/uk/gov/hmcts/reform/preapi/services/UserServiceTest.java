@@ -1467,25 +1467,24 @@ public class UserServiceTest {
     @Test
     @DisplayName("Should delete duplicate access records for every user-court combination")
     void deactivateDuplicateAccessRecords_deletesDuplicatesForEveryUserCourtCombination() {
-        UUID userId1 = UUID.randomUUID();
-        UUID userId2 = UUID.randomUUID();
-        UUID courtId1 = UUID.randomUUID();
-        UUID courtId2 = UUID.randomUUID();
-
-        User user1 = new User(); user1.setId(userId1);
-        User user2 = new User(); user2.setId(userId2);
-        Court court1 = new Court(); court1.setId(courtId1);
-        Court court2 = new Court(); court2.setId(courtId2);
-
+        User user1 = new User();
+        user1.setId(UUID.randomUUID());
+        User user2 = new User();
+        user2.setId(UUID.randomUUID());
         when(userRepository.findAll()).thenReturn(List.of(user1, user2));
+
+        Court court1 = new Court();
+        court1.setId(UUID.randomUUID());
+        Court court2 = new Court();
+        court2.setId(UUID.randomUUID());
         when(courtRepository.findAll()).thenReturn(List.of(court1, court2));
 
         userService.deactivateDuplicateAccessRecords();
 
-        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(userId1, courtId1);
-        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(userId1, courtId2);
-        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(userId2, courtId1);
-        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(userId2, courtId2);
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(user1.getId(), court1.getId());
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(user1.getId(), court2.getId());
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(user2.getId(), court1.getId());
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(user2.getId(), court2.getId());
         verify(appAccessService, times(4))
             .deleteDuplicateAccessForUserIdAndCourtId(any(UUID.class), any(UUID.class));
     }
@@ -1493,7 +1492,6 @@ public class UserServiceTest {
     @Test
     void getUsersWithLatestAccessForCourt_returnsMappedUsersWithSingleLatestAccess() {
         UUID courtId = UUID.randomUUID();
-        Pageable pageable = PageRequest.of(0, 10);
 
         Court court = new Court();
         court.setId(courtId);
@@ -1511,6 +1509,7 @@ public class UserServiceTest {
         user.setAppAccess(Set.of(appAccess));
 
         Page<User> usersPage = new PageImpl<>(List.of(user));
+        Pageable pageable = PageRequest.of(0, 10);
 
         when(courtRepository.existsById(courtId)).thenReturn(true);
         when(userRepository.searchAllBy(

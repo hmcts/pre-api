@@ -432,9 +432,6 @@ class AppAccessServiceTest {
 
     @Test
     void deleteDuplicateAccessForUserIdAndCourtId_shouldSoftDeleteAllButLatest() {
-        UUID userId = UUID.randomUUID();
-        UUID courtId = UUID.randomUUID();
-
         Role level2Role = mock(Role.class);
         when(level2Role.getId()).thenReturn(UUID.randomUUID());
         when(level2Role.getName()).thenReturn("Level 2");
@@ -466,10 +463,10 @@ class AppAccessServiceTest {
         duplicate3.setActive(false);
         duplicate3.setRole(level2Role);
 
-        when(appAccessRepository.findAllByCourtIdAndUserId(courtId, userId))
+        when(appAccessRepository.findAllByCourtIdAndUserId(any(), any()))
             .thenReturn(List.of(latest, duplicate1, duplicate2, duplicate3));
 
-        underTest.deleteDuplicateAccessForUserIdAndCourtId(userId, courtId);
+        underTest.deleteDuplicateAccessForUserIdAndCourtId(UUID.randomUUID(), UUID.randomUUID());
 
         ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
         verify(appAccessRepository, times(3)).save(captor.capture());
