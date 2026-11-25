@@ -1121,7 +1121,7 @@ public class UserControllerTest {
         Page<UserDTO> mockPage = new PageImpl<>(List.of());
         when(userService.getUsersWithLatestAccessForCourt(eq(courtId), eq(unpaged))).thenReturn(mockPage);
 
-        mockMvc.perform(get("/users/court/" + courtId)
+        mockMvc.perform(get("/users/by-court/" + courtId)
                             .with(csrf())
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk());
