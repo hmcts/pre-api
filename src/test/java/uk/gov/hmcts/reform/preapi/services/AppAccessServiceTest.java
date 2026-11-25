@@ -25,7 +25,9 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -426,5 +428,61 @@ class AppAccessServiceTest {
         verify(appAccessRepository, times(0)).save(any(AppAccess.class));
 
         verifyNoMoreInteractions(appAccessRepository);
+    }
+
+    @Test
+    void deleteDuplicateAccessForUserIdAndCourtId_shouldSoftDeleteAllButLatest() {
+        UUID userId = UUID.randomUUID();
+        UUID courtId = UUID.randomUUID();
+
+        Role level2Role = mock(Role.class);
+        when(level2Role.getId()).thenReturn(UUID.randomUUID());
+        when(level2Role.getName()).thenReturn("Level 2");
+
+        Role level4Role = mock(Role.class);
+        when(level4Role.getId()).thenReturn(UUID.randomUUID());
+        when(level4Role.getName()).thenReturn("Level 4");
+
+        AppAccess latest = new AppAccess();
+        latest.setId(UUID.randomUUID());
+        latest.setActive(true);
+        latest.setRole(level4Role);
+        latest.setLastAccess(Timestamp.from(Instant.now()));
+
+        AppAccess duplicate1 = new AppAccess();
+        duplicate1.setId(UUID.randomUUID());
+        duplicate1.setActive(true);
+        duplicate1.setRole(level2Role);
+        duplicate1.setLastAccess(Timestamp.from(Instant.now()
+                                                    .minus(1, java.time.temporal.ChronoUnit.DAYS)));
+
+        AppAccess duplicate2 = new AppAccess();
+        duplicate2.setId(UUID.randomUUID());
+        duplicate2.setActive(true);
+        duplicate2.setRole(level4Role);
+
+        AppAccess duplicate3 = new AppAccess();
+        duplicate3.setId(UUID.randomUUID());
+        duplicate3.setActive(false);
+        duplicate3.setRole(level2Role);
+
+        when(appAccessRepository.findAllByCourtIdAndUserId(courtId, userId))
+            .thenReturn(List.of(latest, duplicate1, duplicate2, duplicate3));
+
+        underTest.deleteDuplicateAccessForUserIdAndCourtId(userId, courtId);
+
+        ArgumentCaptor<AppAccess> captor = ArgumentCaptor.forClass(AppAccess.class);
+        verify(appAccessRepository, times(3)).save(captor.capture());
+
+        Set<UUID> deactivatedIds = captor.getAllValues().stream().map(AppAccess::getId).collect(Collectors.toSet());
+        assertThat(Set.of(duplicate1.getId(), duplicate2.getId(), duplicate3.getId())).isEqualTo(deactivatedIds);
+
+        captor.getAllValues().forEach(a -> {
+            assertThat(a.isActive()).isFalse();
+            assertThat(a.getDeletedAt()).isNotNull();
+        });
+
+        assertThat(latest.isActive()).isTrue();
+        assertThat(latest.getDeletedAt()).isNull();
     }
 }

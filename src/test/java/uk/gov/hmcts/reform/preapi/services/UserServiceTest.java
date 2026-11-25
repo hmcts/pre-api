@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -47,7 +48,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1460,4 +1463,90 @@ public class UserServiceTest {
         assertThat(result).isEqualTo(UpsertResult.CREATED);
         verify(appAccessService, times(1)).upsert(appAccess);
     }
+
+    @Test
+    @DisplayName("Should delete duplicate access records for every user-court combination")
+    void deactivateDuplicateAccessRecords_deletesDuplicatesForEveryUserCourtCombination() {
+        UUID userId1 = UUID.randomUUID();
+        UUID userId2 = UUID.randomUUID();
+        UUID courtId1 = UUID.randomUUID();
+        UUID courtId2 = UUID.randomUUID();
+
+        User user1 = new User(); user1.setId(userId1);
+        User user2 = new User(); user2.setId(userId2);
+        Court court1 = new Court(); court1.setId(courtId1);
+        Court court2 = new Court(); court2.setId(courtId2);
+
+        when(userRepository.findAll()).thenReturn(List.of(user1, user2));
+        when(courtRepository.findAll()).thenReturn(List.of(court1, court2));
+
+        userService.deactivateDuplicateAccessRecords();
+
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(userId1, courtId1);
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(userId1, courtId2);
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(userId2, courtId1);
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(userId2, courtId2);
+        verify(appAccessService, times(4))
+            .deleteDuplicateAccessForUserIdAndCourtId(any(UUID.class), any(UUID.class));
+    }
+
+    @Test
+    void getUsersWithLatestAccessForCourt_returnsMappedUsersWithSingleLatestAccess() {
+        UUID courtId = UUID.randomUUID();
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Court court = new Court();
+        court.setId(courtId);
+
+        Role role = new Role();
+        role.setId(UUID.randomUUID());
+
+        AppAccess appAccess = new AppAccess();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setCourt(court);
+        appAccess.setRole(role);
+
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setAppAccess(Set.of(appAccess));
+
+        Page<User> usersPage = new PageImpl<>(List.of(user));
+
+        when(courtRepository.existsById(courtId)).thenReturn(true);
+        when(userRepository.searchAllBy(
+            isNull(), isNull(), isNull(), isNull(), isNull(), eq(courtId),
+            isNull(), eq(false), eq(true), eq(true), isNull(), eq(pageable)
+        )).thenReturn(usersPage);
+
+        Page<UserDTO> result = userService.getUsersWithLatestAccessForCourt(courtId, pageable);
+
+        assertThat(result.getTotalElements()).isEqualTo(1L);
+        UserDTO dto = result.getContent().get(0);
+        assertThat(dto.getAppAccess()).isNotNull();
+        assertThat(dto.getAppAccess()).hasSize(1);
+
+        verify(courtRepository).existsById(courtId);
+        verify(userRepository).searchAllBy(
+            isNull(), isNull(), isNull(), isNull(), isNull(), eq(courtId),
+            isNull(), eq(false), eq(true), eq(true), isNull(), eq(pageable)
+        );
+    }
+
+    @Test
+    void getUsersWithLatestAccessForCourt_throwsWhenCourtMissing() {
+        UUID courtId = UUID.randomUUID();
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(courtRepository.existsById(courtId)).thenReturn(false);
+
+        NotFoundException ex = assertThrows(
+            NotFoundException.class,
+            () -> userService.getUsersWithLatestAccessForCourt(courtId, pageable)
+        );
+
+        assertThat(ex.getMessage()).contains("Court: " + courtId);
+        verify(userRepository, never()).searchAllBy(any(), any(), any(), any(), any(), any(), any(),
+                                                    anyBoolean(), anyBoolean(), anyBoolean(), any(), any());
+    }
+
 }

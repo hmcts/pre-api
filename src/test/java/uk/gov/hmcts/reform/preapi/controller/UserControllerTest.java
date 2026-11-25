@@ -12,7 +12,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -51,11 +53,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.core.context.SecurityContextHolder.getContext;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -1092,6 +1096,38 @@ public class UserControllerTest {
             .andExpect(status().is2xxSuccessful());
 
         verify(userService).upsertAppAccess(createAppAccessDTO);
+    }
+
+    @Test
+    void deactivateDuplicateAccess_shouldCallServiceAndReturnNoContent() throws Exception {
+        mockMvc.perform(delete("/users//duplicate-access")
+                            .with(csrf())
+                            .with(request -> {
+                                getContext().setAuthentication(mockSuperUserAuth);
+                                return request;
+                            })
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent());
+
+        verify(userService).deactivateDuplicateAccessRecords();
+        verifyNoMoreInteractions(userService);
+    }
+
+    @Test
+    void getUsersByCourtId_shouldReturnOkWithServiceResponse_andUseUnpaged() throws Exception {
+        UUID courtId = UUID.randomUUID();
+        Pageable unpaged = Pageable.unpaged();
+        Page<UserDTO> mockPage = new PageImpl<>(List.of());
+        when(userService.getUsersWithLatestAccessForCourt(eq(courtId), eq(unpaged))).thenReturn(mockPage);
+
+        mockMvc.perform(get("/users/court/" + courtId)
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk());
+
+        verify(userService).getUsersWithLatestAccessForCourt(eq(courtId), eq(unpaged));
+        verifyNoMoreInteractions(userService);
     }
 
 }
