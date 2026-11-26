@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
@@ -244,23 +245,33 @@ class UserControllerFT extends FunctionalTestBase {
     @DisplayName("Get users by app active status")
     @Test
     void userFilteredByAppActiveStatus() throws JsonProcessingException {
-        var user = createUserDto();
-        var roleId = createRole(TestingSupportRoles.LEVEL_1);
-        var court1 = createCourt();
-        var court2 = createCourt();
-        var access1 = createAppAccessDto(user.getId(), court1.getId(), roleId);
-        var access2 = createAppAccessDto(user.getId(), court2.getId(), roleId);
-        access2.setActive(false);
-        access2.setDefaultCourt(false);
-        user.setAppAccess(Set.of(access1, access2));
+
+        CreateCourtDTO court1 = createCourt();
         putCourt(court1);
         assertCourtExists(court1.getId(), true);
 
+        CreateCourtDTO court2 = createCourt();
         putCourt(court2);
         assertCourtExists(court2.getId(), true);
 
+        CreateUserDTO user = createUserDto();
+        UUID roleId = createRole(TestingSupportRoles.LEVEL_1);
+
+        CreateAppAccessDTO inactiveAccess = createAppAccessDto(user.getId(), court2.getId(), roleId);
+        inactiveAccess.setActive(false);
+        inactiveAccess.setDefaultCourt(false);
+        CreateAppAccessDTO activeAccess = createAppAccessDto(user.getId(), court1.getId(), roleId);
+        user.setAppAccess(Set.of(activeAccess, inactiveAccess));
         putUser(user);
         assertUserExists(user.getId(), true);
+
+        // No filters applied
+        var responseNoFilters =
+            doGetRequest(USERS_ENDPOINT + "?email=" + user.getEmail(),
+                         TestingSupportRoles.SUPER_USER);
+        assertResponseCode(responseNoFilters, 200);
+        assertThat(responseNoFilters.body().jsonPath().getList("_embedded.userDTOList[0].app_access")).size()
+            .isEqualTo(2);
 
         // has at least one active app access
         var responseActiveTrue =
@@ -279,7 +290,7 @@ class UserControllerFT extends FunctionalTestBase {
         assertThat(responseActiveTrueByCourt.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
 
-        // app access for court is inactive (searching for active)
+        // inactive app access for court2 is filtered out (searching for active)
         var responseActiveTrueByCourt2 = doGetRequest(
             USERS_ENDPOINT + "?appActive=true&courtId=" + court2.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
@@ -288,14 +299,15 @@ class UserControllerFT extends FunctionalTestBase {
         assertThat(responseActiveTrueByCourt2.body().jsonPath().getInt("page.totalElements"))
             .isEqualTo(0);
 
-        // has at least one inactive app access
+        // shows inactive app access when not filtering by court
         var responseActiveFalse =
-            doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getEmail(), TestingSupportRoles.SUPER_USER);
+            doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getEmail(),
+                         TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveFalse, 200);
         assertThat(responseActiveFalse.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
 
-        // app access for court is active (searching for inactive)
+        // active app access for court 1 is filtered out (searching for inactive)
         var responseActiveFalseByCourt = doGetRequest(
             USERS_ENDPOINT + "?appActive=false&courtId=" + court1.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
@@ -314,7 +326,7 @@ class UserControllerFT extends FunctionalTestBase {
             .isEqualTo(user.getId());
 
         // delete app access
-        user.setAppAccess(Set.of(access1));
+        user.setAppAccess(Set.of(activeAccess));
         putUser(user);
         assertUserExists(user.getId(), true);
 
