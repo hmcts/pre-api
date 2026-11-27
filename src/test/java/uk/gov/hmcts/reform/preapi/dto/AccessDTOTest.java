@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AccessDTOTest {
+class AccessDTOTest {
     @Test
     void accessDTOWithNullAppAccessAndPortalAccess() {
         var user = mock(User.class);

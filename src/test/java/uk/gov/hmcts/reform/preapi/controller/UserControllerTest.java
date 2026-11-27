@@ -77,7 +77,7 @@ import static uk.gov.hmcts.reform.preapi.util.HelperFactory.mockUserFromDatabase
 @WebMvcTest(UserController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-public class UserControllerTest {
+class UserControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
@@ -835,7 +835,7 @@ public class UserControllerTest {
 
     @DisplayName("Should set include deleted param to false when set to false")
     @Test
-    public void testGetCasesIncludeDeletedFalse() throws Exception {
+    void testGetCasesIncludeDeletedFalse() throws Exception {
         SearchUsers searchUsers = mock(SearchUsers.class);
         when(searchUsers.getIncludeDeleted()).thenReturn(false);
         when(userService.findAllBy(
@@ -859,7 +859,7 @@ public class UserControllerTest {
 
     @DisplayName("Should set include deleted param to true when set to true")
     @Test
-    public void testGetCasesIncludeDeletedTrue() throws Exception {
+    void testGetCasesIncludeDeletedTrue() throws Exception {
         when(userService.findAllBy(
             any(),
             any(),

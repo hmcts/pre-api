@@ -18,10 +18,10 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class UserDTOTest {
+class UserDTOTest {
     @Test
     @DisplayName("UserDTO.appAccess should be sorted by last access (descending)")
-    public void testAppAccessSorting() {
+    void testAppAccessSorting() {
         var userEntity = createUserEntity();
         var userDTO = new UserDTO(userEntity, false, null);
 
@@ -41,7 +41,7 @@ public class UserDTOTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     @DisplayName("UserDTO.appAccess should filter out deleted access when filterOutInactiveAccess is true")
-    public void testAppAccessFiltering(boolean filterOutInactiveAccess) {
+    void testAppAccessFiltering(boolean filterOutInactiveAccess) {
         var userEntity = createUserEntity();
         var userDTO = new UserDTO(userEntity, filterOutInactiveAccess, null);
 
@@ -55,7 +55,7 @@ public class UserDTOTest {
 
     @Test
     @DisplayName("Should correctly mark terms as accepted")
-    public void userDtoTermsAccepted() {
+    void userDtoTermsAccepted() {
         var userEntity = createUserEntity();
         var latestAppTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP, "app content");
         var acceptance1 = HelperFactory.createUserTermsAccepted(
@@ -83,7 +83,7 @@ public class UserDTOTest {
 
     @Test
     @DisplayName("Should correctly mark terms as not accepted when there is no app terms")
-    public void userDtoTermsNotAcceptedOnNoAppTerms() {
+    void userDtoTermsNotAcceptedOnNoAppTerms() {
         var userEntity = createUserEntity();
         var latestPortalTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.PORTAL, "portal content");
         var acceptance2 = HelperFactory.createUserTermsAccepted(
@@ -105,7 +105,7 @@ public class UserDTOTest {
 
     @Test
     @DisplayName("Should correctly mark terms as not accepted when acceptance is outdated")
-    public void userDtoTermsNotAcceptedRecently() {
+    void userDtoTermsNotAcceptedRecently() {
         var userEntity = createUserEntity();
         var latestAppTerms = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP, "app content");
         var acceptance1 = HelperFactory.createUserTermsAccepted(
@@ -133,7 +133,7 @@ public class UserDTOTest {
 
     @Test
     @DisplayName("UserDTO constructor called with null value for terms and conditions")
-    public void userDtoLatestTermsNull() {
+    void userDtoLatestTermsNull() {
         var userEntity = createUserEntity();
         var userDto = new UserDTO(userEntity, null);
 

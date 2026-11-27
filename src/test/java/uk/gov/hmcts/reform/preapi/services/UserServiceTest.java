@@ -49,7 +49,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -60,7 +59,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.hmcts.reform.preapi.util.HelperFactory.createDefaultTestUser;
 
 @SpringBootTest(classes = UserService.class)
-public class UserServiceTest {
+class UserServiceTest {
     private static User userEntity;
     private static User portalUserEntity;
     private static User appUserEntity;

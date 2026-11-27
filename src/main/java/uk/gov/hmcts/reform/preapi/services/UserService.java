@@ -109,9 +109,8 @@ public class UserService {
         Boolean includeDeleted,
         Pageable pageable
     ) {
-        if (searchUsers.getAppActive() != null && !searchUsers.getAppActive()){
-            includeDeleted = true;
-        }
+        final Boolean includeDeletedOrIncludeInactive = (includeDeleted != null && includeDeleted)
+            || (searchUsers.getAppActive() != null && !searchUsers.getAppActive());
 
         if (searchUsers.getCourtId() != null && !courtRepository.existsById(searchUsers.getCourtId())) {
             throw new NotFoundException("Court: " + searchUsers.getCourtId());
@@ -130,7 +129,7 @@ public class UserService {
                     searchUsers.getName(), searchUsers.getFirstName(), searchUsers.getLastName(),
                     searchUsers.getEmail(), searchUsers.getOrganisation(), searchUsers.getCourtId(),
                     null, true, false,
-                    includeDeleted, searchUsers.getAppActive(), pageable
+                    includeDeletedOrIncludeInactive, searchUsers.getAppActive(), pageable
                 ).map(user -> new UserDTO(user, allLatestTermsAndConditions));
             }
         }
@@ -141,11 +140,12 @@ public class UserService {
             searchUsers.getRoleId(),
             searchUsers.getAccessType() == AccessType.PORTAL,
             searchUsers.getAccessType() == AccessType.APP,
-            includeDeleted, searchUsers.getAppActive(), pageable
+            includeDeletedOrIncludeInactive, searchUsers.getAppActive(), pageable
         );
 
-        if (includeDeleted){
-            return returnedFromDB.map(user -> new UserDTO(user, false, allLatestTermsAndConditions));
+        if (includeDeletedOrIncludeInactive) {
+            return returnedFromDB.map(user -> new UserDTO(user, false,
+                                                          allLatestTermsAndConditions));
         }
         return returnedFromDB.map(user -> new UserDTO(user, allLatestTermsAndConditions));
     }

@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -10,11 +11,11 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class AppAccessEntityTest {
+class AppAccessEntityTest {
 
     @Test
     @DisplayName("Sort app access by active, then last access (descending), then role")
-    public void testAppAccessSorting() {
+    void testAppAccessSorting() {
         Role superUserRole = new Role();
         superUserRole.setName("Super user");
 
@@ -24,44 +25,17 @@ public class AppAccessEntityTest {
         Role level2Role = new Role();
         level2Role.setName("Level 2");
 
-        Instant now = Instant.now();
-        Instant oneMinuteAgo = now.minusSeconds(60);
-        Instant twoMinutesAgo = now.minusSeconds(120);
+        final Instant now = Instant.now();
+        final Instant oneMinuteAgo = now.minusSeconds(60);
+        final Instant twoMinutesAgo = now.minusSeconds(120);
 
-        AppAccess mostRecent = new AppAccess();
-        mostRecent.setRole(level2Role);
-        mostRecent.setLastAccess(Timestamp.from(now));
-        mostRecent.setActive(true);
-
-        AppAccess neverAccessed = new AppAccess();
-        neverAccessed.setRole(level2Role);
-        neverAccessed.setLastAccess(null);
-        neverAccessed.setActive(true);
-
-        AppAccess inactive = new AppAccess();
-        inactive.setRole(level2Role);
-        inactive.setLastAccess(Timestamp.from(now));
-        inactive.setActive(false);
-
-        AppAccess oneMinuteAgoLevel1 = new AppAccess();
-        oneMinuteAgoLevel1.setRole(level1Role);
-        oneMinuteAgoLevel1.setLastAccess(Timestamp.from(oneMinuteAgo));
-        oneMinuteAgoLevel1.setActive(true);
-
-        AppAccess oneMinuteAgoLevel2 = new AppAccess();;
-        oneMinuteAgoLevel2.setRole(level2Role);
-        oneMinuteAgoLevel2.setLastAccess(Timestamp.from(oneMinuteAgo));
-        oneMinuteAgoLevel2.setActive(true);
-
-        AppAccess oneMinuteAgoSuperUser = new AppAccess();
-        oneMinuteAgoSuperUser.setRole(superUserRole);
-        oneMinuteAgoSuperUser.setLastAccess(Timestamp.from(oneMinuteAgo));
-        oneMinuteAgoSuperUser.setActive(true);
-
-        AppAccess twoMinutesAgoSuperUser = new AppAccess();
-        twoMinutesAgoSuperUser.setRole(superUserRole);
-        twoMinutesAgoSuperUser.setLastAccess(Timestamp.from(twoMinutesAgo));
-        twoMinutesAgoSuperUser.setActive(true);
+        final AppAccess mostRecent = createAppAccess(level2Role, now, true);
+        final AppAccess neverAccessed = createAppAccess(level2Role, null, true);
+        final AppAccess inactive = createAppAccess(level2Role, now, false);
+        final AppAccess oneMinuteAgoLevel1 = createAppAccess(level1Role, oneMinuteAgo, true);
+        final AppAccess oneMinuteAgoLevel2 = createAppAccess(level2Role, oneMinuteAgo, true);
+        final AppAccess oneMinuteAgoSuperUser = createAppAccess(superUserRole, oneMinuteAgo, true);
+        final AppAccess twoMinutesAgoSuperUser = createAppAccess(superUserRole, twoMinutesAgo, true);
 
         AppAccess[] appAccessList = new AppAccess[]{
             neverAccessed,
@@ -83,5 +57,15 @@ public class AppAccessEntityTest {
         assertThat(sortedList.get(4)).isEqualTo(twoMinutesAgoSuperUser);
         assertThat(sortedList.get(5)).isEqualTo(neverAccessed);
         assertThat(sortedList.get(6)).isEqualTo(inactive);
+    }
+
+    private static @NonNull AppAccess createAppAccess(Role role, Instant timestamp, boolean activeStatus) {
+        AppAccess appAccess = new AppAccess();
+        appAccess.setRole(role);
+        if (timestamp != null) {
+            appAccess.setLastAccess(Timestamp.from(timestamp));
+        }
+        appAccess.setActive(activeStatus);
+        return appAccess;
     }
 }

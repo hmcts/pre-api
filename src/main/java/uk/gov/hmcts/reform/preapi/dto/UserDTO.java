@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -60,12 +59,7 @@ public class UserDTO extends BaseUserDTO {
         deletedAt = user.getDeletedAt();
         appAccess = Stream.ofNullable(user.getAppAccess())
             .flatMap(access -> access.stream()
-                .filter(a -> {
-                    if(Boolean.TRUE.equals(filterOutInactiveAccess)) {
-                        return a.isActive();
-                    }
-                    return true;
-                })
+                .filter(a -> Boolean.FALSE.equals(filterOutInactiveAccess) || a.isActive())
                 .sorted(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE)
                 .map(BaseAppAccessDTO::new))
             .collect(Collectors.toList());

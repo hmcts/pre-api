@@ -303,7 +303,7 @@ class UserControllerFT extends FunctionalTestBase {
         assertThat(responseActiveTrueByCourt2.body().jsonPath().getInt("page.totalElements"))
             .isEqualTo(0);
 
-//        // shows inactive app access when not filtering by court
+        // shows inactive app access when not filtering by court
         Response responseActiveFalse =
             doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getEmail(),
                          TestingSupportRoles.SUPER_USER);
@@ -315,16 +315,18 @@ class UserControllerFT extends FunctionalTestBase {
 
         // active app access for court 1 is filtered out (searching for inactive)
         Response responseActiveFalseByCourt = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + activeAccessCourt.getId() + "&email=" + user.getEmail(),
+            USERS_ENDPOINT + "?appActive=false&courtId=" + activeAccessCourt.getId()
+                + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveFalseByCourt, 200);
         assertThat(responseActiveFalseByCourt.body().jsonPath().getInt("page.totalElements"))
             .isEqualTo(0);
 
-//        // app access for court is inactive
+        // app access for court is inactive
         Response responseActiveFalseByCourt2 = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + inactiveAccessCourt.getId() + "&email=" + user.getEmail(),
+            USERS_ENDPOINT + "?appActive=false&courtId=" + inactiveAccessCourt.getId()
+                + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveFalseByCourt2, 200);
