@@ -272,8 +272,8 @@ class UserControllerFT extends FunctionalTestBase {
                          TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseNoFilters, 200);
 
-        assertThat(responseNoFilters.body().jsonPath().getList("_embedded.userDTOList[0].app_access")).size()
-            .isEqualTo(1);
+        assertThat(responseNoFilters.body().jsonPath().getList("_embedded.userDTOList[0].app_access"))
+            .hasSize(1);
 
         // Only includes active app access
         Response responseActiveTrue =
@@ -282,8 +282,8 @@ class UserControllerFT extends FunctionalTestBase {
         assertResponseCode(responseActiveTrue, 200);
         assertThat(responseActiveTrue.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
-        assertThat(responseNoFilters.body().jsonPath().getList("_embedded.userDTOList[0].app_access")).size()
-            .isEqualTo(1);
+        assertThat(responseNoFilters.body().jsonPath().getList("_embedded.userDTOList[0].app_access"))
+            .hasSize(1);
 
         // app access for court is active
         Response responseActiveTrueByCourt = doGetRequest(
@@ -339,15 +339,16 @@ class UserControllerFT extends FunctionalTestBase {
         assertUserExists(user.getId(), true);
 
         // app access deleted: user is updated
-        Response responseActiveTrueForDeletedCourtAccess = doGetRequest(
+        Response responseForDeletedCourtAccess = doGetRequest(
             USERS_ENDPOINT + "?appActive=false&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
-        assertResponseCode(responseActiveTrueForDeletedCourtAccess, 200);
-        assertThat(responseActiveTrueForDeletedCourtAccess.body().jsonPath().getInt("page.totalElements"))
+        assertResponseCode(responseForDeletedCourtAccess, 200);
+        assertThat(responseForDeletedCourtAccess.body().jsonPath().getInt("page.totalElements"))
             .isEqualTo(1);
-        assertThat(responseActiveFalse.body().jsonPath().getList("_embedded.userDTOList[0].app_access").size())
-            .isEqualTo(2);
+        assertThat(responseForDeletedCourtAccess.body().jsonPath()
+                       .getList("_embedded.userDTOList[0].app_access"))
+            .hasSize(2);
     }
 
     @DisplayName("Scenario: Should not create/update a user with un-sanitised data")

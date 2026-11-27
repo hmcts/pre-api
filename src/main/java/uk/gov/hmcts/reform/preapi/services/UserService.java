@@ -140,11 +140,12 @@ public class UserService {
             includeDeletedUsers, searchUsers.getAppActive(), pageable
         );
 
-        if (includeDeletedUsers) {
+        if (searchUsers.getAppActive() != null && !searchUsers.getAppActive()) {
             return returnedFromDB.map(user -> new UserDTO(user, false,
                                                           allLatestTermsAndConditions));
         }
-        return returnedFromDB.map(user -> new UserDTO(user, allLatestTermsAndConditions));
+        // Filter out inactive app access by default
+        return returnedFromDB.map(user -> new UserDTO(user, true, allLatestTermsAndConditions));
     }
 
     @Transactional
