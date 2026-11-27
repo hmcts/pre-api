@@ -23,7 +23,8 @@
   * [Running the Smoke Tests](#running-the-smoke-tests)
 * [Developing for the Pre-Recorded Evidence API](#developing-for-the-pre-recorded-evidence-api)
   * [Loading the Local Database with Test Data](#loading-the-local-database-with-test-data)
-  * [Loading the Pull Request (PR) Database with Test Data](#loading-the-pull-request-pr-database-with-test-data)
+  * [Loading the Pull Request (PR) Database with Test Data (Defunct/Historical)](#loading-the-pull-request-pr-database-with-test-data-defuncthistorical)
+  * [Connecting to your Pull Request (PR) Database](#connecting-to-your-pull-request-pr-database)
   * [Run Code Checks and All Non-Functional Tests](#run-code-checks-and-all-non-functional-tests)
   * [How to generate a Power Platform Custom Connector](#how-to-generate-a-power-platform-custom-connector)
   * [Running the Crons](#running-the-crons)
@@ -457,7 +458,9 @@ docker-compose rm
 
 This clears stopped containers correctly.
 
-### Loading the Pull Request (PR) Database with Test Data
+### Loading the Pull Request (PR) Database with Test Data (Defunct/Historical)
+
+> ⚠️ **TODO (PRE-5267):** This method is defunct and is to be rewritten to target ASO managed PR databases (or removed if no longer needed).
 
 PR database pods are spun up at the same time as the application pod and so are empty when they start.
 To load it with test data you can use the [`load_data_into_pr_db.sh`](docker/database/local/load_data_into_pr_db.sh)
@@ -502,6 +505,13 @@ You can check the data has been loaded correctly by going to the PR URL and usin
 
 Grab an X-User-Id to use (will only be usable if the script has been run) by unzipping the tar file (mentioned above) and looking in:
 docker/database/local/data/03_users/0314_app_access_202601091542.sql
+
+### Connecting to your Pull Request (PR) Database
+
+- PR databases are Azure Service Operator (ASO) managed (previously they were Bitnami PostgreSQL pods).
+- Connection values (excluding credentials) are in `charts/pre-api/values.dev.template.yaml`.
+- For credentials/access, contact a PRE developer.
+- You can connect to the PR database using a database client (e.g. DBeaver, pgAdmin etc.)
 
 ### Run Code Checks and All Non-Functional Tests
 

@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
-# This script is for loading the PR database with dummy data
-# Needs to be run from the same folder as the zip (local_db_data.tar.gz) containing the .sql files
-# Requires Azure CLI, kubelogin and kubectl to be installed
-# Usage: ./load_data_into_pr_db.sh <pull-request-id>
-# Example: ./load_data_into_pr_db.sh pr-1362
+# LEGACY SCRIPT:
+# This script seeded PR databases when they were bitnami-postgresql pods in AKS.
+# PR databases are now Azure Service Operator (ASO) managed, so this pod based approach is no longer valid.
+# TODO(PRE-5267): Rewrite this script to target ASO managed PR databases (or remove if no longer needed).
+#
+# Historical usage:
+#   ./load_data_into_pr_db.sh <pull-request-id>
+#   Example: ./load_data_into_pr_db.sh pr-1362
 
 set -euo pipefail
 
