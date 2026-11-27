@@ -246,98 +246,106 @@ class UserControllerFT extends FunctionalTestBase {
     @Test
     void userFilteredByAppActiveStatus() throws JsonProcessingException {
 
-        CreateCourtDTO court1 = createCourt();
-        putCourt(court1);
-        assertCourtExists(court1.getId(), true);
+        CreateCourtDTO activeAccessCourt = createCourt();
+        putCourt(activeAccessCourt);
+        assertCourtExists(activeAccessCourt.getId(), true);
 
-        CreateCourtDTO court2 = createCourt();
-        putCourt(court2);
-        assertCourtExists(court2.getId(), true);
+        CreateCourtDTO inactiveAccessCourt = createCourt();
+        putCourt(inactiveAccessCourt);
+        assertCourtExists(inactiveAccessCourt.getId(), true);
 
         CreateUserDTO user = createUserDto();
         UUID roleId = createRole(TestingSupportRoles.LEVEL_1);
 
-        CreateAppAccessDTO inactiveAccess = createAppAccessDto(user.getId(), court2.getId(), roleId);
+        CreateAppAccessDTO inactiveAccess = createAppAccessDto(user.getId(), inactiveAccessCourt.getId(), roleId);
         inactiveAccess.setActive(false);
         inactiveAccess.setDefaultCourt(false);
-        CreateAppAccessDTO activeAccess = createAppAccessDto(user.getId(), court1.getId(), roleId);
+
+        CreateAppAccessDTO activeAccess = createAppAccessDto(user.getId(), activeAccessCourt.getId(), roleId);
+
         user.setAppAccess(Set.of(activeAccess, inactiveAccess));
         putUser(user);
         assertUserExists(user.getId(), true);
 
-        // No filters applied
-        var responseNoFilters =
-            doGetRequest(USERS_ENDPOINT + "?email=" + user.getEmail(),
+        // No filters applied: defaults to hiding inactive app access
+        Response responseNoFilters = doGetRequest(USERS_ENDPOINT + "?email=" + user.getEmail(),
                          TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseNoFilters, 200);
-        assertThat(responseNoFilters.body().jsonPath().getList("_embedded.userDTOList[0].app_access")).size()
-            .isEqualTo(2);
 
-        // has at least one active app access
-        var responseActiveTrue =
+        assertThat(responseNoFilters.body().jsonPath().getList("_embedded.userDTOList[0].app_access")).size()
+            .isEqualTo(1);
+
+        // Only includes active app access
+        Response responseActiveTrue =
             doGetRequest(USERS_ENDPOINT + "?appActive=true&email=" + user.getEmail(),
                          TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveTrue, 200);
         assertThat(responseActiveTrue.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
+        assertThat(responseNoFilters.body().jsonPath().getList("_embedded.userDTOList[0].app_access")).size()
+            .isEqualTo(1);
 
         // app access for court is active
-        var responseActiveTrueByCourt = doGetRequest(
-            USERS_ENDPOINT + "?appActive=true&courtId=" + court1.getId() + "&email=" + user.getEmail(),
+        Response responseActiveTrueByCourt = doGetRequest(
+            USERS_ENDPOINT + "?appActive=true&courtId=" + activeAccessCourt.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveTrueByCourt, 200);
         assertThat(responseActiveTrueByCourt.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
 
-        // inactive app access for court2 is filtered out (searching for active)
-        var responseActiveTrueByCourt2 = doGetRequest(
-            USERS_ENDPOINT + "?appActive=true&courtId=" + court2.getId() + "&email=" + user.getEmail(),
+        // inactive app access for inactiveAccessCourt is filtered out (searching for active)
+        Response responseActiveTrueByCourt2 = doGetRequest(
+            USERS_ENDPOINT + "?appActive=true&courtId=" + inactiveAccessCourt.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveTrueByCourt2, 200);
         assertThat(responseActiveTrueByCourt2.body().jsonPath().getInt("page.totalElements"))
             .isEqualTo(0);
 
-        // shows inactive app access when not filtering by court
-        var responseActiveFalse =
+//        // shows inactive app access when not filtering by court
+        Response responseActiveFalse =
             doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getEmail(),
                          TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveFalse, 200);
+        assertThat(responseActiveFalse.body().jsonPath().getInt("page.totalElements"))
+            .isEqualTo(1);
         assertThat(responseActiveFalse.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
 
         // active app access for court 1 is filtered out (searching for inactive)
-        var responseActiveFalseByCourt = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + court1.getId() + "&email=" + user.getEmail(),
+        Response responseActiveFalseByCourt = doGetRequest(
+            USERS_ENDPOINT + "?appActive=false&courtId=" + activeAccessCourt.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveFalseByCourt, 200);
         assertThat(responseActiveFalseByCourt.body().jsonPath().getInt("page.totalElements"))
             .isEqualTo(0);
 
-        // app access for court is inactive
-        var responseActiveFalseByCourt2 = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + court2.getId() + "&email=" + user.getEmail(),
+//        // app access for court is inactive
+        Response responseActiveFalseByCourt2 = doGetRequest(
+            USERS_ENDPOINT + "?appActive=false&courtId=" + inactiveAccessCourt.getId() + "&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveFalseByCourt2, 200);
         assertThat(responseActiveFalseByCourt2.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
 
-        // delete app access
-        user.setAppAccess(Set.of(activeAccess));
+        // delete "active" app access
+        user.setAppAccess(Set.of());
         putUser(user);
         assertUserExists(user.getId(), true);
 
-        // app access deleted, filter by appActive=false response empty
-        var responseActiveTrueForDeletedCourtAccess = doGetRequest(
-            USERS_ENDPOINT + "?appActive=false&courtId=" + court2.getId() + "&email=" + user.getEmail(),
+        // app access deleted: user is updated
+        Response responseActiveTrueForDeletedCourtAccess = doGetRequest(
+            USERS_ENDPOINT + "?appActive=false&email=" + user.getEmail(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(responseActiveTrueForDeletedCourtAccess, 200);
         assertThat(responseActiveTrueForDeletedCourtAccess.body().jsonPath().getInt("page.totalElements"))
-            .isEqualTo(0);
+            .isEqualTo(1);
+        assertThat(responseActiveFalse.body().jsonPath().getList("_embedded.userDTOList[0].app_access").size())
+            .isEqualTo(2);
     }
 
     @DisplayName("Scenario: Should not create/update a user with un-sanitised data")

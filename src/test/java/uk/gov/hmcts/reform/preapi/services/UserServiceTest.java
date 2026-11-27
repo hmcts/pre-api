@@ -1510,10 +1510,8 @@ public class UserServiceTest {
         Page<User> usersPage = new PageImpl<>(List.of(user));
 
         when(courtRepository.existsById(courtId)).thenReturn(true);
-        when(userRepository.searchAllBy(
-            isNull(), isNull(), isNull(), isNull(), isNull(), eq(courtId),
-            isNull(), eq(false), eq(true), eq(true), isNull(), any()
-        )).thenReturn(usersPage);
+
+        when(userRepository.findAllByCourtIdIs(courtId)).thenReturn(List.of(user));
 
         List<UserDTO> result = userService.getUsersWithLatestAccessForCourt(courtId);
 
@@ -1523,10 +1521,8 @@ public class UserServiceTest {
         assertThat(dto.getAppAccess()).hasSize(1);
 
         verify(courtRepository).existsById(courtId);
-        verify(userRepository).searchAllBy(
-            isNull(), isNull(), isNull(), isNull(), isNull(), eq(courtId),
-            isNull(), eq(false), eq(true), eq(true), isNull(), any()
-        );
+        verify(userRepository).findAllByCourtIdIs(courtId);
+        verifyNoMoreInteractions(courtRepository, userRepository);
     }
 
     @Test

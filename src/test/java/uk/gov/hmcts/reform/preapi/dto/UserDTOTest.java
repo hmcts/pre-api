@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.dto;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
@@ -21,13 +23,34 @@ public class UserDTOTest {
     @DisplayName("UserDTO.appAccess should be sorted by last access (descending)")
     public void testAppAccessSorting() {
         var userEntity = createUserEntity();
-        var userDTO = new UserDTO(userEntity, null);
+        var userDTO = new UserDTO(userEntity, false, null);
 
         var appAccess = userDTO.getAppAccess();
-        assertEquals("Example Role 3", appAccess.get(0).getRole().getName());
-        assertEquals("Example Role 2", appAccess.get(1).getRole().getName());
-        assertEquals("Example Role 1", appAccess.get(2).getRole().getName());
-        assertEquals("Example Role 4", appAccess.get(3).getRole().getName());
+
+        assertEquals("Most recent", appAccess.get(0).getRole().getName());
+        assertEquals("Super User", appAccess.get(1).getRole().getName());
+        assertEquals("Level 2", appAccess.get(2).getRole().getName());
+        assertEquals("Level 4", appAccess.get(3).getRole().getName());
+        assertEquals("Super User", appAccess.get(4).getRole().getName());
+        assertEquals("Level 4", appAccess.get(5).getRole().getName());
+        assertEquals("Level 2", appAccess.get(6).getRole().getName());
+
+
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("UserDTO.appAccess should filter out deleted access when filterOutInactiveAccess is true")
+    public void testAppAccessFiltering(boolean filterOutInactiveAccess) {
+        var userEntity = createUserEntity();
+        var userDTO = new UserDTO(userEntity, filterOutInactiveAccess, null);
+
+        var appAccess = userDTO.getAppAccess();
+        if (filterOutInactiveAccess) {
+            assertEquals(5, appAccess.size());
+        } else {
+            assertEquals(7, appAccess.size());
+        }
     }
 
     @Test
@@ -132,41 +155,68 @@ public class UserDTOTest {
         var access2 = HelperFactory.createAppAccess(
             user,
             court,
-            HelperFactory.createRole("Example Role 1"),
+            HelperFactory.createRole("Most recent"),
             true,
             null,
             Timestamp.from(now),
             true
         );
+        var access5 = HelperFactory.createAppAccess(
+            user,
+            court,
+            HelperFactory.createRole("Super User"),
+            true,
+            null,
+            Timestamp.from(now.minusSeconds(20)),
+            true
+        );
+        var access6 = HelperFactory.createAppAccess(
+            user,
+            court,
+            HelperFactory.createRole("Super User"),
+            true,
+            null,
+            null, // Never accessed: should be treated as the least recent access
+            true
+        );
         var access3 = HelperFactory.createAppAccess(
             user,
             court,
-            HelperFactory.createRole("Example Role 2"),
+            HelperFactory.createRole("Level 2"),
             true,
             null,
-            Timestamp.from(now.plusSeconds(10)),
+            Timestamp.from(now.minusSeconds(20)),
             false
         );
         var access1 = HelperFactory.createAppAccess(
             user,
             court,
-            HelperFactory.createRole("Example Role 3"),
+            HelperFactory.createRole("Level 4"),
             true,
             null,
-            Timestamp.from(now.plusSeconds(20)),
+            Timestamp.from(now.minusSeconds(20)),
+            false
+        );
+        var access7 = HelperFactory.createAppAccess(
+            user,
+            court,
+            HelperFactory.createRole("Level 4"),
+            false,
+            null,
+            Timestamp.from(now.minusSeconds(10)),
             false
         );
         var access4 = HelperFactory.createAppAccess(
             user,
             court,
-            HelperFactory.createRole("Example Role 4"),
-            true,
+            HelperFactory.createRole("Level 2"),
+            false,
             null,
             null,
             false
         );
 
-        user.setAppAccess(Set.of(access2, access3, access1, access4));
+        user.setAppAccess(Set.of(access2, access3, access1, access4, access5, access6, access7));
 
         return user;
     }

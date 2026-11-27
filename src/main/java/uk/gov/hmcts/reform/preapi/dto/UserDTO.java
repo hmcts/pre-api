@@ -50,19 +50,28 @@ public class UserDTO extends BaseUserDTO {
     private Map<TermsAndConditionsType, Boolean> termsAccepted;
 
     public UserDTO(User user, Set<TermsAndConditions> latestTermsAndConditions) {
-        super(user);    
+        this(user, true, latestTermsAndConditions);
+    }
+
+    public UserDTO(User user, Boolean filterOutInactiveAccess, Set<TermsAndConditions> latestTermsAndConditions) {
+        super(user);
         createdAt = user.getCreatedAt();
         modifiedAt = user.getModifiedAt();
         deletedAt = user.getDeletedAt();
         appAccess = Stream.ofNullable(user.getAppAccess())
             .flatMap(access -> access.stream()
-                .filter(a -> a.getDeletedAt() == null)
-                .sorted(Comparator.comparing(AppAccess::getLastAccess, Comparator.nullsLast(Comparator.reverseOrder())))
+                .filter(a -> {
+                    if(Boolean.TRUE.equals(filterOutInactiveAccess)) {
+                        return a.isActive();
+                    }
+                    return true;
+                })
+                .sorted(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE)
                 .map(BaseAppAccessDTO::new))
             .collect(Collectors.toList());
         portalAccess = Stream.ofNullable(user.getPortalAccess())
             .flatMap(access -> access.stream()
-                .filter(a -> a.getDeletedAt() == null)
+                .filter(a -> Boolean.FALSE.equals(filterOutInactiveAccess) || !a.isDeleted())
                 .map(PortalAccessDTO::new))
             .collect(Collectors.toList());
         if (latestTermsAndConditions != null) {

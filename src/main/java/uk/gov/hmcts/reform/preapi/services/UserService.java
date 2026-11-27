@@ -109,6 +109,10 @@ public class UserService {
         Boolean includeDeleted,
         Pageable pageable
     ) {
+        if (searchUsers.getAppActive() != null && !searchUsers.getAppActive()){
+            includeDeleted = true;
+        }
+
         if (searchUsers.getCourtId() != null && !courtRepository.existsById(searchUsers.getCourtId())) {
             throw new NotFoundException("Court: " + searchUsers.getCourtId());
         }
@@ -139,6 +143,10 @@ public class UserService {
             searchUsers.getAccessType() == AccessType.APP,
             includeDeleted, searchUsers.getAppActive(), pageable
         );
+
+        if (includeDeleted){
+            return returnedFromDB.map(user -> new UserDTO(user, false, allLatestTermsAndConditions));
+        }
         return returnedFromDB.map(user -> new UserDTO(user, allLatestTermsAndConditions));
     }
 

@@ -46,7 +46,7 @@ public class AppAccessService {
         // Attempting to find the most relevant app access for this user and court
         return appAccessRepository.findAllByCourtIdAndUserId(courtId, userId)
             .stream()
-            .max(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE);
+            .min(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE);
     }
 
     @Transactional

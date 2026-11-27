@@ -22,12 +22,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query(
         """
         SELECT u FROM User u
-        WHERE (:includeDeleted = TRUE OR u.deletedAt IS NULL)
-        AND (:isAppActive IS NULL OR EXISTS(
+        WHERE (:isAppActive IS NULL OR EXISTS(
             SELECT 1 FROM u.appAccess aa
             WHERE aa.active = :isAppActive
             AND (CAST(:courtId as uuid) IS NULL OR aa.court.id = :courtId)
-            AND aa.deletedAt IS NULL
         ))
         AND (
             CASE

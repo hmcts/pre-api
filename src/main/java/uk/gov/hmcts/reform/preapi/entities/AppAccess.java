@@ -24,10 +24,10 @@ import static uk.gov.hmcts.reform.preapi.entities.Role.BY_NAME_PRIORITY;
 @Table(name = "app_access")
 public class AppAccess extends CreatedModifiedAtEntity {
     public static final Comparator<AppAccess> BY_ACTIVE_LAST_ACCESS_ROLE = Comparator
-        .comparing(AppAccess::isActive)
+        .comparing(AppAccess::isActive).reversed()
         .thenComparing(
             AppAccess::getLastAccess,
-            Comparator.nullsFirst(Comparator.naturalOrder()))
+            Comparator.nullsLast(Comparator.reverseOrder()))
         .thenComparing(AppAccess::getRole, BY_NAME_PRIORITY);
 
     @ManyToOne(fetch = FetchType.EAGER)
