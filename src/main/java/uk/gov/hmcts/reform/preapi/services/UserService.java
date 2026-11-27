@@ -103,15 +103,12 @@ public class UserService {
     }
 
     @Transactional
-    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
+    @PreAuthorize("!#includeDeletedUsers or @authorisationService.canViewDeleted(authentication)")
     public Page<UserDTO> findAllBy(
         SearchUsers searchUsers,
-        Boolean includeDeleted,
+        Boolean includeDeletedUsers,
         Pageable pageable
     ) {
-        final Boolean includeDeletedOrIncludeInactive = (includeDeleted != null && includeDeleted)
-            || (searchUsers.getAppActive() != null && !searchUsers.getAppActive());
-
         if (searchUsers.getCourtId() != null && !courtRepository.existsById(searchUsers.getCourtId())) {
             throw new NotFoundException("Court: " + searchUsers.getCourtId());
         }
@@ -129,7 +126,7 @@ public class UserService {
                     searchUsers.getName(), searchUsers.getFirstName(), searchUsers.getLastName(),
                     searchUsers.getEmail(), searchUsers.getOrganisation(), searchUsers.getCourtId(),
                     null, true, false,
-                    includeDeletedOrIncludeInactive, searchUsers.getAppActive(), pageable
+                    includeDeletedUsers, searchUsers.getAppActive(), pageable
                 ).map(user -> new UserDTO(user, allLatestTermsAndConditions));
             }
         }
@@ -140,10 +137,10 @@ public class UserService {
             searchUsers.getRoleId(),
             searchUsers.getAccessType() == AccessType.PORTAL,
             searchUsers.getAccessType() == AccessType.APP,
-            includeDeletedOrIncludeInactive, searchUsers.getAppActive(), pageable
+            includeDeletedUsers, searchUsers.getAppActive(), pageable
         );
 
-        if (includeDeletedOrIncludeInactive) {
+        if (includeDeletedUsers) {
             return returnedFromDB.map(user -> new UserDTO(user, false,
                                                           allLatestTermsAndConditions));
         }

@@ -22,7 +22,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query(
         """
         SELECT u FROM User u
-        WHERE (:isAppActive IS NULL OR EXISTS(
+        WHERE (:includeDeletedUsers = TRUE OR u.deletedAt IS NULL)
+        AND (:isAppActive IS NULL OR EXISTS(
             SELECT 1 FROM u.appAccess aa
             WHERE aa.active = :isAppActive
             AND (CAST(:courtId as uuid) IS NULL OR aa.court.id = :courtId)
@@ -69,7 +70,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("roleId") UUID roleId,
         @Param("isPortalUser") Boolean isPortalUser,
         @Param("isAppUser") Boolean isAppUser,
-        boolean includeDeleted,
+        boolean includeDeletedUsers,
         @Param("isAppActive") Boolean isAppActive,
         Pageable pageable
     );
@@ -80,6 +81,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         WHERE EXISTS(
             SELECT 1 FROM u.appAccess aa
             WHERE aa.court.id = :courtId)
+        AND u.deletedAt IS NULL
         """)
     List<User> findAllByCourtIdIs(UUID courtId);
 
