@@ -49,23 +49,33 @@ public class UserDTO extends BaseUserDTO {
     private Map<TermsAndConditionsType, Boolean> termsAccepted;
 
     public UserDTO(User user, Set<TermsAndConditions> latestTermsAndConditions) {
-        this(user, true, latestTermsAndConditions);
+        this(user, null, latestTermsAndConditions);
     }
 
-    public UserDTO(User user, Boolean filterOutInactiveAccess, Set<TermsAndConditions> latestTermsAndConditions) {
+    public UserDTO(User user, Boolean filterAccess, Set<TermsAndConditions> latestTermsAndConditions) {
         super(user);
         createdAt = user.getCreatedAt();
         modifiedAt = user.getModifiedAt();
         deletedAt = user.getDeletedAt();
+
+        boolean filterOutInactive = filterAccess != null && filterAccess;
+        boolean filterOutActive = filterAccess != null && !filterAccess;
         appAccess = Stream.ofNullable(user.getAppAccess())
             .flatMap(access -> access.stream()
-                .filter(a -> Boolean.FALSE.equals(filterOutInactiveAccess) || a.isActive())
+                .filter(a -> {
+                    if (filterOutInactive) {
+                        return a.isActive();
+                    } if (filterOutActive) {
+                        return !a.isActive();
+                    }
+                    return true;
+                })
                 .sorted(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE)
                 .map(BaseAppAccessDTO::new))
             .collect(Collectors.toList());
         portalAccess = Stream.ofNullable(user.getPortalAccess())
             .flatMap(access -> access.stream()
-                .filter(a -> Boolean.FALSE.equals(filterOutInactiveAccess) || !a.isDeleted())
+                .filter(a -> Boolean.FALSE.equals(filterAccess) || !a.isDeleted())
                 .map(PortalAccessDTO::new))
             .collect(Collectors.toList());
         if (latestTermsAndConditions != null) {

@@ -1537,4 +1537,34 @@ class UserServiceTest {
                                                     anyBoolean(), anyBoolean(), anyBoolean(), any(), any());
     }
 
+    @Test
+    void getUsersWithLatestAccessForCourt_ignoreUsersWithMissingFields() {
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        when(courtRepository.existsById(court.getId())).thenReturn(true);
+
+        User mockUserReturnedFromDB = mock(User.class);
+
+        when(userRepository.findAllByCourtIdIs(court.getId()))
+            .thenReturn(List.of(mockUserReturnedFromDB));
+
+        // Test 1: No user ID set
+        assertThat(userService.getUsersWithLatestAccessForCourt(court.getId())).isEmpty();
+
+        when(mockUserReturnedFromDB.getId()).thenReturn(UUID.randomUUID());
+        // Test 2: No app access set
+        assertThat(userService.getUsersWithLatestAccessForCourt(court.getId())).isEmpty();
+
+        // Test 3: App access list is not null, but empty
+        when(mockUserReturnedFromDB.getAppAccess()).thenReturn(Set.of());
+        assertThat(userService.getUsersWithLatestAccessForCourt(court.getId())).isEmpty();
+
+        // Test 4: Happy path: app access list has an entry
+        AppAccess appAccess = new AppAccess();
+        appAccess.setCourt(court);
+        appAccess.setRole(mock(Role.class));
+        when(mockUserReturnedFromDB.getAppAccess()).thenReturn(Set.of(appAccess));
+        assertThat(userService.getUsersWithLatestAccessForCourt(court.getId())).hasSize(1);
+    }
+
 }

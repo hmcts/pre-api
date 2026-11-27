@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
@@ -13,6 +14,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,7 +25,7 @@ class UserDTOTest {
     @DisplayName("UserDTO.appAccess should be sorted by last access (descending)")
     void testAppAccessSorting() {
         var userEntity = createUserEntity();
-        var userDTO = new UserDTO(userEntity, false, null);
+        var userDTO = new UserDTO(userEntity, null, null);
 
         var appAccess = userDTO.getAppAccess();
 
@@ -42,15 +44,23 @@ class UserDTOTest {
     @ValueSource(booleans = {true, false})
     @DisplayName("UserDTO.appAccess should filter out deleted access when filterOutInactiveAccess is true")
     void testAppAccessFiltering(boolean filterOutInactiveAccess) {
-        var userEntity = createUserEntity();
-        var userDTO = new UserDTO(userEntity, filterOutInactiveAccess, null);
+        User userEntity = createUserEntity();
+        UserDTO userDTO = new UserDTO(userEntity, filterOutInactiveAccess, null);
 
-        var appAccess = userDTO.getAppAccess();
+        List<BaseAppAccessDTO> appAccess = userDTO.getAppAccess();
         if (filterOutInactiveAccess) {
             assertEquals(5, appAccess.size());
         } else {
-            assertEquals(7, appAccess.size());
+            assertEquals(2, appAccess.size());
         }
+    }
+
+    @Test
+    @DisplayName("UserDTO.appAccess should not filter out any access by default")
+    void testAppAccessFiltering() {
+        User userEntity = createUserEntity();
+        UserDTO userDTO = new UserDTO(userEntity, null, null);
+        assertThat(userDTO.getAppAccess()).hasSize(7);
     }
 
     @Test

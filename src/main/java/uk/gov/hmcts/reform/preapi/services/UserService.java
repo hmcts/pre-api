@@ -32,8 +32,10 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -140,12 +142,8 @@ public class UserService {
             includeDeletedUsers, searchUsers.getAppActive(), pageable
         );
 
-        if (searchUsers.getAppActive() != null && !searchUsers.getAppActive()) {
-            return returnedFromDB.map(user -> new UserDTO(user, false,
-                                                          allLatestTermsAndConditions));
-        }
-        // Filter out inactive app access by default
-        return returnedFromDB.map(user -> new UserDTO(user, true, allLatestTermsAndConditions));
+        return returnedFromDB.map(user -> new UserDTO(user, searchUsers.getAppActive(),
+                                                      allLatestTermsAndConditions));
     }
 
     @Transactional
@@ -174,12 +172,12 @@ public class UserService {
         List<User> returnedFromDB = userRepository.findAllByCourtIdIs(courtId);
 
         return returnedFromDB.stream().map(user -> {
-            // Override access set to only include the latest access for this court. Don't care about T&Cs.
-            UserDTO mappedUser = new UserDTO(user, null);
             if (user.getId() == null || user.getAppAccess() == null || user.getAppAccess().isEmpty()) {
-                return mappedUser;
+                return null;
             }
 
+            // Override access set to only include the latest access for this court. Don't care about T&Cs.
+            UserDTO mappedUser = new UserDTO(user, null);
             Optional<AppAccess> latestAccess = user.getAppAccess().stream()
                 .max(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE);
 
@@ -187,7 +185,8 @@ public class UserService {
                                        mappedUser.setAppAccess(List.of(new BaseAppAccessDTO(appAccess))));
 
             return mappedUser;
-        }).toList();
+        }).filter(Objects::nonNull).toList();
+
     }
 
     @Transactional
