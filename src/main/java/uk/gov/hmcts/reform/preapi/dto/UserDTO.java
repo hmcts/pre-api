@@ -65,7 +65,7 @@ public class UserDTO extends BaseUserDTO {
                 .filter(a -> {
                     if (filterOutInactive) {
                         return a.isActive();
-                    } if (filterOutActive) {
+                    } else if (filterOutActive) {
                         return !a.isActive();
                     }
                     return true;
