@@ -1514,7 +1514,7 @@ class UserServiceTest {
 
         List<UserDTO> result = userService.getUsersWithLatestAccessForCourt(courtId);
 
-        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).hasSize(1);
         UserDTO dto = result.getFirst();
         assertThat(dto.getAppAccess()).isNotNull();
         assertThat(dto.getAppAccess()).hasSize(1);

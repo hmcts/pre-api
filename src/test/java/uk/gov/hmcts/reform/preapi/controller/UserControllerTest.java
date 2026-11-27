@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -52,7 +51,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -1116,15 +1114,14 @@ class UserControllerTest {
     @Test
     void getUsersByCourtId_shouldReturnOkWithServiceResponse_andUseUnpaged() throws Exception {
         UUID courtId = UUID.randomUUID();
-        Pageable unpaged = Pageable.unpaged();
-        when(userService.getUsersWithLatestAccessForCourt(eq(courtId))).thenReturn(List.of());
+        when(userService.getUsersWithLatestAccessForCourt(courtId)).thenReturn(List.of());
 
         mockMvc.perform(get("/users/by-court/" + courtId)
                             .with(csrf())
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk());
 
-        verify(userService).getUsersWithLatestAccessForCourt(eq(courtId));
+        verify(userService).getUsersWithLatestAccessForCourt(courtId);
         verifyNoMoreInteractions(userService);
     }
 
