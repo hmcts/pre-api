@@ -37,17 +37,17 @@ class AppAccessEntityTest {
         final AppAccess oneMinuteAgoSuperUser = createAppAccess(superUserRole, oneMinuteAgo, true);
         final AppAccess twoMinutesAgoSuperUser = createAppAccess(superUserRole, twoMinutesAgo, true);
 
-        AppAccess[] appAccessList = new AppAccess[]{
+        List<AppAccess> appAccessList = List.of(
             neverAccessed,
             oneMinuteAgoLevel2,
             inactive,
             twoMinutesAgoSuperUser,
             mostRecent,
             oneMinuteAgoLevel1,
-            oneMinuteAgoSuperUser,
-        };
+            oneMinuteAgoSuperUser
+        );
 
-        List<AppAccess> sortedList = Stream.of(appAccessList)
+        List<AppAccess> sortedList = appAccessList.stream()
             .sorted(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE).toList();
 
         assertThat(sortedList.get(0)).isEqualTo(mostRecent);

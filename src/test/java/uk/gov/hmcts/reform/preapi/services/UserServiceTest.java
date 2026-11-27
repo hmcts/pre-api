@@ -1506,8 +1506,6 @@ class UserServiceTest {
         user.setId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
 
-        Page<User> usersPage = new PageImpl<>(List.of(user));
-
         when(courtRepository.existsById(courtId)).thenReturn(true);
 
         when(userRepository.findAllByCourtIdIs(courtId)).thenReturn(List.of(user));

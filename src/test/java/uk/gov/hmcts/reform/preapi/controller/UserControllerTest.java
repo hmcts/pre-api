@@ -808,7 +808,7 @@ class UserControllerTest {
 
     @DisplayName("Should pass through params as they are set")
     @Test
-    public void testGetCasesIncludeDeletedNotSet() throws Exception {
+    void testGetCasesIncludeDeletedNotSet() throws Exception {
         when(userService.findAllBy(
             any(),
             any(),
