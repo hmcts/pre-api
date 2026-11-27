@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -46,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -54,9 +56,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.util.HelperFactory.createDefaultTestUser;
 
 @SpringBootTest(classes = UserService.class)
-public class UserServiceTest {
+class UserServiceTest {
     private static User userEntity;
     private static User portalUserEntity;
     private static User appUserEntity;
@@ -177,12 +180,39 @@ public class UserServiceTest {
         portalAccessEntity.setDeletedAt(null);
     }
 
-    @DisplayName("Find a user by it's id and return a model")
+    @DisplayName("Find a user by its id and return a model")
     @Test
     void findUserByIdSuccess() {
         var model = userService.findById(userEntity.getId());
         assertThat(model.getId()).isEqualTo(userEntity.getId());
         assertThat(model.getFirstName()).isEqualTo(userEntity.getFirstName());
+    }
+
+    @DisplayName("Find a user by its id and return a model if it exists")
+    @Test
+    void findUserByIdIfExistsSuccess() {
+        var model = userService.findByIdIfExists(userEntity.getId());
+        assertThat(model).isPresent();
+        assertThat(model.get().getId()).isEqualTo(userEntity.getId());
+        assertThat(model.get().getFirstName()).isEqualTo(userEntity.getFirstName());
+    }
+
+    @DisplayName("Fail gracefully if user does not exist")
+    @Test
+    void findUserByIdIfExistsFailGracefully() {
+        var model = userService.findByIdIfExists(UUID.randomUUID());
+        assertThat(model).isEmpty();
+    }
+
+    @DisplayName("Reset app access IDs for a user")
+    @Test
+    void resetAppAccessIdsForUserSuccess() {
+        userService.resetAppAccessIdsForUserId(userEntity.getId());
+
+        verify(appAccessService, times(1)).resetAppAccessIDsForUserId(userEntity.getId());
+
+        verifyNoMoreInteractions(appAccessService);
+        verifyNoMoreInteractions(userRepository);
     }
 
     @DisplayName("Find a user by it's id which doesn't exist")
@@ -624,52 +654,123 @@ public class UserServiceTest {
     @DisplayName("Update a user")
     @Test
     void updateUserSuccess() {
-        var userId = UUID.randomUUID();
+        final Role superUserRole = HelperFactory.createRole("Super User");
+        final Role level1Role = HelperFactory.createRole("Level 1");
+        final Court court1 = HelperFactory.createCourt(CourtType.CROWN, "First Court", "EX1");
+        final Court court2 = HelperFactory.createCourt(CourtType.CROWN, "Second Court", "EX1");
+        final Court court3 = HelperFactory.createCourt(CourtType.CROWN, "Third Court", "EX1");
+        final Court court4 = HelperFactory.createCourt(CourtType.CROWN, "Fourth Court", "EX1");
+        final Court court5 = HelperFactory.createCourt(CourtType.CROWN, "Fifth Court", "EX1");
 
-        var entity = new User();
-        entity.setId(userId);
-        entity.setFirstName("Example");
-        entity.setLastName("Example");
-        entity.setLastName("Example");
-        entity.setEmail("example@example.com");
+        User existingUser = createDefaultTestUser();
 
-        var accessEntity = new AppAccess();
-        accessEntity.setId(UUID.randomUUID());
+        AppAccess court1Level1Access = new AppAccess();
+        court1Level1Access.setId(UUID.randomUUID());
+        court1Level1Access.setUser(existingUser);
+        court1Level1Access.setCourt(court1);
+        court1Level1Access.setRole(level1Role);
+
+        AppAccess court2SuperUserAccess = new AppAccess();
+        court2SuperUserAccess.setId(UUID.randomUUID());
+        court2SuperUserAccess.setUser(existingUser);
+        court2SuperUserAccess.setCourt(court2);
+        court2SuperUserAccess.setRole(superUserRole);
+
+        AppAccess court3DeletedAccess = new AppAccess();
+        court3DeletedAccess.setId(UUID.randomUUID());
+        court3DeletedAccess.setUser(existingUser);
+        court3DeletedAccess.setCourt(court3);
+        court3DeletedAccess.setRole(superUserRole);
+        court3DeletedAccess.setActive(false);
+        court3DeletedAccess.setDeletedAt(Timestamp.from(Instant.now()));
+
+        AppAccess court4GetsDeletedFromList = new AppAccess();
+        court4GetsDeletedFromList.setId(UUID.randomUUID());
+        court4GetsDeletedFromList.setUser(existingUser);
+        court4GetsDeletedFromList.setCourt(court4);
+        court4GetsDeletedFromList.setRole(level1Role);
 
         var portalEntity = new PortalAccess();
         portalEntity.setId(UUID.randomUUID());
 
-        entity.setAppAccess(Set.of(accessEntity));
-        entity.setPortalAccess(Set.of(portalEntity));
+        existingUser.setAppAccess(Set.of(court1Level1Access,
+                                         court2SuperUserAccess,
+                                         court3DeletedAccess,
+                                         court4GetsDeletedFromList));
+        existingUser.setPortalAccess(Set.of(portalEntity));
 
-        var model = new CreateUserDTO();
-        model.setId(userId);
-        model.setFirstName("CHANGED");
-        model.setLastName("Example");
-        model.setEmail("example@example.com");
-        model.setPortalAccess(Set.of());
+        CreateUserDTO upsertedUser = new CreateUserDTO();
+        upsertedUser.setId(existingUser.getId());
+        // Personal details changed
+        upsertedUser.setFirstName("CHANGED");
+        upsertedUser.setLastName("Example");
+        upsertedUser.setEmail("new@email.com");
+        upsertedUser.setPortalAccess(Set.of());
 
-        var accessModel = new CreateAppAccessDTO();
-        accessModel.setId(UUID.randomUUID());
-        model.setAppAccess(Set.of(accessModel));
+        CreateAppAccessDTO updatedCourt1Access = new CreateAppAccessDTO();
+        updatedCourt1Access.setCourtId(court1.getId());
+        updatedCourt1Access.setUserId(existingUser.getId());
+        updatedCourt1Access.setRoleId(court1Level1Access.getRole().getId());
+        // Court 1 access deleted
+        updatedCourt1Access.setActive(false);
+
+        CreateAppAccessDTO updatedCourt2Access = new CreateAppAccessDTO();
+        updatedCourt2Access.setCourtId(court2.getId());
+        updatedCourt2Access.setUserId(existingUser.getId());
+        // Role ID changed
+        updatedCourt2Access.setRoleId(level1Role.getId());
+
+        // Undelete Court 3 access
+        CreateAppAccessDTO updatedCourt3Access = new CreateAppAccessDTO();
+        updatedCourt3Access.setCourtId(court3.getId());
+        updatedCourt3Access.setUserId(existingUser.getId());
+        updatedCourt3Access.setRoleId(superUserRole.getId());
+        updatedCourt3Access.setActive(true);
+
+        CreateAppAccessDTO newCourt5Access = new CreateAppAccessDTO();
+        newCourt5Access.setCourtId(court5.getId());
+        newCourt5Access.setUserId(existingUser.getId());
+        newCourt5Access.setRoleId(level1Role.getId());
+
+        upsertedUser.setAppAccess(Set.of(updatedCourt1Access, // set to inactive
+                                         updatedCourt2Access, // role changed to level 1
+                                         updatedCourt3Access, // undeleted: should be set to active
+                                         // updatedCourt4Access, // removed from list, should be deleted
+                                         newCourt5Access)); // new: should be created
 
         var portalModel = new CreatePortalAccessDTO();
         portalModel.setId(portalEntity.getId());
-        model.setPortalAccess(Set.of(portalModel));
+        upsertedUser.setPortalAccess(Set.of(portalModel));
 
-        when(userRepository.findById(model.getId())).thenReturn(Optional.of(entity));
-        when(appAccessService.upsert(accessModel)).thenReturn(UpsertResult.CREATED);
+        when(userRepository.findById(upsertedUser.getId())).thenReturn(Optional.of(existingUser));
+        when(appAccessService.upsert(any())).thenReturn(UpsertResult.UPDATED);
         when(portalAccessService.exists(portalModel.getId())).thenReturn(true);
         when(portalAccessService.update(portalModel)).thenReturn(UpsertResult.UPDATED);
 
-        assertThat(userService.upsert(model)).isEqualTo(UpsertResult.UPDATED);
+        userService.upsert(upsertedUser);
 
-        verify(userRepository, times(1)).findById(model.getId());
-        verify(userRepository, times(1)).saveAndFlush(any());
-        verify(appAccessService, times(1)).deleteById(accessEntity.getId());
-        verify(appAccessService, times(1)).upsert(accessModel);
-        verify(portalAccessService, times(1)).exists(portalModel.getId());
-        verify(portalAccessService, times(1)).update(portalModel);
+        verify(userRepository, times(1)).findById(upsertedUser.getId());
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).saveAndFlush(userCaptor.capture());
+        assertThat(userCaptor.getValue().getId()).isEqualTo(existingUser.getId());
+        assertThat(userCaptor.getValue().getFirstName()).isEqualTo(upsertedUser.getFirstName());
+        assertThat(userCaptor.getValue().getLastName()).isEqualTo(upsertedUser.getLastName());
+        assertThat(userCaptor.getValue().getEmail()).isEqualTo(upsertedUser.getEmail());
+
+        ArgumentCaptor<UUID> userIdCaptor = ArgumentCaptor.forClass(UUID.class);
+        ArgumentCaptor<UUID> courtIdCaptor = ArgumentCaptor.forClass(UUID.class);
+        verify(appAccessService, times(1))
+            .deleteByUserIdAndCourtId(userIdCaptor.capture(), courtIdCaptor.capture());
+        assertThat(userIdCaptor.getValue()).isEqualTo(existingUser.getId());
+        assertThat(courtIdCaptor.getValue()).isEqualTo(court4.getId());
+
+        ArgumentCaptor<CreateAppAccessDTO> appAccessCaptor = ArgumentCaptor.forClass(CreateAppAccessDTO.class);
+        verify(appAccessService, times(4)).upsert(appAccessCaptor.capture());
+
+        List<CreateAppAccessDTO> capturedAppAccess = appAccessCaptor.getAllValues();
+        assertThat(capturedAppAccess).containsExactlyInAnyOrder(updatedCourt1Access, updatedCourt2Access,
+                                                                updatedCourt3Access, newCourt5Access);
     }
 
     @DisplayName("Update a user fails when portal access does not exist")
@@ -1343,4 +1444,127 @@ public class UserServiceTest {
         assertThat(dto.getEmail()).isEqualTo(cjsmUser.getEmail());
         assertThat(dto.getAlternativeEmail()).isEqualTo(cjsmUser.getAlternativeEmail());
     }
+
+    @Test
+    @DisplayName("Should delegate to app access service")
+    void upsertAppAccessDelegatesToService() {
+        var appAccess = new CreateAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUserId(UUID.randomUUID());
+        appAccess.setCourtId(UUID.randomUUID());
+        appAccess.setRoleId(UUID.randomUUID());
+
+        when(appAccessService.upsert(appAccess)).thenReturn(UpsertResult.CREATED);
+
+        var result = userService.upsertAppAccess(appAccess);
+
+        assertThat(result).isEqualTo(UpsertResult.CREATED);
+        verify(appAccessService, times(1)).upsert(appAccess);
+    }
+
+    @Test
+    @DisplayName("Should delete duplicate access records for every user-court combination")
+    void deactivateDuplicateAccessRecords_deletesDuplicatesForEveryUserCourtCombination() {
+        User user1 = new User();
+        user1.setId(UUID.randomUUID());
+        User user2 = new User();
+        user2.setId(UUID.randomUUID());
+        when(userRepository.findAll()).thenReturn(List.of(user1, user2));
+
+        Court court1 = new Court();
+        court1.setId(UUID.randomUUID());
+        Court court2 = new Court();
+        court2.setId(UUID.randomUUID());
+        when(courtRepository.findAll()).thenReturn(List.of(court1, court2));
+
+        userService.deactivateDuplicateAccessRecords();
+
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(user1.getId(), court1.getId());
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(user1.getId(), court2.getId());
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(user2.getId(), court1.getId());
+        verify(appAccessService).deleteDuplicateAccessForUserIdAndCourtId(user2.getId(), court2.getId());
+        verify(appAccessService, times(4))
+            .deleteDuplicateAccessForUserIdAndCourtId(any(UUID.class), any(UUID.class));
+    }
+
+    @Test
+    void getUsersWithLatestAccessForCourt_returnsMappedUsersWithSingleLatestAccess() {
+        UUID courtId = UUID.randomUUID();
+
+        Court court = new Court();
+        court.setId(courtId);
+
+        Role role = new Role();
+        role.setId(UUID.randomUUID());
+
+        AppAccess appAccess = new AppAccess();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setCourt(court);
+        appAccess.setRole(role);
+
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setAppAccess(Set.of(appAccess));
+
+        when(courtRepository.existsById(courtId)).thenReturn(true);
+
+        when(userRepository.findAllByCourtIdIs(courtId)).thenReturn(List.of(user));
+
+        List<UserDTO> result = userService.getUsersWithLatestAccessForCourt(courtId);
+
+        assertThat(result).hasSize(1);
+        UserDTO dto = result.getFirst();
+        assertThat(dto.getAppAccess()).isNotNull();
+        assertThat(dto.getAppAccess()).hasSize(1);
+
+        verify(courtRepository).existsById(courtId);
+        verify(userRepository).findAllByCourtIdIs(courtId);
+        verifyNoMoreInteractions(courtRepository, userRepository);
+    }
+
+    @Test
+    void getUsersWithLatestAccessForCourt_throwsWhenCourtMissing() {
+        UUID courtId = UUID.randomUUID();
+        when(courtRepository.existsById(courtId)).thenReturn(false);
+
+        NotFoundException ex = assertThrows(
+            NotFoundException.class,
+            () -> userService.getUsersWithLatestAccessForCourt(courtId)
+        );
+
+        assertThat(ex.getMessage()).contains("Court: " + courtId);
+        verify(userRepository, never()).searchAllBy(any(), any(), any(), any(), any(), any(), any(),
+                                                    anyBoolean(), anyBoolean(), anyBoolean(), any(), any());
+    }
+
+    @Test
+    void getUsersWithLatestAccessForCourt_ignoreUsersWithMissingFields() {
+        Court court = new Court();
+        court.setId(UUID.randomUUID());
+        when(courtRepository.existsById(court.getId())).thenReturn(true);
+
+        User mockUserReturnedFromDB = mock(User.class);
+
+        when(userRepository.findAllByCourtIdIs(court.getId()))
+            .thenReturn(List.of(mockUserReturnedFromDB));
+
+        // Test 1: No user ID set
+        assertThat(userService.getUsersWithLatestAccessForCourt(court.getId())).isEmpty();
+
+        when(mockUserReturnedFromDB.getId()).thenReturn(UUID.randomUUID());
+        // Test 2: No app access set
+        assertThat(userService.getUsersWithLatestAccessForCourt(court.getId())).isEmpty();
+
+        // Test 3: App access list is not null, but empty
+        when(mockUserReturnedFromDB.getAppAccess()).thenReturn(Set.of());
+        assertThat(userService.getUsersWithLatestAccessForCourt(court.getId())).isEmpty();
+
+        // Test 4: Happy path: app access list has an entry
+        AppAccess appAccess = new AppAccess();
+        appAccess.setCourt(court);
+        appAccess.setRole(mock(Role.class));
+        when(mockUserReturnedFromDB.getAppAccess()).thenReturn(Set.of(appAccess));
+        assertThat(userService.getUsersWithLatestAccessForCourt(court.getId())).hasSize(1);
+    }
+
 }

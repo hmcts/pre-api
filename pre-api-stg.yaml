@@ -635,7 +635,6 @@ definitions:
         type: string
     required:
       - court_id
-      - id
       - role_id
       - user_id
     type: object
@@ -5481,6 +5480,63 @@ paths:
         role
       tags:
         - user-controller
+  '/users/access/{userId}':
+    put:
+      consumes:
+        - application/json
+      operationId: putUserAccess
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateAppAccessDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a User Access At Court Level
+      tags:
+        - user-controller
+  '/users/by-court/{courtId}':
+    get:
+      operationId: getUserAccessByCourt
+      parameters:
+        - format: uuid
+          in: path
+          name: courtId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserDTO'
+            type: array
+      summary: Get a User's latest access for this court
+      tags:
+        - user-controller
   '/users/by-email/{email}':
     get:
       operationId: getUserAccessByEmail
@@ -5504,6 +5560,45 @@ paths:
           schema:
             $ref: '#/definitions/AccessDTO'
       summary: Get a User's App Access by Email
+      tags:
+        - user-controller
+  /users/duplicate-access:
+    delete:
+      operationId: deactivateDuplicateAccess
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Deactivate duplicate access for a user
+      tags:
+        - user-controller
+  '/users/reset-app-access-ids/{userId}':
+    put:
+      operationId: resetAppAccessIds
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Reset App Access IDs for a User
       tags:
         - user-controller
   '/users/{userId}':

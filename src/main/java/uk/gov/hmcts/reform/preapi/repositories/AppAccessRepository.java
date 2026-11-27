@@ -19,6 +19,8 @@ public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
 
     List<AppAccess> findAllByUser_IdAndDeletedAtIsNotNull(UUID id);
 
+    List<AppAccess> findAllByUserId(UUID userId);
+
     @Query(
         """
         SELECT a FROM AppAccess a
@@ -38,4 +40,6 @@ public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
         """
     )
     List<AppAccess> getUserPrimaryCourtsForReport();
+
+    List<AppAccess> findAllByCourtIdAndUserId(UUID courtId, UUID userId);
 }

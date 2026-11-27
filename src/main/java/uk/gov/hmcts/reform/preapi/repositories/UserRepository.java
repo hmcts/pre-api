@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,12 +22,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query(
         """
         SELECT u FROM User u
-        WHERE (:includeDeleted = TRUE OR u.deletedAt IS NULL)
+        WHERE (:includeDeletedUsers = TRUE OR u.deletedAt IS NULL)
         AND (:isAppActive IS NULL OR EXISTS(
             SELECT 1 FROM u.appAccess aa
             WHERE aa.active = :isAppActive
             AND (CAST(:courtId as uuid) IS NULL OR aa.court.id = :courtId)
-            AND aa.deletedAt IS NULL
         ))
         AND (
             CASE
@@ -70,10 +70,20 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("roleId") UUID roleId,
         @Param("isPortalUser") Boolean isPortalUser,
         @Param("isAppUser") Boolean isAppUser,
-        boolean includeDeleted,
+        boolean includeDeletedUsers,
         @Param("isAppActive") Boolean isAppActive,
         Pageable pageable
     );
+
+    @Query(
+        """
+        SELECT u FROM User u
+        WHERE EXISTS(
+            SELECT 1 FROM u.appAccess aa
+            WHERE aa.court.id = :courtId)
+        AND u.deletedAt IS NULL
+        """)
+    List<User> findAllByCourtIdIs(UUID courtId);
 
     Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
 

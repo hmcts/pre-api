@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -50,19 +49,33 @@ public class UserDTO extends BaseUserDTO {
     private Map<TermsAndConditionsType, Boolean> termsAccepted;
 
     public UserDTO(User user, Set<TermsAndConditions> latestTermsAndConditions) {
-        super(user);    
+        this(user, null, latestTermsAndConditions);
+    }
+
+    public UserDTO(User user, Boolean filterAccess, Set<TermsAndConditions> latestTermsAndConditions) {
+        super(user);
         createdAt = user.getCreatedAt();
         modifiedAt = user.getModifiedAt();
         deletedAt = user.getDeletedAt();
+
+        boolean filterOutInactive = filterAccess != null && filterAccess;
+        boolean filterOutActive = filterAccess != null && !filterAccess;
         appAccess = Stream.ofNullable(user.getAppAccess())
             .flatMap(access -> access.stream()
-                .filter(a -> a.getDeletedAt() == null)
-                .sorted(Comparator.comparing(AppAccess::getLastAccess, Comparator.nullsLast(Comparator.reverseOrder())))
+                .filter(a -> {
+                    if (filterOutInactive) {
+                        return a.isActive();
+                    } else if (filterOutActive) {
+                        return !a.isActive();
+                    }
+                    return true;
+                })
+                .sorted(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE)
                 .map(BaseAppAccessDTO::new))
             .collect(Collectors.toList());
         portalAccess = Stream.ofNullable(user.getPortalAccess())
             .flatMap(access -> access.stream()
-                .filter(a -> a.getDeletedAt() == null)
+                .filter(a -> Boolean.FALSE.equals(filterAccess) || !a.isDeleted())
                 .map(PortalAccessDTO::new))
             .collect(Collectors.toList());
         if (latestTermsAndConditions != null) {

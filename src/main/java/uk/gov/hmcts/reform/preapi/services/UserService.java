@@ -13,7 +13,9 @@ import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
@@ -31,6 +33,8 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -70,6 +74,14 @@ public class UserService {
     }
 
     @Transactional()
+    public Optional<UserDTO> findByIdIfExists(UUID userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId).map(user -> new UserDTO(
+            user,
+            termsAndConditionsService.getAllLatestTermsAndConditions()
+        ));
+    }
+
+    @Transactional()
     public UserDTO findById(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
             .map(user ->
@@ -92,10 +104,10 @@ public class UserService {
     }
 
     @Transactional
-    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
+    @PreAuthorize("!#includeDeletedUsers or @authorisationService.canViewDeleted(authentication)")
     public Page<UserDTO> findAllBy(
         SearchUsers searchUsers,
-        Boolean includeDeleted,
+        Boolean includeDeletedUsers,
         Pageable pageable
     ) {
         if (searchUsers.getCourtId() != null && !courtRepository.existsById(searchUsers.getCourtId())) {
@@ -115,7 +127,7 @@ public class UserService {
                     searchUsers.getName(), searchUsers.getFirstName(), searchUsers.getLastName(),
                     searchUsers.getEmail(), searchUsers.getOrganisation(), searchUsers.getCourtId(),
                     null, true, false,
-                    includeDeleted, searchUsers.getAppActive(), pageable
+                    includeDeletedUsers, searchUsers.getAppActive(), pageable
                 ).map(user -> new UserDTO(user, allLatestTermsAndConditions));
             }
         }
@@ -126,9 +138,54 @@ public class UserService {
             searchUsers.getRoleId(),
             searchUsers.getAccessType() == AccessType.PORTAL,
             searchUsers.getAccessType() == AccessType.APP,
-            includeDeleted, searchUsers.getAppActive(), pageable
+            includeDeletedUsers, searchUsers.getAppActive(), pageable
         );
-        return returnedFromDB.map(user -> new UserDTO(user, allLatestTermsAndConditions));
+
+        return returnedFromDB.map(user -> new UserDTO(user, searchUsers.getAppActive(),
+                                                      allLatestTermsAndConditions));
+    }
+
+    @Transactional
+    public UpsertResult upsertAppAccess(CreateAppAccessDTO createAppAccessDTO) {
+        return appAccessService.upsert(createAppAccessDTO);
+    }
+
+    @Transactional
+    public void deactivateDuplicateAccessRecords() {
+        List<User> userList = userRepository.findAll();
+        List<Court> courtList = courtRepository.findAll();
+
+        for (User user : userList) {
+            for (Court court : courtList) {
+                appAccessService.deleteDuplicateAccessForUserIdAndCourtId(user.getId(), court.getId());
+            }
+        }
+    }
+
+    @Transactional
+    public List<UserDTO> getUsersWithLatestAccessForCourt(UUID courtId) {
+        if (courtId == null || !courtRepository.existsById(courtId)) {
+            throw new NotFoundException("Court: " + courtId);
+        }
+
+        List<User> returnedFromDB = userRepository.findAllByCourtIdIs(courtId);
+
+        return returnedFromDB.stream().map(user -> {
+            if (user.getId() == null || user.getAppAccess() == null || user.getAppAccess().isEmpty()) {
+                return null;
+            }
+
+            // Override access set to only include the latest access for this court. Don't care about T&Cs.
+            UserDTO mappedUser = new UserDTO(user, null);
+            Optional<AppAccess> latestAccess = user.getAppAccess().stream()
+                .max(AppAccess.BY_ACTIVE_LAST_ACCESS_ROLE);
+
+            latestAccess.ifPresent(appAccess ->
+                                       mappedUser.setAppAccess(List.of(new BaseAppAccessDTO(appAccess))));
+
+            return mappedUser;
+        }).filter(Objects::nonNull).toList();
+
     }
 
     @Transactional
@@ -161,13 +218,18 @@ public class UserService {
         userRepository.saveAndFlush(entity);
 
         if (isUpdate) {
+            // Find existing app access that should be deleted
             Stream.ofNullable(entity.getAppAccess())
                 .flatMap(Collection::stream)
                 .filter(appAccess -> appAccess.getDeletedAt() == null)
-                .map(AppAccess::getId)
-                .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
-                    .noneMatch(newAccessId -> newAccessId.equals(id)))
-                .forEach(appAccessService::deleteById);
+                .map(AppAccess::getCourt)
+                .filter(existingCourt ->
+                    createUserDTO.getAppAccess().stream()
+                        .map(CreateAppAccessDTO::getCourtId)
+                        .noneMatch(inputCourtId -> inputCourtId.equals(existingCourt.getId()))
+                )
+                .forEach(existingCourt ->
+                             appAccessService.deleteByUserIdAndCourtId(entity.getId(), existingCourt.getId()));
 
             Stream.ofNullable(entity.getPortalAccess())
                 .flatMap(Collection::stream)
@@ -302,5 +364,10 @@ public class UserService {
     @Transactional(readOnly = true)
     public Page<UserDTO> findPortalUsersWithCjsmEmail(Pageable pageable) {
         return userRepository.findPortalUsersWithCjsmEmail(pageable).map(user -> new UserDTO(user, null));
+    }
+
+    @Transactional
+    public void resetAppAccessIdsForUserId(UUID userId) {
+        appAccessService.resetAppAccessIDsForUserId(userId);
     }
 }
