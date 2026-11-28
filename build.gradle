@@ -358,7 +358,7 @@ dependencies {
   implementation group: 'com.microsoft.graph', name: 'microsoft-graph', version: '6.24.0'
   implementation group: 'com.azure', name: 'azure-identity', version: '1.18.3'
 
-  implementation group: 'org.jsoup', name: 'jsoup', version: '1.22.2'
+  implementation group: 'org.jsoup', name: 'jsoup', version: '1.24.1'
 
   developmentOnly 'org.springframework.boot:spring-boot-devtools'
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.59.Final')
